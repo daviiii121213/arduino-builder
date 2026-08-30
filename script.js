@@ -77,11 +77,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* Contact form -> sends to davi.devgenius@gmail.com via the visitor's email client */
+  /* Contact form -> sends to davi.devgenius@gmail.com
+     Automatic sending via EmailJS when EMAILJS_CONFIG.enabled is true (see top of file
+     for setup instructions). Falls back to opening the visitor's email client otherwise. */
   const contactForm = document.getElementById('contactForm');
   if (contactForm){
     const formNote = document.getElementById('formNote');
+    const submitBtn = contactForm.querySelector('.form-submit');
     const defaultNote = formNote.textContent;
+
+    if (window.EMAILJS_CONFIG && window.EMAILJS_CONFIG.enabled && window.emailjs){
+      emailjs.init({ publicKey: window.EMAILJS_CONFIG.publicKey });
+    }
 
     contactForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -99,6 +106,40 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      const config = window.EMAILJS_CONFIG;
+
+      if (config && config.enabled && window.emailjs){
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
+
+        emailjs.send(config.serviceId, config.templateId, {
+          from_name: name,
+          from_email: email,
+          phone: phone || 'não informado',
+          subject: subject,
+          message: message,
+          to_email: 'davi.devgenius@gmail.com'
+        }).then(() => {
+          formNote.textContent = 'Mensagem enviada com sucesso! Vamos responder em breve.';
+          formNote.classList.add('success');
+          formNote.classList.remove('error');
+          contactForm.reset();
+        }).catch(() => {
+          formNote.textContent = 'Não foi possível enviar agora. Tente novamente ou fale pelo WhatsApp.';
+          formNote.classList.add('error');
+          formNote.classList.remove('success');
+        }).finally(() => {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Enviar mensagem';
+          setTimeout(() => {
+            formNote.textContent = defaultNote;
+            formNote.classList.remove('success', 'error');
+          }, 6000);
+        });
+        return;
+      }
+
+      /* Fallback: no EmailJS configured yet, open the visitor's email client instead */
       const mailSubject = `[Site DevGenius] ${subject}`;
       const mailBody =
         `Nome: ${name}\n` +
