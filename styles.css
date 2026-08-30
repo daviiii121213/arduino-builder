@@ -317,8 +317,7 @@ p{ margin:0; color: var(--gray-700); line-height:1.65; }
 .style-preview.corporate{ background: linear-gradient(135deg,#e8ebf0,#c7d2e6); }
 .style-preview.elegant{ background: linear-gradient(135deg,#f6f0e6,#d8c9a8); }
 .style-card h3{ font-size:17px; margin-bottom:8px; }
-.style-card p{ font-size:14px; margin-bottom:14px; }
-.style-price{ display:inline-block; font-weight:700; color: var(--blue); font-size:14px; }
+.style-card p{ font-size:14px; margin-bottom:0; }
 
 /* ---------- Pricing ---------- */
 .grid-pricing{ display:grid; grid-template-columns: repeat(3,1fr); gap:26px; align-items:stretch; }
