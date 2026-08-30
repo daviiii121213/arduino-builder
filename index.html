@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevGenius — Criação de Sites Profissionais</title>
+<meta name="description" content="Criamos sites profissionais para lojas, restaurantes, barbearias, salões, empresas e muito mais. Design moderno, rápido e sob medida para o seu negócio.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%230d0d0d%22/><text x=%2250%22 y=%2268%22 font-size=%2260%22 fill=%22%232563eb%22 text-anchor=%22middle%22 font-family=%22Arial%22>D</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- ===== HEADER ===== -->
+<header class="site-header" id="siteHeader">
+  <div class="container header-inner">
+    <a href="#top" class="logo">
+      <span class="logo-mark">&lt;/&gt;</span>
+      <span class="logo-text">Dev<strong>Genius</strong></span>
+    </a>
+
+    <nav class="main-nav" id="mainNav">
+      <a href="#tipos">Tipos de Site</a>
+      <a href="#sites">Nossos Sites</a>
+      <a href="#estilos">Estilos</a>
+      <a href="#planos">Planos</a>
+      <a href="#como-funciona">Como Funciona</a>
+      <a href="#parceiros">Parceiros</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+
+    <div class="header-actions">
+      <a href="https://wa.me/553499500781" target="_blank" rel="noopener" class="btn btn-ghost header-whatsapp">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2zm0 1.67c2.24 0 4.35.87 5.94 2.46a8.36 8.36 0 0 1 2.46 5.95c0 4.63-3.77 8.4-8.4 8.4a8.4 8.4 0 0 1-4.27-1.17l-.3-.18-3.12.82.83-3.04-.2-.31a8.38 8.38 0 0 1-1.28-4.47c0-4.63 3.77-8.4 8.4-8.4l-.06-.06z"/></svg>
+        (34) 99500-781
+      </a>
+      <a href="#contato" class="btn btn-primary header-cta">Criar meu site</a>
+    </div>
+
+    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- Mobile menu overlay -->
+<div class="mobile-menu" id="mobileMenu">
+  <nav>
+    <a href="#tipos">Tipos de Site</a>
+    <a href="#sites">Nossos Sites</a>
+    <a href="#estilos">Estilos</a>
+    <a href="#planos">Planos</a>
+    <a href="#como-funciona">Como Funciona</a>
+    <a href="#parceiros">Parceiros</a>
+    <a href="#faq">FAQ</a>
+    <a href="#contato" class="btn btn-primary" style="margin-top:16px;">Criar meu site</a>
+  </nav>
+</div>
+
+<main id="top">
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-bg-grid"></div>
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <span class="eyebrow"><span class="dot"></span> Agência de sites • Entrega rápida</span>
+      <h1>Seu negócio merece <span class="highlight">um site de verdade.</span></h1>
+      <p class="hero-desc">Criamos sites profissionais, rápidos e responsivos que passam credibilidade, atraem clientes e vendem por você — 24 horas por dia, todos os dias.</p>
+      <div class="hero-btns">
+        <a href="#sites" class="btn btn-primary btn-lg">Ver nossos sites</a>
+        <a href="#contato" class="btn btn-outline btn-lg">Criar meu site</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><strong>+180</strong><span>sites entregues</span></div>
+        <div class="stat"><strong>4.9/5</strong><span>avaliação média</span></div>
+        <div class="stat"><strong>7 dias</strong><span>prazo médio</span></div>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="mock-browser mock-main float-anim">
+        <div class="mock-topbar">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <div class="mock-url">suaempresa.com.br</div>
+        </div>
+        <div class="mock-body">
+          <div class="mock-nav">
+            <div class="mock-logo"></div>
+            <div class="mock-links"><span></span><span></span><span></span></div>
+            <div class="mock-btn"></div>
+          </div>
+          <div class="mock-hero">
+            <div class="mock-line lg"></div>
+            <div class="mock-line md"></div>
+            <div class="mock-line sm"></div>
+            <div class="mock-cta"></div>
+          </div>
+          <div class="mock-cards">
+            <div class="mock-card"></div>
+            <div class="mock-card"></div>
+            <div class="mock-card"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mock-browser mock-secondary float-anim-delay">
+        <div class="mock-topbar">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        </div>
+        <div class="mock-body compact">
+          <div class="mock-line md"></div>
+          <div class="mock-line sm"></div>
+          <div class="mock-cards two">
+            <div class="mock-card"></div>
+            <div class="mock-card"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mock-phone float-anim-slow">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="mock-line sm light"></div>
+          <div class="mock-line md light"></div>
+          <div class="mock-card small"></div>
+          <div class="mock-card small"></div>
+        </div>
+      </div>
+
+      <div class="badge-float badge-1">🚀 Site no ar em 7 dias</div>
+      <div class="badge-float badge-2">✔ 100% responsivo</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== LOGOS / TRUST BAR ===== -->
+<section class="trustbar">
+  <div class="container trustbar-inner">
+    <p>Empresas de diversos segmentos já confiam na DevGenius</p>
+    <div class="trust-logos">
+      <span>exactti.com</span>
+      <span>malhaação.com.br</span>
+      <span>oncotime.com.br</span>
+      <span>+ 180 clientes</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TIPOS DE SITE ===== -->
+<section class="section" id="tipos">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-tag">Soluções sob medida</span>
+      <h2>Qual site você precisa?</h2>
+      <p>Independentemente do seu segmento, temos o formato ideal para o seu projeto.</p>
+    </div>
+
+    <div class="grid-types">
+      <div class="type-card"><div class="type-icon">🛒</div><h3>Loja Online</h3><p>E-commerce completo para vender pela internet.</p></div>
+      <div class="type-card"><div class="type-icon">🍽️</div><h3>Restaurante</h3><p>Cardápio digital, pedidos e reservas online.</p></div>
+      <div class="type-card"><div class="type-icon">💈</div><h3>Barbearia</h3><p>Agendamento online e vitrine de serviços.</p></div>
+      <div class="type-card"><div class="type-icon">💇</div><h3>Salão de Beleza</h3><p>Portfólio de serviços e agendamentos.</p></div>
+      <div class="type-card"><div class="type-icon">🏢</div><h3>Empresa</h3><p>Presença institucional sólida e profissional.</p></div>
+      <div class="type-card"><div class="type-icon">🎨</div><h3>Portfólio</h3><p>Mostre seus trabalhos com um visual marcante.</p></div>
+      <div class="type-card"><div class="type-icon">🏠</div><h3>Imobiliária</h3><p>Catálogo de imóveis com busca e filtros.</p></div>
+      <div class="type-card"><div class="type-icon">🎮</div><h3>Projeto Gamer</h3><p>Sites para streamers, times e comunidades.</p></div>
+      <div class="type-card"><div class="type-icon">⚡</div><h3>Landing Page</h3><p>Página de alta conversão para campanhas.</p></div>
+      <div class="type-card"><div class="type-icon">👤</div><h3>Site Pessoal</h3><p>Currículo, blog ou marca pessoal online.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== BANNER PROMO 2 ===== -->
+<section class="promo-banner">
+  <div class="container promo-inner">
+    <div class="promo-text">
+      <span class="section-tag light">Oferta por tempo limitado</span>
+      <h2>Ganhe domínio grátis no primeiro ano</h2>
+      <p>Feche seu site este mês e leve o registro do domínio sem custo. Vagas limitadas por mês.</p>
+    </div>
+    <a href="#contato" class="btn btn-primary btn-lg">Quero aproveitar</a>
+  </div>
+</section>
+
+<!-- ===== NOSSOS SITES ===== -->
+<section class="section" id="sites">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-tag">Portfólio</span>
+      <h2>Nossos Sites</h2>
+      <p>Uma amostra dos projetos que já colocamos no ar.</p>
+    </div>
+
+    <div class="grid-portfolio">
+      <div class="portfolio-card">
+        <div class="portfolio-preview theme-1">
+          <div class="mini-nav"><span></span><span></span><span></span></div>
+          <div class="mini-hero"><div class="mini-line lg"></div><div class="mini-line sm"></div></div>
+          <div class="mini-grid"><span></span><span></span><span></span></div>
+        </div>
+        <div class="portfolio-info"><h3>Loja de Moda</h3><p>E-commerce · Vitrine de produtos</p></div>
+      </div>
+
+      <div class="portfolio-card">
+        <div class="portfolio-preview theme-2">
+          <div class="mini-nav"><span></span><span></span><span></span></div>
+          <div class="mini-hero"><div class="mini-line lg"></div><div class="mini-line sm"></div></div>
+          <div class="mini-grid"><span></span><span></span><span></span></div>
+        </div>
+        <div class="portfolio-info"><h3>Restaurante Sabor & Arte</h3><p>Cardápio digital · Reservas</p></div>
+      </div>
+
+      <div class="portfolio-card">
+        <div class="portfolio-preview theme-3">
+          <div class="mini-nav"><span></span><span></span><span></span></div>
+          <div class="mini-hero"><div class="mini-line lg"></div><div class="mini-line sm"></div></div>
+          <div class="mini-grid"><span></span><span></span><span></span></div>
+        </div>
+        <div class="portfolio-info"><h3>Studio Barber</h3><p>Barbearia · Agendamento online</p></div>
+      </div>
+
+      <div class="portfolio-card">
+        <div class="portfolio-preview theme-4">
+          <div class="mini-nav"><span></span><span></span><span></span></div>
+          <div class="mini-hero"><div class="mini-line lg"></div><div class="mini-line sm"></div></div>
+          <div class="mini-grid"><span></span><span></span><span></span></div>
+        </div>
+        <div class="portfolio-info"><h3>Construtora Horizonte</h3><p>Institucional · Empresa</p></div>
+      </div>
+
+      <div class="portfolio-card">
+        <div class="portfolio-preview theme-5">
+          <div class="mini-nav"><span></span><span></span><span></span></div>
+          <div class="mini-hero"><div class="mini-line lg"></div><div class="mini-line sm"></div></div>
+          <div class="mini-grid"><span></span><span></span><span></span></div>
+        </div>
+        <div class="portfolio-info"><h3>Imóveis Prime</h3><p>Imobiliária · Catálogo</p></div>
+      </div>
+
+      <div class="portfolio-card">
+        <div class="portfolio-preview theme-6">
+          <div class="mini-nav"><span></span><span></span><span></span></div>
+          <div class="mini-hero"><div class="mini-line lg"></div><div class="mini-line sm"></div></div>
+          <div class="mini-grid"><span></span><span></span><span></span></div>
+        </div>
+        <div class="portfolio-info"><h3>Ana Ribeiro Designer</h3><p>Portfólio criativo</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ESCOLHA SEU ESTILO ===== -->
+<section class="section section-alt" id="estilos">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-tag">Conceitos visuais</span>
+      <h2>Escolha seu estilo</h2>
+      <p>Cada conceito é pensado para transmitir a personalidade certa do seu negócio.</p>
+    </div>
+
+    <div class="grid-styles">
+      <div class="style-card">
+        <div class="style-preview dark"></div>
+        <h3>Minimalista</h3>
+        <p>Design limpo, foco em conteúdo e tipografia.</p>
+        <span class="style-price">a partir de R$ 890</span>
+      </div>
+      <div class="style-card">
+        <div class="style-preview bold"></div>
+        <h3>Impacto Visual</h3>
+        <p>Cores fortes, seções grandes e alto contraste.</p>
+        <span class="style-price">a partir de R$ 1.190</span>
+      </div>
+      <div class="style-card">
+        <div class="style-preview corporate"></div>
+        <h3>Corporativo</h3>
+        <p>Sóbrio, confiável e orientado a conversão.</p>
+        <span class="style-price">a partir de R$ 1.490</span>
+      </div>
+      <div class="style-card">
+        <div class="style-preview elegant"></div>
+        <h3>Elegante</h3>
+        <p>Refinado, com tipografia serifada e espaços amplos.</p>
+        <span class="style-price">a partir de R$ 1.290</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PLANOS ===== -->
+<section class="section" id="planos">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-tag">Planos e preços</span>
+      <h2>Um plano para cada fase do seu negócio</h2>
+      <p>Sem taxas escondidas. Cancele ou faça upgrade quando quiser.</p>
+    </div>
+
+    <div class="grid-pricing">
+      <div class="price-card">
+        <h3>STARTER</h3>
+        <p class="price-desc">Ideal para quem está começando.</p>
+        <div class="price-value"><span>R$</span>790</div>
+        <ul class="price-list">
+          <li>Site de 1 página (Landing Page)</li>
+          <li>Design responsivo</li>
+          <li>Formulário de contato</li>
+          <li>Otimização básica de SEO</li>
+          <li>Entrega em até 5 dias</li>
+        </ul>
+        <a href="#contato" class="btn btn-outline">Escolher Starter</a>
+      </div>
+
+      <div class="price-card featured">
+        <span class="price-badge">Mais escolhido</span>
+        <h3>PRO</h3>
+        <p class="price-desc">Para negócios em crescimento.</p>
+        <div class="price-value"><span>R$</span>1.490</div>
+        <ul class="price-list">
+          <li>Site institucional até 6 páginas</li>
+          <li>Design responsivo premium</li>
+          <li>Painel para editar conteúdo</li>
+          <li>SEO avançado</li>
+          <li>Integração com WhatsApp</li>
+          <li>Entrega em até 10 dias</li>
+        </ul>
+        <a href="#contato" class="btn btn-primary">Escolher Pro</a>
+      </div>
+
+      <div class="price-card">
+        <h3>PREMIUM</h3>
+        <p class="price-desc">Sites e lojas completas.</p>
+        <div class="price-value"><span>R$</span>2.990</div>
+        <ul class="price-list">
+          <li>E-commerce ou site sob medida</li>
+          <li>Páginas ilimitadas</li>
+          <li>Painel administrativo completo</li>
+          <li>SEO avançado + Analytics</li>
+          <li>Suporte prioritário 90 dias</li>
+          <li>Entrega em até 20 dias</li>
+        </ul>
+        <a href="#contato" class="btn btn-outline">Escolher Premium</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== BENEFÍCIOS ===== -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-tag">Por que a DevGenius</span>
+      <h2>Benefícios que fazem a diferença</h2>
+    </div>
+
+    <div class="grid-benefits">
+      <div class="benefit-item">
+        <div class="benefit-icon">⚡</div>
+        <h3>Performance real</h3>
+        <p>Sites rápidos, otimizados e prontos para o Google.</p>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">📱</div>
+        <h3>100% Responsivo</h3>
+        <p>Perfeito em celular, tablet e desktop.</p>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🎯</div>
+        <h3>Foco em conversão</h3>
+        <p>Layouts pensados para transformar visitas em clientes.</p>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🔒</div>
+        <h3>Segurança incluída</h3>
+        <p>Certificado SSL e boas práticas de segurança.</p>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🛠️</div>
+        <h3>Suporte contínuo</h3>
+        <p>Time disponível para ajustes e dúvidas após a entrega.</p>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">💬</div>
+        <h3>Atendimento próximo</h3>
+        <p>Comunicação direta via WhatsApp durante todo o projeto.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== COMO FUNCIONA ===== -->
+<section class="section" id="como-funciona">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-tag">Processo</span>
+      <h2>Como funciona</h2>
+      <p>Do primeiro contato ao site no ar, um processo simples e transparente.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step-item">
+        <div class="step-number">01</div>
+        <h3>Briefing</h3>
+        <p>Entendemos seu negócio, objetivos e referências visuais.</p>
+      </div>
+      <div class="step-item">
+        <div class="step-number">02</div>
+        <h3>Design</h3>
+        <p>Criamos o layout do seu site alinhado à sua identidade.</p>
+      </div>
+      <div class="step-item">
+        <div class="step-number">03</div>
+        <h3>Desenvolvimento</h3>
+        <p>Programamos o site com foco em performance e responsividade.</p>
+      </div>
+      <div class="step-item">
+        <div class="step-number">04</div>
+        <h3>Lançamento</h3>
+        <p>Publicamos, testamos e seu site entra no ar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== DEPOIMENTOS ===== -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-tag">Depoimentos</span>
+      <h2>O que nossos clientes dizem</h2>
+    </div>
+
+    <div class="grid-testimonials">
+      <div class="testimonial-card">
+        <div class="stars">★★★★★</div>
+        <p>"O site ficou muito mais profissional do que eu esperava. Já recebi vários pedidos pelo WhatsApp direto pelo site."</p>
+        <div class="testimonial-author">
+          <div class="avatar">RM</div>
+          <div><strong>Rafael Martins</strong><span>Barbearia Studio Barber</span></div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="stars">★★★★★</div>
+        <p>"Atendimento rápido e o resultado superou as expectativas. Recomendo para qualquer empreendedor."</p>
+        <div class="testimonial-author">
+          <div class="avatar">CL</div>
+          <div><strong>Carla Lopes</strong><span>Salão Bela Beauty</span></div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="stars">★★★★★</div>
+        <p>"Nossa loja online começou a vender na primeira semana. Equipe muito atenciosa do início ao fim."</p>
+        <div class="testimonial-author">
+          <div class="avatar">JS</div>
+          <div><strong>João Silva</strong><span>Loja Fashion Store</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PARCEIROS ===== -->
+<section class="section" id="parceiros">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-tag">Confiança</span>
+      <h2>Nossos Parceiros</h2>
+      <p>Empresas reais que tiveram seus sites desenvolvidos pela DevGenius.</p>
+    </div>
+
+    <div class="grid-partners">
+      <div class="partner-card">
+        <div class="partner-preview">
+          <div class="mini-nav"><span></span><span></span><span></span></div>
+          <div class="mini-hero"><div class="mini-line lg"></div><div class="mini-line sm"></div></div>
+          <div class="mini-grid"><span></span><span></span><span></span></div>
+        </div>
+        <h3>Exactti</h3>
+        <p>Soluções e tecnologia para negócios.</p>
+        <a href="https://exactti.com" target="_blank" rel="noopener" class="btn btn-outline">Visitar site</a>
+      </div>
+
+      <div class="partner-card">
+        <div class="partner-preview alt">
+          <div class="mini-nav"><span></span><span></span><span></span></div>
+          <div class="mini-hero"><div class="mini-line lg"></div><div class="mini-line sm"></div></div>
+          <div class="mini-grid"><span></span><span></span><span></span></div>
+        </div>
+        <h3>Malha Ação</h3>
+        <p>Moda fitness e vestuário esportivo.</p>
+        <a href="https://malhaacao.com.br" target="_blank" rel="noopener" class="btn btn-outline">Visitar site</a>
+      </div>
+
+      <div class="partner-card">
+        <div class="partner-preview alt2">
+          <div class="mini-nav"><span></span><span></span><span></span></div>
+          <div class="mini-hero"><div class="mini-line lg"></div><div class="mini-line sm"></div></div>
+          <div class="mini-grid"><span></span><span></span><span></span></div>
+        </div>
+        <h3>Oncotime</h3>
+        <p>Tecnologia aplicada à saúde e oncologia.</p>
+        <a href="https://oncotime.com.br" target="_blank" rel="noopener" class="btn btn-outline">Visitar site</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section class="section section-alt" id="faq">
+  <div class="container container-narrow">
+    <div class="section-head">
+      <span class="section-tag">Dúvidas</span>
+      <h2>Perguntas Frequentes</h2>
+    </div>
+
+    <div class="accordion">
+      <div class="accordion-item">
+        <button class="accordion-header">
+          Quanto tempo leva para meu site ficar pronto?
+          <span class="accordion-icon">+</span>
+        </button>
+        <div class="accordion-content">
+          <p>O prazo varia conforme o plano escolhido: de 5 dias (Starter) a até 20 dias (Premium), dependendo da complexidade do projeto.</p>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-header">
+          Eu preciso ter um domínio e hospedagem?
+          <span class="accordion-icon">+</span>
+        </button>
+        <div class="accordion-content">
+          <p>Não é obrigatório. Podemos providenciar domínio e hospedagem para você, ou usar os que você já possui.</p>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-header">
+          Posso atualizar o conteúdo do site sozinho depois?
+          <span class="accordion-icon">+</span>
+        </button>
+        <div class="accordion-content">
+          <p>Sim, nos planos Pro e Premium entregamos um painel simples para você editar textos e imagens sem precisar programar.</p>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-header">
+          O site funciona bem no celular?
+          <span class="accordion-icon">+</span>
+        </button>
+        <div class="accordion-content">
+          <p>Sim. Todos os nossos sites são 100% responsivos e testados em diferentes tamanhos de tela antes da entrega.</p>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-header">
+          Como funciona o pagamento?
+          <span class="accordion-icon">+</span>
+        </button>
+        <div class="accordion-content">
+          <p>Trabalhamos com uma entrada para iniciar o projeto e o restante na entrega. Aceitamos Pix, cartão e boleto.</p>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-header">
+          Vocês oferecem suporte após a entrega?
+          <span class="accordion-icon">+</span>
+        </button>
+        <div class="accordion-content">
+          <p>Sim, todos os planos incluem período de suporte gratuito após o lançamento para pequenos ajustes.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA FINAL ===== -->
+<section class="final-cta" id="contato">
+  <div class="container final-cta-inner">
+    <h2>Pronto para colocar sua ideia na internet?</h2>
+    <p>Fale agora com nosso time e receba um orçamento personalizado sem compromisso.</p>
+    <div class="hero-btns center">
+      <a href="https://wa.me/553499500781" target="_blank" rel="noopener" class="btn btn-primary btn-lg">Falar no WhatsApp</a>
+      <a href="#planos" class="btn btn-outline-light btn-lg">Ver planos</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-col footer-brand">
+      <a href="#top" class="logo">
+        <span class="logo-mark">&lt;/&gt;</span>
+        <span class="logo-text">Dev<strong>Genius</strong></span>
+      </a>
+      <p>Criamos sites profissionais que fazem seu negócio crescer na internet.</p>
+      <div class="footer-social">
+        <a href="https://instagram.com/devgenius.site" target="_blank" rel="noopener" aria-label="Instagram">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>
+          @devgenius.site
+        </a>
+        <a href="https://wa.me/553499500781" target="_blank" rel="noopener" aria-label="WhatsApp">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2z"/></svg>
+          (34) 99500-781
+        </a>
+      </div>
+    </div>
+
+    <div class="footer-col">
+      <h4>Navegação</h4>
+      <a href="#tipos">Tipos de Site</a>
+      <a href="#sites">Nossos Sites</a>
+      <a href="#estilos">Estilos</a>
+      <a href="#planos">Planos</a>
+      <a href="#como-funciona">Como Funciona</a>
+      <a href="#faq">FAQ</a>
+    </div>
+
+    <div class="footer-col">
+      <h4>Parceiros</h4>
+      <a href="https://exactti.com" target="_blank" rel="noopener">exactti.com</a>
+      <a href="https://malhaacao.com.br" target="_blank" rel="noopener">malhaacao.com.br</a>
+      <a href="https://oncotime.com.br" target="_blank" rel="noopener">oncotime.com.br</a>
+    </div>
+
+    <div class="footer-col">
+      <h4>Contato</h4>
+      <a href="https://wa.me/553499500781" target="_blank" rel="noopener">WhatsApp: (34) 99500-781</a>
+      <a href="https://instagram.com/devgenius.site" target="_blank" rel="noopener">Instagram: @devgenius.site</a>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <div class="container">
+      <p>&copy; <span id="year"></span> DevGenius. Todos os direitos reservados.</p>
+    </div>
+  </div>
+</footer>
+
+<a href="https://wa.me/553499500781" target="_blank" rel="noopener" class="whatsapp-float" aria-label="Fale no WhatsApp">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2z"/></svg>
+</a>
+
+<script src="script.js"></script>
+</body>
+</html>
