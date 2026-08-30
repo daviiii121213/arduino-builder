@@ -77,6 +77,51 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  /* Contact form -> sends to davi.devgenius@gmail.com via the visitor's email client */
+  const contactForm = document.getElementById('contactForm');
+  if (contactForm){
+    const formNote = document.getElementById('formNote');
+    const defaultNote = formNote.textContent;
+
+    contactForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const name = contactForm.name.value.trim();
+      const email = contactForm.email.value.trim();
+      const phone = contactForm.phone.value.trim();
+      const subject = contactForm.subject.value.trim();
+      const message = contactForm.message.value.trim();
+
+      if (!name || !email || !subject || !message){
+        formNote.textContent = 'Preencha nome, e-mail, assunto e mensagem antes de enviar.';
+        formNote.classList.add('error');
+        formNote.classList.remove('success');
+        return;
+      }
+
+      const mailSubject = `[Site DevGenius] ${subject}`;
+      const mailBody =
+        `Nome: ${name}\n` +
+        `E-mail: ${email}\n` +
+        `Telefone: ${phone || 'não informado'}\n\n` +
+        `Mensagem:\n${message}`;
+
+      const mailtoLink =
+        `mailto:davi.devgenius@gmail.com?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`;
+
+      window.location.href = mailtoLink;
+
+      formNote.textContent = 'Abrindo seu aplicativo de e-mail para enviar a mensagem para davi.devgenius@gmail.com...';
+      formNote.classList.add('success');
+      formNote.classList.remove('error');
+
+      setTimeout(() => {
+        formNote.textContent = defaultNote;
+        formNote.classList.remove('success');
+      }, 6000);
+    });
+  }
+
   /* Scroll reveal animations */
   const revealTargets = document.querySelectorAll(
     '.type-card, .portfolio-card, .style-card, .price-card, .benefit-item, .step-item, .testimonial-card, .partner-card, .section-head'

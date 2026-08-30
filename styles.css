@@ -322,7 +322,7 @@ p{ margin:0; color: var(--gray-700); line-height:1.65; }
 .price-card:hover{ transform: translateY(-6px); box-shadow: var(--shadow-md); }
 .price-card.featured{ background: var(--black); border-color: var(--black); color:#fff; transform: scale(1.04); }
 .price-card.featured:hover{ transform: scale(1.04) translateY(-6px); }
-.price-card.featured h3, .price-card.featured .price-value{ color:#fff; }
+.price-card.featured h3{ color:#fff; }
 .price-card.featured p, .price-card.featured .price-list li{ color: rgba(255,255,255,0.7); }
 .price-card.featured .price-list li::before{ color: var(--blue); }
 .price-badge{
@@ -331,9 +331,7 @@ p{ margin:0; color: var(--gray-700); line-height:1.65; }
   padding:6px 16px; border-radius:999px;
 }
 .price-card h3{ font-size:20px; letter-spacing:0.05em; margin-bottom:8px; }
-.price-desc{ font-size:14px; margin-bottom:18px; }
-.price-value{ font-size:42px; font-weight:800; margin-bottom:22px; }
-.price-value span{ font-size:18px; font-weight:600; vertical-align:top; margin-right:4px; }
+.price-desc{ font-size:14px; margin-bottom:26px; }
 .price-list{ flex:1; margin-bottom:26px; }
 .price-list li{ padding:8px 0 8px 26px; position:relative; font-size:14px; color: var(--gray-700); border-bottom:1px solid var(--gray-200); }
 .price-card.featured .price-list li{ border-color: rgba(255,255,255,0.12); }
@@ -394,6 +392,41 @@ p{ margin:0; color: var(--gray-700); line-height:1.65; }
 .partner-preview.alt2{ background: linear-gradient(135deg,#fff2ec,#fff); }
 .partner-card h3{ font-size:19px; margin-bottom:6px; }
 .partner-card p{ font-size:14px; margin-bottom:18px; }
+
+/* ---------- Contato / Formulário ---------- */
+.contact-wrap{
+  display:grid; grid-template-columns: 0.8fr 1.2fr; gap:50px; align-items:start;
+}
+.contact-info{ display:flex; flex-direction:column; gap:26px; }
+.contact-info-item{ display:flex; align-items:flex-start; gap:16px; }
+.contact-info-icon{
+  flex-shrink:0; width:46px; height:46px; border-radius:12px; background: var(--blue-light);
+  color: var(--blue); display:flex; align-items:center; justify-content:center;
+}
+.contact-info-item h4{ font-size:14px; font-weight:700; margin-bottom:4px; }
+.contact-info-item a{ font-size:15px; color: var(--gray-700); transition: color var(--transition); }
+.contact-info-item a:hover{ color: var(--blue); }
+
+.contact-form{
+  background:#fff; border:1px solid var(--gray-200); border-radius: var(--radius-lg);
+  padding:36px; display:flex; flex-direction:column; gap:20px; box-shadow: var(--shadow-sm);
+}
+.form-row{ display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
+.form-field{ display:flex; flex-direction:column; gap:8px; }
+.form-field label{ font-size:13px; font-weight:600; color: var(--gray-700); }
+.form-field input, .form-field textarea{
+  font-family:inherit; font-size:15px; padding:12px 14px; border-radius:9px;
+  border:1.5px solid var(--gray-200); color: var(--black); background: var(--white);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  resize: vertical;
+}
+.form-field input:focus, .form-field textarea:focus{
+  outline:none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-light);
+}
+.form-submit{ align-self:flex-start; }
+.form-note{ font-size:13px; color: var(--gray-500); margin:0; }
+.form-note.success{ color: var(--blue-dark); font-weight:600; }
+.form-note.error{ color:#c0362c; font-weight:600; }
 
 /* ---------- FAQ Accordion ---------- */
 .accordion-item{ border-bottom:1px solid var(--gray-200); }
@@ -472,6 +505,7 @@ p{ margin:0; color: var(--gray-700); line-height:1.65; }
   .grid-partners{ grid-template-columns: 1fr; max-width:420px; margin:0 auto; }
   .grid-portfolio{ grid-template-columns: repeat(2,1fr); }
   .footer-grid{ grid-template-columns: 1fr 1fr; }
+  .contact-wrap{ grid-template-columns: 1fr; gap:40px; }
 }
 
 @media (max-width: 860px){
@@ -492,6 +526,8 @@ p{ margin:0; color: var(--gray-700); line-height:1.65; }
   .grid-benefits{ grid-template-columns: 1fr; }
   .grid-portfolio{ grid-template-columns: 1fr; }
   .footer-grid{ grid-template-columns: 1fr; gap:30px; }
+  .form-row{ grid-template-columns: 1fr; }
+  .contact-form{ padding:26px; }
   .hero-visual{ height:400px; }
   .mock-main{ width:88%; right:0; }
   .mock-secondary{ display:none; }
