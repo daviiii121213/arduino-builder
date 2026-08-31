@@ -1,14 +1,9 @@
 # Essence Pause Uberlândia — Landing Page
 
-Site institucional e sistema de agendamento da Essence Pause Uberlândia
-("Sua pausa para cuidar da sua essência" — Cabelo, Unhas, Massagem,
-Depilação, Botox).
+Site institucional da Essence Pause Uberlândia ("Sua pausa para cuidar da
+sua essência" — Cabelo, Unhas, Massagem, Depilação, Botox).
 
 ## Rodando localmente
-
-Requer Node.js 22.5 ou superior (usa o módulo `node:sqlite` embutido —
-não precisa instalar Visual Studio Build Tools/compilador C++, nem nada
-além do próprio Node).
 
 ```bash
 npm install
@@ -27,33 +22,32 @@ $env:PORT=3001; npm start
 PORT=3001 npm start
 ```
 
+O site é totalmente estático (HTML/CSS/JS) — o `npm start` só sobe um
+servidor simples pra servir os arquivos. Também é possível abrir os
+arquivos de `public/` diretamente no navegador, sem servidor nenhum.
+
 ## Estrutura
 
-- `public/` — frontend estático (Início, Sobre, Serviços, Localização, Contato)
-- `server.js` — servidor Express, serve o frontend e a API
-- `src/config/business.js` — dados da marca, serviços e horário de funcionamento
-- `src/availability.js` — motor de disponibilidade (única fonte de verdade,
-  usada tanto para listar horários livres quanto para validar uma reserva)
-- `src/routes/booking.js` — API de agendamento
-- `data/essence-pause.db` — banco SQLite (criado automaticamente via `node:sqlite`, persiste os agendamentos)
+- `public/` — frontend (Início, Sobre, Serviços, Localização, Contato)
+- `public/js/contact-form.js` — formulário de contato: valida os campos e
+  abre o WhatsApp da Essence Pause com a mensagem já preenchida
+- `server.js` — servidor estático (Express), só pra rodar localmente
 
-## Sistema de agendamento
+## Formulário de contato
 
-A verificação de disponibilidade é feita **no servidor**, não só na
-interface: antes de confirmar, o backend garante que o horário está dentro
-do funcionamento, não é no passado e não conflita com nenhuma reserva já
-existente (considerando a duração de cada serviço). A checagem e a
-gravação da reserva acontecem dentro de uma transação atômica no SQLite,
-o que impede que dois clientes reservem o mesmo horário simultaneamente.
+Não há agendamento automático nem banco de dados: o cliente preenche o
+formulário na aba Contato (nome, telefone/WhatsApp, e-mail, serviço,
+preferência de data/horário, assunto, observações) e marca a caixa de
+autorização de contato. Ao enviar, o site monta a mensagem e abre o
+WhatsApp oficial da Essence Pause com o texto pronto — o cliente só
+confirma o envio por lá, e a equipe combina o horário diretamente na
+conversa.
 
 ## Dados pendentes de confirmação
 
-Alguns dados não estavam disponíveis publicamente e foram deixados como
-estimativa editável (nunca inventados como fato definitivo):
-
-- **Horário de funcionamento** — `src/config/business.js` (`businessHours`)
-- **Duração de cada serviço** — `src/config/business.js` (`services[].durationMinutes`)
-- **Preços** — atualmente "Consulte"; edite `services[].price` / `priceLabel`
+- **Horário de funcionamento** — exibido na aba Localização como estimativa
+- **Duração de cada serviço** — exibida na aba Serviços como estimativa
+- **Preços** — atualmente "Consulte"
 - **Fotos reais do ambiente e dos serviços** — os espaços de imagem em
   `public/*.html` estão prontos para receber fotos reais (atualmente usam
   composições ilustrativas na paleta da marca)

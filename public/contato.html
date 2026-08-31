@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Contato &amp; Agendamento | Essence Pause Uberlândia</title>
-<meta name="description" content="Fale com a Essence Pause Uberlândia e agende seu horário online com verificação de disponibilidade em tempo real.">
+<title>Contato | Essence Pause Uberlândia</title>
+<meta name="description" content="Fale com a Essence Pause Uberlândia: envie o formulário de contato e receba retorno pelo WhatsApp.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ccircle cx=%2750%27 cy=%2750%27 r=%2748%27 fill=%27%23b8703f%27/%3E%3Ctext x=%2750%27 y=%2762%27 font-size=%2742%27 fill=%27white%27 text-anchor=%27middle%27 font-family=%27Georgia,serif%27%3EEP%3C/text%3E%3C/svg%3E">
@@ -23,8 +23,8 @@
       <a href="contato.html">Contato</a>
     </nav>
     <div class="nav-cta">
-      <a href="contato.html#agendar" class="btn btn-ghost">Contato</a>
-      <a href="contato.html#agendar" class="btn btn-primary">Agendar Horário</a>
+      <a href="contato.html#contato-form" class="btn btn-ghost">Contato</a>
+      <a href="contato.html#contato-form" class="btn btn-primary">Fazer Contato</a>
     </div>
     <button class="nav-toggle" aria-label="Abrir menu"><span></span><span></span><span></span></button>
   </div>
@@ -34,8 +34,8 @@
   <section class="page-hero">
     <div class="container">
       <div class="breadcrumb">Essence Pause / Contato</div>
-      <h1>Contato &amp; Agendamento</h1>
-      <p>Fale com a gente ou agende direto por aqui — verificamos a disponibilidade real antes de confirmar.</p>
+      <h1>Fale com a Essence Pause</h1>
+      <p>Preencha o formulário abaixo — assim que enviado, sua mensagem vai direto para o WhatsApp da Essence Pause.</p>
     </div>
   </section>
 
@@ -72,92 +72,59 @@
         </div>
       </div>
 
-      <div class="booking-panel reveal" id="agendar">
-        <div class="booking-steps">
-          <div class="step active" data-step="1">1. Dados &amp; Serviço</div>
-          <div class="step" data-step="2">2. Data &amp; Horário</div>
-          <div class="step" data-step="3">3. Confirmação</div>
-        </div>
+      <div class="booking-panel reveal" id="contato-form">
+        <h3 style="margin-bottom:6px;">Envie sua mensagem</h3>
+        <p style="margin-bottom:24px; font-size:14px;">Ao enviar, abrimos o WhatsApp da Essence Pause com sua mensagem já pronta — é só confirmar o envio por lá.</p>
 
-        <form id="booking-form" novalidate>
-          <!-- STEP 1 -->
-          <div class="booking-step-panel" data-panel="1">
-            <div class="form-grid">
-              <div class="form-field full">
-                <label for="customerName">Nome completo *</label>
-                <input type="text" id="customerName" name="customerName" required minlength="3" placeholder="Seu nome completo">
-              </div>
-              <div class="form-field">
-                <label for="customerPhone">Telefone / WhatsApp *</label>
-                <input type="tel" id="customerPhone" name="customerPhone" required placeholder="(34) 90000-0000">
-              </div>
-              <div class="form-field">
-                <label for="customerEmail">E-mail</label>
-                <input type="email" id="customerEmail" name="customerEmail" placeholder="voce@email.com">
-              </div>
-              <div class="form-field full">
-                <label for="serviceId">Serviço desejado *</label>
-                <select id="serviceId" name="serviceId" required>
-                  <option value="">Selecione um serviço</option>
-                </select>
-              </div>
-              <div class="form-field full">
-                <label for="subject">Assunto</label>
-                <input type="text" id="subject" name="subject" placeholder="Ex: Primeira visita, retoque, dúvida sobre o serviço...">
-              </div>
-              <div class="form-field full">
-                <label for="notes">Observações</label>
-                <textarea id="notes" name="notes" placeholder="Alguma informação adicional que devemos saber?"></textarea>
-              </div>
+        <form id="contact-form" novalidate>
+          <div class="form-grid">
+            <div class="form-field full">
+              <label for="customerName">Nome completo *</label>
+              <input type="text" id="customerName" name="customerName" required minlength="3" placeholder="Seu nome completo">
             </div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-primary" data-action="to-step-2">Escolher data e horário →</button>
+            <div class="form-field">
+              <label for="customerPhone">Telefone / WhatsApp *</label>
+              <input type="tel" id="customerPhone" name="customerPhone" required placeholder="(34) 90000-0000">
+            </div>
+            <div class="form-field">
+              <label for="customerEmail">E-mail</label>
+              <input type="email" id="customerEmail" name="customerEmail" placeholder="voce@email.com">
+            </div>
+            <div class="form-field full">
+              <label for="serviceId">Serviço desejado *</label>
+              <select id="serviceId" name="serviceId" required>
+                <option value="">Selecione um serviço</option>
+                <option value="Cabelo">Cabelo</option>
+                <option value="Unhas">Unhas</option>
+                <option value="Massagem">Massagem</option>
+                <option value="Depilação">Depilação</option>
+                <option value="Botox">Botox</option>
+                <option value="Outro">Outro / não sei ainda</option>
+              </select>
+            </div>
+            <div class="form-field full">
+              <label for="preferredDate">Data e horário de preferência</label>
+              <input type="text" id="preferredDate" name="preferredDate" placeholder="Ex: Sexta-feira à tarde, 20/09 às 14h...">
+              <span class="hint">Opcional — a equipe confirma a disponibilidade com você pelo WhatsApp.</span>
+            </div>
+            <div class="form-field full">
+              <label for="subject">Assunto</label>
+              <input type="text" id="subject" name="subject" placeholder="Ex: Primeira visita, retoque, dúvida sobre o serviço...">
+            </div>
+            <div class="form-field full">
+              <label for="notes">Observações</label>
+              <textarea id="notes" name="notes" placeholder="Alguma informação adicional que devemos saber?"></textarea>
+            </div>
+            <div class="form-field full">
+              <label style="display:flex; align-items:flex-start; gap:10px; font-weight:500; cursor:pointer;">
+                <input type="checkbox" id="consent" name="consent" required style="width:18px; height:18px; margin-top:2px; accent-color:var(--terracotta); flex-shrink:0;">
+                <span>Autorizo a Essence Pause a entrar em contato comigo pelo WhatsApp com base nas informações enviadas neste formulário. *</span>
+              </label>
             </div>
           </div>
-
-          <!-- STEP 2 -->
-          <div class="booking-step-panel" data-panel="2" style="display:none;">
-            <div class="form-grid">
-              <div class="form-field">
-                <label for="date">Data *</label>
-                <input type="date" id="date" name="date" required>
-                <span class="hint">Mostramos apenas horários realmente disponíveis para o serviço escolhido.</span>
-              </div>
-              <div class="form-field">
-                <label>Horário *</label>
-                <div class="slots-wrap">
-                  <div class="slots-loading" id="slots-status">Selecione uma data para ver os horários.</div>
-                  <div class="slots-grid" id="slots-grid"></div>
-                </div>
-              </div>
-            </div>
-            <div class="form-msg" id="step2-msg"></div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-ghost" data-action="to-step-1">← Voltar</button>
-              <button type="button" class="btn btn-primary" data-action="to-step-3" disabled>Revisar agendamento →</button>
-            </div>
-          </div>
-
-          <!-- STEP 3 -->
-          <div class="booking-step-panel" data-panel="3" style="display:none;">
-            <div class="summary-box" id="summary-box"></div>
-            <div class="form-msg" id="step3-msg"></div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-ghost" data-action="to-step-2">← Voltar</button>
-              <button type="submit" class="btn btn-primary" id="confirm-btn">Confirmar Agendamento</button>
-            </div>
-          </div>
-
-          <!-- SUCCESS -->
-          <div class="booking-step-panel" data-panel="success" style="display:none;">
-            <div class="form-msg show success">
-              <strong>Agendamento confirmado! ✨</strong>
-              <p id="success-text" style="margin:6px 0 0; color:inherit;"></p>
-            </div>
-            <div class="form-actions" style="justify-content:flex-start; margin-top:20px;">
-              <a href="https://wa.me/5534984036999" target="_blank" rel="noopener" class="btn btn-ghost">Avisar no WhatsApp</a>
-              <button type="button" class="btn btn-primary" data-action="new-booking">Fazer novo agendamento</button>
-            </div>
+          <div class="form-msg" id="form-msg"></div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="submit-btn">Enviar para o WhatsApp</button>
           </div>
         </form>
       </div>
@@ -170,6 +137,6 @@
 
 <script src="js/main.js"></script>
 <script src="js/footer.js"></script>
-<script src="js/booking.js"></script>
+<script src="js/contact-form.js"></script>
 </body>
 </html>

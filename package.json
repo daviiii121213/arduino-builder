@@ -1,13 +1,10 @@
 {
   "name": "essence-pause-landing",
   "version": "1.0.0",
-  "description": "Landing page e sistema de agendamento da Essence Pause Uberlândia",
+  "description": "Landing page e formulário de contato da Essence Pause Uberlândia",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
-  },
-  "engines": {
-    "node": ">=22.5.0"
   },
   "repository": {
     "type": "git",
