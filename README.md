@@ -6,12 +6,26 @@ Depilação, Botox).
 
 ## Rodando localmente
 
+Requer Node.js 22.5 ou superior (usa o módulo `node:sqlite` embutido —
+não precisa instalar Visual Studio Build Tools/compilador C++, nem nada
+além do próprio Node).
+
 ```bash
 npm install
 npm start
 ```
 
-Acesse http://localhost:3000
+Acesse http://localhost:3000. Se a porta 3000 já estiver em uso por outro
+programa na sua máquina, rode em outra porta:
+
+```bash
+# Windows (cmd)
+set PORT=3001 && npm start
+# Windows (PowerShell)
+$env:PORT=3001; npm start
+# Linux/Mac
+PORT=3001 npm start
+```
 
 ## Estrutura
 
@@ -21,7 +35,7 @@ Acesse http://localhost:3000
 - `src/availability.js` — motor de disponibilidade (única fonte de verdade,
   usada tanto para listar horários livres quanto para validar uma reserva)
 - `src/routes/booking.js` — API de agendamento
-- `data/essence-pause.db` — banco SQLite (criado automaticamente, persiste os agendamentos)
+- `data/essence-pause.db` — banco SQLite (criado automaticamente via `node:sqlite`, persiste os agendamentos)
 
 ## Sistema de agendamento
 

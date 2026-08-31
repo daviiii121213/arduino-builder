@@ -84,11 +84,14 @@ router.post('/appointments', (req, res) => {
   }
 
   try {
-    // Transação síncrona: better-sqlite3 é bloqueante e o Node é single-thread,
-    // então nenhuma outra requisição consegue intercalar entre a checagem de
-    // disponibilidade e o INSERT — isso é o que realmente impede dois clientes
-    // de reservarem o mesmo horário em uma corrida.
-    const createAppointment = db.transaction(() => {
+    // Transação síncrona: node:sqlite (DatabaseSync) é bloqueante e o Node é
+    // single-thread, então nenhuma outra requisição consegue intercalar
+    // entre a checagem de disponibilidade e o INSERT — isso é o que
+    // realmente impede dois clientes de reservarem o mesmo horário em uma
+    // corrida. BEGIN IMMEDIATE já toma o lock de escrita na abertura.
+    db.exec('BEGIN IMMEDIATE');
+    let result;
+    try {
       const check = isSlotAvailable({ serviceId: String(serviceId), date: String(date), startTime: String(startTime) });
       if (!check.ok) {
         const err = new Error(check.reason);
@@ -116,10 +119,12 @@ router.post('/appointments', (req, res) => {
           notes: notes ? String(notes).trim() : null,
         });
 
-      return { id: info.lastInsertRowid, endTime: check.endTime, service: check.service };
-    });
-
-    const result = createAppointment();
+      result = { id: info.lastInsertRowid, endTime: check.endTime, service: check.service };
+      db.exec('COMMIT');
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw err;
+    }
 
     return res.status(201).json({
       ok: true,

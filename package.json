@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node server.js"
   },
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/daviiii121213/arduino-builder.git"
@@ -18,7 +21,6 @@
   },
   "homepage": "https://github.com/daviiii121213/arduino-builder#readme",
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
     "express": "^5.2.1"
   }
 }

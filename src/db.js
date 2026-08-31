@@ -1,13 +1,16 @@
 const path = require('path');
 const fs = require('fs');
-const Database = require('better-sqlite3');
+// Usa o módulo SQLite embutido do Node (>=22.5) em vez de better-sqlite3:
+// evita depender de compilação nativa (node-gyp/Visual Studio) na máquina
+// de quem for rodar o projeto.
+const { DatabaseSync } = require('node:sqlite');
 
 const dataDir = path.join(__dirname, '..', 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-const db = new Database(path.join(dataDir, 'essence-pause.db'));
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+const db = new DatabaseSync(path.join(dataDir, 'essence-pause.db'));
+db.exec('PRAGMA journal_mode = WAL');
+db.exec('PRAGMA foreign_keys = ON');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS appointments (
