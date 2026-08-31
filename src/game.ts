@@ -69,8 +69,10 @@ export class Game {
   }
 
   private resize(): void {
-    const cssW = Math.max(320, window.innerWidth);
-    const cssH = Math.max(240, window.innerHeight);
+    // Measure the element, not the window, so the game fits whatever box the
+    // page gives it (full screen, or a panel under a header).
+    const cssW = Math.max(320, this.canvas.clientWidth || window.innerWidth);
+    const cssH = Math.max(240, this.canvas.clientHeight || window.innerHeight);
     this.zoom = clamp(Math.round(cssH / TARGET_VIEW_HEIGHT), 2, 5);
     this.canvas.width = Math.ceil(cssW / this.zoom);
     this.canvas.height = Math.ceil(cssH / this.zoom);

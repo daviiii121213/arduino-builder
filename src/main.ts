@@ -7,7 +7,5 @@ preloadArt();
 const game = new Game(canvas);
 game.start();
 
-if (import.meta.env.DEV) {
-  // Handle used by the automated browser smoke test.
-  (window as unknown as { __game: Game }).__game = game;
-}
+// Handle used by the automated browser smoke test.
+(window as unknown as { __game: Game }).__game = game;
