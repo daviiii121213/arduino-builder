@@ -11,12 +11,13 @@ import { DECOR_MAPS as DECOR } from '../src/decor';
 import { ICON_MAPS } from '../src/icons';
 import { supports, textWidth } from '../src/font';
 import { WEATHERS, weatherById, DEFAULT_WEATHER } from '../src/weather';
-import { MenuModel, PAUSE_ROWS, SETTINGS_ROWS } from '../src/menu';
+import { MenuModel, PAUSE_ROWS, SETTINGS_ROWS, SETUP_ROWS } from '../src/menu';
 import { ALL_KEYS, LANGUAGES, RAW_STRINGS, getLanguage, page, setLanguage, t } from '../src/i18n';
 import { supports as fontSupports } from '../src/font';
 import { DRIVER_LOOKS, DRIVER_MAPS, awardForPlace } from '../src/drivers';
 import { LIGHT_MAP_ROWS } from '../src/icons';
-import { GO_BANNER, START_BEATS, StartSequence, startSignalAt } from '../src/race';
+import { GO_BANNER, START_BEATS, StartSequence, buildGrid, skillFor, startSignalAt } from '../src/race';
+import { DIFFICULTIES, MAX_OPPONENTS, MIN_OPPONENTS, difficultyAt } from '../src/difficulty';
 import { RECOVERY_DELAY, RECOVERY_PENALTY, RECOVERY_POWER } from '../src/car';
 
 let failures = 0;
@@ -340,9 +341,11 @@ section('menu navigation');
   check('track select leads to weather select', screen() === 'weather' && menu.trackIndex === 1);
   menu.input('down');
   menu.input('down');
+  menu.input('confirm');
+  check('weather select leads to the setup screen', screen() === 'setup', screen());
   const events = menu.input('confirm');
   const start = events.find((e) => e.type === 'start');
-  check('confirming the weather starts the race', Boolean(start));
+  check('confirming the setup starts the race', Boolean(start));
   check(
     'the race carries the picked car, track and weather',
     start !== undefined && start.type === 'start' && start.car === 2 && start.track === 1 && start.weather === 2,
@@ -492,6 +495,96 @@ section('menu: language and pause');
   check('settings from the main menu still returns there', screen() === 'main');
 }
 
+section('race setup screen');
+{
+  const menu = new MenuModel(6, 3, 3);
+  const screen = (): string => menu.screen;
+  menu.screen = 'weather';
+  menu.index = 0;
+  const events = menu.input('confirm');
+  check('conditions now lead to the setup screen', screen() === 'setup', screen());
+  check('confirming the weather no longer starts the race', !events.some((e) => e.type === 'start'));
+  check('the cursor lands on START', menu.index === SETUP_ROWS.indexOf('start'));
+  check('setup has three rows', SETUP_ROWS.length === 3, SETUP_ROWS.join(','));
+
+  menu.index = SETUP_ROWS.indexOf('opponents');
+  const start = menu.opponents;
+  menu.input('left');
+  check('left removes an opponent', menu.opponents === start - 1, String(menu.opponents));
+  for (let i = 0; i < 10; i++) menu.input('right');
+  check('the field tops out at five rivals', menu.opponents === MAX_OPPONENTS, String(menu.opponents));
+  for (let i = 0; i < 10; i++) menu.input('left');
+  check('and bottoms out at one', menu.opponents === MIN_OPPONENTS, String(menu.opponents));
+
+  menu.index = SETUP_ROWS.indexOf('difficulty');
+  for (let i = 0; i < 5; i++) menu.input('left');
+  check('difficulty bottoms out at easy', menu.difficulty === 0);
+  menu.input('right');
+  check('right steps up a level', menu.difficulty === 1);
+  for (let i = 0; i < 5; i++) menu.input('right');
+  check('difficulty tops out at hard', menu.difficulty === DIFFICULTIES.length - 1, String(menu.difficulty));
+
+  menu.opponents = 3;
+  menu.difficulty = 0;
+  menu.index = SETUP_ROWS.indexOf('start');
+  const launch = menu.input('confirm').find((e) => e.type === 'start');
+  check('START drops the flag', Boolean(launch));
+  check(
+    'the race carries the field size and difficulty',
+    launch !== undefined && launch.type === 'start' && launch.opponents === 3 && launch.difficulty === 0,
+    JSON.stringify(launch),
+  );
+
+  menu.input('back');
+  check('back returns to the conditions screen', screen() === 'weather', screen());
+}
+
+section('grid size');
+{
+  for (let opponents = MIN_OPPONENTS; opponents <= MAX_OPPONENTS; opponents++) {
+    const grid = buildGrid(6, 2, opponents);
+    check(`${opponents} rivals means ${opponents + 1} cars`, grid.length === opponents + 1, String(grid.length));
+    check(`${opponents} rivals: the player is on the grid`, grid.includes(2));
+    check(`${opponents} rivals: nobody drives the same car twice`, new Set(grid).size === grid.length, grid.join(','));
+  }
+  const demo = buildGrid(6, null, 6);
+  check('a demo race fills every seat', demo.length === 6 && new Set(demo).size === 6);
+  const mid = buildGrid(6, 0, 5);
+  check('the player starts mid-pack, not on pole', mid.indexOf(0) > 0, mid.join(','));
+}
+
+section('difficulty');
+{
+  check('three levels', DIFFICULTIES.length === 3, DIFFICULTIES.map((d) => d.id).join(','));
+  const [easy, normal, hard] = DIFFICULTIES;
+  check('pace rises with the level', easy.pace < normal.pace && normal.pace < hard.pace);
+  check('easy drivers wander more', easy.wobble > hard.wobble);
+  check('hard drivers spend nitro sooner', hard.nitroReserve < easy.nitroReserve);
+
+  const skill = skillFor(0, hard);
+  check('the level scales the driver, keeping their character', skill.line === skillFor(0, easy).line && skill.pace > skillFor(0, easy).pace);
+
+  // Same car, same circuit: an easy field should be measurably slower.
+  const track = tracks[0];
+  const lapTime = (level: number): number => {
+    const car = makeCar(track, 0);
+    const driver = new AIDriver(car, track, skillFor(0, difficultyAt(level)));
+    let time = 0;
+    while (time < 200 && car.lap < 1) {
+      driver.update(STEP, [car]);
+      car.update(STEP, track);
+      for (const prop of track.nearbySolids(car.pos)) resolveObstacleCollision(car, prop);
+      time += STEP;
+    }
+    return time;
+  };
+  const easyLap = lapTime(0);
+  const hardLap = lapTime(2);
+  console.log(`  [difficulty] easy lap ${easyLap.toFixed(1)}s, hard lap ${hardLap.toFixed(1)}s`);
+  check('an easy rival laps slower than a hard one', easyLap > hardLap + 1, `${easyLap.toFixed(1)} vs ${hardLap.toFixed(1)}`);
+  check('both still get round', easyLap < 120 && hardLap < 120);
+}
+
 section('start sequence');
 {
   const at = (time: number): string => {
@@ -629,18 +722,10 @@ for (const { track, weather } of cases) {
   const label = `${track.def.id}/${weather.id}`;
   const cars: RaceCar[] = [];
   const drivers: AIDriver[] = [];
-  const skills = [
-    { pace: 0.94, line: -0.35, reaction: 2.4 },
-    { pace: 0.9, line: 0.3, reaction: 2.2 },
-    { pace: 0.97, line: 0, reaction: 2.6 },
-    { pace: 0.88, line: -0.15, reaction: 2.1 },
-    { pace: 0.92, line: 0.18, reaction: 2.5 },
-    { pace: 0.95, line: -0.22, reaction: 2.3 },
-  ];
   for (let slot = 0; slot < CAR_STATS.length; slot++) {
     const car = makeCar(track, slot, slot);
     cars.push(car);
-    drivers.push(new AIDriver(car, track, skills[slot]));
+    drivers.push(new AIDriver(car, track, skillFor(slot, difficultyAt(1))));
   }
 
   let time = 0;

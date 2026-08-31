@@ -355,6 +355,10 @@ export interface AISkill {
   line: number;
   /** Steering gain. */
   reaction: number;
+  /** How much this driver drifts around its chosen line. */
+  wobble: number;
+  /** Fraction of the tank kept in reserve before spending nitro. */
+  nitroReserve: number;
 }
 
 /** Waypoint-following opponent driver. */
@@ -380,7 +384,7 @@ export class AIDriver {
     // Aim at a point down the road; the faster you go, the further you look.
     const lookahead = 55 + Math.abs(car.forwardSpeed) * 0.42;
     const ahead = track.pointAt(near.along + lookahead);
-    const drift = Math.sin(this.wobble * 0.35) * 0.25;
+    const drift = Math.sin(this.wobble * 0.35) * 0.25 * this.skill.wobble;
     const lateral = (this.skill.line + drift) * track.def.halfWidth * 0.5;
     const target: Vec = {
       x: ahead.pos.x - Math.sin(ahead.heading) * lateral,
@@ -448,7 +452,7 @@ export class AIDriver {
       throttle > 0 &&
       Math.abs(steer) < 0.35 &&
       near.dist < track.def.halfWidth &&
-      car.nitro > car.stats.nitroCapacity * 0.35;
+      car.nitro > car.stats.nitroCapacity * this.skill.nitroReserve;
 
     car.controls = { throttle, steer, handbrake: false, nitro: useNitro };
   }

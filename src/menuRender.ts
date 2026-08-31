@@ -5,7 +5,9 @@ import { getWeatherIcons } from './icons';
 import type { CarSpec } from './cars';
 import type { Track } from './tracks';
 import type { WeatherDef } from './weather';
-import { PAUSE_ROWS, SETTINGS_ROWS, type MenuModel, type Screen } from './menu';
+import { PAUSE_ROWS, SETTINGS_ROWS, SETUP_ROWS, type MenuModel, type Screen } from './menu';
+import { DIFFICULTIES, MAX_OPPONENTS } from './difficulty';
+import { buildGrid } from './race';
 import { LANGUAGES, page, pick, t } from './i18n';
 
 /**
@@ -45,6 +47,8 @@ function screenTitle(screen: Screen): string {
       return t('selectTrack');
     case 'weather':
       return t('selectWeather');
+    case 'setup':
+      return t('raceSetup');
     case 'settings':
       return t('settings');
     case 'controls':
@@ -68,6 +72,8 @@ function footer(screen: Screen): string {
     case 'track':
       return t('footPick');
     case 'weather':
+      return t('footPick');
+    case 'setup':
       return t('footStart');
     case 'settings':
     case 'language':
@@ -190,6 +196,9 @@ export class MenuRenderer {
         break;
       case 'weather':
         this.drawWeather(g, w, h, model, ctx);
+        break;
+      case 'setup':
+        this.drawSetup(g, w, h, model, ctx);
         break;
       case 'settings':
         this.drawList(
@@ -482,6 +491,115 @@ export class MenuRenderer {
       shadow: INK,
       align: 'center',
     });
+  }
+
+  /** Last stop before the lights: how many rivals, and how hard they race. */
+  private drawSetup(
+    g: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    model: MenuModel,
+    ctx: MenuContext,
+  ): void {
+    const pw = Math.min(340, w - 40);
+    const px = Math.round((w - pw) / 2);
+    const py = 44;
+    const rowH = 26;
+    plate(g, px, py, pw, rowH * 2 + 14);
+
+    const difficultyLabels = [t('easy'), t('normal'), t('hard')];
+    const rows: Array<{ label: string; value: string; pips: number; total: number; color: string }> = [
+      {
+        label: t('opponents'),
+        value: String(model.opponents),
+        pips: model.opponents,
+        total: MAX_OPPONENTS,
+        color: '#f2b33d',
+      },
+      {
+        label: t('difficulty2'),
+        value: difficultyLabels[model.difficulty],
+        pips: model.difficulty + 1,
+        total: DIFFICULTIES.length,
+        color: ['#5fd06a', '#f2b33d', KERB][model.difficulty],
+      },
+    ];
+
+    rows.forEach((row, i) => {
+      const y = py + 7 + i * rowH;
+      const selected = model.index === i;
+      if (selected) rect(g, px + 4, y, pw - 8, rowH - 4, PLATE_LIT);
+      drawText(g, selected ? `>${row.label}` : ` ${row.label}`, px + 10, y + 7, {
+        scale: 1,
+        color: selected ? BONE : DIM,
+      });
+
+      // Value between two arrows, so it reads as adjustable.
+      const vx = px + pw - 14;
+      drawText(g, row.value, vx - 24, y + 4, { scale: 2, color: row.color, align: 'right' });
+      if (selected) {
+        drawText(g, '<', px + pw - 118, y + 7, { scale: 1, color: BONE });
+        drawText(g, '>', vx, y + 7, { scale: 1, color: BONE, align: 'right' });
+      }
+
+      // Pips showing where the value sits in its range.
+      const pipX = px + pw - 108;
+      for (let k = 0; k < row.total; k++) {
+        const on = k < row.pips;
+        rect(g, pipX + k * 9, y + 8, 7, 7, INK);
+        rect(g, pipX + k * 9 + 1, y + 9, 5, 5, on ? row.color : '#2a3346');
+      }
+      this.hits.push({ x: px + 4, y, w: pw - 8, h: rowH - 4, index: i });
+    });
+
+    // The grid that setting produces, drawn with the real car sprites.
+    const gridY = py + rowH * 2 + 24;
+    const order = buildGrid(ctx.specs.length, model.carIndex, model.opponents);
+    drawText(g, `${t('gridPreview')}  ${order.length}`, px, gridY, { scale: 1, color: DIM });
+    const chipW = 30;
+    order.forEach((specIndex, slot) => {
+      const spec = ctx.specs[specIndex];
+      const x = px + slot * (chipW + 4);
+      const mine = specIndex === model.carIndex;
+      const y = gridY + 12;
+      const chipH = 40;
+      plate(g, x, y, chipW, chipH, { fill: mine ? PLATE_LIT : '#1b2130', lit: mine });
+      const cs = 1;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(
+        spec.sprite,
+        Math.round(x + chipW / 2 - (spec.sprite.width * cs) / 2),
+        Math.round(y + chipH / 2 - (spec.sprite.height * cs) / 2),
+        spec.sprite.width * cs,
+        spec.sprite.height * cs,
+      );
+      if (mine) rect(g, x + 2, y + chipH - 5, chipW - 4, 2, spec.tint);
+    });
+
+    const blurbs = [t('easyBlurb'), t('normalBlurb'), t('hardBlurb')];
+    wrap(blurbs[model.difficulty], Math.max(20, Math.floor((w - 60) / 6))).forEach((line, i) => {
+      drawText(g, line, w / 2, gridY + 60 + i * 10, {
+        scale: 1,
+        color: BONE,
+        shadow: INK,
+        align: 'center',
+      });
+    });
+
+    // The START row is a button, so it reads as the way out of this screen.
+    const bw = 170;
+    const bh = 24;
+    const by = Math.min(h - 34, gridY + 84);
+    this.button(
+      g,
+      Math.round((w - bw) / 2),
+      by,
+      bw,
+      bh,
+      t('startRace'),
+      model.index === SETUP_ROWS.indexOf('start'),
+      SETUP_ROWS.indexOf('start'),
+    );
   }
 
   private drawSound(g: CanvasRenderingContext2D, w: number, h: number, model: MenuModel): void {

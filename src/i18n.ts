@@ -23,14 +23,34 @@ const STRINGS = {
   selectCar: ['SELECT CAR', 'ESCOLHA O CARRO'],
   selectTrack: ['SELECT CIRCUIT', 'ESCOLHA O CIRCUITO'],
   selectWeather: ['SELECT CONDITIONS', 'ESCOLHA O CLIMA'],
+  raceSetup: ['RACE SETUP', 'AJUSTE DA CORRIDA'],
+  opponents: ['OPPONENTS', 'ADVERSÁRIOS'],
+  difficulty2: ['AI DIFFICULTY', 'DIFICULDADE DA IA'],
+  easy: ['EASY', 'FÁCIL'],
+  normal: ['NORMAL', 'NORMAL'],
+  hard: ['HARD', 'DIFÍCIL'],
+  startRace: ['START RACE', 'COMEÇAR'],
+  gridPreview: ['ON THE GRID', 'NO GRID'],
+  easyBlurb: [
+    'Rivals hold back and wander off line. Room to learn the circuit.',
+    'Os rivais seguram o ritmo e saem do traçado. Espaço para aprender a pista.',
+  ],
+  normalBlurb: [
+    'Rivals race their own line at a fair pace. The default fight.',
+    'Os rivais correm no ritmo justo. A briga padrão.',
+  ],
+  hardBlurb: [
+    'Rivals carry more speed, hold a tight line and spend nitro early.',
+    'Os rivais carregam mais velocidade, seguram o traçado e gastam nitro cedo.',
+  ],
   tagline: ['6 CARS   3 CIRCUITS   3 LAPS', '6 CARROS   3 CIRCUITOS   3 VOLTAS'],
 
   // footers
   footMain: ['ARROWS MOVE   ENTER SELECT', 'SETAS MOVEM   ENTER SELECIONA'],
   footPick: ['ARROWS MOVE   ENTER NEXT   ESC BACK', 'SETAS MOVEM   ENTER AVANÇA   ESC VOLTA'],
   footStart: [
-    'ARROWS MOVE   ENTER START RACE   ESC BACK',
-    'SETAS MOVEM   ENTER COMEÇA   ESC VOLTA',
+    'UP DOWN PICK   LEFT RIGHT ADJUST   ENTER START   ESC BACK',
+    'CIMA BAIXO ESCOLHE   ESQ DIR AJUSTA   ENTER COMEÇA   ESC VOLTA',
   ],
   footSelect: ['ARROWS MOVE   ENTER SELECT   ESC BACK', 'SETAS MOVEM   ENTER SELECIONA   ESC VOLTA'],
   footBack: ['ESC BACK', 'ESC VOLTA'],

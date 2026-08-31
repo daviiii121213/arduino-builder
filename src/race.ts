@@ -1,6 +1,7 @@
 import { clamp, lerp, type Vec } from './math';
 import type { CarSpec } from './cars';
-import { AIDriver, RaceCar, resolveCarCollision, resolveObstacleCollision, type Controls } from './car';
+import { AIDriver, RaceCar, resolveCarCollision, resolveObstacleCollision, type AISkill, type Controls } from './car';
+import { difficultyAt, type DifficultyDef } from './difficulty';
 import type { Track } from './tracks';
 import type { World } from './world';
 import { Particles } from './effects';
@@ -31,6 +32,7 @@ export function startSignalAt(time: number): StartSignal {
   return { kind: 'light', state: 'red' };
 }
 
+/** Per-driver character, before the difficulty setting scales it. */
 const AI_SKILLS = [
   { pace: 0.94, line: -0.35, reaction: 2.4 },
   { pace: 0.9, line: 0.3, reaction: 2.2 },
@@ -39,6 +41,33 @@ const AI_SKILLS = [
   { pace: 0.92, line: 0.18, reaction: 2.5 },
   { pace: 0.95, line: -0.22, reaction: 2.3 },
 ];
+
+/** Blends a driver's own character with the chosen difficulty. */
+export function skillFor(slot: number, difficulty: DifficultyDef): AISkill {
+  const base = AI_SKILLS[slot % AI_SKILLS.length];
+  return {
+    pace: base.pace * difficulty.pace,
+    line: base.line,
+    reaction: base.reaction * difficulty.reaction,
+    wobble: difficulty.wobble,
+    nitroReserve: difficulty.nitroReserve,
+  };
+}
+
+/**
+ * Who lines up, in grid order: the player takes the middle of the pack and the
+ * opponents fill in around them, each in a different car.
+ */
+export function buildGrid(specCount: number, playerIndex: number | null, opponents: number): number[] {
+  const others: number[] = [];
+  for (let i = 0; i < specCount && others.length < opponents; i++) {
+    if (i !== playerIndex) others.push(i);
+  }
+  if (playerIndex === null) return others;
+  const grid = [...others];
+  grid.splice(Math.min(2, grid.length), 0, playerIndex);
+  return grid;
+}
 
 /**
  * The start lights, kept as its own little clock. It keeps running for a beat
@@ -96,6 +125,10 @@ export interface RaceOptions {
   world: World;
   /** Demo races behind the menu skip the start sequence and roll immediately. */
   skipStart?: boolean;
+  /** How many AI cars line up against the player. */
+  opponents?: number;
+  /** How hard those AI cars race. */
+  difficulty?: DifficultyDef;
 }
 
 /**
@@ -136,12 +169,9 @@ export class Race {
 
     this.world.marksCtx.clearRect(0, 0, this.world.marks.width, this.world.marks.height);
 
-    // The player takes the middle of the grid; everyone else fills in around them.
-    const order = this.specs.map((_, i) => i);
-    if (this.playerIndex !== null) {
-      order.splice(order.indexOf(this.playerIndex), 1);
-      order.splice(Math.min(2, order.length), 0, this.playerIndex);
-    }
+    const difficulty = opts.difficulty ?? difficultyAt(1);
+    const opponents = opts.opponents ?? this.specs.length - 1;
+    const order = buildGrid(this.specs.length, this.playerIndex, opponents);
 
     order.forEach((specIndex, slot) => {
       const spec = this.specs[specIndex];
@@ -158,7 +188,7 @@ export class Race {
       car.autoRecover = car.isPlayer;
       this.cars.push(car);
       if (!car.isPlayer) {
-        this.drivers.push(new AIDriver(car, this.track, AI_SKILLS[slot % AI_SKILLS.length]));
+        this.drivers.push(new AIDriver(car, this.track, skillFor(slot, difficulty)));
       }
     });
 
@@ -424,7 +454,7 @@ export class Race {
    */
   autopilot(seconds: number): void {
     const player = this.player;
-    const stand = player ? new AIDriver(player, this.track, AI_SKILLS[0]) : null;
+    const stand = player ? new AIDriver(player, this.track, skillFor(0, difficultyAt(1))) : null;
     if (stand) this.drivers.push(stand);
     for (let t = 0; t < seconds; t += STEP) this.step(STEP);
     if (stand) this.drivers.pop();

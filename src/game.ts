@@ -8,6 +8,7 @@ import type { Controls } from './car';
 import { buildTracks, type Track } from './tracks';
 import { buildWorld, type World } from './world';
 import { WEATHERS } from './weather';
+import { difficultyAt } from './difficulty';
 import { Race, STEP } from './race';
 import { Celebration } from './victory';
 import { t } from './i18n';
@@ -144,7 +145,7 @@ export class Game {
           this.audio.apply(this.menu.sound);
           break;
         case 'start':
-          this.beginRace(event.car, event.track, event.weather);
+          this.beginRace(event.car, event.track, event.weather, event.opponents, event.difficulty);
           break;
         case 'resume':
           if (this.race) this.mode = 'race';
@@ -170,6 +171,8 @@ export class Game {
           playerCarIndex: null,
           world: this.world(track),
           skipStart: true,
+          // A demo race has no player, so every car is an opponent.
+          opponents: this.specs.length,
         });
       }
       this.attract.update(dt, this.canvas.width, this.canvas.height);
@@ -177,7 +180,13 @@ export class Game {
     }
   }
 
-  private beginRace(carIndex: number, trackIndex: number, weatherIndex: number): void {
+  private beginRace(
+    carIndex: number,
+    trackIndex: number,
+    weatherIndex: number,
+    opponents: number,
+    difficulty: number,
+  ): void {
     const track = this.tracks[trackIndex];
     this.race = new Race({
       track,
@@ -186,6 +195,8 @@ export class Game {
       laps: TOTAL_LAPS,
       playerCarIndex: carIndex,
       world: this.world(track),
+      opponents,
+      difficulty: difficultyAt(difficulty),
     });
     this.attract = null;
     this.attractKey = '';
@@ -230,7 +241,13 @@ export class Game {
       return;
     }
     if (this.input.tapped('r')) {
-      this.beginRace(this.menu.carIndex, this.menu.trackIndex, this.menu.weatherIndex);
+      this.beginRace(
+        this.menu.carIndex,
+        this.menu.trackIndex,
+        this.menu.weatherIndex,
+        this.menu.opponents,
+        this.menu.difficulty,
+      );
       return;
     }
 
@@ -499,6 +516,9 @@ export class Game {
       car: this.menu.carIndex,
       track: this.menu.trackIndex,
       weather: this.menu.weatherIndex,
+      opponents: this.menu.opponents,
+      difficulty: this.menu.difficulty,
+      fieldSize: race ? race.cars.length : 0,
       language: this.menu.language,
       released: race ? race.released : true,
       startTime: race ? Number(race.startTime.toFixed(2)) : 0,
@@ -517,6 +537,21 @@ export class Game {
   /** Skips the start sequence; used by the automated browser test. */
   releaseStart(): void {
     this.race?.start.skip();
+  }
+
+  /** Dumps the player out on the grass, to exercise recovery from the test. */
+  strandPlayer(): void {
+    const race = this.race;
+    const player = race?.player;
+    if (!race || !player) return;
+    const near = race.track.nearest(player.pos, player.wpHint);
+    const at = race.track.pointAt(near.along);
+    const off = race.track.def.halfWidth + 70;
+    player.pos = {
+      x: at.pos.x - Math.sin(at.heading) * off,
+      y: at.pos.y + Math.cos(at.heading) * off,
+    };
+    player.vel = { x: 0, y: 0 };
   }
 
   carsDebug(): Array<Record<string, number | string | boolean>> {

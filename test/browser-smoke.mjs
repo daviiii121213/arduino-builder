@@ -139,9 +139,24 @@ await press('Enter');
 check('circuit select leads to conditions', (await state()).screen === 'weather' && (await state()).track === 2);
 await moveTo(1);
 await press('Enter');
+check('conditions lead to the race setup screen', (await state()).screen === 'setup', (await state()).screen);
+
+console.log('\nrace setup');
+await moveTo(0);
+const beforeField = (await state()).opponents;
+await press('ArrowLeft');
+check('the field size can be trimmed', (await state()).opponents === beforeField - 1, JSON.stringify(await state()));
+await press('ArrowRight');
+await moveTo(1);
+await press('ArrowLeft', 3);
+check('difficulty drops to easy', (await state()).difficulty === 0, JSON.stringify(await state()));
+await press('ArrowRight');
+check('difficulty steps back to normal', (await state()).difficulty === 1);
+await moveTo(2);
+await press('Enter');
 const racing = await state();
 check('the race starts', racing.mode === 'race', JSON.stringify(racing));
-check('six cars line up', (await cars()).length === 6);
+check('the chosen field size lines up', (await cars()).length === racing.opponents + 1, `${(await cars()).length} cars`);
 check('the player drives the car they chose', (await player()).name === 'VULCAN', (await player()).name);
 
 console.log('\nstart sequence');
@@ -216,11 +231,9 @@ await press('Enter');                       // continue
 check('continue resumes the race', (await state()).mode === 'race');
 
 console.log('\ntrack recovery');
-// Steer hard off the road and wait for the marshals.
+// Put the car out on the grass and wait for the marshals.
+await page.evaluate(() => window.__game.strandPlayer());
 await page.keyboard.down('w');
-await page.keyboard.down('ArrowLeft');
-await page.waitForTimeout(2000);
-await page.keyboard.up('ArrowLeft');
 await page.waitForTimeout(400);
 let sawOffTrack = false;
 let recovered = false;
@@ -256,6 +269,8 @@ for (const [track, weather, label] of [[0, 0, 'bayside/sunny'], [1, 1, 'dustbowl
   await moveTo(track);
   await press('Enter');
   await moveTo(weather);
+  await press('Enter');
+  await moveTo(2);      // setup: START RACE
   await press('Enter');
   const started = await state();
   check(`${label}: race starts on the chosen circuit`, started.mode === 'race' && started.track === track && started.weather === weather, JSON.stringify(started));

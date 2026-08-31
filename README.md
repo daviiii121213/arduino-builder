@@ -32,13 +32,26 @@ click a row to highlight it, click again to confirm.
 
 ## The game
 
-**Menu** — `PLAY` walks you through car → circuit → conditions; `SETTINGS` holds
-Controls, Sound, Language and How to Play. A live AI race runs behind the menu,
+**Menu** — `PLAY` walks you through car → circuit → conditions → race setup;
+`SETTINGS` holds Controls, Sound, Language and How to Play. A live AI race runs behind the menu,
 previewing the circuit and weather you currently have selected.
 
 **Language** — English and Português (BR). Every menu, button, setting,
 instruction and in-race message switches, and the pixel font carries the
 accented capitals Portuguese needs. The choice is remembered.
+
+**Race setup** — the last screen before the lights: how many rivals line up
+(1–5, so a field of 2 to 6 cars) and how hard they race.
+
+| Level | Rivals |
+| --- | --- |
+| Easy | 84% pace, loose lines, nitro held back |
+| Normal | full pace on their own line |
+| Hard | 110% pace, tight lines, nitro spent early |
+
+The level scales the AI only — your car is identical on every setting, so lap
+times stay comparable. A lap of Bayside takes an easy rival about 28s and a
+hard one about 24s.
 
 **Starting a race** — the gantry light fills red, then red + yellow, then green.
 The field is held on the grid, throttle disabled, until the lights go out.
@@ -102,6 +115,7 @@ nitro on the straights.
 
 - `src/pixel.ts` — pixel-art plumbing: seeded RNG, character-map → sprite, tiling textures.
 - `src/i18n.ts` — every string in both languages, and the how-to pages.
+- `src/difficulty.ts` — the three AI levels and the field-size limits.
 - `src/drivers.ts` — the six drivers (three builds, two poses each), trophy and medals.
 - `src/victory.ts` — the podium scene.
 - `src/font.ts` — a hand-drawn 5×7 bitmap font; all menu and HUD text is pixels, not a system font.
@@ -123,14 +137,15 @@ nearest-neighbour, so everything stays chunky.
 
 ## Tests
 
-`npm test` runs 243 headless checks (no canvas needed): pixel maps and font
+`npm test` runs 288 headless checks (no canvas needed): pixel maps and font
 coverage (including every accented character the translations use), track
 geometry and grid placement, physics (acceleration, braking, reverse, steering,
 surfaces, grip), nitro (boost, drain, lockout, refill), weather modifiers,
-collisions, lap counting, menu and pause navigation, both languages, the start
-sequence order, track recovery (timing, blink, reposition, power penalty) and
-podium awards, plus full six-car AI races on all three circuits in several
-conditions.
+collisions, lap counting, menu, setup and pause navigation, both languages, the
+start sequence order, grid sizing, the difficulty levels (an easy rival really
+does lap slower than a hard one), track recovery (timing, blink, reposition,
+power penalty) and podium awards, plus full six-car AI races on all three
+circuits in several conditions.
 
 There is also an end-to-end check that drives the real game in a browser —
 menus, language switching, the start sequence, pause, nitro, recovery, the

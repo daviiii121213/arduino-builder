@@ -1,11 +1,19 @@
 import { DEFAULT_SOUND, type SoundSettings } from './audio';
 import { LANGUAGES, setLanguage, type Language } from './i18n';
+import {
+  DEFAULT_DIFFICULTY,
+  DEFAULT_OPPONENTS,
+  DIFFICULTIES,
+  MAX_OPPONENTS,
+  MIN_OPPONENTS,
+} from './difficulty';
 
 export type Screen =
   | 'main'
   | 'car'
   | 'track'
   | 'weather'
+  | 'setup'
   | 'settings'
   | 'controls'
   | 'sound'
@@ -20,7 +28,14 @@ export type MenuEvent =
   | { type: 'confirm' }
   | { type: 'back' }
   | { type: 'sound' }
-  | { type: 'start'; car: number; track: number; weather: number }
+  | {
+      type: 'start';
+      car: number;
+      track: number;
+      weather: number;
+      opponents: number;
+      difficulty: number;
+    }
   /** Close the pause menu and carry on racing. */
   | { type: 'resume' }
   /** Abandon the race and go back to the main menu. */
@@ -30,6 +45,8 @@ export type MenuEvent =
 export const SETTINGS_ROWS = ['controls', 'sound', 'language', 'howto', 'back'] as const;
 /** Rows on the pause menu, in the order the player asked for. */
 export const PAUSE_ROWS = ['settings', 'quit', 'resume'] as const;
+/** Rows on the last screen before the lights. */
+export const SETUP_ROWS = ['opponents', 'difficulty', 'start'] as const;
 
 const STORAGE_KEY = 'pixel-racer.settings';
 
@@ -45,6 +62,9 @@ export class MenuModel {
   weatherIndex = 0;
   sound: SoundSettings = { ...DEFAULT_SOUND };
   language: Language = 'en';
+  /** How many AI cars line up, and how hard they race. */
+  opponents = DEFAULT_OPPONENTS;
+  difficulty = DEFAULT_DIFFICULTY;
   /** Where BACK goes from the settings screens: the main menu, or the pause menu. */
   private settingsReturn: Screen = 'main';
 
@@ -68,6 +88,8 @@ export class MenuModel {
         return this.trackCount;
       case 'weather':
         return this.weatherCount;
+      case 'setup':
+        return SETUP_ROWS.length;
       case 'settings':
         return SETTINGS_ROWS.length;
       case 'sound':
@@ -132,6 +154,7 @@ export class MenuModel {
   private horizontalInput(delta: number): MenuEvent[] {
     if (this.horizontal) return this.step(delta);
     if (this.screen === 'sound') return this.adjustSound(delta);
+    if (this.screen === 'setup') return this.adjustSetup(delta);
     return [];
   }
 
@@ -157,6 +180,24 @@ export class MenuModel {
     return [{ type: 'sound' }];
   }
 
+  /** Left/right on the setup screen changes the value under the cursor. */
+  private adjustSetup(delta: number): MenuEvent[] {
+    const row = SETUP_ROWS[this.index];
+    if (row === 'opponents') {
+      const next = Math.max(MIN_OPPONENTS, Math.min(MAX_OPPONENTS, this.opponents + delta));
+      if (next === this.opponents) return [];
+      this.opponents = next;
+    } else if (row === 'difficulty') {
+      const next = Math.max(0, Math.min(DIFFICULTIES.length - 1, this.difficulty + delta));
+      if (next === this.difficulty) return [];
+      this.difficulty = next;
+    } else {
+      return [];
+    }
+    this.save();
+    return [{ type: 'move' }];
+  }
+
   private confirm(): MenuEvent[] {
     switch (this.screen) {
       case 'main':
@@ -177,11 +218,25 @@ export class MenuModel {
         return [{ type: 'confirm' }];
       case 'weather':
         this.weatherIndex = this.index;
+        this.goto('setup', SETUP_ROWS.indexOf('start'));
+        return [{ type: 'confirm' }];
+      case 'setup': {
+        const row = SETUP_ROWS[this.index];
+        // Enter on a value row nudges it up; on START it drops the flag.
+        if (row !== 'start') return this.adjustSetup(1);
         this.save();
         return [
           { type: 'confirm' },
-          { type: 'start', car: this.carIndex, track: this.trackIndex, weather: this.weatherIndex },
+          {
+            type: 'start',
+            car: this.carIndex,
+            track: this.trackIndex,
+            weather: this.weatherIndex,
+            opponents: this.opponents,
+            difficulty: this.difficulty,
+          },
         ];
+      }
       case 'settings': {
         const row = SETTINGS_ROWS[this.index];
         if (row === 'back') return this.back();
@@ -222,6 +277,9 @@ export class MenuModel {
         break;
       case 'weather':
         this.goto('track', this.trackIndex);
+        break;
+      case 'setup':
+        this.goto('weather', this.weatherIndex);
         break;
       case 'settings':
         if (this.settingsReturn === 'pause') this.goto('pause', PAUSE_ROWS.indexOf('settings'));
@@ -273,6 +331,8 @@ export class MenuModel {
           car: this.carIndex,
           track: this.trackIndex,
           weather: this.weatherIndex,
+          opponents: this.opponents,
+          difficulty: this.difficulty,
         }),
       );
     } catch {
@@ -290,6 +350,8 @@ export class MenuModel {
         car?: number;
         track?: number;
         weather?: number;
+        opponents?: number;
+        difficulty?: number;
       };
       if (data.sound) this.sound = { ...DEFAULT_SOUND, ...data.sound };
       if (LANGUAGES.some((l) => l.id === data.language)) this.language = data.language as Language;
@@ -298,6 +360,21 @@ export class MenuModel {
       this.carIndex = inRange(data.car, this.carCount);
       this.trackIndex = inRange(data.track, this.trackCount);
       this.weatherIndex = inRange(data.weather, this.weatherCount);
+      if (
+        typeof data.opponents === 'number' &&
+        data.opponents >= MIN_OPPONENTS &&
+        data.opponents <= MAX_OPPONENTS
+      ) {
+        this.opponents = Math.floor(data.opponents);
+      }
+      if (
+        typeof data.difficulty === 'number' &&
+        data.difficulty >= 0 &&
+        data.difficulty < DIFFICULTIES.length
+      ) {
+        // Easy is index 0, so a plain truthiness check would lose it.
+        this.difficulty = Math.floor(data.difficulty);
+      }
     } catch {
       // Corrupt or unavailable storage: fall back to defaults.
     }
