@@ -293,6 +293,7 @@ p { margin: 0 0 1em; color: var(--muted); }
   padding: 26px;
   position: relative;
 }
+.photo-frame.tag-top { align-items: flex-start; }
 .photo-frame.alt {
   background:
     radial-gradient(circle at 70% 20%, rgba(255,255,255,.45), transparent 55%),
