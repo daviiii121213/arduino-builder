@@ -1,0 +1,24 @@
+{
+  "name": "essence-pause-landing",
+  "version": "1.0.0",
+  "description": "Landing page e sistema de agendamento da Essence Pause Uberlândia",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daviiii121213/arduino-builder.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/daviiii121213/arduino-builder/issues"
+  },
+  "homepage": "https://github.com/daviiii121213/arduino-builder#readme",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "express": "^5.2.1"
+  }
+}
