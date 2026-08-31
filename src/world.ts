@@ -31,7 +31,8 @@ function centreLinePath(track: Track, g: CanvasRenderingContext2D, offset = 0): 
 
 function paintGrass(track: Track, g: CanvasRenderingContext2D): void {
   const def = track.def;
-  g.fillStyle = makePattern(grassTile(def.decorSeed), g);
+  const theme = def.theme;
+  g.fillStyle = makePattern(grassTile(def.decorSeed, theme.grass), g);
   g.fillRect(0, 0, def.worldW, def.worldH);
 
   // Patches of lighter/darker grass, stippled so they stay pixel art rather
@@ -41,7 +42,7 @@ function paintGrass(track: Track, g: CanvasRenderingContext2D): void {
     const cx = rand() * def.worldW;
     const cy = rand() * def.worldH;
     const r = 22 + rand() * 64;
-    g.fillStyle = rand() < 0.5 ? '#4d9440' : '#2c5f28';
+    g.fillStyle = rand() < 0.5 ? theme.grass.light : theme.grass.deep;
     const dots = Math.round(r * r * 0.09);
     for (let k = 0; k < dots; k++) {
       const a = rand() * Math.PI * 2;
@@ -56,7 +57,7 @@ function paintGrass(track: Track, g: CanvasRenderingContext2D): void {
   for (let i = 0; i < 900; i++) {
     const x = Math.round(rand() * def.worldW);
     const y = Math.round(rand() * def.worldH);
-    g.fillStyle = rand() < 0.5 ? '#e6d36a' : '#d8dce4';
+    g.fillStyle = rand() < 0.5 ? theme.flowers[0] : theme.flowers[1];
     g.fillRect(x, y, 1, 1);
     if (rand() < 0.4) g.fillRect(x + 1, y + 1, 1, 1);
   }
@@ -64,37 +65,24 @@ function paintGrass(track: Track, g: CanvasRenderingContext2D): void {
 
 function paintSurface(track: Track, g: CanvasRenderingContext2D): void {
   const def = track.def;
-  const dirt = def.surface === 'dirt';
+  const theme = def.theme;
 
-  const surfaceTile = dirt
-    ? noiseTile(
-        32,
-        '#8a5f38',
-        [
-          { color: '#9a6d42', density: 0.2 },
-          { color: '#79512e', density: 0.18 },
-          { color: '#6a4526', density: 0.07 },
-          { color: '#a87c50', density: 0.05 },
-        ],
-        def.decorSeed + 11,
-      )
-    : noiseTile(
-        32,
-        '#4a4d55',
-        [
-          { color: '#54575f', density: 0.18 },
-          { color: '#42454c', density: 0.18 },
-          { color: '#5c606a', density: 0.05 },
-          { color: '#3a3d43', density: 0.05 },
-        ],
-        def.decorSeed + 11,
-      );
+  const surfaceTile = noiseTile(
+    32,
+    theme.surface.base,
+    [
+      { color: theme.surface.light, density: 0.19 },
+      { color: theme.surface.dark, density: 0.18 },
+      { color: theme.surface.grit, density: 0.06 },
+    ],
+    def.decorSeed + 11,
+  );
 
   g.lineJoin = 'round';
   g.lineCap = 'round';
 
   // Shoulder just outside the racing surface.
-  g.strokeStyle = dirt ? '#6d4a2b' : '#2f3238';
+  g.strokeStyle = theme.shoulder;
   g.lineWidth = (def.halfWidth + 7) * 2;
   centreLinePath(track, g);
   g.stroke();
@@ -105,42 +93,47 @@ function paintSurface(track: Track, g: CanvasRenderingContext2D): void {
   centreLinePath(track, g);
   g.stroke();
 
-  if (dirt) {
-    // Wheel ruts and loose gravel banked up on the edges.
+  // Wheel ruts and loose gravel banked up on the edges of a dirt circuit.
+  if (theme.rut) {
     for (const off of [-def.halfWidth * 0.4, def.halfWidth * 0.4]) {
-      g.strokeStyle = 'rgba(90,60,32,0.35)';
+      g.strokeStyle = theme.rut;
       g.lineWidth = 13;
       centreLinePath(track, g, off);
       g.stroke();
     }
+  }
+  if (theme.gravel) {
     for (const off of [-def.halfWidth + 5, def.halfWidth - 5]) {
-      g.strokeStyle = 'rgba(196,163,116,0.5)';
+      g.strokeStyle = theme.gravel;
       g.lineWidth = 7;
       centreLinePath(track, g, off);
       g.stroke();
     }
-  } else {
-    // White edge lines and the rubbered-in racing line.
+  }
+  if (theme.edgeLine) {
     for (const off of [-def.halfWidth + 4, def.halfWidth - 4]) {
-      g.strokeStyle = '#d9d7cf';
+      g.strokeStyle = theme.edgeLine;
       g.lineWidth = 3;
       centreLinePath(track, g, off);
       g.stroke();
     }
+  }
+  if (theme.racingLine) {
     g.strokeStyle = 'rgba(20,20,24,0.16)';
-    g.lineWidth = 34;
+    g.lineWidth = Math.round(def.halfWidth * 0.47);
     centreLinePath(track, g);
     g.stroke();
   }
 }
 
 /**
- * Red/white kerbs hugging the inside of the tighter corners (asphalt only),
- * drawn as one continuous strip of alternating slabs.
+ * Kerbs hugging the inside of the tighter corners, drawn as one continuous
+ * strip of alternating slabs in the circuit's own colours.
  */
 function paintKerbs(track: Track, g: CanvasRenderingContext2D): void {
   const def = track.def;
-  if (def.surface !== 'asphalt') return;
+  const kerb = def.theme.kerb;
+  if (!kerb) return;
   const edge = (i: number, side: number): { x: number; y: number } => {
     const p = track.wp(i);
     const h = track.heading(i);
@@ -154,7 +147,7 @@ function paintKerbs(track: Track, g: CanvasRenderingContext2D): void {
     const side = wrapAngle(track.heading(i + 1) - track.heading(i - 1)) > 0 ? 1 : -1;
     const a = edge(i, side);
     const b = edge(i + 1, side);
-    g.strokeStyle = i % 4 < 2 ? '#c8332b' : '#e8e6df';
+    g.strokeStyle = i % 4 < 2 ? kerb[0] : kerb[1];
     g.beginPath();
     g.moveTo(a.x, a.y);
     g.lineTo(b.x, b.y);

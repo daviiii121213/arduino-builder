@@ -70,16 +70,24 @@ export function noiseTile(
   return cv;
 }
 
+export interface GrassColors {
+  base: string;
+  light: string;
+  dark: string;
+  deep: string;
+  tuft: string;
+}
+
 /** Grass tile with little tufts so the field is not a flat colour field. */
-export function grassTile(seed: number): HTMLCanvasElement {
+export function grassTile(seed: number, colors: GrassColors): HTMLCanvasElement {
   const size = 32;
   const cv = noiseTile(
     size,
-    '#3c7a34',
+    colors.base,
     [
-      { color: '#458c3c', density: 0.16 },
-      { color: '#336b2c', density: 0.14 },
-      { color: '#2c5c26', density: 0.05 },
+      { color: colors.light, density: 0.16 },
+      { color: colors.dark, density: 0.14 },
+      { color: colors.deep, density: 0.05 },
     ],
     seed,
   );
@@ -88,7 +96,7 @@ export function grassTile(seed: number): HTMLCanvasElement {
   for (let i = 0; i < 26; i++) {
     const x = Math.floor(rand() * size);
     const y = Math.floor(rand() * size);
-    g.fillStyle = rand() < 0.5 ? '#54a145' : '#2f6428';
+    g.fillStyle = rand() < 0.5 ? colors.tuft : colors.deep;
     g.fillRect(x, y, 1, 2);
     g.fillRect((x + 1) % size, y + 1, 1, 1);
   }

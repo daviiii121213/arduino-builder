@@ -22,6 +22,12 @@
     --mono: ui-monospace, 'SF Mono', 'Menlo', 'Consolas', monospace;
   }
 
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
   html,
   body {
     height: 100%;
@@ -226,7 +232,7 @@
 <div class="cabinet">
   <header>
     <h1 class="wordmark">PIXEL<span> </span>RACER</h1>
-    <p class="spec">3 laps &middot; 4 cars &middot; 2 circuits</p>
+    <p class="spec">6 cars &middot; 3 circuits &middot; 3 conditions &middot; 3 laps</p>
   </header>
   <div class="kerb"></div>
   <div class="screen" id="screen">
@@ -234,22 +240,25 @@
     <div class="start" id="start">
       <div class="card">
         <h2>PIXEL RACER</h2>
-        <p>Top-down arcade racing. Three laps, three opponents, two circuits.</p>
+        <p>
+          Top-down arcade racing. Pick a car, a circuit and the weather, then
+          three laps against five rivals.
+        </p>
         <dl class="keys">
-          <dt><kbd>W</kbd><kbd>&uarr;</kbd></dt>
-          <dd>accelerate</dd>
-          <dt><kbd>S</kbd><kbd>&darr;</kbd></dt>
-          <dd>brake, then reverse</dd>
-          <dt><kbd>A</kbd><kbd>D</kbd></dt>
-          <dd>steer left / right</dd>
+          <dt><kbd>ARROWS</kbd></dt>
+          <dd>move in menus / steer and accelerate</dd>
+          <dt><kbd>ENTER</kbd><kbd>ESC</kbd></dt>
+          <dd>select / go back</dd>
+          <dt><kbd>W</kbd><kbd>S</kbd></dt>
+          <dd>accelerate / brake and reverse</dd>
+          <dt><kbd>SHIFT</kbd></dt>
+          <dd>nitro boost</dd>
           <dt><kbd>SPACE</kbd></dt>
           <dd>handbrake drift</dd>
-          <dt><kbd>1</kbd><kbd>2</kbd></dt>
-          <dd>asphalt / dirt circuit</dd>
-          <dt><kbd>C</kbd><kbd>R</kbd></dt>
-          <dd>swap car / restart race</dd>
+          <dt><kbd>R</kbd></dt>
+          <dd>restart the race</dd>
         </dl>
-        <p class="go">CLICK OR PRESS A KEY TO DRIVE</p>
+        <p class="go">CLICK OR PRESS A KEY TO START</p>
       </div>
     </div>
   </div>

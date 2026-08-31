@@ -4,6 +4,33 @@ import { DECOR_RADIUS, type DecorKind } from './decor';
 
 export type Surface = 'asphalt' | 'dirt';
 
+/** World pixels are about a third of a metre, which puts lap lengths in a real range. */
+const METRES_PER_PIXEL = 0.35;
+
+/** Every colour a track's artwork is painted from: no two circuits look alike. */
+export interface TrackTheme {
+  /** Racing surface: base colour plus the speckles stippled over it. */
+  surface: { base: string; light: string; dark: string; grit: string };
+  /** Strip of dirt/kerbstone just outside the racing surface. */
+  shoulder: string;
+  grass: { base: string; light: string; dark: string; deep: string; tuft: string };
+  /** Small scattered highlights on the grass (flowers, stones). */
+  flowers: [string, string];
+  /** Alternating kerb slabs on corner apexes, or null for loose surfaces. */
+  kerb: [string, string] | null;
+  /** Painted edge line, or null. */
+  edgeLine: string | null;
+  /** Wheel ruts and loose gravel banked on the edges, for dirt circuits. */
+  rut: string | null;
+  gravel: string | null;
+  /** Rubbered-in racing line down the middle. */
+  racingLine: boolean;
+  /** Tint of the skid marks this surface takes. */
+  skid: string;
+  /** Dust colour kicked up by the tyres. */
+  dust: string;
+}
+
 export interface DecorItem {
   kind: DecorKind;
   pos: Vec;
@@ -15,7 +42,10 @@ export interface DecorItem {
 export interface TrackDef {
   id: string;
   name: string;
+  /** One line describing the circuit on the track select screen. */
+  tagline: string;
   surface: Surface;
+  theme: TrackTheme;
   worldW: number;
   worldH: number;
   halfWidth: number;
@@ -31,10 +61,54 @@ export interface TrackDef {
   edgeKind: DecorKind;
 }
 
-const ASPHALT: TrackDef = {
-  id: 'asphalt',
-  name: 'ASPHALT CIRCUIT',
+const BAYSIDE_THEME: TrackTheme = {
+  surface: { base: '#4a4d55', light: '#54575f', dark: '#42454c', grit: '#5c606a' },
+  shoulder: '#2f3238',
+  grass: { base: '#3c7a34', light: '#458c3c', dark: '#336b2c', deep: '#2c5c26', tuft: '#54a145' },
+  flowers: ['#e6d36a', '#d8dce4'],
+  kerb: ['#c8332b', '#e8e6df'],
+  edgeLine: '#d9d7cf',
+  rut: null,
+  gravel: null,
+  racingLine: true,
+  skid: 'rgba(24,22,26,0.38)',
+  dust: '#6a6d75',
+};
+
+const DUSTBOWL_THEME: TrackTheme = {
+  surface: { base: '#8a5f38', light: '#9a6d42', dark: '#79512e', grit: '#a87c50' },
+  shoulder: '#6d4a2b',
+  grass: { base: '#6f7a33', light: '#818c3c', dark: '#5d6a2c', deep: '#4c5724', tuft: '#96a247' },
+  flowers: ['#e4cf7a', '#c9b184'],
+  kerb: null,
+  edgeLine: null,
+  rut: 'rgba(90,60,32,0.35)',
+  gravel: 'rgba(196,163,116,0.5)',
+  racingLine: false,
+  skid: 'rgba(86,56,30,0.45)',
+  dust: '#a37c4c',
+};
+
+const SERPENTINE_THEME: TrackTheme = {
+  surface: { base: '#3b414f', light: '#454c5c', dark: '#333846', grit: '#4f5768' },
+  shoulder: '#262b35',
+  grass: { base: '#2e6340', light: '#377449', dark: '#265535', deep: '#1e442b', tuft: '#3f8a55' },
+  flowers: ['#dfe7ef', '#cf8f5a'],
+  kerb: ['#2f6fbe', '#e8e6df'],
+  edgeLine: '#cfd6df',
+  rut: null,
+  gravel: null,
+  racingLine: true,
+  skid: 'rgba(20,20,28,0.4)',
+  dust: '#5d6675',
+};
+
+const BAYSIDE: TrackDef = {
+  id: 'bayside',
+  name: 'BAYSIDE CIRCUIT',
+  tagline: 'Wide, fast and forgiving. Learn the game here.',
   surface: 'asphalt',
+  theme: BAYSIDE_THEME,
   worldW: 2800,
   worldH: 2000,
   halfWidth: 72,
@@ -66,10 +140,12 @@ const ASPHALT: TrackDef = {
   ],
 };
 
-const DIRT: TrackDef = {
-  id: 'dirt',
-  name: 'DIRT CIRCUIT',
+const DUSTBOWL: TrackDef = {
+  id: 'dustbowl',
+  name: 'DUSTBOWL RALLY',
+  tagline: 'Loose dirt and dry scrub. The car rotates before you ask it to.',
   surface: 'dirt',
+  theme: DUSTBOWL_THEME,
   worldW: 2400,
   worldH: 2200,
   halfWidth: 62,
@@ -101,7 +177,54 @@ const DIRT: TrackDef = {
   ],
 };
 
-export const TRACK_DEFS: TrackDef[] = [ASPHALT, DIRT];
+const SERPENTINE: TrackDef = {
+  id: 'serpentine',
+  name: 'SERPENTINE PASS',
+  tagline: 'Narrow mountain tarmac. A dozen corners and nowhere to rest.',
+  surface: 'asphalt',
+  theme: SERPENTINE_THEME,
+  worldW: 2700,
+  worldH: 2400,
+  halfWidth: 56,
+  gripScale: 1.02,
+  speedScale: 0.98,
+  decorSeed: 5150607,
+  decorKinds: [
+    { kind: 'pine', weight: 6 },
+    { kind: 'rock', weight: 3 },
+    { kind: 'tree', weight: 2 },
+    { kind: 'bush', weight: 2 },
+  ],
+  edgeKind: 'barrier',
+  control: [
+    { x: 400, y: 2050 },
+    { x: 300, y: 1650 },
+    { x: 520, y: 1400 },
+    { x: 850, y: 1500 },
+    { x: 1000, y: 1250 },
+    { x: 760, y: 1030 },
+    { x: 420, y: 980 },
+    { x: 330, y: 650 },
+    { x: 620, y: 400 },
+    { x: 1000, y: 470 },
+    { x: 1150, y: 760 },
+    { x: 1420, y: 880 },
+    { x: 1560, y: 600 },
+    { x: 1400, y: 330 },
+    { x: 1750, y: 220 },
+    { x: 2150, y: 330 },
+    { x: 2300, y: 650 },
+    { x: 2100, y: 900 },
+    { x: 2250, y: 1200 },
+    { x: 2350, y: 1600 },
+    { x: 2100, y: 1950 },
+    { x: 1700, y: 2100 },
+    { x: 1250, y: 2150 },
+    { x: 820, y: 2180 },
+  ],
+};
+
+export const TRACK_DEFS: TrackDef[] = [BAYSIDE, DUSTBOWL, SERPENTINE];
 
 export interface NearestInfo {
   /** Index of the waypoint starting the closest segment. */
@@ -230,6 +353,36 @@ export class Track {
   /** True when the point is on the racing surface rather than the grass. */
   onTrack(p: Vec, hint?: number): boolean {
     return this.nearest(p, hint).dist <= this.def.halfWidth;
+  }
+
+  /** Circuit facts for the track select screen. */
+  get info(): { lengthM: number; corners: number; difficulty: number; surfaceLabel: string } {
+    // A corner is a run of waypoints tighter than a comfortable flat-out radius.
+    let corners = 0;
+    let inCorner = false;
+    for (let i = 0; i < this.count; i++) {
+      const r = this.radius(i);
+      const tight = r < 260;
+      if (tight && !inCorner) corners++;
+      inCorner = tight;
+    }
+    // A corner spanning waypoint 0 would otherwise be counted twice.
+    if (inCorner && this.radius(0) < 260 && corners > 1) corners--;
+    // Difficulty: how often corners come at you, plus a step for a loose
+    // surface and another for a narrow road.
+    const density = corners / (this.totalLen / 1000);
+    const base = density < 1 ? 1 : density < 1.6 ? 2 : 3;
+    const difficulty = clamp(
+      base + (this.def.surface === 'dirt' ? 1 : 0) + (this.def.halfWidth < 62 ? 1 : 0),
+      1,
+      3,
+    );
+    return {
+      lengthM: Math.round((this.totalLen * METRES_PER_PIXEL) / 10) * 10,
+      corners,
+      difficulty,
+      surfaceLabel: this.def.surface === 'dirt' ? 'DIRT' : 'ASPHALT',
+    };
   }
 
   /** Corner radius at waypoint i. */

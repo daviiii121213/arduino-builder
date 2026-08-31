@@ -1,69 +1,67 @@
-import { clamp, lerp, type Vec } from './math';
+import { clamp } from './math';
 import { ctx2d } from './pixel';
+import { drawText } from './font';
 import { getCarSpecs, type CarSpec } from './cars';
 import { getDecorSprites } from './decor';
-import { AIDriver, RaceCar, resolveCarCollision, resolveObstacleCollision } from './car';
+import { getWeatherIcons } from './icons';
+import type { Controls } from './car';
 import { buildTracks, type Track } from './tracks';
 import { buildWorld, type World } from './world';
-import { Particles } from './effects';
+import { WEATHERS } from './weather';
+import { Race, STEP } from './race';
 import { Input } from './input';
+import { MenuModel, type MenuAction, type MenuEvent } from './menu';
+import { MenuRenderer, segmentBar } from './menuRender';
+import { Audio } from './audio';
 
 export const TOTAL_LAPS = 3;
-const FIELD_SIZE = 4;
-/** Physics runs at a fixed step so the handling feels identical everywhere. */
-const STEP = 1 / 120;
 /** Roughly how many world pixels tall the view should be; sets the zoom. */
 const TARGET_VIEW_HEIGHT = 360;
 
-const AI_SKILLS = [
-  { pace: 0.94, line: -0.35, reaction: 2.4 },
-  { pace: 0.9, line: 0.3, reaction: 2.2 },
-  { pace: 0.97, line: 0.0, reaction: 2.6 },
-  { pace: 0.88, line: -0.15, reaction: 2.1 },
-];
+const INK = '#0d1014';
+const BONE = '#f2f0e8';
+const DIM = '#98a0ad';
 
+type Mode = 'menu' | 'race';
+
+/** The app: a menu with a live race behind it, and the race itself. */
 export class Game {
   private canvas: HTMLCanvasElement;
   private g: CanvasRenderingContext2D;
   private input: Input;
   private specs: CarSpec[];
   private tracks: Track[];
-  private worlds: Array<World | null>;
-  private trackIndex = 0;
-  private playerCar = 0;
+  private worlds = new Map<string, World>();
+  private audio = new Audio();
 
-  private cars: RaceCar[] = [];
-  private drivers: AIDriver[] = [];
-  private particles = new Particles();
-  private camera: Vec = { x: 0, y: 0 };
+  private menu: MenuModel;
+  private menuUi = new MenuRenderer();
+  private mode: Mode = 'menu';
+  private race: Race | null = null;
+  /** All-AI race running behind the menu, previewing the current selection. */
+  private attract: Race | null = null;
+  private attractKey = '';
+  private resultsTimer = 0;
   private zoom = 2;
-  private raceTime = 0;
-  private accumulator = 0;
   private lastTs = 0;
-  private banner = '';
-  private bannerTimer = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.g = ctx2d(canvas);
-    this.input = new Input();
+    this.input = new Input(canvas);
     this.specs = getCarSpecs();
     this.tracks = buildTracks();
-    this.worlds = this.tracks.map(() => null);
+    this.menu = new MenuModel(this.specs.length, this.tracks.length, WEATHERS.length);
+    this.audio.apply(this.menu.sound);
     window.addEventListener('resize', () => this.resize());
     this.resize();
-    this.startRace();
   }
 
-  private get track(): Track {
-    return this.tracks[this.trackIndex];
-  }
-
-  private world(): World {
-    let w = this.worlds[this.trackIndex];
+  private world(track: Track): World {
+    let w = this.worlds.get(track.def.id);
     if (!w) {
-      w = buildWorld(this.track);
-      this.worlds[this.trackIndex] = w;
+      w = buildWorld(track);
+      this.worlds.set(track.def.id, w);
     }
     return w;
   }
@@ -79,43 +77,6 @@ export class Game {
     this.g = ctx2d(this.canvas);
   }
 
-  /** Builds the grid: player plus three AI, each in a different car. */
-  startRace(): void {
-    const track = this.track;
-    this.cars = [];
-    this.drivers = [];
-    this.particles.clear();
-    this.raceTime = 0;
-    this.accumulator = 0;
-    this.banner = '';
-    this.bannerTimer = 0;
-
-    const world = this.world();
-    world.marksCtx.clearRect(0, 0, world.marks.width, world.marks.height);
-
-    for (let slot = 0; slot < FIELD_SIZE; slot++) {
-      const specIndex = (this.playerCar + slot) % this.specs.length;
-      const spec = this.specs[specIndex];
-      const grid = track.startSlot(slot);
-      const car = new RaceCar({
-        pos: grid.pos,
-        heading: grid.heading,
-        stats: spec.stats,
-        isPlayer: slot === 0,
-        name: spec.name,
-        carIndex: specIndex,
-      });
-      car.primeGrid(track);
-      this.cars.push(car);
-      if (slot !== 0) {
-        this.drivers.push(new AIDriver(car, track, AI_SKILLS[slot % AI_SKILLS.length]));
-      }
-    }
-
-    const p = this.cars[0];
-    this.camera = { x: p.pos.x, y: p.pos.y };
-  }
-
   start(): void {
     const frame = (ts: number): void => {
       const dt = this.lastTs === 0 ? 0 : Math.min(0.1, (ts - this.lastTs) / 1000);
@@ -128,254 +89,317 @@ export class Game {
     requestAnimationFrame(frame);
   }
 
-  private handleHotkeys(): void {
-    if (this.input.tapped('r')) this.startRace();
-    if (this.input.tapped('c')) {
-      this.playerCar = (this.playerCar + 1) % this.specs.length;
-      this.startRace();
-      this.flash(`CAR: ${this.specs[this.playerCar].name}`);
+  // ---- menu ---------------------------------------------------------------
+
+  private updateMenu(dt: number): void {
+    this.menuUi.update(dt);
+    const events: MenuEvent[] = [];
+
+    // Every key press is replayed in order, so quick taps never get swallowed.
+    const bindings: Record<string, MenuAction> = {
+      arrowup: 'up',
+      w: 'up',
+      arrowdown: 'down',
+      s: 'down',
+      arrowleft: 'left',
+      a: 'left',
+      arrowright: 'right',
+      d: 'right',
+      enter: 'confirm',
+      ' ': 'confirm',
+      escape: 'back',
+      backspace: 'back',
+    };
+    for (const key of this.input.keyPresses) {
+      const action = bindings[key];
+      if (action) events.push(...this.menu.input(action));
     }
-    for (let i = 0; i < this.tracks.length; i++) {
-      if (this.input.tapped(String(i + 1)) && this.trackIndex !== i) {
-        this.trackIndex = i;
-        this.startRace();
-        this.flash(this.track.def.name);
+
+    // A click selects the row under the pointer; a second click activates it.
+    for (const click of this.input.clicks) {
+      const hit = this.menuUi.hitBoxes.find(
+        (b) => click.x >= b.x && click.x <= b.x + b.w && click.y >= b.y && click.y <= b.y + b.h,
+      );
+      if (!hit) continue;
+      const wasSelected = this.menu.index === hit.index;
+      events.push(...this.menu.select(hit.index));
+      if (wasSelected) events.push(...this.menu.input('confirm'));
+    }
+
+    for (const event of events) {
+      switch (event.type) {
+        case 'move':
+          this.audio.move();
+          break;
+        case 'confirm':
+          this.audio.confirm();
+          break;
+        case 'back':
+          this.audio.back();
+          break;
+        case 'sound':
+          this.audio.apply(this.menu.sound);
+          break;
+        case 'start':
+          this.beginRace(event.car, event.track, event.weather);
+          break;
       }
     }
-  }
 
-  private flash(text: string): void {
-    this.banner = text;
-    this.bannerTimer = 2;
-  }
-
-  private playerControls(): void {
-    const player = this.cars[0];
-    if (player.finished) {
-      player.controls = { throttle: 0, steer: 0, handbrake: false };
-      return;
+    // The attract race behind the menu always shows the current selection.
+    if (this.mode === 'menu') {
+      const track = this.tracks[this.menu.trackIndex];
+      const weather = WEATHERS[this.menu.weatherIndex];
+      const key = `${track.def.id}:${weather.id}`;
+      if (key !== this.attractKey || !this.attract) {
+        this.attractKey = key;
+        this.attract = new Race({
+          track,
+          weather,
+          specs: this.specs,
+          laps: 99,
+          playerCarIndex: null,
+          world: this.world(track),
+        });
+      }
+      this.attract.update(dt, this.canvas.width, this.canvas.height);
+      this.audio.idleEngine();
     }
+  }
+
+  private beginRace(carIndex: number, trackIndex: number, weatherIndex: number): void {
+    const track = this.tracks[trackIndex];
+    this.race = new Race({
+      track,
+      weather: WEATHERS[weatherIndex],
+      specs: this.specs,
+      laps: TOTAL_LAPS,
+      playerCarIndex: carIndex,
+      world: this.world(track),
+    });
+    this.attract = null;
+    this.attractKey = '';
+    this.resultsTimer = 0;
+    this.mode = 'race';
+  }
+
+  private exitToMenu(): void {
+    this.race = null;
+    this.mode = 'menu';
+    this.menu.reset();
+    this.audio.idleEngine();
+    this.audio.back();
+  }
+
+  // ---- race ---------------------------------------------------------------
+
+  private playerControls(): Controls {
     const up = this.input.held('w', 'arrowup');
     const down = this.input.held('s', 'arrowdown');
     const left = this.input.held('a', 'arrowleft');
     const right = this.input.held('d', 'arrowright');
-    player.controls = {
+    return {
       throttle: (up ? 1 : 0) + (down ? -1 : 0),
       steer: (right ? 1 : 0) + (left ? -1 : 0),
       handbrake: this.input.held(' '),
+      nitro: this.input.held('shift'),
     };
   }
 
+  private updateRace(dt: number): void {
+    const race = this.race;
+    if (!race) return;
+
+    if (this.input.tapped('escape')) {
+      this.exitToMenu();
+      return;
+    }
+    if (this.input.tapped('r')) {
+      this.beginRace(this.menu.carIndex, this.menu.trackIndex, this.menu.weatherIndex);
+      return;
+    }
+
+    const wasOver = race.over;
+    race.setPlayerControls(this.playerControls());
+    race.update(dt, this.canvas.width, this.canvas.height);
+
+    if (race.over) {
+      if (!wasOver) this.audio.fanfare();
+      this.resultsTimer += dt;
+      if (this.input.tapped('enter', ' ')) this.exitToMenu();
+    }
+
+    const player = race.player;
+    if (player && !race.over) {
+      const ratio = clamp(Math.abs(player.forwardSpeed) / player.stats.maxSpeed, 0, 1);
+      this.audio.updateEngine(ratio, player.controls.throttle > 0 ? 1 : 0, player.nitroActive);
+    } else {
+      this.audio.idleEngine();
+    }
+  }
+
   private update(dt: number): void {
-    this.handleHotkeys();
-    this.playerControls();
-    if (this.bannerTimer > 0) this.bannerTimer -= dt;
-
-    this.accumulator += dt;
-    let steps = 0;
-    while (this.accumulator >= STEP && steps < 8) {
-      this.step(STEP);
-      this.accumulator -= STEP;
-      steps++;
-    }
-    if (steps === 8) this.accumulator = 0;
-
-    this.particles.update(dt);
-    this.updateCamera(dt);
+    // Browsers only allow audio to start inside a gesture.
+    if (this.input.anyInput) this.audio.start();
+    if (this.mode === 'menu') this.updateMenu(dt);
+    else this.updateRace(dt);
   }
 
-  private step(dt: number): void {
-    this.raceTime += dt;
-    const track = this.track;
-
-    for (const driver of this.drivers) driver.update(dt, this.cars);
-    for (const car of this.cars) {
-      car.update(dt, track);
-      for (const prop of track.nearbySolids(car.pos)) resolveObstacleCollision(car, prop);
-    }
-    for (let i = 0; i < this.cars.length; i++) {
-      for (let j = i + 1; j < this.cars.length; j++) {
-        resolveCarCollision(this.cars[i], this.cars[j]);
-      }
-    }
-
-    for (const car of this.cars) {
-      if (!car.finished && car.lap >= TOTAL_LAPS) {
-        car.finished = true;
-        car.finishTime = this.raceTime;
-        if (car.isPlayer) this.flash(`FINISHED  P${car.position}`);
-      }
-    }
-
-    this.updatePositions();
-    this.emitEffects(dt);
-  }
-
-  private updatePositions(): void {
-    const order = [...this.cars].sort((a, b) => {
-      if (a.finished && b.finished) return a.finishTime - b.finishTime;
-      if (a.finished) return -1;
-      if (b.finished) return 1;
-      return b.raceProgress - a.raceProgress;
-    });
-    order.forEach((car, i) => {
-      car.position = i + 1;
-    });
-  }
-
-  /** Skid marks on the surface plus dust puffs off the back of the cars. */
-  private emitEffects(dt: number): void {
-    const track = this.track;
-    const dirt = track.def.surface === 'dirt';
-    const marks = this.world().marksCtx;
-
-    for (const car of this.cars) {
-      const speed = car.speed;
-      if (speed < 25) continue;
-      const cos = Math.cos(car.heading);
-      const sin = Math.sin(car.heading);
-      const spec = this.specs[car.carIndex];
-      const rearX = car.pos.x - cos * spec.sprite.height * 0.32;
-      const rearY = car.pos.y - sin * spec.sprite.height * 0.32;
-      const sliding = car.slip > 32 || car.controls.handbrake;
-
-      if (sliding && !car.offTrack) {
-        marks.fillStyle = dirt ? 'rgba(86,56,30,0.45)' : 'rgba(24,22,26,0.38)';
-        for (const side of [-1, 1]) {
-          const ox = -sin * side * spec.sprite.width * 0.34;
-          const oy = cos * side * spec.sprite.width * 0.34;
-          marks.fillRect(Math.round(rearX + ox), Math.round(rearY + oy), 3, 3);
-        }
-      }
-
-      const wantsDust = car.offTrack || (dirt && (sliding || car.controls.throttle > 0));
-      if (wantsDust && Math.random() < dt * 60) {
-        const color = car.offTrack ? '#5c7f3c' : dirt ? '#a37c4c' : '#6a6d75';
-        this.particles.spawn(
-          { x: rearX, y: rearY },
-          { x: cos * speed, y: sin * speed },
-          color,
-          car.offTrack ? 2 : 1,
-        );
-      }
-    }
-  }
-
-  private updateCamera(dt: number): void {
-    const player = this.cars[0];
-    const vw = this.canvas.width;
-    const vh = this.canvas.height;
-    // Look slightly ahead of the car so you can see the corner coming.
-    const targetX = player.pos.x + player.vel.x * 0.28;
-    const targetY = player.pos.y + player.vel.y * 0.28;
-    const k = 1 - Math.exp(-6 * dt);
-    this.camera.x = lerp(this.camera.x, targetX, k);
-    this.camera.y = lerp(this.camera.y, targetY, k);
-
-    const def = this.track.def;
-    this.camera.x =
-      def.worldW <= vw ? def.worldW / 2 : clamp(this.camera.x, vw / 2, def.worldW - vw / 2);
-    this.camera.y =
-      def.worldH <= vh ? def.worldH / 2 : clamp(this.camera.y, vh / 2, def.worldH - vh / 2);
-  }
+  // ---- drawing ------------------------------------------------------------
 
   private render(): void {
     const g = this.g;
-    const vw = this.canvas.width;
-    const vh = this.canvas.height;
-    const camX = Math.round(this.camera.x - vw / 2);
-    const camY = Math.round(this.camera.y - vh / 2);
-    const world = this.world();
-
-    g.imageSmoothingEnabled = false;
-    g.fillStyle = '#2c5c26';
-    g.fillRect(0, 0, vw, vh);
-    g.drawImage(world.ground, camX, camY, vw, vh, 0, 0, vw, vh);
-    g.drawImage(world.marks, camX, camY, vw, vh, 0, 0, vw, vh);
-    this.particles.draw(g, camX, camY);
-
-    for (const car of this.cars) this.drawCar(g, car, camX, camY);
-    this.drawHud(g);
-  }
-
-  private drawCar(g: CanvasRenderingContext2D, car: RaceCar, camX: number, camY: number): void {
-    const spec = this.specs[car.carIndex];
-    const w = spec.sprite.width;
-    const h = spec.sprite.height;
-    g.save();
-    g.translate(Math.round(car.pos.x - camX), Math.round(car.pos.y - camY));
-    // Sprites are drawn nose-up, so add a quarter turn to match the heading.
-    g.rotate(car.heading + Math.PI / 2);
-    g.drawImage(spec.shadow, -Math.round(w / 2) + 1, -Math.round(h / 2) + 2);
-    g.drawImage(spec.sprite, -Math.round(w / 2), -Math.round(h / 2));
-    g.restore();
-  }
-
-  private text(
-    g: CanvasRenderingContext2D,
-    str: string,
-    x: number,
-    y: number,
-    color = '#f4f2ea',
-  ): void {
-    g.fillStyle = '#12141a';
-    g.fillText(str, x + 1, y + 1);
-    g.fillStyle = color;
-    g.fillText(str, x, y);
-  }
-
-  /** Deliberately minimal: laps, position, speed and the key hints. */
-  private drawHud(g: CanvasRenderingContext2D): void {
-    const player = this.cars[0];
-    const spec = this.specs[player.carIndex];
-    g.font = '10px monospace';
-    g.textBaseline = 'top';
-    g.textAlign = 'left';
-
-    this.text(g, `LAP ${player.displayLap(TOTAL_LAPS)}/${TOTAL_LAPS}`, 6, 6);
-    this.text(g, `POS ${player.position}/${this.cars.length}`, 6, 18);
-    this.text(g, `${Math.round(Math.abs(player.forwardSpeed) * 0.75)} KM/H`, 6, 30, spec.tint);
-
-    g.textAlign = 'right';
     const w = this.canvas.width;
-    this.text(g, this.track.def.name, w - 6, 6);
-    this.text(g, spec.name, w - 6, 18, spec.tint);
+    const h = this.canvas.height;
+    g.imageSmoothingEnabled = false;
 
-    g.textAlign = 'center';
-    g.font = '8px monospace';
-    this.text(
-      g,
-      'WASD / ARROWS  SPACE DRIFT   1-2 TRACK   C CAR   R RESTART',
-      this.canvas.width / 2,
-      this.canvas.height - 12,
-      '#c9c6bd',
-    );
-
-    if (player.finished) {
-      g.font = '14px monospace';
-      this.text(
-        g,
-        `FINISHED - P${player.position}`,
-        this.canvas.width / 2,
-        this.canvas.height / 2 - 10,
-      );
-      g.font = '9px monospace';
-      this.text(g, 'PRESS R TO RACE AGAIN', this.canvas.width / 2, this.canvas.height / 2 + 8);
-    } else if (this.bannerTimer > 0 && this.banner) {
-      g.font = '11px monospace';
-      this.text(g, this.banner, this.canvas.width / 2, 44);
+    const backdrop = this.mode === 'menu' ? this.attract : this.race;
+    if (backdrop) backdrop.render(g, w, h);
+    else {
+      g.fillStyle = INK;
+      g.fillRect(0, 0, w, h);
     }
-    g.textAlign = 'left';
+
+    if (this.mode === 'menu') {
+      this.menuUi.draw(g, w, h, this.menu, {
+        specs: this.specs,
+        tracks: this.tracks,
+        weathers: WEATHERS,
+      });
+    } else {
+      this.drawHud(g, w, h);
+    }
   }
 
-  // --- helpers used by the automated browser smoke test ---
+  /** Race HUD: laps, position, speed and the nitro gauge. */
+  private drawHud(g: CanvasRenderingContext2D, w: number, h: number): void {
+    const race = this.race;
+    const player = race?.player;
+    if (!race || !player) return;
+    const spec = this.specs[player.carIndex];
+
+    drawText(g, `LAP ${player.displayLap(TOTAL_LAPS)}/${TOTAL_LAPS}`, 8, 8, {
+      scale: 2,
+      color: BONE,
+      shadow: INK,
+    });
+    drawText(g, `POS ${player.position}/${race.cars.length}`, 8, 24, {
+      scale: 2,
+      color: BONE,
+      shadow: INK,
+    });
+
+    drawText(g, race.track.def.name, w - 8, 8, { scale: 1, color: BONE, shadow: INK, align: 'right' });
+    const icon = getWeatherIcons()[race.weather.id];
+    g.drawImage(icon, w - 8 - icon.width, 18);
+
+    // Speed and the nitro gauge sit together in the bottom-left corner.
+    const baseY = h - 30;
+    const kmh = `${Math.round(Math.abs(player.forwardSpeed) * 0.75)}`;
+    const speedW = drawText(g, kmh, 8, baseY - 14, { scale: 2, color: spec.tint, shadow: INK });
+    drawText(g, 'KM/H', 8 + speedW + 4, baseY - 8, { scale: 1, color: DIM, shadow: INK });
+
+    const barW = 104;
+    const flashing = player.nitroActive && Math.floor(race.time * 14) % 2 === 0;
+    const empty = player.nitroLocked;
+    drawText(g, 'NITRO', 8, baseY + 2, {
+      scale: 1,
+      color: empty ? '#8a3b3b' : player.nitroActive ? BONE : '#59d8f0',
+      shadow: INK,
+    });
+    segmentBar(
+      g,
+      8 + 32,
+      baseY,
+      barW,
+      10,
+      player.nitroRatio,
+      flashing ? '#bff6ff' : empty ? '#5c2b2b' : '#59d8f0',
+      10,
+    );
+    if (player.nitroActive) {
+      // Little exhaust ticks either side of the gauge while it burns.
+      g.fillStyle = flashing ? '#ffd75e' : '#ff9a3c';
+      g.fillRect(8 + 32 + barW + 3, baseY + 2, 2, 6);
+      g.fillRect(8 + 32 + barW + 6, baseY + 4, 2, 2);
+    }
+
+    if (race.over) this.drawResults(g, w, h, race);
+  }
+
+  private drawResults(g: CanvasRenderingContext2D, w: number, h: number, race: Race): void {
+    const standings = race.standings();
+    const pw = 200;
+    const rows = standings.length;
+    const ph = rows * 12 + 54;
+    const px = Math.round((w - pw) / 2);
+    const py = Math.round((h - ph) / 2);
+
+    g.fillStyle = 'rgba(8,10,16,0.78)';
+    g.fillRect(0, 0, w, h);
+    g.fillStyle = INK;
+    g.fillRect(px - 2, py - 2, pw + 4, ph + 4);
+    g.fillStyle = '#232936';
+    g.fillRect(px, py, pw, ph);
+
+    const player = race.player;
+    drawText(g, player ? `FINISHED  P${player.position}` : 'RESULTS', px + pw / 2, py + 8, {
+      scale: 2,
+      color: BONE,
+      shadow: INK,
+      align: 'center',
+    });
+    // Chequered rule under the heading, echoing the start/finish line.
+    for (let i = 0; i * 4 < pw - 16; i++) {
+      g.fillStyle = i % 2 === 0 ? BONE : INK;
+      g.fillRect(px + 8 + i * 4, py + 23, 4, 2);
+      g.fillStyle = i % 2 === 0 ? INK : BONE;
+      g.fillRect(px + 8 + i * 4, py + 25, 4, 2);
+    }
+
+    standings.forEach((car, i) => {
+      const y = py + 32 + i * 12;
+      const mine = car.isPlayer;
+      const spec = this.specs[car.carIndex];
+      drawText(g, `${car.position}`, px + 10, y, { scale: 1, color: mine ? BONE : DIM });
+      drawText(g, car.name, px + 24, y, { scale: 1, color: mine ? spec.tint : DIM });
+      drawText(g, car.finished ? `${car.finishTime.toFixed(1)}S` : '-', px + pw - 10, y, {
+        scale: 1,
+        color: mine ? BONE : DIM,
+        align: 'right',
+      });
+    });
+
+    if (this.resultsTimer > 0.8 && Math.floor(this.resultsTimer * 2) % 2 === 0) {
+      drawText(g, 'ENTER MENU    R RESTART', px + pw / 2, py + ph - 12, {
+        scale: 1,
+        color: BONE,
+        align: 'center',
+      });
+    }
+  }
+
+  // ---- helpers used by the automated browser smoke test --------------------
 
   trackName(): string {
-    return this.track.def.name;
+    return (this.race ?? this.attract)?.track.def.name ?? this.tracks[this.menu.trackIndex].def.name;
+  }
+
+  menuState(): { mode: Mode; screen: string; index: number; car: number; track: number; weather: number } {
+    return {
+      mode: this.mode,
+      screen: this.menu.screen,
+      index: this.menu.index,
+      car: this.menu.carIndex,
+      track: this.menu.trackIndex,
+      weather: this.menu.weatherIndex,
+    };
   }
 
   carsDebug(): Array<Record<string, number | string | boolean>> {
-    return this.cars.map((c) => ({
+    const race = this.race ?? this.attract;
+    if (!race) return [];
+    return race.cars.map((c) => ({
       name: c.name,
       isPlayer: c.isPlayer,
       x: Math.round(c.pos.x),
@@ -387,37 +411,32 @@ export class Game {
       position: c.position,
       offTrack: c.offTrack,
       finished: c.finished,
+      nitro: Number(c.nitro.toFixed(2)),
+      nitroActive: c.nitroActive,
     }));
   }
 
   /** Fast-forwards the running race with an AI standing in for the player. */
   autopilot(seconds: number): void {
-    const stand = new AIDriver(this.cars[0], this.track, AI_SKILLS[0]);
-    this.drivers.unshift(stand);
-    for (let t = 0; t < seconds; t += STEP) this.step(STEP);
-    this.drivers.shift();
-    this.camera = { ...this.cars[0].pos };
+    (this.race ?? this.attract)?.autopilot(seconds);
   }
 
-  /** Fast-forwards a full race with an AI standing in for the player. */
+  /** Runs a whole race headlessly and reports how it finished. */
   simulateRace(maxSeconds: number): Record<string, unknown> {
-    this.startRace();
-    const stand = new AIDriver(this.cars[0], this.track, AI_SKILLS[0]);
-    this.drivers.unshift(stand);
+    const race = this.race;
+    if (!race) return { error: 'not racing' };
     let t = 0;
-    while (t < maxSeconds && this.cars.some((c) => !c.finished)) {
-      this.step(STEP);
+    while (t < maxSeconds && race.cars.some((c) => !c.finished)) {
+      race.autopilot(STEP);
       t += STEP;
     }
-    const result = {
+    return {
       seconds: Number(t.toFixed(1)),
-      laps: this.cars.map((c) => c.lap),
-      positions: this.cars.map((c) => c.position),
-      finishTimes: this.cars.map((c) => Number(c.finishTime.toFixed(1))),
-      allFinished: this.cars.every((c) => c.finished),
+      laps: race.cars.map((c) => c.lap),
+      positions: race.cars.map((c) => c.position),
+      finishTimes: race.cars.map((c) => Number(c.finishTime.toFixed(1))),
+      allFinished: race.cars.every((c) => c.finished),
     };
-    this.startRace();
-    return result;
   }
 }
 
@@ -425,4 +444,5 @@ export class Game {
 export function preloadArt(): void {
   getCarSpecs();
   getDecorSprites();
+  getWeatherIcons();
 }

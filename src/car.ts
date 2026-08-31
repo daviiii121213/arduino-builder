@@ -1,6 +1,7 @@
 import { clamp, wrapAngle, type Vec } from './math';
 import type { CarStats } from './cars';
 import type { Track } from './tracks';
+import { DEFAULT_WEATHER, type WeatherDef } from './weather';
 
 export interface Controls {
   /** 1 accelerate, -1 brake/reverse. */
@@ -8,9 +9,11 @@ export interface Controls {
   /** -1 left, 1 right. */
   steer: number;
   handbrake: boolean;
+  /** Burn nitro while held, if the tank has anything left. */
+  nitro: boolean;
 }
 
-export const NEUTRAL: Controls = { throttle: 0, steer: 0, handbrake: false };
+export const NEUTRAL: Controls = { throttle: 0, steer: 0, handbrake: false, nitro: false };
 
 export interface SurfaceFeel {
   gripMul: number;
@@ -19,16 +22,25 @@ export interface SurfaceFeel {
   offTrack: boolean;
 }
 
-export function surfaceFeel(track: Track, onTrack: boolean): SurfaceFeel {
+export function surfaceFeel(
+  track: Track,
+  onTrack: boolean,
+  weather: WeatherDef = DEFAULT_WEATHER,
+): SurfaceFeel {
   if (onTrack) {
     return {
-      gripMul: track.def.gripScale,
-      speedMul: track.def.speedScale,
+      gripMul: track.def.gripScale * weather.gripMul,
+      speedMul: track.def.speedScale * weather.speedMul,
       extraDrag: track.def.surface === 'dirt' ? 0.25 : 0,
       offTrack: false,
     };
   }
-  return { gripMul: track.def.gripScale * 0.55, speedMul: 0.42, extraDrag: 2.4, offTrack: true };
+  return {
+    gripMul: track.def.gripScale * weather.gripMul * 0.55,
+    speedMul: 0.42 * weather.speedMul,
+    extraDrag: 2.4,
+    offTrack: true,
+  };
 }
 
 export class RaceCar {
@@ -44,6 +56,12 @@ export class RaceCar {
   forwardSpeed = 0;
   slip = 0;
   offTrack = false;
+
+  /** Seconds of nitro left in the tank, and whether it is burning right now. */
+  nitro: number;
+  nitroActive = false;
+  /** After running dry the bottle needs a quarter tank before it works again. */
+  nitroLocked = false;
 
   /** Laps completed; starts at -1 because cars line up before the line. */
   lap = -1;
@@ -71,6 +89,12 @@ export class RaceCar {
     this.isPlayer = opts.isPlayer;
     this.name = opts.name;
     this.carIndex = opts.carIndex;
+    this.nitro = opts.stats.nitroCapacity;
+  }
+
+  /** How full the tank is, 0..1 — what the nitro bar draws. */
+  get nitroRatio(): number {
+    return this.stats.nitroCapacity > 0 ? this.nitro / this.stats.nitroCapacity : 0;
   }
 
   get speed(): number {
@@ -78,7 +102,7 @@ export class RaceCar {
   }
 
   /** Advances the arcade physics by dt seconds. */
-  update(dt: number, track: Track): void {
+  update(dt: number, track: Track, weather: WeatherDef = DEFAULT_WEATHER): void {
     const s = this.stats;
     const c = this.controls;
     const cos = Math.cos(this.heading);
@@ -86,16 +110,31 @@ export class RaceCar {
 
     const near = track.nearest(this.pos, this.wpHint);
     this.wpHint = near.index;
-    const feel = surfaceFeel(track, near.dist <= track.def.halfWidth);
+    const feel = surfaceFeel(track, near.dist <= track.def.halfWidth, weather);
     this.offTrack = feel.offTrack;
+
+    // Nitro: burns while held and the tank lasts, otherwise it trickles back.
+    // Running the bottle dry locks it out until a quarter tank is back, so an
+    // empty gauge can't stutter out a string of useless micro-boosts.
+    this.nitroActive = c.nitro && !this.nitroLocked && this.nitro > 0 && !this.finished;
+    if (this.nitroActive) {
+      this.nitro = Math.max(0, this.nitro - dt);
+      if (this.nitro === 0) this.nitroLocked = true;
+    } else if (!c.nitro) {
+      // The tank only refills once the button is released, so an empty gauge
+      // stays empty until the player lets go.
+      this.nitro = Math.min(s.nitroCapacity, this.nitro + s.nitroRegen * dt);
+      if (this.nitroLocked && this.nitro >= s.nitroCapacity * 0.25) this.nitroLocked = false;
+    }
+    const boost = this.nitroActive ? s.nitroBoost : 1;
 
     // Split velocity into "along the car" and "sideways" components.
     let vf = this.vel.x * cos + this.vel.y * sin;
     let vr = -this.vel.x * sin + this.vel.y * cos;
 
-    const maxSpeed = s.maxSpeed * feel.speedMul;
+    const maxSpeed = s.maxSpeed * feel.speedMul * boost;
     if (c.throttle > 0) {
-      vf += s.accel * c.throttle * dt * (vf < maxSpeed ? 1 : 0);
+      vf += s.accel * boost * c.throttle * dt * (vf < maxSpeed ? 1 : 0);
     } else if (c.throttle < 0) {
       if (vf > 8) vf -= s.brake * -c.throttle * dt;
       else vf -= s.accel * 0.75 * -c.throttle * dt;
@@ -320,6 +359,16 @@ export class AIDriver {
       steer = -steer;
     }
 
-    car.controls = { throttle, steer, handbrake: false };
+    // Nitro goes down the straights: only when the road ahead opens up, the
+    // car is pointed the right way and there is a worthwhile amount left.
+    const straightAhead = track.radius(near.index + 2) > 420 && track.radius(near.index + 6) > 360;
+    const useNitro =
+      straightAhead &&
+      throttle > 0 &&
+      Math.abs(steer) < 0.35 &&
+      near.dist < track.def.halfWidth &&
+      car.nitro > car.stats.nitroCapacity * 0.35;
+
+    car.controls = { throttle, steer, handbrake: false, nitro: useNitro };
   }
 }

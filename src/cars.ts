@@ -132,6 +132,63 @@ const BOULDER_MAP = [
   '.....KKKKKKKK.....',
 ];
 
+const ZEPHYR_MAP = [
+  '.....KKKK.....',
+  '....KHHHHK....',
+  '....KLLLLK....',
+  'TTKKKBBBBKKKTT',
+  'TTKDBBBBBBDKTT',
+  'TTKDBBBBBBDKTT',
+  '.KKDBBBBBBDKK.',
+  '..KDBGGGGBDK..',
+  '..KDGGWWGGDK..',
+  '..KDGGGGGGDK..',
+  '..KDBGGGGBDK..',
+  '..KDBBSSBBDK..',
+  '..KDBBSSBBDK..',
+  '..KDBBBBBBDK..',
+  '.KKDBBBBBBDKK.',
+  'TTKDBBBBBBDKTT',
+  'TTKDBMMMMBDKTT',
+  'TTKDBMMMMBDKTT',
+  'TTKKKBBBBKKKTT',
+  '....KLLLLK....',
+  '....KRRRRK....',
+  '.....KKKK.....',
+];
+
+const VULCAN_MAP = [
+  '....KKKKKKKKKK....',
+  '...KHHKMMMMKHHK...',
+  '..KKLLKMMMMKLLKK..',
+  '..KDBBKMMMMKBBDK..',
+  '.KKDBBKMMMMKBBDKK.',
+  'TTKDBBBKMMKBBBDKTT',
+  'TTKDBBBBBBBBBBDKTT',
+  'TTKDBBSSSSSSBBDKTT',
+  '.KKDBBSSSSSSBBDKK.',
+  '..KDBBSSSSSSBBDK..',
+  '..KDBGGGGGGGGBDK..',
+  '..KDGGGWWWWGGGDK..',
+  '..KDGGGGGGGGGGDK..',
+  '..KDBGGGGGGGGBDK..',
+  '..KDBBSSSSSSBBDK..',
+  '..KDBBSSSSSSBBDK..',
+  '..KDBBSSSSSSBBDK..',
+  '..KDBBBBBBBBBBDK..',
+  '..KDBLLLLLLLLBDK..',
+  '..KDBBBBBBBBBBDK..',
+  '.KKDBBBBBBBBBBDKK.',
+  'TTTKDBBBBBBBBDKTTT',
+  'TTTKDBBBBBBBBDKTTT',
+  'TTTKDBBBBBBBBDKTTT',
+  'TTTKDBBBBBBBBDKTTT',
+  '.KKDBBBBBBBBBBDKK.',
+  '..KKMMMMMMMMMMKK..',
+  '..KRRKKKKKKKKRRK..',
+  '...KKKKKKKKKKKK...',
+];
+
 export interface CarStats {
   /** Top speed on clean asphalt, world pixels per second. */
   maxSpeed: number;
@@ -151,11 +208,19 @@ export interface CarStats {
   mass: number;
   /** Collision radius. */
   radius: number;
+  /** Seconds of nitro the tank holds. */
+  nitroCapacity: number;
+  /** Top speed and acceleration multiplier while the nitro is burning. */
+  nitroBoost: number;
+  /** Nitro refilled per second while not boosting. */
+  nitroRegen: number;
 }
 
 export interface CarSpec {
   id: string;
   name: string;
+  /** One line for the car select screen. */
+  blurb: string;
   stats: CarStats;
   sprite: HTMLCanvasElement;
   shadow: HTMLCanvasElement;
@@ -166,6 +231,7 @@ export interface CarSpec {
 interface CarDef {
   id: string;
   name: string;
+  blurb: string;
   map: string[];
   palette: Palette;
   tint: string;
@@ -216,6 +282,7 @@ const DEFS: CarDef[] = [
   {
     id: 'bolt',
     name: 'BOLT',
+    blurb: 'The all-rounder. Nothing to relearn, nothing to fear.',
     map: BOLT_MAP,
     palette: pal('#8c2020', '#d63b32', '#f27a68', '#f6e4c8'),
     tint: '#d63b32',
@@ -229,11 +296,15 @@ const DEFS: CarDef[] = [
       drag: 0.45,
       mass: 1,
       radius: 11,
+      nitroCapacity: 4,
+      nitroBoost: 1.28,
+      nitroRegen: 0.35,
     },
   },
   {
     id: 'comet',
     name: 'COMET',
+    blurb: 'Fastest thing here once it is rolling. Getting rolling takes a while.',
     map: COMET_MAP,
     palette: pal('#1c4c78', '#2f7fc4', '#79c2f0', '#ffd45e'),
     tint: '#2f7fc4',
@@ -247,11 +318,15 @@ const DEFS: CarDef[] = [
       drag: 0.38,
       mass: 1,
       radius: 11,
+      nitroCapacity: 3,
+      nitroBoost: 1.22,
+      nitroRegen: 0.28,
     },
   },
   {
     id: 'pebble',
     name: 'PEBBLE',
+    blurb: 'Slowest on the straight, untouchable through the corners.',
     map: PEBBLE_MAP,
     palette: pal('#6b7a1e', '#b7cc35', '#e2f07a', '#3a4a1c'),
     tint: '#b7cc35',
@@ -265,11 +340,15 @@ const DEFS: CarDef[] = [
       drag: 0.5,
       mass: 0.85,
       radius: 10,
+      nitroCapacity: 5,
+      nitroBoost: 1.32,
+      nitroRegen: 0.5,
     },
   },
   {
     id: 'boulder',
     name: 'BOULDER',
+    blurb: 'Heavy. Wins every touch, pays for it on turn-in.',
     map: BOULDER_MAP,
     palette: pal('#4a2c66', '#7c4bb0', '#b78ce0', '#e8e2f2'),
     tint: '#7c4bb0',
@@ -283,16 +362,60 @@ const DEFS: CarDef[] = [
       drag: 0.42,
       mass: 1.35,
       radius: 12,
+      nitroCapacity: 4.5,
+      nitroBoost: 1.25,
+      nitroRegen: 0.34,
+    },
+  },
+  {
+    id: 'zephyr',
+    name: 'ZEPHYR',
+    blurb: 'A kart with delusions. Feather-light, and the tank never seems to empty.',
+    map: ZEPHYR_MAP,
+    palette: pal('#0f6b74', '#22b5c4', '#8ef0f5', '#f2f0e8'),
+    tint: '#22b5c4',
+    stats: {
+      maxSpeed: 275,
+      accel: 310,
+      brake: 400,
+      reverseMax: 125,
+      turnRate: 3.4,
+      grip: 8,
+      drag: 0.52,
+      mass: 0.72,
+      radius: 10,
+      nitroCapacity: 6,
+      nitroBoost: 1.3,
+      nitroRegen: 0.55,
+    },
+  },
+  {
+    id: 'vulcan',
+    name: 'VULCAN',
+    blurb: 'Half engine, half bodywork. Enormous tank, brutal boost, glacial refill.',
+    map: VULCAN_MAP,
+    palette: pal('#8a3a10', '#e2701c', '#f7b45a', '#1b1d22'),
+    tint: '#e2701c',
+    stats: {
+      maxSpeed: 318,
+      accel: 230,
+      brake: 320,
+      reverseMax: 100,
+      turnRate: 2.3,
+      grip: 6.2,
+      drag: 0.4,
+      mass: 1.25,
+      radius: 12,
+      nitroCapacity: 7.5,
+      nitroBoost: 1.38,
+      nitroRegen: 0.22,
     },
   },
 ];
 
 /** Stats only — safe to import outside the browser (tests, headless sim). */
-export const CAR_STATS: Array<{ id: string; name: string; stats: CarStats }> = DEFS.map((d) => ({
-  id: d.id,
-  name: d.name,
-  stats: d.stats,
-}));
+export const CAR_STATS: Array<{ id: string; name: string; blurb: string; stats: CarStats }> =
+  DEFS.map((d) => ({ id: d.id, name: d.name, blurb: d.blurb, stats: d.stats }));
 
 export const CAR_MAPS: Array<{ id: string; map: string[] }> = DEFS.map((d) => ({
   id: d.id,
@@ -307,6 +430,7 @@ export function getCarSpecs(): CarSpec[] {
     cache = DEFS.map((d) => ({
       id: d.id,
       name: d.name,
+      blurb: d.blurb,
       stats: d.stats,
       tint: d.tint,
       sprite: spriteFromMap(d.map, d.palette),
