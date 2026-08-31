@@ -219,8 +219,9 @@ export interface CarStats {
 export interface CarSpec {
   id: string;
   name: string;
-  /** One line for the car select screen. */
+  /** One line for the car select screen, in both languages. */
   blurb: string;
+  blurbPt: string;
   stats: CarStats;
   sprite: HTMLCanvasElement;
   shadow: HTMLCanvasElement;
@@ -232,6 +233,7 @@ interface CarDef {
   id: string;
   name: string;
   blurb: string;
+  blurbPt: string;
   map: string[];
   palette: Palette;
   tint: string;
@@ -283,6 +285,7 @@ const DEFS: CarDef[] = [
     id: 'bolt',
     name: 'BOLT',
     blurb: 'The all-rounder. Nothing to relearn, nothing to fear.',
+    blurbPt: 'O equilibrado. Nada para reaprender, nada a temer.',
     map: BOLT_MAP,
     palette: pal('#8c2020', '#d63b32', '#f27a68', '#f6e4c8'),
     tint: '#d63b32',
@@ -305,6 +308,7 @@ const DEFS: CarDef[] = [
     id: 'comet',
     name: 'COMET',
     blurb: 'Fastest thing here once it is rolling. Getting rolling takes a while.',
+    blurbPt: 'O mais rápido depois que embala. Embalar é que demora.',
     map: COMET_MAP,
     palette: pal('#1c4c78', '#2f7fc4', '#79c2f0', '#ffd45e'),
     tint: '#2f7fc4',
@@ -327,6 +331,7 @@ const DEFS: CarDef[] = [
     id: 'pebble',
     name: 'PEBBLE',
     blurb: 'Slowest on the straight, untouchable through the corners.',
+    blurbPt: 'O mais lento na reta, imbatível nas curvas.',
     map: PEBBLE_MAP,
     palette: pal('#6b7a1e', '#b7cc35', '#e2f07a', '#3a4a1c'),
     tint: '#b7cc35',
@@ -349,6 +354,7 @@ const DEFS: CarDef[] = [
     id: 'boulder',
     name: 'BOULDER',
     blurb: 'Heavy. Wins every touch, pays for it on turn-in.',
+    blurbPt: 'Pesado. Vence todo toque e paga na entrada da curva.',
     map: BOULDER_MAP,
     palette: pal('#4a2c66', '#7c4bb0', '#b78ce0', '#e8e2f2'),
     tint: '#7c4bb0',
@@ -371,6 +377,7 @@ const DEFS: CarDef[] = [
     id: 'zephyr',
     name: 'ZEPHYR',
     blurb: 'A kart with delusions. Feather-light, and the tank never seems to empty.',
+    blurbPt: 'Um kart com pretensão. Leve como pena e com tanque que não acaba.',
     map: ZEPHYR_MAP,
     palette: pal('#0f6b74', '#22b5c4', '#8ef0f5', '#f2f0e8'),
     tint: '#22b5c4',
@@ -393,6 +400,7 @@ const DEFS: CarDef[] = [
     id: 'vulcan',
     name: 'VULCAN',
     blurb: 'Half engine, half bodywork. Enormous tank, brutal boost, glacial refill.',
+    blurbPt: 'Metade motor, metade lataria. Tanque enorme, impulso brutal, recarga lenta.',
     map: VULCAN_MAP,
     palette: pal('#8a3a10', '#e2701c', '#f7b45a', '#1b1d22'),
     tint: '#e2701c',
@@ -414,8 +422,19 @@ const DEFS: CarDef[] = [
 ];
 
 /** Stats only — safe to import outside the browser (tests, headless sim). */
-export const CAR_STATS: Array<{ id: string; name: string; blurb: string; stats: CarStats }> =
-  DEFS.map((d) => ({ id: d.id, name: d.name, blurb: d.blurb, stats: d.stats }));
+export const CAR_STATS: Array<{
+  id: string;
+  name: string;
+  blurb: string;
+  blurbPt: string;
+  stats: CarStats;
+}> = DEFS.map((d) => ({
+  id: d.id,
+  name: d.name,
+  blurb: d.blurb,
+  blurbPt: d.blurbPt,
+  stats: d.stats,
+}));
 
 export const CAR_MAPS: Array<{ id: string; map: string[] }> = DEFS.map((d) => ({
   id: d.id,
@@ -431,6 +450,7 @@ export function getCarSpecs(): CarSpec[] {
       id: d.id,
       name: d.name,
       blurb: d.blurb,
+      blurbPt: d.blurbPt,
       stats: d.stats,
       tint: d.tint,
       sprite: spriteFromMap(d.map, d.palette),

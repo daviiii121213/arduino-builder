@@ -44,6 +44,7 @@ export interface TrackDef {
   name: string;
   /** One line describing the circuit on the track select screen. */
   tagline: string;
+  taglinePt: string;
   surface: Surface;
   theme: TrackTheme;
   worldW: number;
@@ -107,6 +108,7 @@ const BAYSIDE: TrackDef = {
   id: 'bayside',
   name: 'BAYSIDE CIRCUIT',
   tagline: 'Wide, fast and forgiving. Learn the game here.',
+  taglinePt: 'Larga, rápida e generosa. Aprenda o jogo aqui.',
   surface: 'asphalt',
   theme: BAYSIDE_THEME,
   worldW: 2800,
@@ -144,6 +146,7 @@ const DUSTBOWL: TrackDef = {
   id: 'dustbowl',
   name: 'DUSTBOWL RALLY',
   tagline: 'Loose dirt and dry scrub. The car rotates before you ask it to.',
+  taglinePt: 'Terra solta e mato seco. O carro gira antes de você pedir.',
   surface: 'dirt',
   theme: DUSTBOWL_THEME,
   worldW: 2400,
@@ -181,6 +184,7 @@ const SERPENTINE: TrackDef = {
   id: 'serpentine',
   name: 'SERPENTINE PASS',
   tagline: 'Narrow mountain tarmac. A dozen corners and nowhere to rest.',
+  taglinePt: 'Asfalto estreito de montanha. Uma dúzia de curvas e nenhum descanso.',
   surface: 'asphalt',
   theme: SERPENTINE_THEME,
   worldW: 2700,

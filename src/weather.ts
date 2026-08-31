@@ -6,7 +6,9 @@ export type WeatherId = 'sunny' | 'rain' | 'night';
 export interface WeatherDef {
   id: WeatherId;
   name: string;
+  namePt: string;
   blurb: string;
+  blurbPt: string;
   /** Multiplies the surface grip: rain makes everything slide. */
   gripMul: number;
   /** Multiplies top speed. */
@@ -21,7 +23,9 @@ export const WEATHERS: WeatherDef[] = [
   {
     id: 'sunny',
     name: 'SUNNY',
+    namePt: 'SOL',
     blurb: 'Dry line, full grip, clear sight. Racing as intended.',
+    blurbPt: 'Pista seca, aderência total, tudo à vista. Corrida como deve ser.',
     gripMul: 1,
     speedMul: 1,
     visibility: 1,
@@ -30,7 +34,9 @@ export const WEATHERS: WeatherDef[] = [
   {
     id: 'rain',
     name: 'RAIN',
+    namePt: 'CHUVA',
     blurb: 'Standing water. The car steps out early and the braking zones grow.',
+    blurbPt: 'Água na pista. O carro escapa cedo e a frenagem fica bem mais longa.',
     gripMul: 0.7,
     speedMul: 0.94,
     visibility: 0.86,
@@ -39,7 +45,9 @@ export const WEATHERS: WeatherDef[] = [
   {
     id: 'night',
     name: 'NIGHT',
+    namePt: 'NOITE',
     blurb: 'Headlights only. You corner on what the beam shows you.',
+    blurbPt: 'Só os faróis. Você faz a curva com o que o facho mostrar.',
     gripMul: 0.94,
     speedMul: 1,
     visibility: 0.32,

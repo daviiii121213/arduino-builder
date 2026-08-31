@@ -23,7 +23,9 @@ const shell = readFileSync(join(root, 'standalone', 'shell.html'), 'utf8');
 
 // Only the script is inlined: src/style.css sizes the canvas to the whole
 // viewport, which is exactly what the shell overrides, so it is dropped.
-const out = shell.replace('  /*GAME*/', js.trim());
+// Replace with a function: the minified bundle can contain "$&" and friends,
+// which a string replacement would treat as substitution patterns.
+const out = shell.replace('  /*GAME*/', () => js.trim());
 
 if (out.includes('/*GAME*/')) throw new Error('failed to inline the game bundle');
 

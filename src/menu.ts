@@ -1,6 +1,17 @@
 import { DEFAULT_SOUND, type SoundSettings } from './audio';
+import { LANGUAGES, setLanguage, type Language } from './i18n';
 
-export type Screen = 'main' | 'car' | 'track' | 'weather' | 'settings' | 'controls' | 'sound' | 'howto';
+export type Screen =
+  | 'main'
+  | 'car'
+  | 'track'
+  | 'weather'
+  | 'settings'
+  | 'controls'
+  | 'sound'
+  | 'language'
+  | 'howto'
+  | 'pause';
 
 export type MenuAction = 'up' | 'down' | 'left' | 'right' | 'confirm' | 'back';
 
@@ -9,7 +20,16 @@ export type MenuEvent =
   | { type: 'confirm' }
   | { type: 'back' }
   | { type: 'sound' }
-  | { type: 'start'; car: number; track: number; weather: number };
+  | { type: 'start'; car: number; track: number; weather: number }
+  /** Close the pause menu and carry on racing. */
+  | { type: 'resume' }
+  /** Abandon the race and go back to the main menu. */
+  | { type: 'quit' };
+
+/** Rows on the settings screen, in order. */
+export const SETTINGS_ROWS = ['controls', 'sound', 'language', 'howto', 'back'] as const;
+/** Rows on the pause menu, in the order the player asked for. */
+export const PAUSE_ROWS = ['settings', 'quit', 'resume'] as const;
 
 const STORAGE_KEY = 'pixel-racer.settings';
 
@@ -24,6 +44,9 @@ export class MenuModel {
   trackIndex = 0;
   weatherIndex = 0;
   sound: SoundSettings = { ...DEFAULT_SOUND };
+  language: Language = 'en';
+  /** Where BACK goes from the settings screens: the main menu, or the pause menu. */
+  private settingsReturn: Screen = 'main';
 
   constructor(
     readonly carCount: number,
@@ -31,6 +54,7 @@ export class MenuModel {
     readonly weatherCount: number,
   ) {
     this.load();
+    setLanguage(this.language);
   }
 
   /** Number of selectable rows on the current screen. */
@@ -45,9 +69,13 @@ export class MenuModel {
       case 'weather':
         return this.weatherCount;
       case 'settings':
-        return 4;
+        return SETTINGS_ROWS.length;
       case 'sound':
         return 5;
+      case 'language':
+        return LANGUAGES.length;
+      case 'pause':
+        return PAUSE_ROWS.length;
       default:
         return 1;
     }
@@ -56,6 +84,12 @@ export class MenuModel {
   /** True when left/right change a value rather than moving the cursor. */
   private get horizontal(): boolean {
     return this.screen === 'car' || this.screen === 'track' || this.screen === 'weather';
+  }
+
+  /** Opens the in-race pause menu with the cursor on CONTINUE. */
+  openPause(): void {
+    this.settingsReturn = 'pause';
+    this.goto('pause', PAUSE_ROWS.indexOf('resume'));
   }
 
   private goto(screen: Screen, index = 0): void {
@@ -85,7 +119,14 @@ export class MenuModel {
     if (this.screen === 'car') this.carIndex = this.index;
     if (this.screen === 'track') this.trackIndex = this.index;
     if (this.screen === 'weather') this.weatherIndex = this.index;
+    if (this.screen === 'language') this.applyLanguage(LANGUAGES[this.index].id);
     return [{ type: 'move' }];
+  }
+
+  private applyLanguage(language: Language): void {
+    this.language = language;
+    setLanguage(language);
+    this.save();
   }
 
   private horizontalInput(delta: number): MenuEvent[] {
@@ -123,6 +164,7 @@ export class MenuModel {
           this.goto('car', this.carIndex);
           return [{ type: 'confirm' }];
         }
+        this.settingsReturn = 'main';
         this.goto('settings');
         return [{ type: 'confirm' }];
       case 'car':
@@ -140,12 +182,25 @@ export class MenuModel {
           { type: 'confirm' },
           { type: 'start', car: this.carIndex, track: this.trackIndex, weather: this.weatherIndex },
         ];
-      case 'settings':
-        if (this.index === 0) this.goto('controls');
-        else if (this.index === 1) this.goto('sound');
-        else if (this.index === 2) this.goto('howto');
-        else return this.back();
+      case 'settings': {
+        const row = SETTINGS_ROWS[this.index];
+        if (row === 'back') return this.back();
+        if (row === 'language') this.goto('language', LANGUAGES.findIndex((l) => l.id === this.language));
+        else this.goto(row);
         return [{ type: 'confirm' }];
+      }
+      case 'language':
+        this.applyLanguage(LANGUAGES[this.index].id);
+        return [{ type: 'confirm' }, ...this.back()];
+      case 'pause': {
+        const row = PAUSE_ROWS[this.index];
+        if (row === 'settings') {
+          this.goto('settings');
+          return [{ type: 'confirm' }];
+        }
+        if (row === 'quit') return [{ type: 'confirm' }, { type: 'quit' }];
+        return [{ type: 'confirm' }, { type: 'resume' }];
+      }
       case 'sound':
         if (this.index === 3) return this.adjustSound(1);
         if (this.index === 4) return this.back();
@@ -169,17 +224,23 @@ export class MenuModel {
         this.goto('track', this.trackIndex);
         break;
       case 'settings':
-        this.goto('main', 1);
+        if (this.settingsReturn === 'pause') this.goto('pause', PAUSE_ROWS.indexOf('settings'));
+        else this.goto('main', 1);
         break;
       case 'controls':
-        this.goto('settings', 0);
+        this.goto('settings', SETTINGS_ROWS.indexOf('controls'));
         break;
       case 'sound':
-        this.goto('settings', 1);
+        this.goto('settings', SETTINGS_ROWS.indexOf('sound'));
+        break;
+      case 'language':
+        this.goto('settings', SETTINGS_ROWS.indexOf('language'));
         break;
       case 'howto':
-        this.goto('settings', 2);
+        this.goto('settings', SETTINGS_ROWS.indexOf('howto'));
         break;
+      case 'pause':
+        return [{ type: 'back' }, { type: 'resume' }];
     }
     return [{ type: 'back' }];
   }
@@ -192,11 +253,13 @@ export class MenuModel {
     if (this.screen === 'car') this.carIndex = index;
     if (this.screen === 'track') this.trackIndex = index;
     if (this.screen === 'weather') this.weatherIndex = index;
+    if (this.screen === 'language') this.applyLanguage(LANGUAGES[index].id);
     return moved ? [{ type: 'move' }] : [];
   }
 
   /** Returns to the top level, e.g. after a race. */
   reset(): void {
+    this.settingsReturn = 'main';
     this.goto('main', 0);
   }
 
@@ -206,6 +269,7 @@ export class MenuModel {
         STORAGE_KEY,
         JSON.stringify({
           sound: this.sound,
+          language: this.language,
           car: this.carIndex,
           track: this.trackIndex,
           weather: this.weatherIndex,
@@ -222,11 +286,13 @@ export class MenuModel {
       if (!raw) return;
       const data = JSON.parse(raw) as {
         sound?: Partial<SoundSettings>;
+        language?: Language;
         car?: number;
         track?: number;
         weather?: number;
       };
       if (data.sound) this.sound = { ...DEFAULT_SOUND, ...data.sound };
+      if (LANGUAGES.some((l) => l.id === data.language)) this.language = data.language as Language;
       const inRange = (v: number | undefined, max: number): number =>
         typeof v === 'number' && v >= 0 && v < max ? Math.floor(v) : 0;
       this.carIndex = inRange(data.car, this.carCount);

@@ -5,7 +5,8 @@ import { getWeatherIcons } from './icons';
 import type { CarSpec } from './cars';
 import type { Track } from './tracks';
 import type { WeatherDef } from './weather';
-import type { MenuModel, Screen } from './menu';
+import { PAUSE_ROWS, SETTINGS_ROWS, type MenuModel, type Screen } from './menu';
+import { LANGUAGES, page, pick, t } from './i18n';
 
 /**
  * Draws the menus: chequered header, beveled plates, pixel type and live
@@ -36,27 +37,49 @@ export interface HitBox {
   index: number;
 }
 
-const SCREEN_TITLE: Record<Screen, string> = {
-  main: '',
-  car: 'SELECT CAR',
-  track: 'SELECT CIRCUIT',
-  weather: 'SELECT CONDITIONS',
-  settings: 'SETTINGS',
-  controls: 'CONTROLS',
-  sound: 'SOUND',
-  howto: 'HOW TO PLAY',
-};
+function screenTitle(screen: Screen): string {
+  switch (screen) {
+    case 'car':
+      return t('selectCar');
+    case 'track':
+      return t('selectTrack');
+    case 'weather':
+      return t('selectWeather');
+    case 'settings':
+      return t('settings');
+    case 'controls':
+      return t('controls');
+    case 'sound':
+      return t('sound');
+    case 'language':
+      return t('language');
+    case 'howto':
+      return t('howTo');
+    default:
+      return '';
+  }
+}
 
-const FOOTER: Record<Screen, string> = {
-  main: 'ARROWS MOVE   ENTER SELECT',
-  car: 'ARROWS MOVE   ENTER NEXT   ESC BACK',
-  track: 'ARROWS MOVE   ENTER NEXT   ESC BACK',
-  weather: 'ARROWS MOVE   ENTER START RACE   ESC BACK',
-  settings: 'ARROWS MOVE   ENTER SELECT   ESC BACK',
-  controls: 'ESC BACK',
-  sound: 'UP DOWN PICK   LEFT RIGHT ADJUST   ESC BACK',
-  howto: 'ESC BACK',
-};
+function footer(screen: Screen): string {
+  switch (screen) {
+    case 'main':
+      return t('footMain');
+    case 'car':
+    case 'track':
+      return t('footPick');
+    case 'weather':
+      return t('footStart');
+    case 'settings':
+    case 'language':
+      return t('footSelect');
+    case 'sound':
+      return t('footSound');
+    case 'pause':
+      return t('footPause');
+    default:
+      return t('footBack');
+  }
+}
 
 /** Filled rect on whole pixels: every panel and bar is built from these. */
 function rect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string): void {
@@ -152,7 +175,7 @@ export class MenuRenderer {
     chequer(g, 0, 0, w, 6);
     chequer(g, 0, h - 6, w, 6, 1);
 
-    const title = SCREEN_TITLE[model.screen];
+    const title = screenTitle(model.screen);
     if (title) drawText(g, title, 14, 16, { scale: 2, color: BONE, shadow: INK });
 
     switch (model.screen) {
@@ -169,7 +192,29 @@ export class MenuRenderer {
         this.drawWeather(g, w, h, model, ctx);
         break;
       case 'settings':
-        this.drawList(g, w, h, model, ['CONTROLS', 'SOUND', 'HOW TO PLAY', 'BACK']);
+        this.drawList(
+          g,
+          w,
+          h,
+          model,
+          SETTINGS_ROWS.map((row) =>
+            row === 'controls'
+              ? t('controls')
+              : row === 'sound'
+                ? t('sound')
+                : row === 'language'
+                  ? t('language')
+                  : row === 'howto'
+                    ? t('howTo')
+                    : t('back'),
+          ),
+        );
+        break;
+      case 'language':
+        this.drawLanguage(g, w, h, model);
+        break;
+      case 'pause':
+        this.drawPause(g, w, h, model);
         break;
       case 'sound':
         this.drawSound(g, w, h, model);
@@ -182,7 +227,7 @@ export class MenuRenderer {
         break;
     }
 
-    drawText(g, FOOTER[model.screen], w / 2, h - 16, {
+    drawText(g, footer(model.screen), w / 2, h - 16, {
       scale: 1,
       color: DIM,
       shadow: INK,
@@ -213,14 +258,14 @@ export class MenuRenderer {
       align: 'center',
       tracking: 2,
     });
-    drawText(g, '6 CARS   3 CIRCUITS   3 LAPS', cx, second + titleScale * 9 + 6, {
+    drawText(g, t('tagline'), cx, second + titleScale * 9 + 6, {
       scale: 1,
       color: DIM,
       shadow: INK,
       align: 'center',
     });
 
-    const labels = ['PLAY', 'SETTINGS'];
+    const labels = [t('play'), t('settings')];
     const bw = 150;
     const bh = 28;
     const gap = 12;
@@ -275,26 +320,27 @@ export class MenuRenderer {
     const ix = stageX + stageW + 12;
     const iw = px + pw - ix - 12;
     drawText(g, spec.name, ix, stageY + 2, { scale: 2, color: spec.tint, shadow: INK });
-    wrap(spec.blurb, Math.max(12, Math.floor(iw / 6))).forEach((line, i) => {
+    wrap(pick(spec.blurb, spec.blurbPt), Math.max(12, Math.floor(iw / 6))).forEach((line, i) => {
       drawText(g, line, ix, stageY + 20 + i * 9, { scale: 1, color: DIM });
     });
 
     const rows: Array<[string, number, string]> = [
-      ['SPEED', norm(stats.maxSpeed, (s) => s.maxSpeed), '#e0553f'],
-      ['ACCEL', norm(stats.accel, (s) => s.accel), '#f2b33d'],
-      ['GRIP', norm(stats.grip, (s) => s.grip), '#5fd06a'],
-      ['NITRO', norm(stats.nitroCapacity, (s) => s.nitroCapacity), '#59d8f0'],
+      [t('speed'), norm(stats.maxSpeed, (s) => s.maxSpeed), '#e0553f'],
+      [t('accel'), norm(stats.accel, (s) => s.accel), '#f2b33d'],
+      [t('grip'), norm(stats.grip, (s) => s.grip), '#5fd06a'],
+      [t('nitro'), norm(stats.nitroCapacity, (s) => s.nitroCapacity), '#59d8f0'],
     ];
-    const barW = Math.min(120, iw - 44);
+    const labelW = Math.max(...rows.map(([label]) => textWidth(label, { scale: 1 }))) + 6;
+    const barW = Math.min(120, iw - labelW - 4);
     const barY = stageY + 46;
     rows.forEach(([label, value, color], i) => {
       const y = barY + i * 13;
       drawText(g, label, ix, y + 1, { scale: 1, color: BONE });
-      segmentBar(g, ix + 40, y - 1, barW, 9, value, color);
+      segmentBar(g, ix + labelW, y - 1, barW, 9, value, color);
     });
     drawText(
       g,
-      `TANK ${stats.nitroCapacity.toFixed(1)}S   BOOST +${Math.round((stats.nitroBoost - 1) * 100)}%`,
+      `${t('tank')} ${stats.nitroCapacity.toFixed(1)}S   ${t('boost')} +${Math.round((stats.nitroBoost - 1) * 100)}%`,
       ix,
       barY + rows.length * 13 + 3,
       { scale: 1, color: '#59d8f0' },
@@ -350,16 +396,16 @@ export class MenuRenderer {
     const ix = px + 12 + mapW + 12;
     const iw = px + pw - ix - 12;
     drawText(g, track.def.name, ix, top + 14, { scale: 2, color: BONE, shadow: INK });
-    wrap(track.def.tagline, Math.max(12, Math.floor(iw / 6))).forEach((line, i) => {
+    wrap(pick(track.def.tagline, track.def.taglinePt), Math.max(12, Math.floor(iw / 6))).forEach((line, i) => {
       drawText(g, line, ix, top + 34 + i * 9, { scale: 1, color: DIM });
     });
 
     const facts: Array<[string, string]> = [
-      ['SURFACE', info.surfaceLabel],
-      ['LENGTH', `${info.lengthM} M`],
-      ['CORNERS', String(info.corners)],
-      ['WIDTH', `${track.def.halfWidth * 2} PX`],
-      ['GRIP', `${Math.round(track.def.gripScale * 100)}%`],
+      [t('surface'), track.def.surface === 'dirt' ? t('dirt') : t('asphalt')],
+      [t('length'), `${info.lengthM} M`],
+      [t('corners'), String(info.corners)],
+      [t('width'), `${track.def.halfWidth * 2} PX`],
+      [t('grip'), `${Math.round(track.def.gripScale * 100)}%`],
     ];
     const fy = top + 62;
     facts.forEach(([label, value], i) => {
@@ -368,7 +414,7 @@ export class MenuRenderer {
       drawText(g, value, ix + iw, y, { scale: 1, color: BONE, align: 'right' });
     });
     const dy = fy + facts.length * 11 + 4;
-    drawText(g, 'DIFFICULTY', ix, dy, { scale: 1, color: DIM });
+    drawText(g, t('difficulty'), ix, dy, { scale: 1, color: DIM });
     drawText(g, '***'.slice(0, info.difficulty), ix + iw, dy, {
       scale: 1,
       color: KERB,
@@ -407,7 +453,7 @@ export class MenuRenderer {
         icon.width * scale,
         icon.height * scale,
       );
-      drawText(g, weather.name, x + tileW / 2, y + 14 + icon.height * scale + 8, {
+      drawText(g, pick(weather.name, weather.namePt), x + tileW / 2, y + 14 + icon.height * scale + 8, {
         scale: 2,
         color: selected ? BONE : DIM,
         shadow: INK,
@@ -419,7 +465,7 @@ export class MenuRenderer {
     });
 
     const chosen = ctx.weathers[model.weatherIndex];
-    wrap(chosen.blurb, Math.max(20, Math.floor((w - 60) / 6))).forEach((line, i) => {
+    wrap(pick(chosen.blurb, chosen.blurbPt), Math.max(20, Math.floor((w - 60) / 6))).forEach((line, i) => {
       drawText(g, line, w / 2, y + tileH + 18 + i * 10, {
         scale: 1,
         color: BONE,
@@ -430,7 +476,7 @@ export class MenuRenderer {
 
     const grip = Math.round(chosen.gripMul * 100);
     const vis = Math.round(chosen.visibility * 100);
-    drawText(g, `GRIP ${grip}%    VISIBILITY ${vis}%`, w / 2, y + tileH + 46, {
+    drawText(g, `${t('grip')} ${grip}%    ${t('visibility')} ${vis}%`, w / 2, y + tileH + 46, {
       scale: 1,
       color: chosen.tint,
       shadow: INK,
@@ -443,10 +489,10 @@ export class MenuRenderer {
     const px = Math.round((w - pw) / 2);
     const py = Math.round(h * 0.28);
     const rows: Array<[string, number | boolean]> = [
-      ['MASTER', model.sound.master],
-      ['EFFECTS', model.sound.sfx],
-      ['ENGINE', model.sound.engine],
-      ['MUTE', model.sound.muted],
+      [t('master'), model.sound.master],
+      [t('effects'), model.sound.sfx],
+      [t('engine'), model.sound.engine],
+      [t('mute'), model.sound.muted],
     ];
     plate(g, px, py, pw, rows.length * 22 + 44);
 
@@ -460,14 +506,14 @@ export class MenuRenderer {
       });
       this.hits.push({ x: px + 4, y: y - 2, w: pw - 8, h: 18, index: i });
       if (typeof value === 'number') {
-        segmentBar(g, px + 90, y + 1, pw - 130, 10, value, '#59d8f0');
+        segmentBar(g, px + 96, y + 1, pw - 136, 10, value, '#59d8f0');
         drawText(g, `${Math.round(value * 100)}%`, px + pw - 12, y + 4, {
           scale: 1,
           color: BONE,
           align: 'right',
         });
       } else {
-        drawText(g, value ? 'ON' : 'OFF', px + pw - 12, y + 4, {
+        drawText(g, value ? t('on') : t('off'), px + pw - 12, y + 4, {
           scale: 1,
           color: value ? KERB : GO,
           align: 'right',
@@ -478,7 +524,7 @@ export class MenuRenderer {
     const backY = py + 12 + rows.length * 22;
     const selected = model.index === 4;
     if (selected) rect(g, px + 4, backY - 2, pw - 8, 18, PLATE_LIT);
-    drawText(g, selected ? '>BACK' : ' BACK', px + 10, backY + 4, {
+    drawText(g, selected ? `>${t('back')}` : ` ${t('back')}`, px + 10, backY + 4, {
       scale: 1,
       color: selected ? BONE : DIM,
     });
@@ -487,14 +533,14 @@ export class MenuRenderer {
 
   private drawControls(g: CanvasRenderingContext2D, w: number): void {
     const rows: Array<[string[], string]> = [
-      [['W', 'UP'], 'ACCELERATE'],
-      [['S', 'DOWN'], 'BRAKE / REVERSE'],
-      [['A', 'LEFT'], 'STEER LEFT'],
-      [['D', 'RIGHT'], 'STEER RIGHT'],
-      [['SHIFT'], 'NITRO BOOST'],
-      [['SPACE'], 'HANDBRAKE DRIFT'],
-      [['R'], 'RESTART RACE'],
-      [['ESC'], 'BACK TO MENU'],
+      [['W', 'UP'], t('keyAccelerate')],
+      [['S', 'DOWN'], t('keyBrake')],
+      [['A', 'LEFT'], t('keyLeft')],
+      [['D', 'RIGHT'], t('keyRight')],
+      [['SHIFT'], t('keyNitro')],
+      [['SPACE'], t('keyDrift')],
+      [['R'], t('keyRestart')],
+      [['ESC'], t('keyPause')],
     ];
     const pw = Math.min(330, w - 36);
     const px = Math.round((w - pw) / 2);
@@ -511,31 +557,63 @@ export class MenuRenderer {
   }
 
   private drawHowTo(g: CanvasRenderingContext2D, w: number): void {
-    const lines = [
-      'THREE LAPS AGAINST FIVE RIVALS. FIRST TO THE',
-      'CHEQUERED LINE WINS.',
-      '',
-      'GRASS IS SLOW: KEEP TWO WHEELS ON THE ROAD.',
-      'DIRT AND RAIN CUT YOUR GRIP, SO BRAKE EARLIER',
-      'AND LET THE CAR ROTATE BEFORE YOU FEED THE',
-      'THROTTLE BACK IN.',
-      '',
-      'HOLD SHIFT TO BURN NITRO. THE BAR BOTTOM LEFT',
-      'IS YOUR TANK; IT REFILLS WHEN YOU LET GO.',
-      'SPEND IT ON THE STRAIGHTS, NOT THE CORNERS.',
-      '',
-      'TAP SPACE MID-CORNER TO SWING THE BACK OUT.',
-      'AT NIGHT YOU ONLY SEE WHAT THE HEADLIGHTS DO.',
-    ];
-    const pw = Math.min(320, w - 36);
+    const lines = page('howTo');
+    const pw = Math.min(330, w - 36);
     const px = Math.round((w - pw) / 2);
     const py = 44;
     plate(g, px, py, pw, lines.length * 10 + 16);
     lines.forEach((line, i) => {
-      drawText(g, line, px + 10, py + 10 + i * 10, {
-        scale: 1,
-        color: line.startsWith('HOLD') || line.startsWith('TAP') ? BONE : DIM,
-      });
+      drawText(g, line, px + 10, py + 10 + i * 10, { scale: 1, color: line ? DIM : INK });
+    });
+  }
+
+  /** Language picker: the active one keeps a lit plate and a kerb marker. */
+  private drawLanguage(
+    g: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    model: MenuModel,
+  ): void {
+    const bw = 220;
+    const bh = 26;
+    const gap = 10;
+    const x = Math.round((w - bw) / 2);
+    const y0 = Math.round(h * 0.34);
+    LANGUAGES.forEach((entry, i) => {
+      const y = y0 + i * (bh + gap);
+      const selected = model.index === i;
+      this.button(g, x, y, bw, bh, entry.label, selected, i);
+      if (entry.id === model.language) {
+        // Chequered tick beside the language actually in use.
+        for (let k = 0; k < 3; k++) {
+          rect(g, x - 12 + k * 3, y + bh / 2 - 3, 3, 3, k % 2 === 0 ? BONE : KERB);
+          rect(g, x - 12 + k * 3, y + bh / 2, 3, 3, k % 2 === 0 ? KERB : BONE);
+        }
+      }
+    });
+  }
+
+  /** In-race pause menu: three rows over a darkened track. */
+  private drawPause(g: CanvasRenderingContext2D, w: number, h: number, model: MenuModel): void {
+    const labels = PAUSE_ROWS.map((row) =>
+      row === 'settings' ? t('settings') : row === 'quit' ? t('toMenu') : t('resume'),
+    );
+    const bw = Math.min(230, w - 60);
+    const bh = 24;
+    const gap = 8;
+    const ph = labels.length * (bh + gap) + 44;
+    const px = Math.round((w - bw) / 2) - 12;
+    const py = Math.round((h - ph) / 2);
+    plate(g, px, py, bw + 24, ph, { fill: '#1b2130' });
+    drawText(g, t('paused'), px + (bw + 24) / 2, py + 10, {
+      scale: 2,
+      color: BONE,
+      shadow: INK,
+      align: 'center',
+    });
+    chequer(g, px + 8, py + 28, bw + 8, 4);
+    labels.forEach((label, i) => {
+      this.button(g, px + 12, py + 38 + i * (bh + gap), bw, bh, label, model.index === i, i);
     });
   }
 
@@ -561,8 +639,11 @@ export class MenuRenderer {
         rect(g, x + w - 6, y + nudge + 4 + i * 6, 3, 5, c);
       }
     }
-    drawText(g, label, x + w / 2, y + nudge + Math.round(h / 2) - 7, {
-      scale: 2,
+    // Long labels (and longer translations) step down a size rather than
+    // spilling over the edges of the plate.
+    const scale = textWidth(label, { scale: 2 }) > w - 18 ? 1 : 2;
+    drawText(g, label, x + w / 2, y + nudge + Math.round(h / 2) - scale * 3.5, {
+      scale,
       color: selected ? BONE : DIM,
       shadow: INK,
       align: 'center',

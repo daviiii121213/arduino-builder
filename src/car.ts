@@ -15,6 +15,17 @@ export interface Controls {
 
 export const NEUTRAL: Controls = { throttle: 0, steer: 0, handbrake: false, nitro: false };
 
+/** Seconds off the racing surface before the marshals step in. */
+export const RECOVERY_DELAY = 3;
+/** How long the car blinks before it is lifted back onto the road. */
+export const RECOVERY_BLINK = 0.9;
+/** How long the engine stays down on power after a recovery. */
+export const RECOVERY_PENALTY = 1.8;
+/** Throttle multiplier while that penalty lasts. */
+export const RECOVERY_POWER = 0.42;
+
+export type RecoveryPhase = 'none' | 'blink' | 'penalty';
+
 export interface SurfaceFeel {
   gripMul: number;
   speedMul: number;
@@ -63,6 +74,14 @@ export class RaceCar {
   /** After running dry the bottle needs a quarter tank before it works again. */
   nitroLocked = false;
 
+  /** Marshal recovery: only cars asked to (the player) get lifted back on. */
+  autoRecover = false;
+  offTrackTime = 0;
+  recovery: RecoveryPhase = 'none';
+  recoveryTimer = 0;
+  /** Set for one frame when the car is put back on the road. */
+  respawned = false;
+
   /** Laps completed; starts at -1 because cars line up before the line. */
   lap = -1;
   finished = false;
@@ -92,6 +111,11 @@ export class RaceCar {
     this.nitro = opts.stats.nitroCapacity;
   }
 
+  /** True while the car should flicker: during the lift and the power penalty. */
+  get blinking(): boolean {
+    return this.recovery !== 'none';
+  }
+
   /** How full the tank is, 0..1 — what the nitro bar draws. */
   get nitroRatio(): number {
     return this.stats.nitroCapacity > 0 ? this.nitro / this.stats.nitroCapacity : 0;
@@ -112,6 +136,7 @@ export class RaceCar {
     this.wpHint = near.index;
     const feel = surfaceFeel(track, near.dist <= track.def.halfWidth, weather);
     this.offTrack = feel.offTrack;
+    const recovering = this.updateRecovery(dt, track, near.along);
 
     // Nitro: burns while held and the tank lasts, otherwise it trickles back.
     // Running the bottle dry locks it out until a quarter tank is back, so an
@@ -132,16 +157,20 @@ export class RaceCar {
     let vf = this.vel.x * cos + this.vel.y * sin;
     let vr = -this.vel.x * sin + this.vel.y * cos;
 
+    // While the marshals have the car, the driver has no say in it.
+    const power = this.recovery === 'penalty' ? RECOVERY_POWER : 1;
     const maxSpeed = s.maxSpeed * feel.speedMul * boost;
-    if (c.throttle > 0) {
-      vf += s.accel * boost * c.throttle * dt * (vf < maxSpeed ? 1 : 0);
+    if (recovering) {
+      vf -= vf * 2.6 * dt;
+    } else if (c.throttle > 0) {
+      vf += s.accel * boost * power * c.throttle * dt * (vf < maxSpeed ? 1 : 0);
     } else if (c.throttle < 0) {
       if (vf > 8) vf -= s.brake * -c.throttle * dt;
       else vf -= s.accel * 0.75 * -c.throttle * dt;
     }
 
     // Rolling resistance, plus extra when off the racing surface.
-    const drag = s.drag + feel.extraDrag + (c.handbrake ? 1.6 : 0);
+    const drag = s.drag + feel.extraDrag + (c.handbrake ? 1.6 : 0) + (recovering ? 1.2 : 0);
     vf -= vf * drag * dt;
     if (c.throttle === 0 && Math.abs(vf) < 6) vf *= 0.9;
     vf = clamp(vf, -s.reverseMax, maxSpeed);
@@ -160,8 +189,9 @@ export class RaceCar {
     const speedFactor = clamp(Math.abs(vf) / 70, 0, 1);
     const highSpeedTrim = 1 - 0.22 * clamp(Math.abs(vf) / s.maxSpeed, 0, 1);
     const dir = vf < -1 ? -1 : 1;
+    const steer = recovering ? 0 : c.steer;
     this.heading = wrapAngle(
-      this.heading + c.steer * s.turnRate * speedFactor * highSpeedTrim * dir * dt,
+      this.heading + steer * s.turnRate * speedFactor * highSpeedTrim * dir * dt,
     );
 
     this.pos.x += this.vel.x * dt;
@@ -181,6 +211,57 @@ export class RaceCar {
     // Once a car has taken the flag its lap counter stops, so the cool-down
     // laps it drives afterwards can't change the result.
     if (!this.finished) this.trackProgress(track, near.along);
+  }
+
+  /**
+   * Counts the time spent off the road and runs the rescue: a blink where the
+   * car coasts to a stop, then a lift back onto the racing line, then a short
+   * spell on reduced power. Returns true while the driver has no control.
+   */
+  private updateRecovery(dt: number, track: Track, along: number): boolean {
+    this.respawned = false;
+    if (!this.autoRecover || this.finished) {
+      this.offTrackTime = 0;
+      this.recovery = 'none';
+      return false;
+    }
+
+    if (this.recovery === 'none') {
+      this.offTrackTime = this.offTrack ? this.offTrackTime + dt : 0;
+      if (this.offTrackTime >= RECOVERY_DELAY) {
+        this.recovery = 'blink';
+        this.recoveryTimer = RECOVERY_BLINK;
+        this.offTrackTime = 0;
+      }
+      return false;
+    }
+
+    this.recoveryTimer -= dt;
+    if (this.recovery === 'blink') {
+      if (this.recoveryTimer <= 0) {
+        this.placeOnTrack(track, along);
+        this.recovery = 'penalty';
+        this.recoveryTimer = RECOVERY_PENALTY;
+        this.respawned = true;
+      }
+      return true;
+    }
+
+    if (this.recoveryTimer <= 0) this.recovery = 'none';
+    return false;
+  }
+
+  /** Drops the car back on the centre line, pointed the right way. */
+  private placeOnTrack(track: Track, along: number): void {
+    const at = track.pointAt(along);
+    this.pos = { ...at.pos };
+    this.heading = at.heading;
+    // Rejoin at a crawl, so being rescued is never faster than driving.
+    const speed = Math.min(Math.hypot(this.vel.x, this.vel.y), 55);
+    this.vel = { x: Math.cos(at.heading) * speed, y: Math.sin(at.heading) * speed };
+    this.wpHint = at.index;
+    this.offTrack = false;
+    this.nitroActive = false;
   }
 
   private trackProgress(track: Track, along: number): void {

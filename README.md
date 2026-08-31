@@ -25,7 +25,7 @@ Other scripts: `npm run build` (typecheck + bundle), `npm run build:standalone`
 | `Shift` | nitro boost |
 | `Space` | handbrake (drift) |
 | `R` | restart the race |
-| `Esc` | back to the menu |
+| `Esc` | pause menu |
 
 In the menus: arrows move, `Enter` selects, `Esc` goes back. The mouse works too —
 click a row to highlight it, click again to confirm.
@@ -33,11 +33,30 @@ click a row to highlight it, click again to confirm.
 ## The game
 
 **Menu** — `PLAY` walks you through car → circuit → conditions; `SETTINGS` holds
-Controls, Sound and How to Play. A live AI race runs behind the menu, previewing
-the circuit and weather you currently have selected.
+Controls, Sound, Language and How to Play. A live AI race runs behind the menu,
+previewing the circuit and weather you currently have selected.
+
+**Language** — English and Português (BR). Every menu, button, setting,
+instruction and in-race message switches, and the pixel font carries the
+accented capitals Portuguese needs. The choice is remembered.
+
+**Starting a race** — a 3 → 2 → 1 countdown, then the gantry light fills red,
+red + yellow and green. The field is held on the grid until the lights go out.
+
+**Pause** — `Esc` during a race opens a three-row menu: Settings, Return to Main
+Menu, Continue. The race freezes until you pick.
 
 **Race** — three laps, six cars, one of them yours. The HUD shows lap, position,
 speed and the nitro gauge.
+
+**Track recovery** — stay off the racing surface for three seconds and the
+marshals step in: the car blinks, is set back down on the racing line pointing
+the right way, and runs at reduced power for 1.8 seconds.
+
+**Podium** — finish in the top three and your driver climbs out and raises the
+trophy (1st), the silver medal (2nd) or the bronze (3rd), with confetti over a
+grandstand. Each car has its own driver: their own build, race suit and helmet
+crest.
 
 ### Cars
 
@@ -82,6 +101,9 @@ nitro on the straights.
 ## How it works
 
 - `src/pixel.ts` — pixel-art plumbing: seeded RNG, character-map → sprite, tiling textures.
+- `src/i18n.ts` — every string in both languages, and the how-to pages.
+- `src/drivers.ts` — the six drivers (three builds, two poses each), trophy and medals.
+- `src/victory.ts` — the podium scene.
 - `src/font.ts` — a hand-drawn 5×7 bitmap font; all menu and HUD text is pixels, not a system font.
 - `src/cars.ts`, `src/decor.ts`, `src/icons.ts` — the art, hand-drawn as character maps.
 - `src/tracks.ts` — layouts as control points, smoothed into a waypoint loop; each
@@ -101,14 +123,18 @@ nearest-neighbour, so everything stays chunky.
 
 ## Tests
 
-`npm test` runs 188 headless checks (no canvas needed): pixel maps and font
-coverage, track geometry and grid placement, physics (acceleration, braking,
-reverse, steering, surfaces, grip), nitro (boost, drain, lockout, refill),
-weather modifiers, collisions, lap counting, menu navigation, and full six-car AI
-races on all three circuits in several conditions.
+`npm test` runs 243 headless checks (no canvas needed): pixel maps and font
+coverage (including every accented character the translations use), track
+geometry and grid placement, physics (acceleration, braking, reverse, steering,
+surfaces, grip), nitro (boost, drain, lockout, refill), weather modifiers,
+collisions, lap counting, menu and pause navigation, both languages, the start
+sequence order, track recovery (timing, blink, reposition, power penalty) and
+podium awards, plus full six-car AI races on all three circuits in several
+conditions.
 
 There is also an end-to-end check that drives the real game in a browser —
-menus, nitro, and a full race on each circuit:
+menus, language switching, the start sequence, pause, nitro, recovery, the
+podium animations and a full race on each circuit:
 
 ```bash
 npm i -D playwright && npx playwright install chromium

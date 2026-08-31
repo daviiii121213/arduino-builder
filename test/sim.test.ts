@@ -11,7 +11,13 @@ import { DECOR_MAPS as DECOR } from '../src/decor';
 import { ICON_MAPS } from '../src/icons';
 import { supports, textWidth } from '../src/font';
 import { WEATHERS, weatherById, DEFAULT_WEATHER } from '../src/weather';
-import { MenuModel } from '../src/menu';
+import { MenuModel, PAUSE_ROWS, SETTINGS_ROWS } from '../src/menu';
+import { ALL_KEYS, LANGUAGES, RAW_STRINGS, getLanguage, page, setLanguage, t } from '../src/i18n';
+import { supports as fontSupports } from '../src/font';
+import { DRIVER_LOOKS, DRIVER_MAPS, awardForPlace } from '../src/drivers';
+import { LIGHT_MAP_ROWS } from '../src/icons';
+import { START_BEATS, startSignalAt } from '../src/race';
+import { RECOVERY_DELAY, RECOVERY_PENALTY, RECOVERY_POWER } from '../src/car';
 
 let failures = 0;
 let checks = 0;
@@ -295,18 +301,19 @@ section('weather');
 section('menu navigation');
 {
   const menu = new MenuModel(6, 3, 3);
-  check('starts on the main screen', menu.screen === 'main' && menu.index === 0);
+  const screen = (): string => menu.screen;
+  check('starts on the main screen', screen() === 'main' && menu.index === 0);
   menu.input('down');
   check('moving lands on settings', menu.index === 1);
   menu.input('confirm');
-  check('settings opens', menu.screen === 'settings');
+  check('settings opens', screen() === 'settings');
   menu.input('confirm');
-  check('controls page opens', menu.screen === 'controls');
+  check('controls page opens', screen() === 'controls');
   menu.input('back');
-  check('back returns to settings', menu.screen === 'settings' && menu.index === 0);
+  check('back returns to settings', screen() === 'settings' && menu.index === 0);
   menu.input('down');
   menu.input('confirm');
-  check('sound page opens', menu.screen === 'sound');
+  check('sound page opens', screen() === 'sound');
   const before = menu.sound.master;
   menu.input('left');
   check('left lowers the volume', menu.sound.master < before, `${before} -> ${menu.sound.master}`);
@@ -318,19 +325,19 @@ section('menu navigation');
   check('mute toggles', menu.sound.muted === true);
   menu.input('back');
   menu.input('back');
-  check('back reaches the main screen', menu.screen === 'main');
+  check('back reaches the main screen', screen() === 'main');
 
   menu.index = 0;
   menu.input('confirm');
-  check('play opens car select', menu.screen === 'car');
+  check('play opens car select', screen() === 'car');
   menu.input('down');
   menu.input('down');
   check('car selection follows the cursor', menu.carIndex === 2);
   menu.input('confirm');
-  check('car select leads to track select', menu.screen === 'track');
+  check('car select leads to track select', screen() === 'track');
   menu.input('down');
   menu.input('confirm');
-  check('track select leads to weather select', menu.screen === 'weather' && menu.trackIndex === 1);
+  check('track select leads to weather select', screen() === 'weather' && menu.trackIndex === 1);
   menu.input('down');
   menu.input('down');
   const events = menu.input('confirm');
@@ -394,6 +401,187 @@ section('lap counting');
     back.update(STEP, track);
   }
   check('driving backwards over the line does not gain a lap', back.lap <= -1, String(back.lap));
+}
+
+section('languages');
+{
+  check('two languages offered', LANGUAGES.length === 2, LANGUAGES.map((l) => l.id).join(','));
+  const missing = ALL_KEYS.filter((key) => {
+    const pair = RAW_STRINGS[key];
+    return !pair[0] || !pair[1];
+  });
+  check('every string exists in both languages', missing.length === 0, missing.join(','));
+
+  // The pixel font has to be able to draw everything, accents included.
+  const unsupported = new Set<string>();
+  for (const key of ALL_KEYS) {
+    for (const text of RAW_STRINGS[key]) {
+      for (const ch of text) if (!fontSupports(ch)) unsupported.add(ch);
+    }
+  }
+  for (const lang of ['en', 'pt'] as const) {
+    setLanguage(lang);
+    for (const line of page('howTo')) {
+      for (const ch of line) if (!fontSupports(ch)) unsupported.add(ch);
+    }
+  }
+  check('the font can draw every character used', unsupported.size === 0, [...unsupported].join(''));
+  check('accented capitals exist', [...'ÁÀÂÃÉÊÍÓÔÕÚÇ'].every(fontSupports));
+
+  setLanguage('en');
+  const en = t('play');
+  setLanguage('pt');
+  const pt = t('play');
+  check('switching language changes the strings', en === 'PLAY' && pt === 'JOGAR', `${en}/${pt}`);
+  check('the active language is reported back', getLanguage() === 'pt');
+  check('the how-to page is translated', page('howTo').join(' ') !== '' && page('howTo').length > 5);
+  setLanguage('en');
+}
+
+section('menu: language and pause');
+{
+  const menu = new MenuModel(6, 3, 3);
+  // Read through a widening helper: TypeScript otherwise narrows `screen` to
+  // whatever literal was last assigned in this block.
+  const screen = (): string => menu.screen;
+  check('settings has a language row', SETTINGS_ROWS.includes('language'));
+  menu.screen = 'settings';
+  menu.index = SETTINGS_ROWS.indexOf('language');
+  menu.input('confirm');
+  check('language screen opens', screen() === 'language');
+  const other = LANGUAGES.findIndex((l) => l.id !== menu.language);
+  menu.index = other;
+  menu.input('confirm');
+  check('picking a language applies it', menu.language === LANGUAGES[other].id, menu.language);
+  check('confirming a language returns to settings', screen() === 'settings');
+  check('the game strings followed', getLanguage() === menu.language);
+  menu.language = 'en';
+  setLanguage('en');
+
+  // Pause menu: exactly three rows, in the order asked for.
+  check('pause has exactly three rows', PAUSE_ROWS.length === 3, PAUSE_ROWS.join(','));
+  check('pause rows are settings, quit, continue', PAUSE_ROWS.join(',') === 'settings,quit,resume');
+  menu.openPause();
+  check('pause opens with the cursor on continue', screen() === 'pause' && menu.index === 2);
+  const resumeEvents = menu.input('confirm');
+  check('continue resumes the race', resumeEvents.some((e) => e.type === 'resume'), JSON.stringify(resumeEvents));
+
+  menu.openPause();
+  menu.index = PAUSE_ROWS.indexOf('quit');
+  const quitEvents = menu.input('confirm');
+  check('return to main menu quits', quitEvents.some((e) => e.type === 'quit'));
+
+  menu.openPause();
+  const escEvents = menu.input('back');
+  check('escape from pause resumes', escEvents.some((e) => e.type === 'resume'));
+
+  menu.openPause();
+  menu.index = PAUSE_ROWS.indexOf('settings');
+  menu.input('confirm');
+  check('pause can open settings', screen() === 'settings');
+  menu.input('confirm');
+  check('a settings page opens from pause', screen() === 'controls');
+  menu.input('back');
+  menu.input('back');
+  check('settings returns to the pause menu, not the main menu', screen() === 'pause', screen());
+
+  menu.reset();
+  menu.screen = 'settings';
+  menu.index = SETTINGS_ROWS.length - 1;
+  menu.input('confirm');
+  check('settings from the main menu still returns there', screen() === 'main');
+}
+
+section('start sequence');
+{
+  const at = (time: number): string => {
+    const s = startSignalAt(time);
+    return s.kind === 'count' ? s.label : s.kind === 'light' ? s.state : s.kind;
+  };
+  check('counts down three, two, one', at(0.1) === '3' && at(1) === '2' && at(1.8) === '1', [at(0.1), at(1), at(1.8)].join(','));
+  check('then the red light', at(START_BEATS.red + 0.1) === 'red');
+  check('then red and yellow', at(START_BEATS.yellow + 0.1) === 'redYellow');
+  check('then green', at(START_BEATS.green + 0.1) === 'green');
+  check('the lights go out and the race is released', at(START_BEATS.go + 0.1) === 'go');
+  check('the banner clears after the start', at(START_BEATS.go + 2) === 'none');
+  check('the sequence runs in order', START_BEATS.three < START_BEATS.two && START_BEATS.two < START_BEATS.one && START_BEATS.one < START_BEATS.red && START_BEATS.red < START_BEATS.yellow && START_BEATS.yellow < START_BEATS.green && START_BEATS.green < START_BEATS.go);
+}
+
+section('track recovery');
+{
+  const track = tracks[0];
+  const car = makeCar(track, 0);
+  car.autoRecover = true;
+  const h = car.heading;
+  // Park the car well out on the grass and hold the throttle down.
+  car.pos.x -= Math.sin(h) * (track.def.halfWidth + 60);
+  car.pos.y += Math.cos(h) * (track.def.halfWidth + 60);
+  car.controls = { throttle: 1, steer: 0, handbrake: false, nitro: false };
+
+  let elapsed = 0;
+  let blinkStart = -1;
+  let respawnAt = -1;
+  while (elapsed < 6 && respawnAt < 0) {
+    car.update(STEP, track);
+    elapsed += STEP;
+    if (blinkStart < 0 && car.recovery === 'blink') blinkStart = elapsed;
+    if (car.respawned) respawnAt = elapsed;
+  }
+  check('nothing happens before three seconds off track', blinkStart >= RECOVERY_DELAY - 0.05, blinkStart.toFixed(2));
+  check('the car blinks before it is moved', blinkStart > 0 && respawnAt > blinkStart, `${blinkStart.toFixed(2)} -> ${respawnAt.toFixed(2)}`);
+  check('the car is put back on the racing surface', track.onTrack(car.pos), JSON.stringify(car.pos));
+  check('it rejoins pointing down the road', Math.abs(wrapAngle(car.heading - track.heading(car.wpHint))) < 0.4);
+  check('it rejoins slowly', car.speed <= 60, car.speed.toFixed(1));
+  check('the power penalty starts', car.recovery === 'penalty');
+
+  // Same throttle, penalised car versus a healthy one on the same piece of road.
+  const healthy = makeCar(track, 0);
+  healthy.pos = { ...car.pos };
+  healthy.heading = car.heading;
+  healthy.vel = { ...car.vel };
+  healthy.primeGrid(track);
+  healthy.controls = { throttle: 1, steer: 0, handbrake: false, nitro: false };
+  for (let i = 0; i < 60; i++) {
+    car.update(STEP, track);
+    healthy.update(STEP, track);
+  }
+  check('recovery costs you acceleration', car.forwardSpeed < healthy.forwardSpeed, `${car.forwardSpeed.toFixed(1)} vs ${healthy.forwardSpeed.toFixed(1)}`);
+  check('the penalty is a real cut, not a rounding error', RECOVERY_POWER < 0.6);
+
+  let left = RECOVERY_PENALTY;
+  while (left > 0) {
+    car.update(STEP, track);
+    left -= STEP;
+  }
+  check('full power comes back', car.recovery === 'none');
+
+  const ai = makeCar(track, 1);
+  const ah = ai.heading;
+  ai.pos.x -= Math.sin(ah) * (track.def.halfWidth + 60);
+  ai.pos.y += Math.cos(ah) * (track.def.halfWidth + 60);
+  ai.controls = { throttle: 0, steer: 0, handbrake: false, nitro: false };
+  for (let i = 0; i < 120 * 5; i++) ai.update(STEP, track);
+  check('cars without marshal cover are left alone', ai.recovery === 'none' && !track.onTrack(ai.pos));
+}
+
+section('victory podium');
+{
+  check('first place takes the trophy', awardForPlace(1) === 'trophy');
+  check('second place takes silver', awardForPlace(2) === 'silver');
+  check('third place takes bronze', awardForPlace(3) === 'bronze');
+  check('fourth place gets no animation', awardForPlace(4) === null);
+  check('every car has its own driver', CAR_STATS.every((c) => c.id in DRIVER_LOOKS));
+  const looks = CAR_STATS.map((c) => DRIVER_LOOKS[c.id]);
+  check('no two drivers share a suit colour', new Set(looks.map((l) => l.suit)).size === CAR_STATS.length);
+  check('drivers come in different builds', new Set(looks.map((l) => l.build)).size >= 2);
+  for (const [name, poses] of Object.entries(DRIVER_MAPS)) {
+    for (const [pose, map] of Object.entries(poses)) {
+      const widths = new Set((map as string[]).map((r) => r.length));
+      check(`${name} ${pose} artwork is rectangular`, widths.size === 1, [...widths].join(','));
+    }
+  }
+  const lightWidths = new Set(LIGHT_MAP_ROWS.map((r) => r.length));
+  check('the start light artwork is rectangular', lightWidths.size === 1, [...lightWidths].join(','));
 }
 
 section('full AI race');

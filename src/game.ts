@@ -3,12 +3,14 @@ import { ctx2d } from './pixel';
 import { drawText } from './font';
 import { getCarSpecs, type CarSpec } from './cars';
 import { getDecorSprites } from './decor';
-import { getWeatherIcons } from './icons';
+import { getWeatherIcons, getTrafficLight } from './icons';
 import type { Controls } from './car';
 import { buildTracks, type Track } from './tracks';
 import { buildWorld, type World } from './world';
 import { WEATHERS } from './weather';
 import { Race, STEP } from './race';
+import { Celebration } from './victory';
+import { t } from './i18n';
 import { Input } from './input';
 import { MenuModel, type MenuAction, type MenuEvent } from './menu';
 import { MenuRenderer, segmentBar } from './menuRender';
@@ -22,7 +24,7 @@ const INK = '#0d1014';
 const BONE = '#f2f0e8';
 const DIM = '#98a0ad';
 
-type Mode = 'menu' | 'race';
+type Mode = 'menu' | 'race' | 'paused' | 'victory';
 
 /** The app: a menu with a live race behind it, and the race itself. */
 export class Game {
@@ -42,6 +44,7 @@ export class Game {
   private attract: Race | null = null;
   private attractKey = '';
   private resultsTimer = 0;
+  private celebration: Celebration | null = null;
   private zoom = 2;
   private lastTs = 0;
 
@@ -143,11 +146,17 @@ export class Game {
         case 'start':
           this.beginRace(event.car, event.track, event.weather);
           break;
+        case 'resume':
+          if (this.race) this.mode = 'race';
+          break;
+        case 'quit':
+          this.exitToMenu();
+          break;
       }
     }
 
     // The attract race behind the menu always shows the current selection.
-    if (this.mode === 'menu') {
+    if (this.mode === 'menu' || this.mode === 'paused') {
       const track = this.tracks[this.menu.trackIndex];
       const weather = WEATHERS[this.menu.weatherIndex];
       const key = `${track.def.id}:${weather.id}`;
@@ -160,6 +169,7 @@ export class Game {
           laps: 99,
           playerCarIndex: null,
           world: this.world(track),
+          skipStart: true,
         });
       }
       this.attract.update(dt, this.canvas.width, this.canvas.height);
@@ -180,11 +190,13 @@ export class Game {
     this.attract = null;
     this.attractKey = '';
     this.resultsTimer = 0;
+    this.celebration = null;
     this.mode = 'race';
   }
 
   private exitToMenu(): void {
     this.race = null;
+    this.celebration = null;
     this.mode = 'menu';
     this.menu.reset();
     this.audio.idleEngine();
@@ -211,7 +223,10 @@ export class Game {
     if (!race) return;
 
     if (this.input.tapped('escape')) {
-      this.exitToMenu();
+      this.menu.openPause();
+      this.mode = 'paused';
+      this.audio.idleEngine();
+      this.audio.back();
       return;
     }
     if (this.input.tapped('r')) {
@@ -219,18 +234,34 @@ export class Game {
       return;
     }
 
-    const wasOver = race.over;
     race.setPlayerControls(this.playerControls());
     race.update(dt, this.canvas.width, this.canvas.height);
 
+    // One tone per beat of the start sequence, higher on the green.
+    const beat = race.takeStartBeat();
+    if (beat !== null) {
+      if (beat < 6) this.audio.move();
+      else this.audio.confirm();
+    }
+
+    if (race.takeFinished()) {
+      this.audio.fanfare();
+      const player = race.player;
+      // A podium finish gets its animation before the results board.
+      if (player && player.position <= 3) {
+        this.celebration = new Celebration(this.specs[player.carIndex], player.position);
+        this.mode = 'victory';
+        return;
+      }
+    }
+
     if (race.over) {
-      if (!wasOver) this.audio.fanfare();
       this.resultsTimer += dt;
       if (this.input.tapped('enter', ' ')) this.exitToMenu();
     }
 
     const player = race.player;
-    if (player && !race.over) {
+    if (player && !race.over && race.released) {
       const ratio = clamp(Math.abs(player.forwardSpeed) / player.stats.maxSpeed, 0, 1);
       this.audio.updateEngine(ratio, player.controls.throttle > 0 ? 1 : 0, player.nitroActive);
     } else {
@@ -238,10 +269,27 @@ export class Game {
     }
   }
 
+  private updateVictory(dt: number): void {
+    const show = this.celebration;
+    if (!show) {
+      this.mode = 'race';
+      return;
+    }
+    this.audio.idleEngine();
+    show.update(dt, this.canvas.width, this.canvas.height);
+    if (this.input.tapped('enter', ' ', 'escape')) show.skip();
+    if (show.done) {
+      this.celebration = null;
+      this.resultsTimer = 0;
+      this.mode = 'race';
+    }
+  }
+
   private update(dt: number): void {
     // Browsers only allow audio to start inside a gesture.
     if (this.input.anyInput) this.audio.start();
-    if (this.mode === 'menu') this.updateMenu(dt);
+    if (this.mode === 'menu' || this.mode === 'paused') this.updateMenu(dt);
+    else if (this.mode === 'victory') this.updateVictory(dt);
     else this.updateRace(dt);
   }
 
@@ -253,6 +301,11 @@ export class Game {
     const h = this.canvas.height;
     g.imageSmoothingEnabled = false;
 
+    if (this.mode === 'victory') {
+      this.celebration?.draw(g, w, h);
+      return;
+    }
+
     const backdrop = this.mode === 'menu' ? this.attract : this.race;
     if (backdrop) backdrop.render(g, w, h);
     else {
@@ -260,7 +313,7 @@ export class Game {
       g.fillRect(0, 0, w, h);
     }
 
-    if (this.mode === 'menu') {
+    if (this.mode === 'menu' || this.mode === 'paused') {
       this.menuUi.draw(g, w, h, this.menu, {
         specs: this.specs,
         tracks: this.tracks,
@@ -278,12 +331,12 @@ export class Game {
     if (!race || !player) return;
     const spec = this.specs[player.carIndex];
 
-    drawText(g, `LAP ${player.displayLap(TOTAL_LAPS)}/${TOTAL_LAPS}`, 8, 8, {
+    drawText(g, `${t('lap')} ${player.displayLap(TOTAL_LAPS)}/${TOTAL_LAPS}`, 8, 8, {
       scale: 2,
       color: BONE,
       shadow: INK,
     });
-    drawText(g, `POS ${player.position}/${race.cars.length}`, 8, 24, {
+    drawText(g, `${t('pos')} ${player.position}/${race.cars.length}`, 8, 24, {
       scale: 2,
       color: BONE,
       shadow: INK,
@@ -297,12 +350,12 @@ export class Game {
     const baseY = h - 30;
     const kmh = `${Math.round(Math.abs(player.forwardSpeed) * 0.75)}`;
     const speedW = drawText(g, kmh, 8, baseY - 14, { scale: 2, color: spec.tint, shadow: INK });
-    drawText(g, 'KM/H', 8 + speedW + 4, baseY - 8, { scale: 1, color: DIM, shadow: INK });
+    drawText(g, t('kmh'), 8 + speedW + 4, baseY - 8, { scale: 1, color: DIM, shadow: INK });
 
     const barW = 104;
     const flashing = player.nitroActive && Math.floor(race.time * 14) % 2 === 0;
     const empty = player.nitroLocked;
-    drawText(g, 'NITRO', 8, baseY + 2, {
+    drawText(g, t('nitro'), 8, baseY + 2, {
       scale: 1,
       color: empty ? '#8a3b3b' : player.nitroActive ? BONE : '#59d8f0',
       shadow: INK,
@@ -324,7 +377,71 @@ export class Game {
       g.fillRect(8 + 32 + barW + 6, baseY + 4, 2, 2);
     }
 
+    if (player.blinking) {
+      // Tell the player why the car is flickering and being moved.
+      drawText(g, t('recovering'), w / 2, h - 46, {
+        scale: 1,
+        color: Math.floor(race.time * 6) % 2 === 0 ? '#f2c14e' : BONE,
+        shadow: INK,
+        align: 'center',
+      });
+    }
+
+    this.drawStartSequence(g, w, h, race);
     if (race.over) this.drawResults(g, w, h, race);
+  }
+
+  /** 3 - 2 - 1 and then the gantry lights, centred over the track. */
+  private drawStartSequence(g: CanvasRenderingContext2D, w: number, h: number, race: Race): void {
+    const signal = race.startSignal;
+    if (signal.kind === 'none') return;
+    const cx = Math.round(w / 2);
+
+    // A soft band behind the sequence so it reads over the pack and the tarmac.
+    g.fillStyle = 'rgba(8,10,16,0.35)';
+    g.fillRect(0, Math.round(h * 0.12), w, Math.round(h * 0.36));
+
+    if (signal.kind === 'count') {
+      const beat = race.startTime % 0.85;
+      const grow = beat < 0.12 ? 1 : 0;
+      drawText(g, signal.label, cx, Math.round(h * 0.3), {
+        scale: 8 + grow,
+        color: BONE,
+        shadow: INK,
+        align: 'center',
+      });
+      return;
+    }
+
+    if (signal.kind === 'go') {
+      const flash = Math.floor(race.startTime * 12) % 2 === 0;
+      drawText(g, t('go'), cx, Math.round(h * 0.3), {
+        scale: 8,
+        color: flash ? '#5fd06a' : BONE,
+        shadow: INK,
+        align: 'center',
+      });
+      return;
+    }
+
+    const light = getTrafficLight(signal.state);
+    const scale = 3;
+    const lw = light.width * scale;
+    const lh = light.height * scale;
+    const lx = Math.round(cx - lw / 2);
+    const ly = Math.round(h * 0.18);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(light, lx, ly, lw, lh);
+
+    // A soft glow behind whichever lamp is burning.
+    // Fractions of the sprite height where each lamp actually sits.
+    const lampY = signal.state === 'green' ? 0.62 : signal.state === 'redYellow' ? 0.41 : 0.19;
+    const glow = signal.state === 'green' ? '#57e05a' : signal.state === 'redYellow' ? '#ffd53d' : '#ff4438';
+    g.globalAlpha = 0.25;
+    g.fillStyle = glow;
+    g.fillRect(lx - 5, Math.round(ly + lh * lampY), lw + 10, 12);
+    g.fillRect(lx - 9, Math.round(ly + lh * lampY) + 3, lw + 18, 6);
+    g.globalAlpha = 1;
   }
 
   private drawResults(g: CanvasRenderingContext2D, w: number, h: number, race: Race): void {
@@ -343,7 +460,7 @@ export class Game {
     g.fillRect(px, py, pw, ph);
 
     const player = race.player;
-    drawText(g, player ? `FINISHED  P${player.position}` : 'RESULTS', px + pw / 2, py + 8, {
+    drawText(g, player ? `${t('finished')}  P${player.position}` : t('results'), px + pw / 2, py + 8, {
       scale: 2,
       color: BONE,
       shadow: INK,
@@ -371,7 +488,7 @@ export class Game {
     });
 
     if (this.resultsTimer > 0.8 && Math.floor(this.resultsTimer * 2) % 2 === 0) {
-      drawText(g, 'ENTER MENU    R RESTART', px + pw / 2, py + ph - 12, {
+      drawText(g, t('resultsHint'), px + pw / 2, py + ph - 12, {
         scale: 1,
         color: BONE,
         align: 'center',
@@ -385,7 +502,8 @@ export class Game {
     return (this.race ?? this.attract)?.track.def.name ?? this.tracks[this.menu.trackIndex].def.name;
   }
 
-  menuState(): { mode: Mode; screen: string; index: number; car: number; track: number; weather: number } {
+  menuState(): Record<string, string | number | boolean> {
+    const race = this.race;
     return {
       mode: this.mode,
       screen: this.menu.screen,
@@ -393,7 +511,25 @@ export class Game {
       car: this.menu.carIndex,
       track: this.menu.trackIndex,
       weather: this.menu.weatherIndex,
+      language: this.menu.language,
+      released: race ? race.released : true,
+      startTime: race ? Number(race.startTime.toFixed(2)) : 0,
+      celebrating: this.celebration !== null,
+      place: this.celebration ? this.celebration.place : 0,
     };
+  }
+
+  /** Plays the podium scene for a given place; used by the browser test. */
+  showVictory(place: number, carIndex = this.menu.carIndex): void {
+    this.celebration = new Celebration(this.specs[carIndex], place);
+    this.mode = 'victory';
+  }
+
+  /** Skips the start sequence; used by the automated browser test. */
+  releaseStart(): void {
+    const race = this.race;
+    if (race) race.autopilot(0.001);
+    while (race && !race.released) race.step(STEP);
   }
 
   carsDebug(): Array<Record<string, number | string | boolean>> {
@@ -413,6 +549,8 @@ export class Game {
       finished: c.finished,
       nitro: Number(c.nitro.toFixed(2)),
       nitroActive: c.nitroActive,
+      recovery: c.recovery,
+      offTrackTime: Number(c.offTrackTime.toFixed(2)),
     }));
   }
 

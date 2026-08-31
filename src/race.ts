@@ -9,6 +9,29 @@ import { WeatherFx, type LightSource, type WeatherDef } from './weather';
 /** Physics runs at a fixed step so the handling feels identical everywhere. */
 export const STEP = 1 / 120;
 
+/**
+ * Start sequence: three counted beats, then the gantry lights fill red, red +
+ * yellow and green. The race is released the instant the lights go out.
+ */
+export const START_BEATS = { three: 0, two: 0.85, one: 1.7, red: 2.55, yellow: 3.1, green: 3.65, go: 4.3 };
+
+export type StartSignal =
+  | { kind: 'count'; label: '3' | '2' | '1' }
+  | { kind: 'light'; state: 'red' | 'redYellow' | 'green' }
+  | { kind: 'go' }
+  | { kind: 'none' };
+
+/** Pure form of the start sequence, so its timing can be tested headless. */
+export function startSignalAt(time: number): StartSignal {
+  if (time >= START_BEATS.go) return time < START_BEATS.go + 0.9 ? { kind: 'go' } : { kind: 'none' };
+  if (time >= START_BEATS.green) return { kind: 'light', state: 'green' };
+  if (time >= START_BEATS.yellow) return { kind: 'light', state: 'redYellow' };
+  if (time >= START_BEATS.red) return { kind: 'light', state: 'red' };
+  if (time >= START_BEATS.one) return { kind: 'count', label: '1' };
+  if (time >= START_BEATS.two) return { kind: 'count', label: '2' };
+  return { kind: 'count', label: '3' };
+}
+
 const AI_SKILLS = [
   { pace: 0.94, line: -0.35, reaction: 2.4 },
   { pace: 0.9, line: 0.3, reaction: 2.2 },
@@ -26,6 +49,8 @@ export interface RaceOptions {
   /** Which car the player drives, or null for an all-AI demo race. */
   playerCarIndex: number | null;
   world: World;
+  /** Demo races behind the menu skip the start sequence and roll immediately. */
+  skipStart?: boolean;
 }
 
 /**
@@ -50,6 +75,13 @@ export class Race {
   time = 0;
   /** Set when the player (or the whole field, in a demo) has taken the flag. */
   over = false;
+  /** Time spent in the start sequence; the field is held until it completes. */
+  startTime = 0;
+  /** Raised the moment the race ends, whoever advanced the clock. */
+  private finishPending = false;
+  private finishAnnounced = false;
+  /** Beat index already announced, so the audio only fires once per light. */
+  private lastBeat = -1;
 
   constructor(opts: RaceOptions) {
     this.track = opts.track;
@@ -80,11 +112,14 @@ export class Race {
         carIndex: specIndex,
       });
       car.primeGrid(this.track);
+      car.autoRecover = car.isPlayer;
       this.cars.push(car);
       if (!car.isPlayer) {
         this.drivers.push(new AIDriver(car, this.track, AI_SKILLS[slot % AI_SKILLS.length]));
       }
     });
+
+    if (opts.skipStart) this.startTime = START_BEATS.go + 1;
 
     const lead = this.player ?? this.cars[0];
     this.camera = { x: lead.pos.x, y: lead.pos.y };
@@ -92,6 +127,31 @@ export class Race {
 
   get player(): RaceCar | null {
     return this.cars.find((c) => c.isPlayer) ?? null;
+  }
+
+  /** False until the start lights go out. */
+  get released(): boolean {
+    return this.startTime >= START_BEATS.go;
+  }
+
+  /** What the start sequence should be showing right now. */
+  get startSignal(): StartSignal {
+    return startSignalAt(this.startTime);
+  }
+
+  /**
+   * Returns the beat that has just started, once each, so the caller can play
+   * a tone for it: 0-2 are the numbers, 3-5 the lights, 6 the release.
+   */
+  takeStartBeat(): number | null {
+    const beats = [START_BEATS.three, START_BEATS.two, START_BEATS.one, START_BEATS.red, START_BEATS.yellow, START_BEATS.green, START_BEATS.go];
+    let current = -1;
+    for (let i = 0; i < beats.length; i++) if (this.startTime >= beats[i]) current = i;
+    if (current > this.lastBeat) {
+      this.lastBeat = current;
+      return current;
+    }
+    return null;
   }
 
   /** The car the camera watches: the player, or whoever is leading a demo race. */
@@ -121,6 +181,17 @@ export class Race {
 
   /** One fixed physics step: AI, cars, collisions, scoring, effects. */
   step(dt: number): void {
+    // Nobody moves until the lights go out: the field is held on the grid.
+    if (!this.released) {
+      this.startTime += dt;
+      for (const car of this.cars) {
+        car.controls = { throttle: 0, steer: 0, handbrake: false, nitro: false };
+        car.vel.x = 0;
+        car.vel.y = 0;
+      }
+      return;
+    }
+
     this.time += dt;
     for (const driver of this.drivers) driver.update(dt, this.cars);
     for (const car of this.cars) {
@@ -141,7 +212,21 @@ export class Race {
     this.updatePositions();
     const player = this.player;
     this.over = player ? player.finished : this.cars.every((c) => c.finished);
+    if (this.over && !this.finishAnnounced) {
+      this.finishAnnounced = true;
+      this.finishPending = true;
+    }
     this.emitEffects(dt);
+  }
+
+  /**
+   * True exactly once, on the first read after the race ends. Reported by the
+   * race rather than watched frame by frame, so a fast-forward can't miss it.
+   */
+  takeFinished(): boolean {
+    if (!this.finishPending) return false;
+    this.finishPending = false;
+    return true;
   }
 
   private updatePositions(): void {
@@ -167,6 +252,19 @@ export class Race {
       const cos = Math.cos(car.heading);
       const sin = Math.sin(car.heading);
       const spec = this.specs[car.carIndex];
+
+      if (car.respawned) {
+        // A ring of pixels bursting outwards where the car rejoins.
+        for (let i = 0; i < 14; i++) {
+          const a = (i / 14) * Math.PI * 2;
+          this.particles.spawn(
+            { x: car.pos.x + Math.cos(a) * 8, y: car.pos.y + Math.sin(a) * 8 },
+            { x: -Math.cos(a) * 260, y: -Math.sin(a) * 260 },
+            i % 2 === 0 ? '#f2f0e8' : '#59d8f0',
+            1,
+          );
+        }
+      }
       const rearX = car.pos.x - cos * spec.sprite.height * 0.32;
       const rearY = car.pos.y - sin * spec.sprite.height * 0.32;
 
@@ -248,6 +346,11 @@ export class Race {
   }
 
   private drawCar(g: CanvasRenderingContext2D, car: RaceCar, camX: number, camY: number): void {
+    // A car under recovery flickers, fast while it waits, slower on the way out.
+    if (car.blinking) {
+      const rate = car.recovery === 'blink' ? 14 : 8;
+      if (Math.floor(this.time * rate) % 2 === 0) return;
+    }
     const spec = this.specs[car.carIndex];
     const w = spec.sprite.width;
     const h = spec.sprite.height;

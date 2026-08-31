@@ -3,9 +3,17 @@
  * same kind of art as the cars and the track: no system fonts anywhere on screen.
  */
 
-type Glyph = string[];
+/**
+ * A glyph is a list of pixel rows. Accented capitals carry two extra rows on
+ * top and are lifted by `dy` so the letter itself still sits on the cap line;
+ * the cedilla instead hangs two rows below.
+ */
+interface Glyph {
+  rows: string[];
+  dy: number;
+}
 
-const G: Record<string, Glyph> = {
+const BASE: Record<string, string[]> = {
   A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
   B: ['####.', '#...#', '#...#', '####.', '#...#', '#...#', '####.'],
   C: ['.####', '#....', '#....', '#....', '#....', '#....', '.####'],
@@ -46,6 +54,7 @@ const G: Record<string, Glyph> = {
   '.': ['.....', '.....', '.....', '.....', '.....', '..##.', '..##.'],
   ',': ['.....', '.....', '.....', '.....', '..##.', '..##.', '.#...'],
   ':': ['.....', '..##.', '..##.', '.....', '..##.', '..##.', '.....'],
+  ';': ['.....', '..##.', '..##.', '.....', '..##.', '..##.', '.#...'],
   '-': ['.....', '.....', '.....', '#####', '.....', '.....', '.....'],
   '_': ['.....', '.....', '.....', '.....', '.....', '.....', '#####'],
   '/': ['....#', '....#', '...#.', '..#..', '.#...', '#....', '#....'],
@@ -61,6 +70,35 @@ const G: Record<string, Glyph> = {
   '*': ['.....', '#.#.#', '.###.', '#####', '.###.', '#.#.#', '.....'],
   "'": ['..#..', '..#..', '.....', '.....', '.....', '.....', '.....'],
 };
+
+// Portuguese needs accents, so each marked capital is built from the plain
+// letter plus a two-row diacritic drawn above (or below, for the cedilla).
+const ACUTE = ['...#.', '..#..'];
+const GRAVE = ['.#...', '..#..'];
+const CIRCUMFLEX = ['..#..', '.#.#.'];
+const TILDE = ['.##.#', '#..##'];
+const CEDILLA = ['..#..', '.##..'];
+
+const ACCENTED: Record<string, [string, string[]]> = {
+  'Á': ['A', ACUTE],
+  'À': ['A', GRAVE],
+  'Â': ['A', CIRCUMFLEX],
+  'Ã': ['A', TILDE],
+  'É': ['E', ACUTE],
+  'Ê': ['E', CIRCUMFLEX],
+  'Í': ['I', ACUTE],
+  'Ó': ['O', ACUTE],
+  'Ô': ['O', CIRCUMFLEX],
+  'Õ': ['O', TILDE],
+  'Ú': ['U', ACUTE],
+};
+
+const G: Record<string, Glyph> = {};
+for (const [ch, rows] of Object.entries(BASE)) G[ch] = { rows, dy: 0 };
+for (const [ch, [base, accent]] of Object.entries(ACCENTED)) {
+  G[ch] = { rows: [...accent, ...BASE[base]], dy: -2 };
+}
+G['Ç'] = { rows: [...BASE['C'], ...CEDILLA], dy: 0 };
 
 export const GLYPH_W = 5;
 export const GLYPH_H = 7;
@@ -107,11 +145,16 @@ export function drawText(
     let cursor = originX + dx;
     for (const ch of upper) {
       const glyph = G[ch] ?? G['?'];
-      for (let row = 0; row < GLYPH_H; row++) {
-        const line = glyph[row];
+      for (let row = 0; row < glyph.rows.length; row++) {
+        const line = glyph.rows[row];
         for (let col = 0; col < GLYPH_W; col++) {
           if (line[col] !== '#') continue;
-          g.fillRect(cursor + col * scale, originY + dy + row * scale, scale, scale);
+          g.fillRect(
+            cursor + col * scale,
+            originY + dy + (row + glyph.dy) * scale,
+            scale,
+            scale,
+          );
         }
       }
       cursor += (GLYPH_W + tracking) * scale;
