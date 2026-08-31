@@ -16,7 +16,7 @@ import { ALL_KEYS, LANGUAGES, RAW_STRINGS, getLanguage, page, setLanguage, t } f
 import { supports as fontSupports } from '../src/font';
 import { DRIVER_LOOKS, DRIVER_MAPS, awardForPlace } from '../src/drivers';
 import { LIGHT_MAP_ROWS } from '../src/icons';
-import { START_BEATS, startSignalAt } from '../src/race';
+import { GO_BANNER, START_BEATS, StartSequence, startSignalAt } from '../src/race';
 import { RECOVERY_DELAY, RECOVERY_PENALTY, RECOVERY_POWER } from '../src/car';
 
 let failures = 0;
@@ -496,15 +496,45 @@ section('start sequence');
 {
   const at = (time: number): string => {
     const s = startSignalAt(time);
-    return s.kind === 'count' ? s.label : s.kind === 'light' ? s.state : s.kind;
+    return s.kind === 'light' ? s.state : s.kind;
   };
-  check('counts down three, two, one', at(0.1) === '3' && at(1) === '2' && at(1.8) === '1', [at(0.1), at(1), at(1.8)].join(','));
-  check('then the red light', at(START_BEATS.red + 0.1) === 'red');
+  check('it opens on the red light', at(0) === 'red' && at(START_BEATS.red + 0.1) === 'red');
   check('then red and yellow', at(START_BEATS.yellow + 0.1) === 'redYellow');
   check('then green', at(START_BEATS.green + 0.1) === 'green');
+  check('there is no countdown before the lights', at(0.01) === 'red');
   check('the lights go out and the race is released', at(START_BEATS.go + 0.1) === 'go');
   check('the banner clears after the start', at(START_BEATS.go + 2) === 'none');
-  check('the sequence runs in order', START_BEATS.three < START_BEATS.two && START_BEATS.two < START_BEATS.one && START_BEATS.one < START_BEATS.red && START_BEATS.red < START_BEATS.yellow && START_BEATS.yellow < START_BEATS.green && START_BEATS.green < START_BEATS.go);
+  // The banner used to hang on screen because the clock stopped the moment the
+  // race was released; it has to keep ticking until the banner expires.
+  const seq = new StartSequence();
+  const signals: string[] = [];
+  let releasedAt = -1;
+  for (let i = 0; i < 800; i++) {
+    seq.update(STEP);
+    if (releasedAt < 0 && seq.released) releasedAt = i * STEP;
+    const kind = seq.signal.kind;
+    if (signals[signals.length - 1] !== kind) signals.push(kind);
+  }
+  check('the sequence steps light, go, none', signals.join('>') === 'light>go>none', signals.join('>'));
+  check('release happens when the lights go out', Math.abs(releasedAt - START_BEATS.go) < 0.05, releasedAt.toFixed(2));
+  check('the go banner clears itself', seq.signal.kind === 'none', String(seq.time.toFixed(2)));
+  check('the clock keeps running past the release', seq.time > START_BEATS.go + GO_BANNER);
+
+  const beats: number[] = [];
+  const beatSeq = new StartSequence();
+  for (let i = 0; i < 700; i++) {
+    beatSeq.update(STEP);
+    const beat = beatSeq.takeBeat();
+    if (beat !== null) beats.push(beat);
+  }
+  check('each beat is announced once, in order', beats.join(',') === '0,1,2,3', beats.join(','));
+
+  const skipped = new StartSequence();
+  skipped.skip();
+  check('a skipped sequence is released with no banner', skipped.released && skipped.signal.kind === 'none');
+
+  check('the sequence runs in order', START_BEATS.red < START_BEATS.yellow && START_BEATS.yellow < START_BEATS.green && START_BEATS.green < START_BEATS.go);
+  check('the whole start takes a couple of seconds', START_BEATS.go > 1.5 && START_BEATS.go < 3.5, String(START_BEATS.go));
 }
 
 section('track recovery');

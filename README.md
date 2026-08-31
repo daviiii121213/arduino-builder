@@ -40,8 +40,8 @@ previewing the circuit and weather you currently have selected.
 instruction and in-race message switches, and the pixel font carries the
 accented capitals Portuguese needs. The choice is remembered.
 
-**Starting a race** — a 3 → 2 → 1 countdown, then the gantry light fills red,
-red + yellow and green. The field is held on the grid until the lights go out.
+**Starting a race** — the gantry light fills red, then red + yellow, then green.
+The field is held on the grid, throttle disabled, until the lights go out.
 
 **Pause** — `Esc` during a race opens a three-row menu: Settings, Return to Main
 Menu, Continue. The race freezes until you pick.

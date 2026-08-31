@@ -10,26 +10,25 @@ import { WeatherFx, type LightSource, type WeatherDef } from './weather';
 export const STEP = 1 / 120;
 
 /**
- * Start sequence: three counted beats, then the gantry lights fill red, red +
- * yellow and green. The race is released the instant the lights go out.
+ * Start sequence: the gantry light fills red, red + yellow and green, and the
+ * race is released the instant the lights go out.
  */
-export const START_BEATS = { three: 0, two: 0.85, one: 1.7, red: 2.55, yellow: 3.1, green: 3.65, go: 4.3 };
+export const START_BEATS = { red: 0, yellow: 0.75, green: 1.5, go: 2.3 };
 
 export type StartSignal =
-  | { kind: 'count'; label: '3' | '2' | '1' }
   | { kind: 'light'; state: 'red' | 'redYellow' | 'green' }
   | { kind: 'go' }
   | { kind: 'none' };
 
+/** How long the GO banner stays up once the lights go out. */
+export const GO_BANNER = 0.9;
+
 /** Pure form of the start sequence, so its timing can be tested headless. */
 export function startSignalAt(time: number): StartSignal {
-  if (time >= START_BEATS.go) return time < START_BEATS.go + 0.9 ? { kind: 'go' } : { kind: 'none' };
+  if (time >= START_BEATS.go) return time < START_BEATS.go + GO_BANNER ? { kind: 'go' } : { kind: 'none' };
   if (time >= START_BEATS.green) return { kind: 'light', state: 'green' };
   if (time >= START_BEATS.yellow) return { kind: 'light', state: 'redYellow' };
-  if (time >= START_BEATS.red) return { kind: 'light', state: 'red' };
-  if (time >= START_BEATS.one) return { kind: 'count', label: '1' };
-  if (time >= START_BEATS.two) return { kind: 'count', label: '2' };
-  return { kind: 'count', label: '3' };
+  return { kind: 'light', state: 'red' };
 }
 
 const AI_SKILLS = [
@@ -40,6 +39,52 @@ const AI_SKILLS = [
   { pace: 0.92, line: 0.18, reaction: 2.5 },
   { pace: 0.95, line: -0.22, reaction: 2.3 },
 ];
+
+/**
+ * The start lights, kept as its own little clock. It keeps running for a beat
+ * after the release so the GO banner clears itself instead of hanging on
+ * screen for the rest of the race.
+ */
+export class StartSequence {
+  time = 0;
+  private lastBeat = -1;
+
+  /** Point past which the sequence no longer needs to tick. */
+  private static readonly END = START_BEATS.go + GO_BANNER + 0.5;
+
+  update(dt: number): void {
+    if (this.time < StartSequence.END) this.time = Math.min(StartSequence.END, this.time + dt);
+  }
+
+  /** False until the lights go out. */
+  get released(): boolean {
+    return this.time >= START_BEATS.go;
+  }
+
+  get signal(): StartSignal {
+    return startSignalAt(this.time);
+  }
+
+  /** Jumps to the end: used by demo races and by the test hooks. */
+  skip(): void {
+    this.time = StartSequence.END;
+  }
+
+  /**
+   * Returns the beat that has just started, once each, so the caller can play
+   * a tone for it: 0-2 are the three lamps, 3 is the release.
+   */
+  takeBeat(): number | null {
+    const beats = [START_BEATS.red, START_BEATS.yellow, START_BEATS.green, START_BEATS.go];
+    let current = -1;
+    for (let i = 0; i < beats.length; i++) if (this.time >= beats[i]) current = i;
+    if (current > this.lastBeat) {
+      this.lastBeat = current;
+      return current;
+    }
+    return null;
+  }
+}
 
 export interface RaceOptions {
   track: Track;
@@ -75,13 +120,11 @@ export class Race {
   time = 0;
   /** Set when the player (or the whole field, in a demo) has taken the flag. */
   over = false;
-  /** Time spent in the start sequence; the field is held until it completes. */
-  startTime = 0;
+  /** The start lights. */
+  readonly start = new StartSequence();
   /** Raised the moment the race ends, whoever advanced the clock. */
   private finishPending = false;
   private finishAnnounced = false;
-  /** Beat index already announced, so the audio only fires once per light. */
-  private lastBeat = -1;
 
   constructor(opts: RaceOptions) {
     this.track = opts.track;
@@ -119,7 +162,7 @@ export class Race {
       }
     });
 
-    if (opts.skipStart) this.startTime = START_BEATS.go + 1;
+    if (opts.skipStart) this.start.skip();
 
     const lead = this.player ?? this.cars[0];
     this.camera = { x: lead.pos.x, y: lead.pos.y };
@@ -131,27 +174,21 @@ export class Race {
 
   /** False until the start lights go out. */
   get released(): boolean {
-    return this.startTime >= START_BEATS.go;
+    return this.start.released;
+  }
+
+  /** Seconds into the start sequence. */
+  get startTime(): number {
+    return this.start.time;
   }
 
   /** What the start sequence should be showing right now. */
   get startSignal(): StartSignal {
-    return startSignalAt(this.startTime);
+    return this.start.signal;
   }
 
-  /**
-   * Returns the beat that has just started, once each, so the caller can play
-   * a tone for it: 0-2 are the numbers, 3-5 the lights, 6 the release.
-   */
   takeStartBeat(): number | null {
-    const beats = [START_BEATS.three, START_BEATS.two, START_BEATS.one, START_BEATS.red, START_BEATS.yellow, START_BEATS.green, START_BEATS.go];
-    let current = -1;
-    for (let i = 0; i < beats.length; i++) if (this.startTime >= beats[i]) current = i;
-    if (current > this.lastBeat) {
-      this.lastBeat = current;
-      return current;
-    }
-    return null;
+    return this.start.takeBeat();
   }
 
   /** The car the camera watches: the player, or whoever is leading a demo race. */
@@ -181,9 +218,11 @@ export class Race {
 
   /** One fixed physics step: AI, cars, collisions, scoring, effects. */
   step(dt: number): void {
+    // The sequence keeps running after the release so its banner expires.
+    this.start.update(dt);
+
     // Nobody moves until the lights go out: the field is held on the grid.
     if (!this.released) {
-      this.startTime += dt;
       for (const car of this.cars) {
         car.controls = { throttle: 0, steer: 0, handbrake: false, nitro: false };
         car.vel.x = 0;

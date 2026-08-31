@@ -237,10 +237,10 @@ export class Game {
     race.setPlayerControls(this.playerControls());
     race.update(dt, this.canvas.width, this.canvas.height);
 
-    // One tone per beat of the start sequence, higher on the green.
+    // One tone per lamp, and a higher one when the lights go out.
     const beat = race.takeStartBeat();
     if (beat !== null) {
-      if (beat < 6) this.audio.move();
+      if (beat < 3) this.audio.move();
       else this.audio.confirm();
     }
 
@@ -391,7 +391,7 @@ export class Game {
     if (race.over) this.drawResults(g, w, h, race);
   }
 
-  /** 3 - 2 - 1 and then the gantry lights, centred over the track. */
+  /** The gantry lights, centred over the track. */
   private drawStartSequence(g: CanvasRenderingContext2D, w: number, h: number, race: Race): void {
     const signal = race.startSignal;
     if (signal.kind === 'none') return;
@@ -400,18 +400,6 @@ export class Game {
     // A soft band behind the sequence so it reads over the pack and the tarmac.
     g.fillStyle = 'rgba(8,10,16,0.35)';
     g.fillRect(0, Math.round(h * 0.12), w, Math.round(h * 0.36));
-
-    if (signal.kind === 'count') {
-      const beat = race.startTime % 0.85;
-      const grow = beat < 0.12 ? 1 : 0;
-      drawText(g, signal.label, cx, Math.round(h * 0.3), {
-        scale: 8 + grow,
-        color: BONE,
-        shadow: INK,
-        align: 'center',
-      });
-      return;
-    }
 
     if (signal.kind === 'go') {
       const flash = Math.floor(race.startTime * 12) % 2 === 0;
@@ -514,6 +502,7 @@ export class Game {
       language: this.menu.language,
       released: race ? race.released : true,
       startTime: race ? Number(race.startTime.toFixed(2)) : 0,
+      startSignal: race ? race.startSignal.kind : 'none',
       celebrating: this.celebration !== null,
       place: this.celebration ? this.celebration.place : 0,
     };
@@ -527,9 +516,7 @@ export class Game {
 
   /** Skips the start sequence; used by the automated browser test. */
   releaseStart(): void {
-    const race = this.race;
-    if (race) race.autopilot(0.001);
-    while (race && !race.released) race.step(STEP);
+    this.race?.start.skip();
   }
 
   carsDebug(): Array<Record<string, number | string | boolean>> {

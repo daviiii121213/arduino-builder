@@ -157,9 +157,18 @@ for (let i = 0; i < 60 && !(await state()).released; i++) await page.waitForTime
 check('the race is released after the lights', (await state()).released === true);
 await page.waitForTimeout(600);
 check('the field moves once released', (await player()).speed > 20, String((await player()).speed));
+check('the GO banner is still up right after the start', (await state()).startSignal === 'go', JSON.stringify(await state()));
+// Coast while the banner runs out, so the driving checks start on the road.
 await page.keyboard.up('w');
+await page.waitForTimeout(1300);
+check('the GO banner clears itself', (await state()).startSignal === 'none', JSON.stringify(await state()));
 
 console.log('\ndriving');
+// Fresh grid for the handling checks, so nothing that happened above (a trip
+// through the grass, a marshal recovery) can skew them.
+await press('r');
+await page.evaluate(() => window.__game.releaseStart());
+await page.waitForTimeout(200);
 const before = await player();
 await page.keyboard.down('w');
 await page.waitForTimeout(2200);
@@ -182,10 +191,12 @@ await page.keyboard.up('ArrowLeft');
 const turned = await player();
 check('steering changes the heading', Math.abs(turned.heading - moving.heading) > 0.1);
 await page.keyboard.up('w');
+const beforeBrake = await player();
 await page.keyboard.down('s');
 await page.waitForTimeout(1000);
 await page.keyboard.up('s');
-check('S brakes', (await player()).speed < turned.speed);
+const braked = await player();
+check('S brakes', braked.speed < beforeBrake.speed, `${braked.speed} < ${beforeBrake.speed}`);
 
 console.log('\npause menu');
 await press('Escape');
