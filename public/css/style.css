@@ -274,7 +274,7 @@ p { margin: 0 0 1em; color: var(--muted); }
   align-items: center;
   gap: 8px;
 }
-.hero-tags span::before { content: '✦'; color: var(--terracotta); }
+.hero-tags span::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--terracotta); flex-shrink: 0; }
 
 .hero-visual {
   position: relative;
@@ -311,6 +311,16 @@ p { margin: 0 0 1em; color: var(--muted); }
   padding: 9px 16px;
   border-radius: 999px;
   letter-spacing: .03em;
+  position: relative;
+  z-index: 2;
+}
+.photo-frame .photo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
 }
 .floating-card {
   position: absolute;
@@ -380,9 +390,14 @@ p { margin: 0 0 1em; color: var(--muted); }
   background: linear-gradient(135deg, var(--terracotta), var(--olive));
   color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px;
   margin-bottom: 18px;
 }
+.icon-svg { width: 24px; height: 24px; flex-shrink: 0; }
+.info-row .icon-svg, .contact-card .icon-svg { width: 20px; height: 20px; }
+.floating-card .dot .icon-svg { width: 20px; height: 20px; }
+.social-row .icon-svg { width: 18px; height: 18px; }
+.whatsapp-float .icon-svg { width: 28px; height: 28px; }
+.service-photo .badge .icon-svg { width: 15px; height: 15px; vertical-align: -3px; margin-right: 4px; }
 .card h3 { font-size: 20px; margin-bottom: 8px; }
 .card p { font-size: 14.5px; margin: 0; }
 
@@ -412,6 +427,8 @@ p { margin: 0 0 1em; color: var(--muted); }
   font-weight: 600;
   padding: 6px 14px;
   border-radius: 999px;
+  position: relative;
+  z-index: 2;
 }
 .service-body { padding: 24px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
 .service-body h3 { font-size: 21px; margin: 0; }

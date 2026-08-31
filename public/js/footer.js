@@ -8,8 +8,8 @@
           <div class="brand"><span class="mark">EP</span> Essence Pause</div>
           <p>Sua pausa para cuidar da sua essência. Cabelo, unhas, massagem, depilação e botox em Uberlândia.</p>
           <div class="social-row">
-            <a href="https://www.instagram.com/essencepause.uberlandia/" target="_blank" rel="noopener" aria-label="Instagram">📷</a>
-            <a href="https://wa.me/5534984036999" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
+            <a href="https://www.instagram.com/essencepause.uberlandia/" target="_blank" rel="noopener" aria-label="Instagram"><svg class="icon-svg"><use href="#i-instagram"/></svg></a>
+            <a href="https://wa.me/5534984036999" target="_blank" rel="noopener" aria-label="WhatsApp"><svg class="icon-svg"><use href="#i-whatsapp"/></svg></a>
           </div>
         </div>
         <div>
