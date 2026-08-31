@@ -131,16 +131,19 @@
     // Revalida a disponibilidade na hora de avançar, para reduzir a chance
     // de mostrar um resumo com um horário que outra pessoa acabou de pegar.
     // A verificação definitiva, porém, é sempre feita no servidor no envio.
+    // `loadSlots()` reseta `selectedSlot` para null como primeiro passo, por
+    // isso guardamos o valor escolhido antes de chamá-la.
+    const targetSlot = selectedSlot;
     await loadSlots();
     const stillThere = Array.from(slotsGrid.querySelectorAll('.slot-btn')).some(
-      (b) => b.dataset.time === selectedSlot
+      (b) => b.dataset.time === targetSlot
     );
     if (!stillThere) {
       setMsg(step2Msg, 'Esse horário ficou indisponível enquanto você preenchia os dados. Escolha outro.', 'warn');
-      selectedSlot = null;
       toStep3Btn.disabled = true;
       return;
     }
+    selectedSlot = targetSlot;
     Array.from(slotsGrid.querySelectorAll('.slot-btn')).forEach((b) => {
       if (b.dataset.time === selectedSlot) b.classList.add('selected');
     });
