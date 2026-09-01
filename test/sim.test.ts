@@ -18,7 +18,16 @@ import { DRIVER_LOOKS, DRIVER_MAPS, awardForPlace } from '../src/drivers';
 import { LIGHT_MAP_ROWS } from '../src/icons';
 import { GO_BANNER, START_BEATS, StartSequence, buildGrid, skillFor, startSignalAt } from '../src/race';
 import { DIFFICULTIES, MAX_OPPONENTS, MIN_OPPONENTS, difficultyAt } from '../src/difficulty';
-import { RECOVERY_DELAY, RECOVERY_PENALTY, RECOVERY_POWER } from '../src/car';
+import {
+  RECOVERY_DELAY,
+  RECOVERY_PENALTY,
+  RECOVERY_POWER,
+  SHIFT_TIME,
+  brakeEfficiency,
+  gearForSpeed,
+  rpmFor,
+} from '../src/car';
+import { DIAL_MARKS, DIAL_MAX, angleFor, microWidth } from '../src/speedo';
 
 let failures = 0;
 let checks = 0;
@@ -265,6 +274,166 @@ section('nitro');
   const vulcan = CAR_STATS.find((c) => c.id === 'vulcan');
   check('the two new cars exist', Boolean(zephyr && vulcan));
   check('vulcan carries the biggest tank', vulcan!.stats.nitroCapacity === Math.max(...CAR_STATS.map((c) => c.stats.nitroCapacity)));
+}
+
+section('gearbox');
+{
+  for (const car of CAR_STATS) {
+    const count = car.stats.shiftUp.length + 1;
+    check(`${car.id} has five or six gears`, count === 5 || count === 6, String(count));
+    const rising = car.stats.shiftUp.every((v, i) => i === 0 || v > car.stats.shiftUp[i - 1]);
+    check(`${car.id} shift speeds rise`, rising, car.stats.shiftUp.join('/'));
+    check(
+      `${car.id} reaches top gear before its top speed`,
+      car.stats.shiftUp[car.stats.shiftUp.length - 1] < car.stats.maxSpeed,
+      `${car.stats.shiftUp[car.stats.shiftUp.length - 1]} < ${car.stats.maxSpeed}`,
+    );
+  }
+  const boxes = CAR_STATS.map((c) => c.stats.shiftUp.join(','));
+  check('every car has its own ratios', new Set(boxes).size === CAR_STATS.length);
+  check('both five and six speeds are represented', new Set(CAR_STATS.map((c) => c.stats.shiftUp.length)).size > 1);
+
+  const box = [50, 100, 150, 200, 250];
+  check('it starts in first', gearForSpeed(box, 0, 1) === 1);
+  check('it climbs with speed', gearForSpeed(box, 120, 2) === 3 && gearForSpeed(box, 260, 5) === 6);
+  check('it holds a gear just under the change point', gearForSpeed(box, 95, 3) === 3);
+  check('but does drop when the speed really falls', gearForSpeed(box, 70, 3) === 2, String(gearForSpeed(box, 70, 3)));
+  check('revs sit low at the bottom of a gear', rpmFor(box, 3, 101, 300) < 0.3);
+  check('revs sit high at the top of a gear', rpmFor(box, 3, 149, 300) > 0.9);
+  check('revs never exceed the limiter', rpmFor(box, 6, 400, 300) <= 1);
+
+  // Drive one car up through the box, pinned in place so the surface is fixed.
+  const track = tracks[0];
+  const car = makeCar(track, 0);
+  const pin = { ...car.pos };
+  car.controls = { throttle: 1, steer: 0, handbrake: false, nitro: false };
+  const shifts: Array<{ gear: number; kind: string; rpm: number }> = [];
+  let rpmBeforeShift = 0;
+  let dipSeen = false;
+  for (let i = 0; i < 120 * 10; i++) {
+    const before = car.rpm;
+    car.pos.x = pin.x;
+    car.pos.y = pin.y;
+    car.update(STEP, track);
+    if (car.shifted) {
+      shifts.push({ gear: car.gear, kind: car.shifted, rpm: car.rpm });
+      rpmBeforeShift = before;
+    }
+    if (rpmBeforeShift > 0 && car.rpm < rpmBeforeShift - 0.08) dipSeen = true;
+  }
+  check('the box works up through every gear', shifts.length === car.gearCount - 1, shifts.map((s) => s.gear).join(','));
+  check('every change is an upshift', shifts.every((s) => s.kind === 'up'));
+  check('the revs dip on a change', dipSeen);
+  check('it settles in top gear at speed', car.gear === car.gearCount, `${car.gear}/${car.gearCount}`);
+  check('the revs climb again afterwards', car.rpm > 0.9, car.rpm.toFixed(2));
+  check('a change takes a moment', SHIFT_TIME > 0.1 && SHIFT_TIME < 0.5);
+
+  // The torque cut has to be real: the same second of acceleration through a
+  // change covers less ground than one without.
+  const clean = makeCar(track, 0);
+  const cleanPin = { ...clean.pos };
+  clean.controls = { throttle: 1, steer: 0, handbrake: false, nitro: false };
+  runPinned(track, clean, 0.4, cleanPin);
+  const beforeCut = clean.forwardSpeed;
+  // Force a change by dropping it into a lower gear's band and back.
+  const gained: number[] = [];
+  for (const forceShift of [false, true]) {
+    const probe = makeCar(track, 0);
+    const probePin = { ...probe.pos };
+    probe.controls = { throttle: 1, steer: 0, handbrake: false, nitro: false };
+    runPinned(track, probe, 0.4, probePin);
+    const start = probe.forwardSpeed;
+    if (forceShift) probe.shiftTimer = SHIFT_TIME;
+    runPinned(track, probe, SHIFT_TIME, probePin);
+    gained.push(probe.forwardSpeed - start);
+  }
+  check('a change costs acceleration', gained[1] < gained[0] * 0.6, `${gained[1].toFixed(1)} vs ${gained[0].toFixed(1)}`);
+  check('the car still accelerates through it', gained[1] > 0 && beforeCut > 0);
+}
+
+section('speedometer');
+{
+  check('the dial reads 0 to 260 in twenties', DIAL_MARKS.join(',') === '0,20,40,60,80,100,120,140,160,180,200,220,240,260');
+  check('the top of the dial is 260', DIAL_MAX === 260);
+  check('the needle sweeps clockwise', angleFor(0) < angleFor(130) && angleFor(130) < angleFor(260));
+  check('the needle is pinned at both ends', angleFor(-50) === angleFor(0) && angleFor(400) === angleFor(260));
+  check('the micro font measures its numbers', microWidth('260') === 11, String(microWidth('260')));
+
+  // A five-speed car must never be shown in sixth.
+  for (const car of CAR_STATS) {
+    const count = car.stats.shiftUp.length + 1;
+    const shown = Math.min(gearForSpeed(car.stats.shiftUp, car.stats.maxSpeed * 2, count), count);
+    check(`${car.id} never shows a gear it has not got`, shown <= count && shown <= 6, String(shown));
+  }
+}
+
+section('brake wear');
+{
+  check('full brakes are full strength', brakeEfficiency(100) === 1 && brakeEfficiency(76) === 1);
+  check('76-51 is slightly reduced', brakeEfficiency(75) < 1 && brakeEfficiency(51) === brakeEfficiency(75));
+  check('50-26 is noticeably reduced', brakeEfficiency(50) < brakeEfficiency(51));
+  check('25-1 is significantly reduced', brakeEfficiency(25) < brakeEfficiency(26));
+  check('empty brakes are very weak', brakeEfficiency(0) < brakeEfficiency(1) && brakeEfficiency(0) <= 0.25);
+  check('the bands only ever get worse', [100, 76, 75, 51, 50, 26, 25, 1, 0].every((v, i, a) => i === 0 || brakeEfficiency(v) <= brakeEfficiency(a[i - 1])));
+
+  const rates = CAR_STATS.map((c) => c.stats.brakeWear);
+  check('every car wears its brakes at its own rate', new Set(rates).size === CAR_STATS.length, rates.join(','));
+  check('all rates are positive', rates.every((r) => r > 0));
+
+  const track = tracks[0];
+  // Coasting and accelerating must not touch the brakes.
+  const cruiser = makeCar(track, 0);
+  const cruisePin = { ...cruiser.pos };
+  cruiser.controls = { throttle: 1, steer: 0, handbrake: false, nitro: false };
+  runPinned(track, cruiser, 6, cruisePin);
+  check('driving does not wear the brakes', cruiser.brake === 100, String(cruiser.brake));
+  cruiser.controls = { throttle: 0, steer: 0, handbrake: false, nitro: false };
+  runPinned(track, cruiser, 3, cruisePin);
+  check('coasting does not wear them either', cruiser.brake === 100, String(cruiser.brake));
+
+  // Braking does, in whole percent.
+  const seen = new Set<number>();
+  const braker = makeCar(track, 0);
+  const brakePin = { ...braker.pos };
+  braker.controls = { throttle: 1, steer: 0, handbrake: false, nitro: false };
+  runPinned(track, braker, 4, brakePin);
+  braker.controls = { throttle: -1, steer: 0, handbrake: false, nitro: false };
+  for (let i = 0; i < 120 * 12; i++) {
+    braker.pos.x = brakePin.x;
+    braker.pos.y = brakePin.y;
+    braker.forwardSpeed > 40 && (braker.vel = { x: Math.cos(braker.heading) * 240, y: Math.sin(braker.heading) * 240 });
+    braker.update(STEP, track);
+    seen.add(braker.brake);
+  }
+  const values = [...seen].sort((a, b) => b - a);
+  check('braking wears the brakes', braker.brake < 100, String(braker.brake));
+  check('the reading is always a whole percent', values.every((v) => Number.isInteger(v)), values.slice(0, 4).join(','));
+  check('it steps down one percent at a time', values.every((v, i) => i === 0 || values[i - 1] - v === 1), values.slice(0, 6).join(','));
+  check('it never goes below zero', values[values.length - 1] >= 0);
+
+  // Worn brakes really do stop the car later.
+  const stopFrom = (condition: number): number => {
+    const car = makeCar(track, 0);
+    const pin = { ...car.pos };
+    car.controls = { throttle: 1, steer: 0, handbrake: false, nitro: false };
+    runPinned(track, car, 6, pin);
+    car.brake = condition;
+    car.controls = { throttle: -1, steer: 0, handbrake: false, nitro: false };
+    let time = 0;
+    while (time < 20 && car.forwardSpeed > 20) {
+      car.pos.x = pin.x;
+      car.pos.y = pin.y;
+      car.update(STEP, track);
+      time += STEP;
+    }
+    return time;
+  };
+  const fresh = stopFrom(100);
+  const half = stopFrom(40);
+  const gone = stopFrom(0);
+  console.log(`  [brakes] stop from speed: 100% ${fresh.toFixed(2)}s, 40% ${half.toFixed(2)}s, 0% ${gone.toFixed(2)}s`);
+  check('half-worn brakes take longer to stop', half > fresh * 1.2, `${half.toFixed(2)} vs ${fresh.toFixed(2)}`);
+  check('empty brakes are far worse again', gone > half * 1.5, `${gone.toFixed(2)} vs ${half.toFixed(2)}`);
 }
 
 section('weather');

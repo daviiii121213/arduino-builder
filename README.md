@@ -59,8 +59,21 @@ The field is held on the grid, throttle disabled, until the lights go out.
 **Pause** — `Esc` during a race opens a three-row menu: Settings, Return to Main
 Menu, Continue. The race freezes until you pick.
 
-**Race** — three laps, six cars, one of them yours. The HUD shows lap, position,
-speed and the nitro gauge.
+**Race** — three laps, one of them yours. The HUD shows lap, position, the
+nitro and brake gauges, and a pixel-art dial reading 0–260 km/h with the
+current gear in its face.
+
+**Gearbox** — every car shifts for itself, through five or six ratios with its
+own change speeds. A change costs a moment of drive and drops the revs before
+they climb again, and you hear the box work: the engine note follows the revs,
+not road speed, with a mechanical clunk on each change.
+
+**Brakes** — braking wears the brakes down from 100% in whole percent, at a
+rate set by the car (Zephyr is gentlest, Boulder hardest on them) and by how
+fast you were going. Driving and coasting cost nothing. What is left decides
+how well the car stops: 100–76% full, 75–51% slightly down, 50–26% noticeably
+down, 25–1% badly down, 0% almost nothing. From racing speed that is a 0.7s
+stop with fresh brakes, 1.0s at 40%, and 2.2s at zero.
 
 **Track recovery** — stay off the racing surface for three seconds and the
 marshals step in: the car blinks, is set back down on the racing line pointing
@@ -73,14 +86,14 @@ crest.
 
 ### Cars
 
-| Car | Top speed | Accel | Handling | Nitro tank | Boost |
-| --- | --- | --- | --- | --- | --- |
-| Bolt | 300 | 250 | 2.70 | 4.0s | +28% |
-| Comet | 345 | 195 | 2.20 | 3.0s | +22% |
-| Pebble | 268 | 295 | 3.25 | 5.0s | +32% |
-| Boulder | 292 | 215 | 2.35 | 4.5s | +25% |
-| Zephyr | 275 | 310 | 3.40 | 6.0s | +30% |
-| Vulcan | 318 | 230 | 2.30 | 7.5s | +38% |
+| Car | Top speed | Accel | Handling | Nitro tank | Gears | Brake wear |
+| --- | --- | --- | --- | --- | --- | --- |
+| Bolt | 300 | 250 | 2.70 | 4.0s | 6 | 1.8%/s |
+| Comet | 345 | 195 | 2.20 | 3.0s | 6 | 2.2%/s |
+| Pebble | 268 | 295 | 3.25 | 5.0s | 5 | 1.2%/s |
+| Boulder | 292 | 215 | 2.35 | 4.5s | 5 | 2.6%/s |
+| Zephyr | 275 | 310 | 3.40 | 6.0s | 6 | 1.0%/s |
+| Vulcan | 318 | 230 | 2.30 | 7.5s | 5 | 2.4%/s |
 
 ### Circuits
 
@@ -116,6 +129,7 @@ nitro on the straights.
 - `src/pixel.ts` — pixel-art plumbing: seeded RNG, character-map → sprite, tiling textures.
 - `src/i18n.ts` — every string in both languages, and the how-to pages.
 - `src/difficulty.ts` — the three AI levels and the field-size limits.
+- `src/speedo.ts` — the dial: plotted circles, ticks, needle and a 3x5 micro font.
 - `src/drivers.ts` — the six drivers (three builds, two poses each), trophy and medals.
 - `src/victory.ts` — the podium scene.
 - `src/font.ts` — a hand-drawn 5×7 bitmap font; all menu and HUD text is pixels, not a system font.
@@ -137,15 +151,17 @@ nearest-neighbour, so everything stays chunky.
 
 ## Tests
 
-`npm test` runs 288 headless checks (no canvas needed): pixel maps and font
+`npm test` runs 350 headless checks (no canvas needed): pixel maps and font
 coverage (including every accented character the translations use), track
 geometry and grid placement, physics (acceleration, braking, reverse, steering,
 surfaces, grip), nitro (boost, drain, lockout, refill), weather modifiers,
 collisions, lap counting, menu, setup and pause navigation, both languages, the
 start sequence order, grid sizing, the difficulty levels (an easy rival really
 does lap slower than a hard one), track recovery (timing, blink, reposition,
-power penalty) and podium awards, plus full six-car AI races on all three
-circuits in several conditions.
+power penalty), the gearbox (ratios, hysteresis, rev band, the torque cut on a
+change), the dial's scale, brake wear (whole-percent steps, no wear from
+driving, longer stops as it goes) and podium awards, plus full six-car AI races
+on all three circuits in several conditions.
 
 There is also an end-to-end check that drives the real game in a browser —
 menus, language switching, the start sequence, pause, nitro, recovery, the

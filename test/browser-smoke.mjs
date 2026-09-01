@@ -213,6 +213,37 @@ await page.keyboard.up('s');
 const braked = await player();
 check('S brakes', braked.speed < beforeBrake.speed, `${braked.speed} < ${beforeBrake.speed}`);
 
+console.log('\ngearbox and brakes');
+await press('r');
+await page.evaluate(() => window.__game.releaseStart());
+await page.waitForTimeout(200);
+const idle = await player();
+check('the car starts in first gear', idle.gear === 1, JSON.stringify(idle));
+check('the box has five or six ratios', idle.gearCount === 5 || idle.gearCount === 6, String(idle.gearCount));
+await page.keyboard.down('w');
+await page.waitForTimeout(1500);
+const pulling = await player();
+check('it changes up as the speed builds', pulling.gear > 1, `gear ${pulling.gear} at ${pulling.speed}`);
+check('the revs read inside the range', pulling.rpm > 0 && pulling.rpm <= 1, String(pulling.rpm));
+await page.keyboard.up('w');
+check('brakes are untouched by driving', (await player()).brake === 100, String((await player()).brake));
+
+// Hand it to the AI for a stint so it is genuinely up to speed on the line,
+// rather than parked in the grass off the first corner.
+await page.evaluate(() => window.__game.autopilot(18));
+await page.waitForTimeout(200);
+const flying = await player();
+check('it works up to a high gear', flying.gear >= 4, `gear ${flying.gear} at ${flying.speed}`);
+check('it never selects a gear the box has not got', flying.gear <= flying.gearCount, `${flying.gear}/${flying.gearCount}`);
+
+await page.keyboard.down('s');
+await page.waitForTimeout(1600);
+await page.keyboard.up('s');
+const braked2 = await player();
+check('braking wears the brakes', braked2.brake < 100, `${braked2.brake}%`);
+check('the brake reading is a whole percent', Number.isInteger(braked2.brake), String(braked2.brake));
+check('it changes back down as the car slows', braked2.gear < flying.gear, `${braked2.gear} < ${flying.gear}`);
+
 console.log('\npause menu');
 await press('Escape');
 const paused = await state();

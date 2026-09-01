@@ -1,6 +1,7 @@
 import { clamp } from './math';
 import { ctx2d } from './pixel';
 import { drawText } from './font';
+import { drawSpeedometer } from './speedo';
 import { getCarSpecs, type CarSpec } from './cars';
 import { getDecorSprites } from './decor';
 import { getWeatherIcons, getTrafficLight } from './icons';
@@ -279,8 +280,8 @@ export class Game {
 
     const player = race.player;
     if (player && !race.over && race.released) {
-      const ratio = clamp(Math.abs(player.forwardSpeed) / player.stats.maxSpeed, 0, 1);
-      this.audio.updateEngine(ratio, player.controls.throttle > 0 ? 1 : 0, player.nitroActive);
+      if (player.shifted) this.audio.gearShift(player.shifted === 'up');
+      this.audio.updateEngine(player.rpm, player.controls.throttle > 0 ? 1 : 0, player.nitroActive);
     } else {
       this.audio.idleEngine();
     }
@@ -363,24 +364,23 @@ export class Game {
     const icon = getWeatherIcons()[race.weather.id];
     g.drawImage(icon, w - 8 - icon.width, 18);
 
-    // Speed and the nitro gauge sit together in the bottom-left corner.
-    const baseY = h - 30;
-    const kmh = `${Math.round(Math.abs(player.forwardSpeed) * 0.75)}`;
-    const speedW = drawText(g, kmh, 8, baseY - 14, { scale: 2, color: spec.tint, shadow: INK });
-    drawText(g, t('kmh'), 8 + speedW + 4, baseY - 8, { scale: 1, color: DIM, shadow: INK });
-
+    // Gauges stack in the bottom-left corner; the dial sits opposite them.
     const barW = 104;
+    const barX = 8 + 34;
+    const nitroY = h - 34;
+    const brakeY = h - 20;
+
     const flashing = player.nitroActive && Math.floor(race.time * 14) % 2 === 0;
     const empty = player.nitroLocked;
-    drawText(g, t('nitro'), 8, baseY + 2, {
+    drawText(g, t('nitro'), 8, nitroY + 2, {
       scale: 1,
       color: empty ? '#8a3b3b' : player.nitroActive ? BONE : '#59d8f0',
       shadow: INK,
     });
     segmentBar(
       g,
-      8 + 32,
-      baseY,
+      barX,
+      nitroY,
       barW,
       10,
       player.nitroRatio,
@@ -390,9 +390,32 @@ export class Game {
     if (player.nitroActive) {
       // Little exhaust ticks either side of the gauge while it burns.
       g.fillStyle = flashing ? '#ffd75e' : '#ff9a3c';
-      g.fillRect(8 + 32 + barW + 3, baseY + 2, 2, 6);
-      g.fillRect(8 + 32 + barW + 6, baseY + 4, 2, 2);
+      g.fillRect(barX + barW + 3, nitroY + 2, 2, 6);
+      g.fillRect(barX + barW + 6, nitroY + 4, 2, 2);
     }
+
+    // Brake condition, in the same shape as the nitro gauge, colour-coded by
+    // the band the brakes are in.
+    const condition = player.brake;
+    const brakeColor =
+      condition >= 76 ? '#5fd06a' : condition >= 51 ? '#c8d84a' : condition >= 26 ? '#f2b33d' : condition >= 1 ? '#e0813f' : '#c8332b';
+    drawText(g, t('brakes'), 8, brakeY + 2, { scale: 1, color: brakeColor, shadow: INK });
+    segmentBar(g, barX, brakeY, barW, 10, condition / 100, brakeColor, 10);
+    drawText(g, `${condition}%`, barX + barW + 6, brakeY + 2, {
+      scale: 1,
+      color: brakeColor,
+      shadow: INK,
+    });
+
+    // The dial: speed, revs and the gear the box has chosen.
+    const radius = Math.min(46, Math.round(Math.min(w, h) * 0.13));
+    drawSpeedometer(g, w - radius - 12, h - radius - 26, radius, {
+      kmh: Math.abs(player.forwardSpeed) * 0.75,
+      gear: player.gear,
+      gearCount: player.gearCount,
+      rpm: player.rpm,
+      tint: spec.tint,
+    });
 
     if (player.blinking) {
       // Tell the player why the car is flickering and being moved.
@@ -573,6 +596,10 @@ export class Game {
       nitroActive: c.nitroActive,
       recovery: c.recovery,
       offTrackTime: Number(c.offTrackTime.toFixed(2)),
+      gear: c.gear,
+      gearCount: c.gearCount,
+      rpm: Number(c.rpm.toFixed(2)),
+      brake: c.brake,
     }));
   }
 

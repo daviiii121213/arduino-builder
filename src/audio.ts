@@ -94,16 +94,21 @@ export class Audio {
     return this.ctx !== null && !this.settings.muted && this.settings.master > 0;
   }
 
-  /** Engine note tracks speed; `load` opens the filter when on the throttle. */
-  updateEngine(speedRatio: number, load: number, nitro: boolean): void {
+  /**
+   * Engine note follows the revs, not road speed, so every gear change is
+   * audible: the note climbs through a gear, drops on the shift, climbs again.
+   * `load` opens the filter when the driver is on the throttle.
+   */
+  updateEngine(rpm: number, load: number, nitro: boolean): void {
     if (!this.ctx || !this.engineOsc || !this.engineFilter || !this.engineGain || !this.engineSub) return;
     const t = this.ctx.currentTime;
-    const rev = 62 + speedRatio * 210 + (nitro ? 26 : 0);
-    this.engineOsc.frequency.setTargetAtTime(rev, t, 0.06);
-    this.engineSub.frequency.setTargetAtTime(rev / 2, t, 0.06);
-    this.engineFilter.frequency.setTargetAtTime(500 + speedRatio * 2200 + load * 500, t, 0.08);
-    const level = this.settings.muted ? 0 : this.settings.engine * (0.06 + speedRatio * 0.13);
-    this.engineGain.gain.setTargetAtTime(level, t, 0.1);
+    const rev = 58 + rpm * 250 + (nitro ? 26 : 0);
+    // Revs move faster than the car does, so track them with a short constant.
+    this.engineOsc.frequency.setTargetAtTime(rev, t, 0.035);
+    this.engineSub.frequency.setTargetAtTime(rev / 2, t, 0.035);
+    this.engineFilter.frequency.setTargetAtTime(500 + rpm * 2400 + load * 500, t, 0.05);
+    const level = this.settings.muted ? 0 : this.settings.engine * (0.06 + rpm * 0.13);
+    this.engineGain.gain.setTargetAtTime(level, t, 0.06);
     if (this.nitroGain) {
       this.nitroGain.gain.setTargetAtTime(
         nitro && !this.settings.muted ? this.settings.sfx * 0.12 : 0,
@@ -163,6 +168,40 @@ export class Audio {
     src.connect(filter).connect(env).connect(this.sfxGain);
     src.start(t);
     src.stop(t + 0.25);
+  }
+
+  /**
+   * The box swapping ratios: a bright mechanical click over a low thump, both
+   * very short, so it lands inside the dip in the engine note.
+   */
+  gearShift(up: boolean): void {
+    if (!this.on || !this.ctx || !this.sfxGain || !this.noise) return;
+    const t = this.ctx.currentTime;
+
+    const click = this.ctx.createBufferSource();
+    click.buffer = this.noise;
+    click.playbackRate.value = up ? 1.35 : 1.05;
+    const band = this.ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = up ? 1500 : 1150;
+    band.Q.value = 5;
+    const clickEnv = this.ctx.createGain();
+    clickEnv.gain.setValueAtTime(0.16, t);
+    clickEnv.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+    click.connect(band).connect(clickEnv).connect(this.sfxGain);
+    click.start(t);
+    click.stop(t + 0.09);
+
+    const thump = this.ctx.createOscillator();
+    const thumpEnv = this.ctx.createGain();
+    thump.type = 'sine';
+    thump.frequency.setValueAtTime(up ? 150 : 120, t);
+    thump.frequency.exponentialRampToValueAtTime(70, t + 0.09);
+    thumpEnv.gain.setValueAtTime(0.14, t);
+    thumpEnv.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
+    thump.connect(thumpEnv).connect(this.sfxGain);
+    thump.start(t);
+    thump.stop(t + 0.13);
   }
 
   /** Three rising notes when the player takes the flag. */

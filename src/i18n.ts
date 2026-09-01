@@ -73,6 +73,9 @@ const STRINGS = {
   accel: ['ACCEL', 'ACELER'],
   grip: ['GRIP', 'ADERÊNCIA'],
   nitro: ['NITRO', 'NITRO'],
+  brakes: ['BRAKES', 'FREIOS'],
+  gears: ['GEARS', 'MARCHAS'],
+  gear: ['GEAR', 'MARCHA'],
   tank: ['TANK', 'TANQUE'],
   boost: ['BOOST', 'IMPULSO'],
 
@@ -142,6 +145,11 @@ const PAGES: Record<'howTo', [string[], string[]]> = {
       '',
       'TAP SPACE MID-CORNER TO SWING THE BACK OUT.',
       'AT NIGHT YOU ONLY SEE WHAT THE HEADLIGHTS DO.',
+      '',
+      'THE BOX SHIFTS ITSELF: WATCH THE GEAR IN THE DIAL',
+      'AND FEEL THE PAUSE ON EACH CHANGE.',
+      'BRAKING WEARS THE BRAKES DOWN FROM 100%; THE',
+      'LOWER THE BAR, THE LONGER YOU NEED TO STOP.',
     ],
     [
       'TRÊS VOLTAS CONTRA CINCO RIVAIS. QUEM CRUZAR A',
@@ -159,6 +167,11 @@ const PAGES: Record<'howTo', [string[], string[]]> = {
       '',
       'TOQUE ESPAÇO NA CURVA PARA JOGAR A TRASEIRA.',
       'À NOITE VOCÊ SÓ VÊ O QUE O FAROL ALCANÇA.',
+      '',
+      'O CÂMBIO TROCA SOZINHO: VEJA A MARCHA NO PAINEL',
+      'E SINTA A PAUSA A CADA TROCA.',
+      'FREAR GASTA OS FREIOS A PARTIR DE 100%; QUANTO',
+      'MENOR A BARRA, MAIS LONGA FICA A FRENAGEM.',
     ],
   ],
 };

@@ -26,6 +26,49 @@ export const RECOVERY_POWER = 0.42;
 
 export type RecoveryPhase = 'none' | 'blink' | 'penalty';
 
+/** How long the box takes to swap ratios. */
+export const SHIFT_TIME = 0.26;
+/** Torque left at the driven wheels in the middle of a change. */
+export const SHIFT_TORQUE = 0.12;
+/** A gear is only dropped below this fraction of its own upshift speed. */
+const DOWNSHIFT_HYSTERESIS = 0.86;
+/** Idle end of the rev range, so a rolling engine never reads zero. */
+const IDLE_RPM = 0.18;
+
+/**
+ * How well the brakes still work at a given condition. The bands are the ones
+ * the gauge shows: full, slightly down, noticeably down, badly down, and gone.
+ */
+export function brakeEfficiency(condition: number): number {
+  if (condition >= 76) return 1;
+  if (condition >= 51) return 0.85;
+  if (condition >= 26) return 0.65;
+  if (condition >= 1) return 0.45;
+  return 0.2;
+}
+
+/** Which gear a given speed calls for, 1-based. */
+export function gearForSpeed(shiftUp: number[], speed: number, current: number): number {
+  let gear = 1;
+  for (let i = 0; i < shiftUp.length; i++) {
+    if (speed >= shiftUp[i]) gear = i + 2;
+  }
+  // Hysteresis on the way down, so a car sitting on a threshold doesn't hunt.
+  if (gear < current && current >= 2) {
+    const holdAt = shiftUp[current - 2] * DOWNSHIFT_HYSTERESIS;
+    if (speed >= holdAt) return current;
+  }
+  return gear;
+}
+
+/** Where the revs sit inside the current gear's speed band, 0..1. */
+export function rpmFor(shiftUp: number[], gear: number, speed: number, maxSpeed: number): number {
+  const lo = gear <= 1 ? 0 : shiftUp[gear - 2];
+  const hi = gear - 1 < shiftUp.length ? shiftUp[gear - 1] : Math.max(maxSpeed, lo + 1);
+  const span = Math.max(1, hi - lo);
+  return clamp(IDLE_RPM + (1 - IDLE_RPM) * ((speed - lo) / span), IDLE_RPM, 1);
+}
+
 export interface SurfaceFeel {
   gripMul: number;
   speedMul: number;
@@ -82,6 +125,17 @@ export class RaceCar {
   /** Set for one frame when the car is put back on the road. */
   respawned = false;
 
+  /** Automatic gearbox: current ratio, the change in progress, and the revs. */
+  gear = 1;
+  shiftTimer = 0;
+  rpm = IDLE_RPM;
+  /** Set for one frame on a change, so the HUD and audio can react. */
+  shifted: 'up' | 'down' | null = null;
+
+  /** Brake condition in whole percent, 100 down to 0. */
+  brake = 100;
+  private brakeWorn = 0;
+
   /** Laps completed; starts at -1 because cars line up before the line. */
   lap = -1;
   finished = false;
@@ -109,6 +163,11 @@ export class RaceCar {
     this.name = opts.name;
     this.carIndex = opts.carIndex;
     this.nitro = opts.stats.nitroCapacity;
+  }
+
+  /** Total number of ratios this car's box has. */
+  get gearCount(): number {
+    return this.stats.shiftUp.length + 1;
   }
 
   /** True while the car should flicker: during the lift and the power penalty. */
@@ -157,16 +216,41 @@ export class RaceCar {
     let vf = this.vel.x * cos + this.vel.y * sin;
     let vr = -this.vel.x * sin + this.vel.y * cos;
 
+    // The box picks its own ratio from road speed; a change costs a moment of
+    // drive and drops the revs before they climb again.
+    this.shifted = null;
+    const nextGear = gearForSpeed(s.shiftUp, Math.abs(vf), this.gear);
+    if (nextGear !== this.gear) {
+      this.shifted = nextGear > this.gear ? 'up' : 'down';
+      this.gear = nextGear;
+      this.shiftTimer = SHIFT_TIME;
+    }
+    if (this.shiftTimer > 0) this.shiftTimer = Math.max(0, this.shiftTimer - dt);
+    const shiftProgress = this.shiftTimer / SHIFT_TIME;
+    // Drive comes back in along a curve, so the change is felt as a real pause
+    // rather than a linear fade.
+    const recovered = (1 - shiftProgress) * (1 - shiftProgress);
+    const drive = SHIFT_TORQUE + (1 - SHIFT_TORQUE) * recovered;
+
+    // Revs follow the gear band, dip through the change, then recover.
+    const targetRpm = rpmFor(s.shiftUp, this.gear, Math.abs(vf), s.maxSpeed) * (1 - 0.45 * shiftProgress);
+    this.rpm += (targetRpm - this.rpm) * (1 - Math.exp(-9 * dt));
+
     // While the marshals have the car, the driver has no say in it.
     const power = this.recovery === 'penalty' ? RECOVERY_POWER : 1;
     const maxSpeed = s.maxSpeed * feel.speedMul * boost;
     if (recovering) {
       vf -= vf * 2.6 * dt;
     } else if (c.throttle > 0) {
-      vf += s.accel * boost * power * c.throttle * dt * (vf < maxSpeed ? 1 : 0);
+      vf += s.accel * boost * power * drive * c.throttle * dt * (vf < maxSpeed ? 1 : 0);
     } else if (c.throttle < 0) {
-      if (vf > 8) vf -= s.brake * -c.throttle * dt;
-      else vf -= s.accel * 0.75 * -c.throttle * dt;
+      if (vf > 8) {
+        // Worn brakes bite less, and hard stops from speed wear them further.
+        vf -= s.brake * brakeEfficiency(this.brake) * -c.throttle * dt;
+        this.wearBrakes(dt, vf, s);
+      } else {
+        vf -= s.accel * 0.75 * drive * -c.throttle * dt;
+      }
     }
 
     // Rolling resistance, plus extra when off the racing surface.
@@ -211,6 +295,17 @@ export class RaceCar {
     // Once a car has taken the flag its lap counter stops, so the cool-down
     // laps it drives afterwards can't change the result.
     if (!this.finished) this.trackProgress(track, near.along);
+  }
+
+  /** Brake condition only ever falls in whole percent, and only under braking. */
+  private wearBrakes(dt: number, speed: number, s: CarStats): void {
+    if (this.brake <= 0) return;
+    const load = 0.35 + 0.65 * clamp(speed / s.maxSpeed, 0, 1);
+    this.brakeWorn += s.brakeWear * load * dt;
+    while (this.brakeWorn >= 1 && this.brake > 0) {
+      this.brakeWorn -= 1;
+      this.brake -= 1;
+    }
   }
 
   /**

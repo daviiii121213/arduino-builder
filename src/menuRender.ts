@@ -338,6 +338,8 @@ export class MenuRenderer {
       [t('accel'), norm(stats.accel, (s) => s.accel), '#f2b33d'],
       [t('grip'), norm(stats.grip, (s) => s.grip), '#5fd06a'],
       [t('nitro'), norm(stats.nitroCapacity, (s) => s.nitroCapacity), '#59d8f0'],
+      // Gentler on the brakes is better, so this bar is inverted.
+      [t('brakes'), norm(-stats.brakeWear, (s) => -s.brakeWear), '#7fd0e8'],
     ];
     const labelW = Math.max(...rows.map(([label]) => textWidth(label, { scale: 1 }))) + 6;
     const barW = Math.min(120, iw - labelW - 4);
@@ -349,7 +351,7 @@ export class MenuRenderer {
     });
     drawText(
       g,
-      `${t('tank')} ${stats.nitroCapacity.toFixed(1)}S   ${t('boost')} +${Math.round((stats.nitroBoost - 1) * 100)}%`,
+      `${t('tank')} ${stats.nitroCapacity.toFixed(1)}S   ${t('gears')} ${stats.shiftUp.length + 1}`,
       ix,
       barY + rows.length * 13 + 3,
       { scale: 1, color: '#59d8f0' },

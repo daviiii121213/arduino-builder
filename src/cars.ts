@@ -214,6 +214,13 @@ export interface CarStats {
   nitroBoost: number;
   /** Nitro refilled per second while not boosting. */
   nitroRegen: number;
+  /**
+   * Speeds (world px/s) at which the box shifts up. One entry per change, so
+   * five entries is a six-speed and four is a five-speed.
+   */
+  shiftUp: number[];
+  /** Brake condition lost per second of hard braking, in percent. */
+  brakeWear: number;
 }
 
 export interface CarSpec {
@@ -302,6 +309,8 @@ const DEFS: CarDef[] = [
       nitroCapacity: 4,
       nitroBoost: 1.28,
       nitroRegen: 0.35,
+      shiftUp: [55, 105, 158, 210, 258],
+      brakeWear: 1.8,
     },
   },
   {
@@ -325,6 +334,8 @@ const DEFS: CarDef[] = [
       nitroCapacity: 3,
       nitroBoost: 1.22,
       nitroRegen: 0.28,
+      shiftUp: [62, 124, 186, 248, 302],
+      brakeWear: 2.2,
     },
   },
   {
@@ -348,6 +359,8 @@ const DEFS: CarDef[] = [
       nitroCapacity: 5,
       nitroBoost: 1.32,
       nitroRegen: 0.5,
+      shiftUp: [58, 114, 172, 224],
+      brakeWear: 1.2,
     },
   },
   {
@@ -371,6 +384,8 @@ const DEFS: CarDef[] = [
       nitroCapacity: 4.5,
       nitroBoost: 1.25,
       nitroRegen: 0.34,
+      shiftUp: [64, 126, 188, 244],
+      brakeWear: 2.6,
     },
   },
   {
@@ -394,6 +409,8 @@ const DEFS: CarDef[] = [
       nitroCapacity: 6,
       nitroBoost: 1.3,
       nitroRegen: 0.55,
+      shiftUp: [44, 88, 132, 178, 228],
+      brakeWear: 1,
     },
   },
   {
@@ -417,6 +434,8 @@ const DEFS: CarDef[] = [
       nitroCapacity: 7.5,
       nitroBoost: 1.38,
       nitroRegen: 0.22,
+      shiftUp: [70, 138, 204, 268],
+      brakeWear: 2.4,
     },
   },
 ];
