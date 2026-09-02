@@ -33,14 +33,52 @@ click a row to highlight it, click again to confirm.
 ## The game
 
 **Menu** — `PLAY` walks you through car → circuit → conditions → race setup;
-`SETTINGS` holds Controls, Sound, Language and How to Play. A live AI race runs behind the menu,
+`COMPETITION` runs the three-round championship; `SETTINGS` holds Controls,
+Sound, Language and How to Play.
+
+## Competition
+
+Three rounds on the circuits the game already has, run back to back on one grid
+of six, with points carried between them.
+
+| Round | Circuit | Laps | Level | Conditions |
+| --- | --- | --- | --- | --- |
+| 1 | Bayside Circuit | 3 | Easy | Sunny |
+| 2 | Dustbowl Rally | 4 | Medium | Rain |
+| 3 | Serpentine Pass | 6 | Difficult | Night |
+
+Points at every flag: **10 - 7 - 5 - 3 - 2 - 1**. They accumulate across the
+three rounds and decide the title; a tie breaks on the most recent result. The
+running total sits in a slim strip at the top of the screen during a race, the
+table comes up between rounds, and the driver with most points after round
+three takes the podium as season champion.
+
+The championship field is a step up from a single race at the same label — and
+it gets there by racing better, not by being handed speed:
+
+- **Line** — out-in-out: set up wide, tuck to the apex, run back out on exit,
+  using the full width of the road instead of a fixed offset with a wobble.
+- **Braking** — proper braking distance (`v² = u² + 2as`) against every corner
+  in range, then trail braking rather than stamping on the pedal.
+- **Steering** — a damping term on the error, so the sharper drivers hold a
+  line instead of weaving.
+- **Traffic** — they look a quarter-second ahead, steer around contact rather
+  than leaning on it, and commit to a side to come past.
+- **Slipstream** — sitting in a car's wake cuts drag by up to 45% and lifts the
+  top end 7%. It is plain physics, so you get the tow on the same terms.
+- **Nitro** — spent on a move or out of the tow, not just because the road is
+  straight.
+
+The final round runs an internal level a step beyond Hard, which is never
+offered on the single-race screen. On Serpentine that field laps around 8%
+quicker than a Hard single-race AI, without leaving the road. A live AI race runs behind the menu,
 previewing the circuit and weather you currently have selected.
 
 **Language** — English and Português (BR). Every menu, button, setting,
 instruction and in-race message switches, and the pixel font carries the
 accented capitals Portuguese needs. The choice is remembered.
 
-**Race setup** — the last screen before the lights: how many rivals line up
+**Race setup** (single races) — the last screen before the lights: how many rivals line up
 (1–5, so a field of 2 to 6 cars) and how hard they race.
 
 | Level | Rivals |
@@ -130,6 +168,8 @@ nitro on the straights.
 - `src/i18n.ts` — every string in both languages, and the how-to pages.
 - `src/difficulty.ts` — the three AI levels and the field-size limits.
 - `src/speedo.ts` — the dial: plotted circles, ticks, needle and a 3x5 micro font.
+- `src/championship.ts` — rounds, points and the standings table (no drawing in it).
+- `src/standings.ts` — the table and the between-rounds screen.
 - `src/drivers.ts` — the six drivers (three builds, two poses each), trophy and medals.
 - `src/victory.ts` — the podium scene.
 - `src/font.ts` — a hand-drawn 5×7 bitmap font; all menu and HUD text is pixels, not a system font.
@@ -151,7 +191,7 @@ nearest-neighbour, so everything stays chunky.
 
 ## Tests
 
-`npm test` runs 350 headless checks (no canvas needed): pixel maps and font
+`npm test` runs 397 headless checks (no canvas needed): pixel maps and font
 coverage (including every accented character the translations use), track
 geometry and grid placement, physics (acceleration, braking, reverse, steering,
 surfaces, grip), nitro (boost, drain, lockout, refill), weather modifiers,
@@ -160,8 +200,10 @@ start sequence order, grid sizing, the difficulty levels (an easy rival really
 does lap slower than a hard one), track recovery (timing, blink, reposition,
 power penalty), the gearbox (ratios, hysteresis, rev band, the torque cut on a
 change), the dial's scale, brake wear (whole-percent steps, no wear from
-driving, longer stops as it goes) and podium awards, plus full six-car AI races
-on all three circuits in several conditions.
+driving, longer stops as it goes), podium awards, the championship (points,
+accumulation, tie-breaks, the calendar, the hidden level staying hidden), the
+racecraft gain over a normal race on every round, and the slipstream, plus full
+six-car AI races on all three circuits in several conditions.
 
 There is also an end-to-end check that drives the real game in a browser —
 menus, language switching, the start sequence, pause, nitro, recovery, the

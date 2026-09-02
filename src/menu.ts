@@ -14,6 +14,7 @@ export type Screen =
   | 'track'
   | 'weather'
   | 'setup'
+  | 'competition'
   | 'settings'
   | 'controls'
   | 'sound'
@@ -39,7 +40,9 @@ export type MenuEvent =
   /** Close the pause menu and carry on racing. */
   | { type: 'resume' }
   /** Abandon the race and go back to the main menu. */
-  | { type: 'quit' };
+  | { type: 'quit' }
+  /** Start a three-round championship with the chosen car. */
+  | { type: 'season'; car: number };
 
 /** Rows on the settings screen, in order. */
 export const SETTINGS_ROWS = ['controls', 'sound', 'language', 'howto', 'back'] as const;
@@ -47,6 +50,8 @@ export const SETTINGS_ROWS = ['controls', 'sound', 'language', 'howto', 'back'] 
 export const PAUSE_ROWS = ['settings', 'quit', 'resume'] as const;
 /** Rows on the last screen before the lights. */
 export const SETUP_ROWS = ['opponents', 'difficulty', 'start'] as const;
+/** Rows on the main menu. */
+export const MAIN_ROWS = ['play', 'competition', 'settings'] as const;
 
 const STORAGE_KEY = 'pixel-racer.settings';
 
@@ -62,6 +67,8 @@ export class MenuModel {
   weatherIndex = 0;
   sound: SoundSettings = { ...DEFAULT_SOUND };
   language: Language = 'en';
+  /** Which way PLAY was entered: a one-off race, or the championship. */
+  entry: 'single' | 'season' = 'single';
   /** How many AI cars line up, and how hard they race. */
   opponents = DEFAULT_OPPONENTS;
   difficulty = DEFAULT_DIFFICULTY;
@@ -81,7 +88,7 @@ export class MenuModel {
   get count(): number {
     switch (this.screen) {
       case 'main':
-        return 2;
+        return MAIN_ROWS.length;
       case 'car':
         return this.carCount;
       case 'track':
@@ -90,6 +97,8 @@ export class MenuModel {
         return this.weatherCount;
       case 'setup':
         return SETUP_ROWS.length;
+      case 'competition':
+        return 1;
       case 'settings':
         return SETTINGS_ROWS.length;
       case 'sound':
@@ -200,18 +209,26 @@ export class MenuModel {
 
   private confirm(): MenuEvent[] {
     switch (this.screen) {
-      case 'main':
-        if (this.index === 0) {
-          this.goto('car', this.carIndex);
+      case 'main': {
+        const row = MAIN_ROWS[this.index];
+        if (row === 'settings') {
+          this.settingsReturn = 'main';
+          this.goto('settings');
           return [{ type: 'confirm' }];
         }
-        this.settingsReturn = 'main';
-        this.goto('settings');
+        this.entry = row === 'competition' ? 'season' : 'single';
+        this.goto('car', this.carIndex);
         return [{ type: 'confirm' }];
+      }
       case 'car':
         this.carIndex = this.index;
-        this.goto('track', this.trackIndex);
+        // A championship picks its own circuits, so it skips straight to the
+        // calendar; a single race carries on to the track list.
+        this.goto(this.entry === 'season' ? 'competition' : 'track', this.entry === 'season' ? 0 : this.trackIndex);
         return [{ type: 'confirm' }];
+      case 'competition':
+        this.save();
+        return [{ type: 'confirm' }, { type: 'season', car: this.carIndex }];
       case 'track':
         this.trackIndex = this.index;
         this.goto('weather', this.weatherIndex);
@@ -270,7 +287,10 @@ export class MenuModel {
       case 'main':
         return [];
       case 'car':
-        this.goto('main', 0);
+        this.goto('main', this.entry === 'season' ? MAIN_ROWS.indexOf('competition') : 0);
+        break;
+      case 'competition':
+        this.goto('car', this.carIndex);
         break;
       case 'track':
         this.goto('car', this.carIndex);
@@ -283,7 +303,7 @@ export class MenuModel {
         break;
       case 'settings':
         if (this.settingsReturn === 'pause') this.goto('pause', PAUSE_ROWS.indexOf('settings'));
-        else this.goto('main', 1);
+        else this.goto('main', MAIN_ROWS.indexOf('settings'));
         break;
       case 'controls':
         this.goto('settings', SETTINGS_ROWS.indexOf('controls'));
@@ -318,6 +338,7 @@ export class MenuModel {
   /** Returns to the top level, e.g. after a race. */
   reset(): void {
     this.settingsReturn = 'main';
+    this.entry = 'single';
     this.goto('main', 0);
   }
 

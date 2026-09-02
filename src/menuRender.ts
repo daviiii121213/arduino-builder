@@ -5,7 +5,8 @@ import { getWeatherIcons } from './icons';
 import type { CarSpec } from './cars';
 import type { Track } from './tracks';
 import type { WeatherDef } from './weather';
-import { PAUSE_ROWS, SETTINGS_ROWS, SETUP_ROWS, type MenuModel, type Screen } from './menu';
+import { MAIN_ROWS, PAUSE_ROWS, SETTINGS_ROWS, SETUP_ROWS, type MenuModel, type Screen } from './menu';
+import { POINTS, ROUNDS, type RoundLabel } from './championship';
 import { DIFFICULTIES, MAX_OPPONENTS } from './difficulty';
 import { buildGrid } from './race';
 import { LANGUAGES, page, pick, t } from './i18n';
@@ -49,6 +50,8 @@ function screenTitle(screen: Screen): string {
       return t('selectWeather');
     case 'setup':
       return t('raceSetup');
+    case 'competition':
+      return t('championship');
     case 'settings':
       return t('settings');
     case 'controls':
@@ -75,6 +78,8 @@ function footer(screen: Screen): string {
       return t('footPick');
     case 'setup':
       return t('footStart');
+    case 'competition':
+      return t('footSeason');
     case 'settings':
     case 'language':
       return t('footSelect');
@@ -200,6 +205,9 @@ export class MenuRenderer {
       case 'setup':
         this.drawSetup(g, w, h, model, ctx);
         break;
+      case 'competition':
+        this.drawCompetition(g, w, h, model, ctx);
+        break;
       case 'settings':
         this.drawList(
           g,
@@ -274,11 +282,13 @@ export class MenuRenderer {
       align: 'center',
     });
 
-    const labels = [t('play'), t('settings')];
-    const bw = 150;
-    const bh = 28;
-    const gap = 12;
-    const startY = Math.round(h * 0.62);
+    const labels = MAIN_ROWS.map((row) =>
+      row === 'play' ? t('play') : row === 'competition' ? t('competition') : t('settings'),
+    );
+    const bw = 170;
+    const bh = 26;
+    const gap = 9;
+    const startY = Math.round(h * 0.58);
     labels.forEach((label, i) => {
       const x = cx - bw / 2;
       const y = startY + i * (bh + gap);
@@ -602,6 +612,80 @@ export class MenuRenderer {
       model.index === SETUP_ROWS.indexOf('start'),
       SETUP_ROWS.indexOf('start'),
     );
+  }
+
+  /** The season calendar: three rounds, the points on offer, and the car. */
+  private drawCompetition(
+    g: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    model: MenuModel,
+    ctx: MenuContext,
+  ): void {
+    const pw = Math.min(360, w - 40);
+    const px = Math.round((w - pw) / 2);
+    const py = 42;
+    const rowH = 26;
+    const ph = rowH * ROUNDS.length + 26;
+    plate(g, px, py, pw, ph);
+    drawText(g, t('calendar'), px + 10, py + 8, { scale: 1, color: DIM });
+
+    const labelFor = (label: RoundLabel): string =>
+      label === 'easy' ? t('roundEasy') : label === 'medium' ? t('roundMedium') : t('roundHard');
+    const tint = ['#5fd06a', '#f2b33d', KERB];
+
+    ROUNDS.forEach((round, i) => {
+      const track = ctx.tracks.find((tr) => tr.def.id === round.trackId);
+      const y = py + 20 + i * rowH;
+      rect(g, px + 4, y, pw - 8, rowH - 4, i % 2 === 0 ? '#1b2130' : '#20283a');
+      rect(g, px + 4, y, 3, rowH - 4, tint[i]);
+      drawText(g, `${t('round')} ${i + 1}`, px + 12, y + 3, { scale: 1, color: BONE });
+      drawText(g, labelFor(round.label), px + 12, y + 12, { scale: 1, color: tint[i] });
+      drawText(g, track ? track.def.name : round.trackId, px + 74, y + 3, { scale: 1, color: BONE });
+      drawText(g, `${round.laps} ${t('laps')}`, px + 74, y + 12, { scale: 1, color: DIM });
+
+      const icon = getWeatherIcons()[round.weather];
+      g.imageSmoothingEnabled = false;
+      g.drawImage(icon, px + pw - 24, y + 2, 16, 16);
+    });
+
+    const infoY = py + ph + 8;
+    drawText(g, `${t('points')}  ${POINTS.join(' - ')}`, w / 2, infoY, {
+      scale: 1,
+      color: BONE,
+      shadow: INK,
+      align: 'center',
+    });
+    wrap(t('seasonBlurb'), Math.max(20, Math.floor((w - 60) / 6))).forEach((linetext, i) => {
+      drawText(g, linetext, w / 2, infoY + 14 + i * 10, { scale: 1, color: DIM, align: 'center' });
+    });
+    drawText(g, t('fieldWarning'), w / 2, infoY + 30, {
+      scale: 1,
+      color: '#f2b33d',
+      shadow: INK,
+      align: 'center',
+    });
+
+    // The car the player takes into the season.
+    const spec = ctx.specs[model.carIndex];
+    const scale = 2;
+    g.drawImage(
+      spec.sprite,
+      Math.round(w / 2 - (spec.sprite.width * scale) / 2),
+      infoY + 44,
+      spec.sprite.width * scale,
+      spec.sprite.height * scale,
+    );
+    drawText(g, spec.name, w / 2, infoY + 46 + spec.sprite.height * scale + 2, {
+      scale: 1,
+      color: spec.tint,
+      shadow: INK,
+      align: 'center',
+    });
+
+    const bw = 190;
+    const bh = 24;
+    this.button(g, Math.round((w - bw) / 2), h - 44, bw, bh, t('startSeason'), true, 0);
   }
 
   private drawSound(g: CanvasRenderingContext2D, w: number, h: number, model: MenuModel): void {

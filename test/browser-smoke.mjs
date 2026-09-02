@@ -86,7 +86,7 @@ check('the game opens on the main menu', boot.mode === 'menu' && boot.screen ===
 check('an attract race runs behind the menu', (await cars()).length === 6);
 
 console.log('\nsettings');
-await press('ArrowDown');
+await moveTo(2);                            // main menu: play, competition, settings
 await press('Enter');
 check('settings opens', (await state()).screen === 'settings');
 await press('Enter');
@@ -105,7 +105,7 @@ await press('Escape');
 check('back reaches the main menu', (await state()).screen === 'main');
 
 console.log('\nlanguage');
-await moveTo(1);
+await moveTo(2);
 await press('Enter');                       // settings
 await moveTo(2);
 await press('Enter');                       // language
@@ -211,7 +211,8 @@ await page.keyboard.down('s');
 await page.waitForTimeout(1000);
 await page.keyboard.up('s');
 const braked = await player();
-check('S brakes', braked.speed < beforeBrake.speed, `${braked.speed} < ${beforeBrake.speed}`);
+// Compare road speed along the car, since a long enough press ends in reverse.
+check('S brakes', braked.forward < beforeBrake.forward, `${braked.forward} < ${beforeBrake.forward}`);
 
 console.log('\ngearbox and brakes');
 await press('r');
@@ -315,6 +316,45 @@ for (const [track, weather, label] of [[0, 0, 'bayside/sunny'], [1, 1, 'dustbowl
 await quitToMenu();
 await page.waitForTimeout(200);
 check('quitting from the pause menu returns to the main menu', (await state()).mode === 'menu');
+
+console.log('\ncompetition mode');
+await quitToMenu();
+await moveTo(1);
+await press('Enter');                       // COMPETITION -> car select
+check('competition opens the car select', (await state()).screen === 'car');
+await press('Enter');                       // pick car -> calendar
+check('the season calendar opens', (await state()).screen === 'competition');
+await press('Enter');                       // start the season
+await page.waitForTimeout(300);
+let season = await state();
+check('round one starts', season.mode === 'race' && season.season === true && season.seasonRound === 1, JSON.stringify(season));
+check('round one is three laps', season.laps === 3, String(season.laps));
+check('the championship runs a full six-car grid', (await cars()).length === 6);
+
+const seenLaps = [];
+for (let round = 1; round <= 3; round++) {
+  seenLaps.push((await state()).laps);
+  await page.evaluate(() => window.__game.releaseStart());
+  await page.evaluate(() => window.__game.simulateRace(700));
+  await page.waitForTimeout(400);
+  const after = await state();
+  if (round < 3) {
+    check(`round ${round} ends on the standings`, after.mode === 'standings', JSON.stringify(after));
+    check(`round ${round} scored the player`, after.playerPoints > 0, String(after.playerPoints));
+    await page.waitForTimeout(500);
+    await press('Enter');
+    await page.waitForTimeout(400);
+    check(`round ${round + 1} starts`, (await state()).mode === 'race' && (await state()).seasonRound === round + 1, JSON.stringify(await state()));
+  } else {
+    check('the season ends with the champion scene', after.mode === 'victory' && after.seasonDone === true, JSON.stringify(after));
+  }
+}
+check('the rounds run 3, 4 and 6 laps', seenLaps.join(',') === '3,4,6', seenLaps.join(','));
+
+// The champion scene plays out and hands back to the menu.
+await page.keyboard.press('Enter');
+await page.waitForTimeout(600);
+check('the season returns to the main menu', (await state()).mode === 'menu' && (await state()).season === false, JSON.stringify(await state()));
 
 console.log('\nerrors');
 check('no console or network errors', errors.length === 0, errors.join(' | '));

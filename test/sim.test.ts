@@ -11,7 +11,9 @@ import { DECOR_MAPS as DECOR } from '../src/decor';
 import { ICON_MAPS } from '../src/icons';
 import { supports, textWidth } from '../src/font';
 import { WEATHERS, weatherById, DEFAULT_WEATHER } from '../src/weather';
-import { MenuModel, PAUSE_ROWS, SETTINGS_ROWS, SETUP_ROWS } from '../src/menu';
+import { MAIN_ROWS, MenuModel, PAUSE_ROWS, SETTINGS_ROWS, SETUP_ROWS } from '../src/menu';
+import { Championship, POINTS, ROUNDS, pointsFor } from '../src/championship';
+import { ALL_DIFFICULTIES, RACECRAFT_CHAMPIONSHIP, difficultyById } from '../src/difficulty';
 import { ALL_KEYS, LANGUAGES, RAW_STRINGS, getLanguage, page, setLanguage, t } from '../src/i18n';
 import { supports as fontSupports } from '../src/font';
 import { DRIVER_LOOKS, DRIVER_MAPS, awardForPlace } from '../src/drivers';
@@ -474,7 +476,8 @@ section('menu navigation');
   const screen = (): string => menu.screen;
   check('starts on the main screen', screen() === 'main' && menu.index === 0);
   menu.input('down');
-  check('moving lands on settings', menu.index === 1);
+  check('moving lands on the competition row', MAIN_ROWS[menu.index] === 'competition', String(menu.index));
+  menu.index = MAIN_ROWS.indexOf('settings');
   menu.input('confirm');
   check('settings opens', screen() === 'settings');
   menu.input('confirm');
@@ -497,12 +500,13 @@ section('menu navigation');
   menu.input('back');
   check('back reaches the main screen', screen() === 'main');
 
-  menu.index = 0;
+  menu.index = MAIN_ROWS.indexOf('play');
   menu.input('confirm');
   check('play opens car select', screen() === 'car');
+  menu.index = 0;
   menu.input('down');
   menu.input('down');
-  check('car selection follows the cursor', menu.carIndex === 2);
+  check('car selection follows the cursor', menu.carIndex === 2, String(menu.carIndex));
   menu.input('confirm');
   check('car select leads to track select', screen() === 'track');
   menu.input('down');
@@ -662,6 +666,7 @@ section('menu: language and pause');
   menu.index = SETTINGS_ROWS.length - 1;
   menu.input('confirm');
   check('settings from the main menu still returns there', screen() === 'main');
+  check('the cursor lands back on the settings row', MAIN_ROWS[menu.index] === 'settings');
 }
 
 section('race setup screen');
@@ -874,6 +879,162 @@ section('victory podium');
   }
   const lightWidths = new Set(LIGHT_MAP_ROWS.map((r) => r.length));
   check('the start light artwork is rectangular', lightWidths.size === 1, [...lightWidths].join(','));
+}
+
+section('championship');
+{
+  check('points are 10-7-5-3-2-1', POINTS.join(',') === '10,7,5,3,2,1');
+  check('positions map to points', pointsFor(1) === 10 && pointsFor(4) === 3 && pointsFor(6) === 1);
+  check('nothing is scored outside the six', pointsFor(0) === 0 && pointsFor(7) === 0);
+
+  check('a season is exactly three rounds', ROUNDS.length === 3);
+  const laps = ROUNDS.map((r) => r.laps);
+  check('laps go three, four, six', laps.join(',') === '3,4,6', laps.join(','));
+  check('the rounds run easy, medium, difficult', ROUNDS.map((r) => r.label).join(',') === 'easy,medium,hard');
+  check('each round uses a different existing circuit', new Set(ROUNDS.map((r) => r.trackId)).size === 3);
+  const trackIds = tracks.map((tr) => tr.def.id);
+  check('every round points at a real circuit', ROUNDS.every((r) => trackIds.includes(r.trackId)), ROUNDS.map((r) => r.trackId).join(','));
+  const difficultyOf = (id: string): number => tracks.find((tr) => tr.def.id === id)!.info.difficulty;
+  check(
+    'the calendar runs easiest to hardest circuit',
+    difficultyOf(ROUNDS[0].trackId) < difficultyOf(ROUNDS[2].trackId) &&
+      difficultyOf(ROUNDS[1].trackId) <= difficultyOf(ROUNDS[2].trackId),
+    ROUNDS.map((r) => `${r.trackId}:${difficultyOf(r.trackId)}`).join(' '),
+  );
+  check('the last round runs the hidden level', ROUNDS[2].difficulty === 'elite');
+  check('the hidden level is never offered to the player', !DIFFICULTIES.some((d) => d.id === 'elite'));
+  check('but it does exist internally', ALL_DIFFICULTIES.some((d) => d.id === 'elite'));
+  const elite = difficultyById('elite');
+  const hard = difficultyById('hard');
+  check('the hidden level is a step beyond hard', elite.pace > hard.pace && elite.reaction > hard.reaction && elite.wobble < hard.wobble);
+
+  // A whole season, scored round by round.
+  const season = new Championship();
+  const field = CAR_STATS.map((c, i) => ({ carIndex: i, name: c.name, isPlayer: i === 2 }));
+  check('it opens on round one', season.roundNumber === 1 && !season.finished);
+  check('the first round is the easy one', season.currentRound.label === 'easy' && season.currentRound.laps === 3);
+
+  season.scoreRace(field);
+  let table = season.standings();
+  check('the winner takes ten', table[0].points === 10 && table[0].name === field[0].name);
+  check('the whole grid scores', table.length === 6 && table[5].points === 1);
+  check('the table is ordered by points', table.every((row, i) => i === 0 || table[i - 1].points >= row.points));
+  check('places are 1 to 6', table.map((r) => r.place).join(',') === '1,2,3,4,5,6');
+  check('the player is flagged in the table', table.filter((r) => r.isPlayer).length === 1);
+
+  check('it moves on to round two', season.advance() && season.roundNumber === 2);
+  check('round two is four laps at medium', season.currentRound.laps === 4 && season.currentRound.label === 'medium');
+  season.scoreRace([...field].reverse());
+  table = season.standings();
+  check('points accumulate across rounds', table.reduce((sum, row) => sum + row.points, 0) === 28 * 2, String(table.reduce((sum, row) => sum + row.points, 0)));
+  const winnerThenLast = table.find((row) => row.carIndex === 0);
+  check('a win then a last place adds up', winnerThenLast !== undefined && winnerThenLast.points === 11, String(winnerThenLast?.points));
+
+  check('it moves on to round three', season.advance() && season.roundNumber === 3);
+  check('round three is six laps on the hidden level', season.currentRound.laps === 6 && season.currentRound.difficulty === 'elite');
+  season.scoreRace(field);
+  check('the season ends after three rounds', season.finished);
+  check('there is no fourth round', !season.advance());
+  table = season.standings();
+  check('every point is accounted for', table.reduce((sum, row) => sum + row.points, 0) === 28 * 3);
+  check('a champion is crowned', season.leader !== null && season.leader.points === Math.max(...table.map((r) => r.points)));
+  check('the champion leads the table', table[0].carIndex === season.leader?.carIndex);
+  check('the round just run is shown per driver', table.every((row) => row.lastPosition >= 1 && row.lastPosition <= 6));
+
+  // Ties break on the most recent result, so the order never flickers.
+  const tie = new Championship();
+  tie.scoreRace(field);
+  tie.advance();
+  tie.scoreRace([field[1], field[0], ...field.slice(2)]);
+  const tied = tie.standings();
+  check('a tie breaks on the latest finish', tied[0].carIndex === 1 && tied[0].points === tied[1].points, tied.slice(0, 2).map((r) => `${r.name}:${r.points}`).join(' '));
+}
+
+section('championship racecraft');
+{
+  // The championship field has to be genuinely quicker than the same level in a
+  // single race, and it must get there without leaving the road.
+  const lapTime = (trackIndex: number, level: string, racecraft: number): { time: number; off: number } => {
+    const track = tracks[trackIndex];
+    const car = makeCar(track, 0);
+    const driver = new AIDriver(car, track, skillFor(0, difficultyById(level as never), racecraft));
+    let time = 0;
+    let off = 0;
+    let ticks = 0;
+    while (time < 200 && car.lap < 1) {
+      driver.update(STEP, [car]);
+      car.update(STEP, track);
+      for (const prop of track.nearbySolids(car.pos)) resolveObstacleCollision(car, prop);
+      if (car.offTrack) off++;
+      ticks++;
+      time += STEP;
+    }
+    return { time, off: off / Math.max(1, ticks) };
+  };
+
+  for (const [index, level, label] of [[0, 'easy', 'round 1'], [1, 'normal', 'round 2'], [2, 'hard', 'round 3']] as Array<[number, string, string]>) {
+    const plain = lapTime(index, level, 0);
+    const champ = lapTime(index, level, RACECRAFT_CHAMPIONSHIP);
+    const gain = ((plain.time - champ.time) / plain.time) * 100;
+    console.log(`  [racecraft] ${label} ${level}: ${plain.time.toFixed(1)}s -> ${champ.time.toFixed(1)}s (${gain.toFixed(1)}% quicker)`);
+    check(`${label}: the championship field is quicker`, champ.time < plain.time, `${champ.time.toFixed(1)} vs ${plain.time.toFixed(1)}`);
+    check(`${label}: and still keeps it on the road`, champ.off < 0.08, `${(champ.off * 100).toFixed(1)}% off`);
+  }
+
+  const eliteLap = lapTime(2, 'elite', RACECRAFT_CHAMPIONSHIP);
+  const hardLap = lapTime(2, 'hard', 0);
+  check('the final round is the hardest thing in the game', eliteLap.time < hardLap.time, `${eliteLap.time.toFixed(1)} vs ${hardLap.time.toFixed(1)}`);
+  check('the hidden level stays on the road too', eliteLap.off < 0.08, `${(eliteLap.off * 100).toFixed(1)}% off`);
+
+  // Racecraft must not be a straight-line cheat: top speed is untouched.
+  const plainSkill = skillFor(0, difficultyById('hard'), 0);
+  const champSkill = skillFor(0, difficultyById('hard'), RACECRAFT_CHAMPIONSHIP);
+  check('racecraft leaves the car alone', plainSkill.pace === champSkill.pace && plainSkill.reaction === champSkill.reaction);
+  check('it only changes how the driver races', champSkill.racecraft === 1 && plainSkill.racecraft === 0);
+}
+
+section('slipstream');
+{
+  const track = tracks[0];
+  const solo = makeCar(track, 0);
+  const towed = makeCar(track, 0);
+  for (const car of [solo, towed]) {
+    car.controls = { throttle: 1, steer: 0, handbrake: false, nitro: false };
+  }
+  const soloPin = { ...solo.pos };
+  const towPin = { ...towed.pos };
+  for (let i = 0; i < 120 * 8; i++) {
+    solo.pos.x = soloPin.x;
+    solo.pos.y = soloPin.y;
+    towed.pos.x = towPin.x;
+    towed.pos.y = towPin.y;
+    towed.slipstream = 1;
+    solo.update(STEP, track);
+    towed.update(STEP, track);
+  }
+  check('a tow is worth real speed', towed.forwardSpeed > solo.forwardSpeed + 5, `${towed.forwardSpeed.toFixed(1)} vs ${solo.forwardSpeed.toFixed(1)}`);
+  check('but it is not a rocket', towed.forwardSpeed < solo.forwardSpeed * 1.15);
+  check('the tow does nothing off the road', (() => {
+    const grass = makeCar(track, 0);
+    const h = grass.heading;
+    const pin = {
+      x: grass.pos.x - Math.sin(h) * (track.def.halfWidth + 50),
+      y: grass.pos.y + Math.cos(h) * (track.def.halfWidth + 50),
+    };
+    grass.controls = { throttle: 1, steer: 0, handbrake: false, nitro: false };
+    const plain = makeCar(track, 0);
+    plain.controls = { throttle: 1, steer: 0, handbrake: false, nitro: false };
+    for (let i = 0; i < 120 * 6; i++) {
+      grass.pos.x = pin.x;
+      grass.pos.y = pin.y;
+      plain.pos.x = pin.x;
+      plain.pos.y = pin.y;
+      grass.slipstream = 1;
+      grass.update(STEP, track);
+      plain.update(STEP, track);
+    }
+    return Math.abs(grass.forwardSpeed - plain.forwardSpeed) < 0.5;
+  })());
 }
 
 section('full AI race');

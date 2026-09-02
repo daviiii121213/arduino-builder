@@ -132,6 +132,12 @@ export class RaceCar {
   /** Set for one frame on a change, so the HUD and audio can react. */
   shifted: 'up' | 'down' | null = null;
 
+  /**
+   * How deep this car sits in the wake of the one ahead, 0..1. Set by the race
+   * each step; it cuts drag and lifts the top end, for the player too.
+   */
+  slipstream = 0;
+
   /** Brake condition in whole percent, 100 down to 0. */
   brake = 100;
   private brakeWorn = 0;
@@ -238,7 +244,8 @@ export class RaceCar {
 
     // While the marshals have the car, the driver has no say in it.
     const power = this.recovery === 'penalty' ? RECOVERY_POWER : 1;
-    const maxSpeed = s.maxSpeed * feel.speedMul * boost;
+    const draft = this.offTrack ? 0 : clamp(this.slipstream, 0, 1);
+    const maxSpeed = s.maxSpeed * feel.speedMul * boost * (1 + 0.07 * draft);
     if (recovering) {
       vf -= vf * 2.6 * dt;
     } else if (c.throttle > 0) {
@@ -254,7 +261,10 @@ export class RaceCar {
     }
 
     // Rolling resistance, plus extra when off the racing surface.
-    const drag = s.drag + feel.extraDrag + (c.handbrake ? 1.6 : 0) + (recovering ? 1.2 : 0);
+    const drag =
+      (s.drag + feel.extraDrag) * (1 - 0.45 * draft) +
+      (c.handbrake ? 1.6 : 0) +
+      (recovering ? 1.2 : 0);
     vf -= vf * drag * dt;
     if (c.throttle === 0 && Math.abs(vf) < 6) vf *= 0.9;
     vf = clamp(vf, -s.reverseMax, maxSpeed);
@@ -454,6 +464,12 @@ export interface AISkill {
   wobble: number;
   /** Fraction of the tank kept in reserve before spending nitro. */
   nitroReserve: number;
+  /**
+   * 0 for the everyday AI, 1 for the championship field: works the racing
+   * line, brakes on distance, defends and passes, uses the tow, and saves its
+   * nitro for the move.
+   */
+  racecraft: number;
 }
 
 /** Waypoint-following opponent driver. */
@@ -461,6 +477,11 @@ export class AIDriver {
   private stuckTimer = 0;
   private reverseTimer = 0;
   private wobble: number;
+  /** Previous heading error, for the damping term on the steering. */
+  private lastError = 0;
+  /** Side being used for a pass, and how long it stays committed. */
+  private passSide = 0;
+  private passTimer = 0;
 
   constructor(
     readonly car: RaceCar,
@@ -474,56 +495,122 @@ export class AIDriver {
     const car = this.car;
     const track = this.track;
     const near = track.nearest(car.pos, car.wpHint);
+    const craft = clamp(this.skill.racecraft, 0, 1);
     this.wobble += dt;
 
-    // Aim at a point down the road; the faster you go, the further you look.
-    const lookahead = 55 + Math.abs(car.forwardSpeed) * 0.42;
+    const speed = Math.abs(car.forwardSpeed);
+    const lookahead = 55 + speed * 0.42;
     const ahead = track.pointAt(near.along + lookahead);
+
+    // --- the line -----------------------------------------------------------
     const drift = Math.sin(this.wobble * 0.35) * 0.25 * this.skill.wobble;
-    const lateral = (this.skill.line + drift) * track.def.halfWidth * 0.5;
+    const personal = this.skill.line + drift;
+    const racing = this.racingLine(near.index, lookahead);
+    const line = personal * (1 - craft) + racing * craft;
+
+    // A championship driver uses more of the road than a club racer does.
+    let lateral = line * track.def.halfWidth * (0.5 + 0.32 * craft);
+    if (this.passTimer > 0) {
+      // Committed to a side for the pass: hold it rather than wobbling back.
+      this.passTimer -= dt;
+      lateral = this.passSide * track.def.halfWidth * 0.55;
+    }
+
     const target: Vec = {
       x: ahead.pos.x - Math.sin(ahead.heading) * lateral,
       y: ahead.pos.y + Math.cos(ahead.heading) * lateral,
     };
 
-    let steer = clamp(
-      wrapAngle(Math.atan2(target.y - car.pos.y, target.x - car.pos.x) - car.heading) *
-        this.skill.reaction,
-      -1,
-      1,
-    );
+    // --- steering -----------------------------------------------------------
+    const error = wrapAngle(Math.atan2(target.y - car.pos.y, target.x - car.pos.x) - car.heading);
+    // A damping term on the rate of change stops the sharper drivers weaving.
+    const damping = craft * 0.32 * ((error - this.lastError) / Math.max(dt, 1e-4));
+    this.lastError = error;
+    let steer = clamp(error * this.skill.reaction + damping, -1, 1);
 
-    // Look up the road for the tightest corner within braking distance and
-    // pick a speed the car can actually hold through it.
+    // --- speed for the corner ahead ----------------------------------------
     const segLen = track.totalLen / track.count;
-    const brakeDist = 40 + (car.forwardSpeed * car.forwardSpeed) / (2 * car.stats.brake);
-    const window = Math.max(3, Math.ceil(brakeDist / segLen));
-    const cornerGrip = 210 * track.def.gripScale * this.skill.pace;
+    const brakeRate = car.stats.brake * brakeEfficiency(car.brake);
+    // Running the full width of the road straightens the corner out, so the
+    // same grip carries more speed through it.
+    const cornerGrip = 210 * track.def.gripScale * this.skill.pace * (1 + 0.14 * craft);
     const topSpeed = car.stats.maxSpeed * track.def.speedScale;
-    let targetSpeed = topSpeed * this.skill.pace;
-    for (let k = 0; k <= window; k++) {
-      const r = track.radius(near.index + k);
-      targetSpeed = Math.min(targetSpeed, Math.sqrt(cornerGrip * r));
+    // Pace is cornering confidence. A championship driver still uses all of the
+    // car down the straights; what separates the levels is the corner.
+    let targetSpeed = craft > 0.5 ? topSpeed : topSpeed * this.skill.pace;
+
+    if (craft > 0.5) {
+      // Championship braking: for every corner in range, work out the fastest
+      // this car could be going now and still be slow enough on arrival.
+      const horizon = 60 + (speed * speed) / (2 * Math.max(60, brakeRate));
+      const steps = Math.max(3, Math.ceil(horizon / segLen));
+      for (let k = 0; k <= steps; k++) {
+        const distance = k * segLen;
+        const corner = Math.sqrt(cornerGrip * track.radius(near.index + k));
+        const allowed = Math.sqrt(corner * corner + 2 * brakeRate * 0.85 * distance);
+        targetSpeed = Math.min(targetSpeed, allowed);
+      }
+    } else {
+      const brakeDist = 40 + (speed * speed) / (2 * car.stats.brake);
+      const window = Math.max(3, Math.ceil(brakeDist / segLen));
+      for (let k = 0; k <= window; k++) {
+        targetSpeed = Math.min(targetSpeed, Math.sqrt(cornerGrip * track.radius(near.index + k)));
+      }
     }
-    targetSpeed = clamp(targetSpeed, topSpeed * 0.28, topSpeed);
+    targetSpeed = clamp(targetSpeed, topSpeed * 0.28, topSpeed * 1.1);
     if (near.dist > track.def.halfWidth) targetSpeed *= 0.6;
 
-    let throttle = car.forwardSpeed > targetSpeed ? -1 : 1;
+    // Trail the brakes instead of stamping on them, once there is racecraft:
+    // ease off as the corner speed is approached, but never dawdle when there
+    // is road left.
+    const overspeed = car.forwardSpeed - targetSpeed;
+    let throttle: number;
+    if (craft > 0.5) throttle = overspeed > 0 ? clamp(-overspeed / 18, -1, 0) : 1;
+    else throttle = overspeed > 0 ? -1 : 1;
 
-    // Don't drive through the car in front: ease off and pick a side.
-    for (const o of others) {
-      if (o === car) continue;
-      const dx = o.pos.x - car.pos.x;
-      const dy = o.pos.y - car.pos.y;
-      const d = Math.hypot(dx, dy);
-      if (d > 80) continue;
-      const rel = wrapAngle(Math.atan2(dy, dx) - car.heading);
-      if (Math.abs(rel) > 0.9) continue;
-      steer = clamp(steer - Math.sign(rel || 1) * (1 - d / 80) * 0.85, -1, 1);
-      if (d < 46) throttle = Math.min(throttle, 0);
+    // --- traffic ------------------------------------------------------------
+    let drafting = false;
+    let attacking = false;
+    for (const other of others) {
+      if (other === car) continue;
+      const dx = other.pos.x - car.pos.x;
+      const dy = other.pos.y - car.pos.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance > 150) continue;
+      const bearing = wrapAngle(Math.atan2(dy, dx) - car.heading);
+      const inFront = Math.abs(bearing) < 0.9;
+
+      if (craft > 0.5) {
+        if (inFront && distance < 150) {
+          // Sit in the wake first, then commit to a side to come past.
+          drafting = distance > 55;
+          attacking = true;
+          if (distance < 78 && this.passTimer <= 0) {
+            this.passSide = this.pickSide(near.side, near.index);
+            this.passTimer = 1.6;
+          }
+        }
+        // Where will we both be in a moment? Steer around, don't lean on them.
+        const closing = {
+          x: dx + (other.vel.x - car.vel.x) * 0.25,
+          y: dy + (other.vel.y - car.vel.y) * 0.25,
+        };
+        const gap = Math.hypot(closing.x, closing.y);
+        const minGap = car.stats.radius + other.stats.radius + 10;
+        if (gap < minGap) {
+          const side = wrapAngle(Math.atan2(closing.y, closing.x) - car.heading);
+          steer = clamp(steer - Math.sign(side || 1) * (1 - gap / minGap) * 0.9, -1, 1);
+          if (Math.abs(side) < 0.5 && distance < 34) throttle = Math.min(throttle, -0.2);
+        }
+      } else {
+        if (!inFront) continue;
+        if (distance > 80) continue;
+        steer = clamp(steer - Math.sign(bearing || 1) * (1 - distance / 80) * 0.85, -1, 1);
+        if (distance < 46) throttle = Math.min(throttle, 0);
+      }
     }
 
-    // Beached on the grass or wedged against scenery: back up and try again.
+    // --- recovery -----------------------------------------------------------
     if (Math.abs(car.forwardSpeed) < 18 && this.reverseTimer <= 0) {
       this.stuckTimer += dt;
       if (this.stuckTimer > 1.4) {
@@ -537,18 +624,48 @@ export class AIDriver {
       this.reverseTimer -= dt;
       throttle = -1;
       steer = -steer;
+      this.passTimer = 0;
     }
 
-    // Nitro goes down the straights: only when the road ahead opens up, the
-    // car is pointed the right way and there is a worthwhile amount left.
+    // --- nitro --------------------------------------------------------------
     const straightAhead = track.radius(near.index + 2) > 420 && track.radius(near.index + 6) > 360;
+    const onTrack = near.dist < track.def.halfWidth;
+    const hasFuel = car.nitro > car.stats.nitroCapacity * this.skill.nitroReserve;
     const useNitro =
-      straightAhead &&
+      onTrack &&
       throttle > 0 &&
-      Math.abs(steer) < 0.35 &&
-      near.dist < track.def.halfWidth &&
-      car.nitro > car.stats.nitroCapacity * this.skill.nitroReserve;
+      hasFuel &&
+      Math.abs(steer) < (craft > 0.5 ? 0.5 : 0.35) &&
+      // Championship drivers spend it on a move or out of a corner, not just
+      // because the road happens to be straight.
+      (straightAhead || (craft > 0.5 && (attacking || car.slipstream > 0.3)));
 
     car.controls = { throttle, steer, handbrake: false, nitro: useNitro };
+    void drafting;
+  }
+
+  /**
+   * Out-in-out: set up wide before the corner, tuck to the apex through it and
+   * run back out on the exit. Returns an offset in -1..1 of the half width.
+   */
+  private racingLine(index: number, lookahead: number): number {
+    const track = this.track;
+    const segLen = track.totalLen / track.count;
+    const ahead = Math.max(2, Math.round(lookahead / segLen));
+    const turnNow = wrapAngle(track.heading(index + 2) - track.heading(index - 2));
+    const turnSoon = wrapAngle(track.heading(index + ahead + 2) - track.heading(index + ahead - 2));
+
+    const strong = 0.05;
+    if (Math.abs(turnNow) > strong) return -Math.sign(turnNow) * 0.72; // apex
+    if (Math.abs(turnSoon) > strong) return Math.sign(turnSoon) * 0.75; // set up wide
+    return 0;
+  }
+
+  /** Which way to go around the car in front: the roomier, inner side. */
+  private pickSide(side: number, index: number): number {
+    const turn = wrapAngle(this.track.heading(index + 6) - this.track.heading(index));
+    if (Math.abs(turn) > 0.05) return -Math.sign(turn) * 0.9;
+    // On a straight, take whichever side of the road has more space.
+    return side > 0 ? -0.9 : 0.9;
   }
 }

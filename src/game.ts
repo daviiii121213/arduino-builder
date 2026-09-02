@@ -1,15 +1,18 @@
 import { clamp } from './math';
 import { ctx2d } from './pixel';
-import { drawText } from './font';
+import { drawText, textWidth } from './font';
 import { drawSpeedometer } from './speedo';
 import { getCarSpecs, type CarSpec } from './cars';
 import { getDecorSprites } from './decor';
 import { getWeatherIcons, getTrafficLight } from './icons';
-import type { Controls } from './car';
+import type { Controls, RaceCar } from './car';
 import { buildTracks, type Track } from './tracks';
 import { buildWorld, type World } from './world';
 import { WEATHERS } from './weather';
-import { difficultyAt } from './difficulty';
+import { difficultyAt, difficultyById, RACECRAFT_CHAMPIONSHIP } from './difficulty';
+import { Championship, type Entrant } from './championship';
+import { drawStandingsScreen } from './standings';
+import { weatherById } from './weather';
 import { Race, STEP } from './race';
 import { Celebration } from './victory';
 import { t } from './i18n';
@@ -26,7 +29,7 @@ const INK = '#0d1014';
 const BONE = '#f2f0e8';
 const DIM = '#98a0ad';
 
-type Mode = 'menu' | 'race' | 'paused' | 'victory';
+type Mode = 'menu' | 'race' | 'paused' | 'victory' | 'standings';
 
 /** The app: a menu with a live race behind it, and the race itself. */
 export class Game {
@@ -47,6 +50,11 @@ export class Game {
   private attractKey = '';
   private resultsTimer = 0;
   private celebration: Celebration | null = null;
+  /** Set while a championship is running. */
+  private season: Championship | null = null;
+  private standingsTimer = 0;
+  /** Laps for the race in progress: three by default, more in a championship. */
+  private laps = TOTAL_LAPS;
   private zoom = 2;
   private lastTs = 0;
 
@@ -146,7 +154,11 @@ export class Game {
           this.audio.apply(this.menu.sound);
           break;
         case 'start':
+          this.season = null;
           this.beginRace(event.car, event.track, event.weather, event.opponents, event.difficulty);
+          break;
+        case 'season':
+          this.startSeason(event.car);
           break;
         case 'resume':
           if (this.race) this.mode = 'race';
@@ -181,6 +193,38 @@ export class Game {
     }
   }
 
+  /** Opens a championship and rolls straight into its first round. */
+  private startSeason(carIndex: number): void {
+    this.season = new Championship();
+    this.beginSeasonRound(carIndex);
+  }
+
+  /** Builds the race for the championship round now due. */
+  private beginSeasonRound(carIndex: number): void {
+    const season = this.season;
+    if (!season) return;
+    const round = season.currentRound;
+    const track = this.tracks.find((tr) => tr.def.id === round.trackId) ?? this.tracks[0];
+    this.laps = round.laps;
+    this.race = new Race({
+      track,
+      weather: weatherById(round.weather),
+      specs: this.specs,
+      laps: round.laps,
+      playerCarIndex: carIndex,
+      world: this.world(track),
+      // The championship always runs the full six-car grid.
+      opponents: this.specs.length - 1,
+      difficulty: difficultyById(round.difficulty),
+      racecraft: RACECRAFT_CHAMPIONSHIP,
+    });
+    this.attract = null;
+    this.attractKey = '';
+    this.resultsTimer = 0;
+    this.celebration = null;
+    this.mode = 'race';
+  }
+
   private beginRace(
     carIndex: number,
     trackIndex: number,
@@ -189,6 +233,7 @@ export class Game {
     difficulty: number,
   ): void {
     const track = this.tracks[trackIndex];
+    this.laps = TOTAL_LAPS;
     this.race = new Race({
       track,
       weather: WEATHERS[weatherIndex],
@@ -209,6 +254,8 @@ export class Game {
   private exitToMenu(): void {
     this.race = null;
     this.celebration = null;
+    this.season = null;
+    this.laps = TOTAL_LAPS;
     this.mode = 'menu';
     this.menu.reset();
     this.audio.idleEngine();
@@ -242,13 +289,16 @@ export class Game {
       return;
     }
     if (this.input.tapped('r')) {
-      this.beginRace(
-        this.menu.carIndex,
-        this.menu.trackIndex,
-        this.menu.weatherIndex,
-        this.menu.opponents,
-        this.menu.difficulty,
-      );
+      if (this.season) this.beginSeasonRound(this.menu.carIndex);
+      else {
+        this.beginRace(
+          this.menu.carIndex,
+          this.menu.trackIndex,
+          this.menu.weatherIndex,
+          this.menu.opponents,
+          this.menu.difficulty,
+        );
+      }
       return;
     }
 
@@ -265,6 +315,10 @@ export class Game {
     if (race.takeFinished()) {
       this.audio.fanfare();
       const player = race.player;
+      if (this.season) {
+        this.scoreSeasonRound(race);
+        return;
+      }
       // A podium finish gets its animation before the results board.
       if (player && player.position <= 3) {
         this.celebration = new Celebration(this.specs[player.carIndex], player.position);
@@ -287,6 +341,51 @@ export class Game {
     }
   }
 
+  /** Records the round's points and shows the table, or crowns the champion. */
+  private scoreSeasonRound(race: Race): void {
+    const season = this.season;
+    if (!season) return;
+    const order: Entrant[] = race
+      .standings()
+      .map((car) => ({ carIndex: car.carIndex, name: car.name, isPlayer: car.isPlayer }));
+    season.scoreRace(order);
+    this.standingsTimer = 0;
+
+    if (season.finished) {
+      const rows = season.standings();
+      const champion = rows[0];
+      const player = rows.find((row) => row.isPlayer);
+      this.celebration = new Celebration(this.specs[champion.carIndex], 1, {
+        title: t('seasonChampion'),
+        subtitle: `${champion.name}   ${champion.points} ${t('pts')}${player ? `   ${t('youFinished')} P${player.place}` : ''}`,
+        rows,
+        specs: this.specs,
+      });
+      this.mode = 'victory';
+      return;
+    }
+    this.mode = 'standings';
+  }
+
+  private updateStandings(dt: number): void {
+    this.standingsTimer += dt;
+    this.audio.idleEngine();
+    if (this.standingsTimer < 0.4) return;
+    if (this.input.tapped('escape')) {
+      this.exitToMenu();
+      return;
+    }
+    if (this.input.tapped('enter', ' ')) {
+      const season = this.season;
+      if (season && season.advance()) {
+        this.audio.confirm();
+        this.beginSeasonRound(this.menu.carIndex);
+      } else {
+        this.exitToMenu();
+      }
+    }
+  }
+
   private updateVictory(dt: number): void {
     const show = this.celebration;
     if (!show) {
@@ -299,7 +398,10 @@ export class Game {
     if (show.done) {
       this.celebration = null;
       this.resultsTimer = 0;
-      this.mode = 'race';
+      // A finished season ends at the menu; a single race falls back to its
+      // own results board.
+      if (this.season && this.season.finished) this.exitToMenu();
+      else this.mode = 'race';
     }
   }
 
@@ -308,6 +410,7 @@ export class Game {
     if (this.input.anyInput) this.audio.start();
     if (this.mode === 'menu' || this.mode === 'paused') this.updateMenu(dt);
     else if (this.mode === 'victory') this.updateVictory(dt);
+    else if (this.mode === 'standings') this.updateStandings(dt);
     else this.updateRace(dt);
   }
 
@@ -321,6 +424,29 @@ export class Game {
 
     if (this.mode === 'victory') {
       this.celebration?.draw(g, w, h);
+      return;
+    }
+
+    if (this.mode === 'standings') {
+      const season = this.season;
+      const race = this.race;
+      if (race) race.render(g, w, h);
+      if (season) {
+        const rows = season.standings();
+        const player = rows.find((row) => row.isPlayer);
+        const next = season.rounds[season.round + 1];
+        const nextTrack = next ? this.tracks.find((tr) => tr.def.id === next.trackId) : undefined;
+        drawStandingsScreen(g, w, h, {
+          rows,
+          round: season.roundNumber,
+          totalRounds: season.totalRounds,
+          playerPosition: player?.lastPosition ?? 0,
+          playerPoints: player?.lastPoints ?? 0,
+          nextRound: next && nextTrack ? `${nextTrack.def.name}  ${next.laps} ${t('laps')}` : '',
+          specs: this.specs,
+          time: this.standingsTimer,
+        });
+      }
       return;
     }
 
@@ -349,7 +475,7 @@ export class Game {
     if (!race || !player) return;
     const spec = this.specs[player.carIndex];
 
-    drawText(g, `${t('lap')} ${player.displayLap(TOTAL_LAPS)}/${TOTAL_LAPS}`, 8, 8, {
+    drawText(g, `${t('lap')} ${player.displayLap(race.laps)}/${race.laps}`, 8, 8, {
       scale: 2,
       color: BONE,
       shadow: INK,
@@ -363,6 +489,8 @@ export class Game {
     drawText(g, race.track.def.name, w - 8, 8, { scale: 1, color: BONE, shadow: INK, align: 'right' });
     const icon = getWeatherIcons()[race.weather.id];
     g.drawImage(icon, w - 8 - icon.width, 18);
+
+    if (this.season) this.drawSeasonStrip(g, w, player);
 
     // Gauges stack in the bottom-left corner; the dial sits opposite them.
     const barW = 104;
@@ -472,6 +600,33 @@ export class Game {
     g.globalAlpha = 1;
   }
 
+  /**
+   * A slim championship strip across the top: the round, the player's points
+   * and where those points put them. It sits above the racing surface.
+   */
+  private drawSeasonStrip(g: CanvasRenderingContext2D, w: number, player: RaceCar): void {
+    const season = this.season;
+    if (!season) return;
+    const rows = season.standings();
+    const me = rows.find((row) => row.isPlayer);
+    const leader = rows[0];
+    const strip = `${t('round')} ${season.roundNumber}/${season.totalRounds}`;
+    const mine = `${t('pts')} ${me ? me.points : 0}`;
+    const place = me && me.place ? `P${me.place}` : `P${player.position}`;
+    const top = leader ? `${leader.name} ${leader.points}` : '';
+
+    const text = `${strip}   ${mine}   ${place}${top ? `   ${top}` : ''}`;
+    const width = textWidth(text, { scale: 1 }) + 12;
+    const x = Math.round(w / 2 - width / 2);
+    g.fillStyle = 'rgba(8,10,16,0.62)';
+    g.fillRect(x, 4, width, 12);
+    g.fillStyle = '#c8332b';
+    g.fillRect(x, 4, 2, 12);
+    g.fillStyle = '#f2f0e8';
+    g.fillRect(x + width - 2, 4, 2, 12);
+    drawText(g, text, w / 2, 7, { scale: 1, color: BONE, shadow: INK, align: 'center' });
+  }
+
   private drawResults(g: CanvasRenderingContext2D, w: number, h: number, race: Race): void {
     const standings = race.standings();
     const pw = 200;
@@ -548,6 +703,13 @@ export class Game {
       startSignal: race ? race.startSignal.kind : 'none',
       celebrating: this.celebration !== null,
       place: this.celebration ? this.celebration.place : 0,
+      season: this.season !== null,
+      seasonRound: this.season ? this.season.roundNumber : 0,
+      seasonDone: this.season ? this.season.finished : false,
+      laps: race ? race.laps : this.laps,
+      playerPoints: this.season
+        ? (this.season.standings().find((row) => row.isPlayer)?.points ?? 0)
+        : 0,
     };
   }
 
@@ -586,9 +748,10 @@ export class Game {
       x: Math.round(c.pos.x),
       y: Math.round(c.pos.y),
       speed: Math.round(c.speed),
+      forward: Math.round(c.forwardSpeed),
       heading: Number(c.heading.toFixed(3)),
       lap: c.lap,
-      displayLap: c.displayLap(TOTAL_LAPS),
+      displayLap: c.displayLap(race.laps),
       position: c.position,
       offTrack: c.offTrack,
       finished: c.finished,

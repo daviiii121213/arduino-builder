@@ -2,6 +2,8 @@ import { drawText } from './font';
 import { rng } from './pixel';
 import { awardForPlace, getAward, getDriver, type Award } from './drivers';
 import { t } from './i18n';
+import { drawTable } from './standings';
+import type { Standing } from './championship';
 import type { CarSpec } from './cars';
 
 /**
@@ -39,6 +41,11 @@ export class Celebration {
   constructor(
     readonly spec: CarSpec,
     readonly place: number,
+    /**
+     * Set for the end of a championship: its own heading, the champion's name
+     * and the final table drawn alongside the podium.
+     */
+    private readonly season?: { title: string; subtitle: string; rows: Standing[]; specs: CarSpec[] },
   ) {
     this.award = awardForPlace(place) ?? 'bronze';
   }
@@ -51,6 +58,7 @@ export class Celebration {
   }
 
   get title(): string {
+    if (this.season) return this.season.title;
     return this.place === 1 ? t('champion') : this.place === 2 ? t('secondPlace') : t('thirdPlace');
   }
 
@@ -210,6 +218,16 @@ export class Celebration {
 
     for (const c of this.confetti) rect(c.x, c.y, c.size, c.size, c.color);
     this.drawTitle(g, w);
+
+    // Final table beside the podium, so the season reads at a glance.
+    if (this.season) {
+      const tableW = Math.min(168, Math.round(w * 0.3));
+      drawTable(g, 12, 74, tableW, this.season.rows, {
+        showRacePoints: false,
+        rowHeight: 12,
+        specs: this.season.specs,
+      });
+    }
   }
 
   private drawTitleLater(g: CanvasRenderingContext2D, w: number, h: number): void {
@@ -220,8 +238,9 @@ export class Celebration {
 
   private drawTitle(g: CanvasRenderingContext2D, w: number): void {
     const cx = Math.round(w / 2);
-    drawText(g, this.title, cx, 22, { scale: 3, color: '#f2c14e', shadow: INK, align: 'center' });
-    drawText(g, `${this.spec.name}   ${this.awardName}`, cx, 52, {
+    const scale = this.season ? 2 : 3;
+    drawText(g, this.title, cx, 22, { scale, color: '#f2c14e', shadow: INK, align: 'center' });
+    drawText(g, this.season ? this.season.subtitle : `${this.spec.name}   ${this.awardName}`, cx, 52, {
       scale: 1,
       color: BONE,
       shadow: INK,

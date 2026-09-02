@@ -1,4 +1,4 @@
-import { clamp, lerp, type Vec } from './math';
+import { clamp, lerp, wrapAngle, type Vec } from './math';
 import type { CarSpec } from './cars';
 import { AIDriver, RaceCar, resolveCarCollision, resolveObstacleCollision, type AISkill, type Controls } from './car';
 import { difficultyAt, type DifficultyDef } from './difficulty';
@@ -42,8 +42,11 @@ const AI_SKILLS = [
   { pace: 0.95, line: -0.22, reaction: 2.3 },
 ];
 
-/** Blends a driver's own character with the chosen difficulty. */
-export function skillFor(slot: number, difficulty: DifficultyDef): AISkill {
+/**
+ * Blends a driver's own character with the chosen difficulty, and with how much
+ * racecraft the field is bringing (0 for a normal race, 1 for a championship).
+ */
+export function skillFor(slot: number, difficulty: DifficultyDef, racecraft = 0): AISkill {
   const base = AI_SKILLS[slot % AI_SKILLS.length];
   return {
     pace: base.pace * difficulty.pace,
@@ -51,6 +54,7 @@ export function skillFor(slot: number, difficulty: DifficultyDef): AISkill {
     reaction: base.reaction * difficulty.reaction,
     wobble: difficulty.wobble,
     nitroReserve: difficulty.nitroReserve,
+    racecraft,
   };
 }
 
@@ -129,6 +133,8 @@ export interface RaceOptions {
   opponents?: number;
   /** How hard those AI cars race. */
   difficulty?: DifficultyDef;
+  /** 0 for a normal race, 1 for the championship field. */
+  racecraft?: number;
 }
 
 /**
@@ -170,6 +176,7 @@ export class Race {
     this.world.marksCtx.clearRect(0, 0, this.world.marks.width, this.world.marks.height);
 
     const difficulty = opts.difficulty ?? difficultyAt(1);
+    const racecraft = opts.racecraft ?? 0;
     const opponents = opts.opponents ?? this.specs.length - 1;
     const order = buildGrid(this.specs.length, this.playerIndex, opponents);
 
@@ -188,7 +195,7 @@ export class Race {
       car.autoRecover = car.isPlayer;
       this.cars.push(car);
       if (!car.isPlayer) {
-        this.drivers.push(new AIDriver(car, this.track, skillFor(slot, difficulty)));
+        this.drivers.push(new AIDriver(car, this.track, skillFor(slot, difficulty, racecraft)));
       }
     });
 
@@ -262,6 +269,7 @@ export class Race {
     }
 
     this.time += dt;
+    this.updateSlipstream();
     for (const driver of this.drivers) driver.update(dt, this.cars);
     for (const car of this.cars) {
       car.update(dt, this.track, this.weather);
@@ -286,6 +294,33 @@ export class Race {
       this.finishPending = true;
     }
     this.emitEffects(dt);
+  }
+
+  /**
+   * Marks how deep each car is sitting in the wake of the one in front. It is
+   * plain physics, so the player gets the tow on equal terms with the AI.
+   */
+  private updateSlipstream(): void {
+    const REACH = 150;
+    for (const car of this.cars) {
+      const cos = Math.cos(car.heading);
+      const sin = Math.sin(car.heading);
+      let best = 0;
+      for (const other of this.cars) {
+        if (other === car) continue;
+        const dx = other.pos.x - car.pos.x;
+        const dy = other.pos.y - car.pos.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance < 14 || distance > REACH) continue;
+        // Directly in front, pointing the same way, and actually moving.
+        const alongAhead = (dx * cos + dy * sin) / distance;
+        if (alongAhead < 0.94) continue;
+        if (Math.abs(wrapAngle(other.heading - car.heading)) > 0.5) continue;
+        if (other.forwardSpeed < 60) continue;
+        best = Math.max(best, 1 - distance / REACH);
+      }
+      car.slipstream = best;
+    }
   }
 
   /**
