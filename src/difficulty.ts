@@ -3,7 +3,7 @@
  * player's car, so the same lap time means the same thing on every level.
  */
 
-export type DifficultyId = 'easy' | 'normal' | 'hard' | 'elite';
+export type DifficultyId = 'easy' | 'normal' | 'hard' | 'elite' | 'impossible';
 
 export interface DifficultyDef {
   id: DifficultyId;
@@ -26,9 +26,12 @@ export const ALL_DIFFICULTIES: DifficultyDef[] = [
   { id: 'normal', pace: 1, reaction: 1, wobble: 1, nitroReserve: 0.35 },
   { id: 'hard', pace: 1.1, reaction: 1.15, wobble: 0.45, nitroReserve: 0.2 },
   { id: 'elite', pace: 1.17, reaction: 1.3, wobble: 0.18, nitroReserve: 0.1 },
+  // The tournament final. Still the same car and the same physics: what it
+  // gains is corner confidence, reactions and a line it never wanders off.
+  { id: 'impossible', pace: 1.26, reaction: 1.45, wobble: 0.06, nitroReserve: 0.04 },
 ];
 
-/** What the difficulty picker offers: never the hidden level. */
+/** What the difficulty picker offers: never the hidden levels. */
 export const DIFFICULTIES: DifficultyDef[] = ALL_DIFFICULTIES.slice(0, 3);
 
 export const DEFAULT_DIFFICULTY = 1;

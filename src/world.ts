@@ -205,6 +205,16 @@ function paintDecor(track: Track, g: CanvasRenderingContext2D): void {
   }
 }
 
+/**
+ * A world with nothing to draw on: used by races simulated out of sight, so
+ * they never smear skid marks across the track the player is racing on.
+ */
+export function headlessWorld(): World {
+  const ground = makeCanvas(1, 1);
+  const marks = makeCanvas(1, 1);
+  return { ground, marks, marksCtx: ctx2d(marks) };
+}
+
 export function buildWorld(track: Track): World {
   const def = track.def;
   const ground = makeCanvas(def.worldW, def.worldH);

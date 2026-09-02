@@ -460,7 +460,48 @@ export const CAR_MAPS: Array<{ id: string; map: string[] }> = DEFS.map((d) => ({
   map: d.map,
 }));
 
+/**
+ * Second liveries. A tournament runs twelve entries drawn from the same six
+ * cars, so each model fields a second car in its own colours: same shape, same
+ * stats, unmistakably a different entry on track.
+ */
+const LIVERY_B: Record<string, [string, string, string, string]> = {
+  bolt: ['#1f4f6b', '#38a2c8', '#8fdcef', '#12222c'],
+  comet: ['#6b1f5a', '#c23fa0', '#f08fd8', '#2b0f24'],
+  pebble: ['#7a4a12', '#e0912a', '#f7cc7a', '#3a2408'],
+  boulder: ['#1d5137', '#2f9c66', '#7fdcaa', '#0e2a1c'],
+  zephyr: ['#7a2020', '#d64545', '#f79a9a', '#2c0d0d'],
+  vulcan: ['#3a3f4a', '#8b95a6', '#d7dde6', '#14161c'],
+};
+
 let cache: CarSpec[] | null = null;
+let tournamentCache: CarSpec[] | null = null;
+
+/**
+ * The twelve tournament entries: every car in its own colours, then every car
+ * again in its second livery, named "II".
+ */
+export function getTournamentSpecs(): CarSpec[] {
+  if (!tournamentCache) {
+    const first = getCarSpecs();
+    const second = DEFS.map((d) => {
+      const alt = LIVERY_B[d.id] ?? ['#333', '#777', '#bbb', '#111'];
+      const palette = pal(alt[0], alt[1], alt[2], alt[3]);
+      return {
+        id: `${d.id}-ii`,
+        name: `${d.name} II`,
+        blurb: d.blurb,
+        blurbPt: d.blurbPt,
+        stats: d.stats,
+        tint: alt[1],
+        sprite: spriteFromMap(d.map, palette),
+        shadow: silhouette(d.map),
+      };
+    });
+    tournamentCache = [...first, ...second];
+  }
+  return tournamentCache;
+}
 
 /** Builds (once) the sprite canvases for all four cars. */
 export function getCarSpecs(): CarSpec[] {

@@ -7,6 +7,8 @@ import type { Track } from './tracks';
 import type { WeatherDef } from './weather';
 import { MAIN_ROWS, PAUSE_ROWS, SETTINGS_ROWS, SETUP_ROWS, type MenuModel, type Screen } from './menu';
 import { POINTS, ROUNDS, type RoundLabel } from './championship';
+import { PHASES, TOURNAMENT_LAPS } from './tournament';
+import { getTournamentSpecs } from './cars';
 import { DIFFICULTIES, MAX_OPPONENTS } from './difficulty';
 import { buildGrid } from './race';
 import { LANGUAGES, page, pick, t } from './i18n';
@@ -52,6 +54,8 @@ function screenTitle(screen: Screen): string {
       return t('raceSetup');
     case 'competition':
       return t('championship');
+    case 'tournament':
+      return t('tournament');
     case 'settings':
       return t('settings');
     case 'controls':
@@ -79,6 +83,7 @@ function footer(screen: Screen): string {
     case 'setup':
       return t('footStart');
     case 'competition':
+    case 'tournament':
       return t('footSeason');
     case 'settings':
     case 'language':
@@ -208,6 +213,9 @@ export class MenuRenderer {
       case 'competition':
         this.drawCompetition(g, w, h, model, ctx);
         break;
+      case 'tournament':
+        this.drawTournament(g, w, h, model, ctx);
+        break;
       case 'settings':
         this.drawList(
           g,
@@ -283,12 +291,18 @@ export class MenuRenderer {
     });
 
     const labels = MAIN_ROWS.map((row) =>
-      row === 'play' ? t('play') : row === 'competition' ? t('competition') : t('settings'),
+      row === 'play'
+        ? t('play')
+        : row === 'competition'
+          ? t('competition')
+          : row === 'tournament'
+            ? t('tournament')
+            : t('settings'),
     );
     const bw = 170;
-    const bh = 26;
-    const gap = 9;
-    const startY = Math.round(h * 0.58);
+    const bh = 24;
+    const gap = 7;
+    const startY = Math.round(h * 0.55);
     labels.forEach((label, i) => {
       const x = cx - bw / 2;
       const y = startY + i * (bh + gap);
@@ -686,6 +700,76 @@ export class MenuRenderer {
     const bw = 190;
     const bh = 24;
     this.button(g, Math.round((w - bw) / 2), h - 44, bw, bh, t('startSeason'), true, 0);
+  }
+
+  /** The bracket: four rounds, the field shrinking to one. */
+  private drawTournament(
+    g: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    model: MenuModel,
+    ctx: MenuContext,
+  ): void {
+    const pw = Math.min(360, w - 40);
+    const px = Math.round((w - pw) / 2);
+    const py = 42;
+    const rowH = 24;
+    const ph = rowH * PHASES.length + 24;
+    plate(g, px, py, pw, ph);
+    drawText(g, `${t('bracket')}   12 ${t('entrants')}`, px + 10, py + 8, { scale: 1, color: DIM });
+
+    const tint = ['#5fd06a', '#f2b33d', '#e0813f', KERB];
+    const phaseName = (index: number): string =>
+      index === 0 ? t('groupStage') : index === 1 ? t('phaseSix') : index === 2 ? t('phaseFour') : t('phaseFinal');
+
+    PHASES.forEach((phase, i) => {
+      const track = ctx.tracks.find((tr) => tr.def.id === phase.trackId);
+      const y = py + 20 + i * rowH;
+      rect(g, px + 4, y, pw - 8, rowH - 4, i % 2 === 0 ? '#1b2130' : '#20283a');
+      rect(g, px + 4, y, 3, rowH - 4, tint[i]);
+      drawText(g, phaseName(i), px + 12, y + 3, { scale: 1, color: tint[i] });
+      const field = phase.groups > 1 ? `2 x ${phase.fieldSize}` : String(phase.fieldSize);
+      drawText(g, `${field} > ${phase.advance * phase.groups}`, px + 12, y + 11, { scale: 1, color: DIM });
+      drawText(g, track ? track.def.name : phase.trackId, px + 116, y + 3, { scale: 1, color: BONE });
+      drawText(g, `${TOURNAMENT_LAPS} ${t('laps')}`, px + 116, y + 11, { scale: 1, color: DIM });
+
+      const icon = getWeatherIcons()[phase.weather];
+      g.imageSmoothingEnabled = false;
+      g.drawImage(icon, px + pw - 26, y + 2, 16, 16);
+    });
+
+    const infoY = py + ph + 8;
+    wrap(t('tournamentBlurb'), Math.max(20, Math.floor((w - 60) / 6))).forEach((linetext, i) => {
+      drawText(g, linetext, w / 2, infoY + i * 10, { scale: 1, color: DIM, align: 'center' });
+    });
+    drawText(g, t('finalWarning'), w / 2, infoY + 22, {
+      scale: 1,
+      color: KERB,
+      shadow: INK,
+      align: 'center',
+    });
+
+    // The player's entry, in the livery it will carry.
+    const specs = getTournamentSpecs();
+    const spec = specs[model.carIndex] ?? ctx.specs[model.carIndex];
+    const scale = 2;
+    g.drawImage(
+      spec.sprite,
+      Math.round(w / 2 - (spec.sprite.width * scale) / 2),
+      infoY + 34,
+      spec.sprite.width * scale,
+      spec.sprite.height * scale,
+    );
+    drawText(g, spec.name, w / 2, infoY + 36 + spec.sprite.height * scale + 2, {
+      scale: 1,
+      color: spec.tint,
+      shadow: INK,
+      align: 'center',
+    });
+
+    const bw = 210;
+    const bh = 24;
+    this.button(g, Math.round((w - bw) / 2), h - 42, bw, bh, t('startTournament'), true, 0);
   }
 
   private drawSound(g: CanvasRenderingContext2D, w: number, h: number, model: MenuModel): void {

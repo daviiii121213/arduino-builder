@@ -1,7 +1,7 @@
 import { makeCanvas, ctx2d, rng } from './pixel';
 import type { Vec } from './math';
 
-export type WeatherId = 'sunny' | 'rain' | 'night';
+export type WeatherId = 'sunny' | 'rain' | 'night' | 'storm';
 
 export interface WeatherDef {
   id: WeatherId;
@@ -19,7 +19,8 @@ export interface WeatherDef {
   tint: string;
 }
 
-export const WEATHERS: WeatherDef[] = [
+/** Everything the game can run, including the condition kept for the final. */
+export const ALL_WEATHERS: WeatherDef[] = [
   {
     id: 'sunny',
     name: 'SUNNY',
@@ -53,12 +54,27 @@ export const WEATHERS: WeatherDef[] = [
     visibility: 0.32,
     tint: '#3b3f78',
   },
+  {
+    // Night and rain at once: the tournament final only, never on the picker.
+    id: 'storm',
+    name: 'NIGHT STORM',
+    namePt: 'TEMPESTADE',
+    blurb: 'Rain in the dark. Headlights, standing water and no margin at all.',
+    blurbPt: 'Chuva no escuro. Faróis, água na pista e nenhuma margem.',
+    gripMul: 0.66,
+    speedMul: 0.93,
+    visibility: 0.28,
+    tint: '#2a3350',
+  },
 ];
 
-export const DEFAULT_WEATHER = WEATHERS[0];
+/** The three conditions the player can choose from. */
+export const WEATHERS: WeatherDef[] = ALL_WEATHERS.slice(0, 3);
+
+export const DEFAULT_WEATHER = ALL_WEATHERS[0];
 
 export function weatherById(id: WeatherId): WeatherDef {
-  return WEATHERS.find((w) => w.id === id) ?? DEFAULT_WEATHER;
+  return ALL_WEATHERS.find((w) => w.id === id) ?? DEFAULT_WEATHER;
 }
 
 interface Drop {
@@ -110,7 +126,7 @@ export class WeatherFx {
   update(dt: number, weather: WeatherDef, w: number, h: number): void {
     this.resize(w, h);
     this.flicker += dt;
-    if (weather.id !== 'rain') return;
+    if (weather.id !== 'rain' && weather.id !== 'storm') return;
     // Rain falls at a slant; drops that leave the view come back at the top.
     for (const d of this.drops) {
       d.y += d.speed * dt;
@@ -136,6 +152,11 @@ export class WeatherFx {
   draw(g: CanvasRenderingContext2D, weather: WeatherDef, lights: LightSource[]): void {
     if (weather.id === 'rain') this.drawRain(g);
     else if (weather.id === 'night') this.drawNight(g, lights);
+    else if (weather.id === 'storm') {
+      // Both at once: the beams first, then the rain falling through them.
+      this.drawNight(g, lights);
+      this.drawRain(g);
+    }
   }
 
   private drawRain(g: CanvasRenderingContext2D): void {

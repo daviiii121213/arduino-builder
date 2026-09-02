@@ -14,6 +14,8 @@ import { WEATHERS, weatherById, DEFAULT_WEATHER } from '../src/weather';
 import { MAIN_ROWS, MenuModel, PAUSE_ROWS, SETTINGS_ROWS, SETUP_ROWS } from '../src/menu';
 import { Championship, POINTS, ROUNDS, pointsFor } from '../src/championship';
 import { ALL_DIFFICULTIES, RACECRAFT_CHAMPIONSHIP, difficultyById } from '../src/difficulty';
+import { PHASES, TOURNAMENT_LAPS, Tournament, buildEntrants } from '../src/tournament';
+import { ALL_WEATHERS, WEATHERS as PICKABLE_WEATHERS } from '../src/weather';
 import { ALL_KEYS, LANGUAGES, RAW_STRINGS, getLanguage, page, setLanguage, t } from '../src/i18n';
 import { supports as fontSupports } from '../src/font';
 import { DRIVER_LOOKS, DRIVER_MAPS, awardForPlace } from '../src/drivers';
@@ -1035,6 +1037,110 @@ section('slipstream');
     }
     return Math.abs(grass.forwardSpeed - plain.forwardSpeed) < 0.5;
   })());
+}
+
+section('elimination tournament');
+{
+  check('the bracket is four rounds', PHASES.length === 4, PHASES.map((p) => p.id).join(','));
+  check('every elimination race is three laps', TOURNAMENT_LAPS === 3);
+  check(
+    'the field shrinks 12 - 6 - 4 - 2 - 1',
+    PHASES.map((p) => p.fieldSize * p.groups).join(',') === '12,6,4,2',
+    PHASES.map((p) => p.fieldSize * p.groups).join(','),
+  );
+  check(
+    'each round advances the right number',
+    PHASES.map((p) => p.advance * p.groups).join(',') === '6,4,2,1',
+    PHASES.map((p) => p.advance * p.groups).join(','),
+  );
+  check('only the opening round has groups', PHASES[0].groups === 2 && PHASES.slice(1).every((p) => p.groups === 1));
+  const ids = tracks.map((tr) => tr.def.id);
+  check('every round uses an existing circuit', PHASES.every((p) => ids.includes(p.trackId)));
+
+  const final = PHASES[3];
+  check('the final is on Serpentine', final.trackId === 'serpentine');
+  check('the final runs in the wet dark', final.weather === 'storm');
+  check('the final runs the hidden Impossible level', final.difficulty === 'impossible');
+  check('impossible is never offered to the player', !DIFFICULTIES.some((d) => d.id === 'impossible'));
+  check('the storm is never offered either', !PICKABLE_WEATHERS.some((w) => w.id === 'storm'));
+  const storm = ALL_WEATHERS.find((w) => w.id === 'storm');
+  const rain = ALL_WEATHERS.find((w) => w.id === 'rain');
+  const night = ALL_WEATHERS.find((w) => w.id === 'night');
+  check('the storm is wetter than rain and darker than night', storm !== undefined && rain !== undefined && night !== undefined && storm.gripMul < rain.gripMul && storm.visibility < night.visibility);
+  const impossible = difficultyById('impossible');
+  const eliteLevel = difficultyById('elite');
+  check('impossible is a step beyond elite', impossible.pace > eliteLevel.pace && impossible.reaction > eliteLevel.reaction && impossible.wobble < eliteLevel.wobble);
+  check('and it is still only a driver, not a rocket', impossible.pace < 1.4);
+
+  // Twelve entries: every car in two liveries, split into two groups.
+  const entrants = buildEntrants(6, 2, CAR_STATS.map((c) => c.name));
+  check('twelve cars enter', entrants.length === 12);
+  check('the player is one of them', entrants.filter((e) => e.isPlayer).length === 1);
+  check('each group has six', entrants.filter((e) => e.group === 0).length === 6 && entrants.filter((e) => e.group === 1).length === 6);
+  check('a model never meets its own second entry in the groups', entrants.every((e) => entrants.filter((o) => o.model === e.model && o.group === e.group).length === 1));
+  check('every entry has its own car index', new Set(entrants.map((e) => e.carIndex)).size === 12);
+
+  // A whole tournament, with the player winning through every round.
+  const tour = new Tournament(entrants);
+  check('it opens on the group stage', tour.phase.id === 'group' && tour.phaseNumber === 1);
+  check('the player is in a group of six', tour.groupField(tour.playerGroup).length === 6);
+
+  const playerFirst = (list: typeof entrants): typeof entrants =>
+    [...list].sort((a, b) => Number(b.isPlayer) - Number(a.isPlayer));
+  let result = tour.record([playerFirst(tour.groupField(0)), tour.groupField(1)]);
+  check('six go through the group stage', result.advancing.length === 6, String(result.advancing.length));
+  check('six are eliminated', result.eliminated.length === 6);
+  check('the player went through', result.playerAdvanced && !tour.playerOut);
+  check('the field is now six', tour.field.length === 6);
+  check('nobody advances twice', new Set(result.advancing.map((e) => e.carIndex)).size === 6);
+
+  check('it moves on to the six-car round', tour.advance() && tour.phase.id === 'six');
+  result = tour.record([playerFirst(tour.field)]);
+  check('four go through', tour.field.length === 4 && result.advancing.length === 4);
+  check('two are out', result.eliminated.length === 2);
+
+  check('it moves on to the four-car round', tour.advance() && tour.phase.id === 'four');
+  result = tour.record([playerFirst(tour.field)]);
+  check('two reach the final', tour.field.length === 2);
+
+  check('it moves on to the final', tour.advance() && tour.phase.id === 'final');
+  check('the final is a head to head', tour.groupField(0).length === 2);
+  result = tour.record([playerFirst(tour.field)]);
+  check('one champion is crowned', tour.finished && tour.champion !== null && tour.field.length === 1);
+  check('the champion is the winner of the final', tour.champion?.isPlayer === true);
+  check('there is nothing after the final', !tour.advance());
+
+  // And a run where the player is knocked out in the group stage.
+  const shortRun = new Tournament(buildEntrants(6, 0, CAR_STATS.map((c) => c.name)));
+  const playerLast = (list: ReturnType<typeof buildEntrants>): ReturnType<typeof buildEntrants> =>
+    [...list].sort((a, b) => Number(a.isPlayer) - Number(b.isPlayer));
+  const out = shortRun.record([playerLast(shortRun.groupField(0)), shortRun.groupField(1)]);
+  check('finishing outside the cut eliminates the player', shortRun.playerOut && !out.playerAdvanced);
+  check('the player is not in the surviving field', !shortRun.field.some((e) => e.isPlayer));
+  check('their finishing position is reported', out.playerPosition === 6, String(out.playerPosition));
+  check('the tournament still knows six went through', out.advancing.length === 6);
+
+  // The final is the hardest race in the game: the same car laps slower there
+  // than anywhere else, because of the weather, and the AI is at its sharpest.
+  const serpentine = tracks[2];
+  const lapIn = (weatherId: string): number => {
+    const weather = ALL_WEATHERS.find((wx) => wx.id === weatherId)!;
+    const car = makeCar(serpentine, 0);
+    const driver = new AIDriver(car, serpentine, skillFor(0, difficultyById('impossible'), RACECRAFT_CHAMPIONSHIP));
+    let time = 0;
+    while (time < 200 && car.lap < 1) {
+      driver.update(STEP, [car]);
+      car.update(STEP, serpentine, weather);
+      for (const prop of serpentine.nearbySolids(car.pos)) resolveObstacleCollision(car, prop);
+      time += STEP;
+    }
+    return time;
+  };
+  const dry = lapIn('sunny');
+  const stormy = lapIn('storm');
+  console.log(`  [final] impossible AI on Serpentine: dry ${dry.toFixed(1)}s, storm ${stormy.toFixed(1)}s`);
+  check('the storm really does slow the final down', stormy > dry, `${stormy.toFixed(1)} vs ${dry.toFixed(1)}`);
+  check('and the impossible AI still gets round it', stormy < 120, stormy.toFixed(1));
 }
 
 section('full AI race');

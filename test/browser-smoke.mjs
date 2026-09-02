@@ -44,6 +44,9 @@ const press = async (key, times = 1) => {
     await page.waitForTimeout(70);
   }
 };
+/** Main menu rows, in order, so the tests never hard-code an index. */
+const MAIN = { play: 0, competition: 1, tournament: 2, settings: 3 };
+
 /**
  * Leaves whatever is on screen the way a player would: skip a podium scene,
  * pause a running race, then pick RETURN TO MAIN MENU.
@@ -86,7 +89,7 @@ check('the game opens on the main menu', boot.mode === 'menu' && boot.screen ===
 check('an attract race runs behind the menu', (await cars()).length === 6);
 
 console.log('\nsettings');
-await moveTo(2);                            // main menu: play, competition, settings
+await moveTo(MAIN.settings);
 await press('Enter');
 check('settings opens', (await state()).screen === 'settings');
 await press('Enter');
@@ -105,7 +108,7 @@ await press('Escape');
 check('back reaches the main menu', (await state()).screen === 'main');
 
 console.log('\nlanguage');
-await moveTo(2);
+await moveTo(MAIN.settings);
 await press('Enter');                       // settings
 await moveTo(2);
 await press('Enter');                       // language
@@ -118,7 +121,7 @@ await moveTo(0);
 await press('Enter');                       // controls, now translated
 check('a translated page opens', (await state()).screen === 'controls');
 await press('Escape');
-await moveTo(2);
+await moveTo(2);                            // settings rows: controls, sound, language
 await press('Enter');
 await moveTo(0);
 await press('Enter');                       // back to english
@@ -127,7 +130,7 @@ await press('Escape');
 check('settings closes back to the main menu', (await state()).screen === 'main');
 
 console.log('\nrace setup');
-await moveTo(0);
+await moveTo(MAIN.play);
 await press('Enter');
 check('play opens car select', (await state()).screen === 'car');
 await moveTo(5);
@@ -295,7 +298,7 @@ console.log('\nfull races, every circuit and condition');
 for (const [track, weather, label] of [[0, 0, 'bayside/sunny'], [1, 1, 'dustbowl/rain'], [2, 2, 'serpentine/night']]) {
   await quitToMenu();
   await page.waitForTimeout(200);
-  await moveTo(0);
+  await moveTo(MAIN.play);
   await press('Enter'); // play
   await press('Enter'); // car
   await moveTo(track);
@@ -319,7 +322,7 @@ check('quitting from the pause menu returns to the main menu', (await state()).m
 
 console.log('\ncompetition mode');
 await quitToMenu();
-await moveTo(1);
+await moveTo(MAIN.competition);
 await press('Enter');                       // COMPETITION -> car select
 check('competition opens the car select', (await state()).screen === 'car');
 await press('Enter');                       // pick car -> calendar
@@ -355,6 +358,58 @@ check('the rounds run 3, 4 and 6 laps', seenLaps.join(',') === '3,4,6', seenLaps
 await page.keyboard.press('Enter');
 await page.waitForTimeout(600);
 check('the season returns to the main menu', (await state()).mode === 'menu' && (await state()).season === false, JSON.stringify(await state()));
+
+console.log('\nelimination tournament');
+await quitToMenu();
+await moveTo(MAIN.tournament);
+await press('Enter');                       // TOURNAMENT -> car select
+check('the tournament opens the car select', (await state()).screen === 'car');
+await press('Enter');                       // pick car -> bracket briefing
+check('the bracket briefing opens', (await state()).screen === 'tournament');
+await press('Enter');                       // enter the tournament
+await page.waitForTimeout(300);
+let tour = await state();
+check('the group stage starts', tour.mode === 'race' && tour.tournament === true && tour.phase === 'group', JSON.stringify(tour));
+check('every elimination race is three laps', tour.laps === 3, String(tour.laps));
+check('twelve cars are entered', tour.fieldLeft === 12, String(tour.fieldLeft));
+check('the player races a group of six', (await cars()).length === 6, String((await cars()).length));
+
+const phases = [];
+let eliminated = false;
+for (let round = 1; round <= 4; round++) {
+  await page.evaluate(() => window.__game.releaseStart());
+  await page.evaluate(() => window.__game.simulateRace(700));
+  await page.waitForTimeout(500);
+  const after = await state();
+  phases.push(`${after.phase}:${after.fieldLeft}`);
+  if (after.mode === 'victory') {
+    check('the final crowns a champion', after.tourChampion.length > 0 && after.fieldLeft === 1, JSON.stringify(after));
+    break;
+  }
+  check(`round ${round} ends on the elimination screen`, after.mode === 'bracket', JSON.stringify(after));
+  if (after.playerOut) {
+    eliminated = true;
+    check('an eliminated player is out of the field', after.fieldLeft > 0 && after.tourChampion === '');
+    await page.waitForTimeout(500);
+    await press('Enter');
+    await page.waitForTimeout(400);
+    const back = await state();
+    check('an eliminated run ends at the menu, with no way to continue', back.mode === 'menu' && back.tournament === false, JSON.stringify(back));
+    break;
+  }
+  await page.waitForTimeout(500);
+  await press('Enter');
+  await page.waitForTimeout(400);
+  const next = await state();
+  if (next.mode === 'victory') {
+    check('the final crowns a champion', next.tourChampion.length > 0, JSON.stringify(next));
+    break;
+  }
+  check(`round ${round + 1} starts`, next.mode === 'race' && next.laps === 3, JSON.stringify(next));
+}
+console.log(`  [bracket] ${phases.join(' -> ')}${eliminated ? ' (player eliminated)' : ''}`);
+const cuts = phases.map((p) => Number(p.split(':')[1]));
+check('the field only ever shrinks', cuts.every((n, i) => i === 0 || n <= cuts[i - 1]), cuts.join(','));
 
 console.log('\nerrors');
 check('no console or network errors', errors.length === 0, errors.join(' | '));

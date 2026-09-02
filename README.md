@@ -33,8 +33,36 @@ click a row to highlight it, click again to confirm.
 ## The game
 
 **Menu** — `PLAY` walks you through car → circuit → conditions → race setup;
-`COMPETITION` runs the three-round championship; `SETTINGS` holds Controls,
-Sound, Language and How to Play.
+`COMPETITION` runs the three-round championship; `TOURNAMENT` runs the
+elimination bracket; `SETTINGS` holds Controls, Sound, Language and How to Play.
+
+## Tournament
+
+Twelve entries, four rounds, one survivor. The twelve come from the same six
+cars: every model fields a second entry in its own livery, so a car never meets
+itself until the field has been cut down. Every elimination race is three laps.
+
+| Round | Field | Through | Circuit | Conditions | AI |
+| --- | --- | --- | --- | --- | --- |
+| Group stage | 2 × 6 | top 3 of each | Bayside Circuit | Sunny | Hard |
+| Six cars | 6 | top 4 | Dustbowl Rally | Rain | Elite |
+| Four cars | 4 | top 2 | Serpentine Pass | Night | Elite |
+| Final | 2 | the champion | Serpentine Pass | Night storm | Impossible |
+
+The group stage runs both groups at once: the one the player is not in is
+simulated in the background, on the same physics and the same AI, a slice at a
+time while the player races, and finished off before the results go up.
+
+The elimination screen after each round shows both groups, the cut line, and
+who is through or out. Finish below the line and the run ends there — there is
+no continuing past it.
+
+**The final** is the hardest race in the game: the mountain circuit, in the dark
+*and* the wet (a condition kept off the weather picker), against the hidden
+Impossible level. It is still the same car and the same physics — gears, brake
+wear, nitro, slipstream, track limits and collisions all apply to it exactly as
+they do to the player; what it has is corner confidence, reactions and a line
+it never wanders off.
 
 ## Competition
 
@@ -169,6 +197,7 @@ nitro on the straights.
 - `src/difficulty.ts` — the three AI levels and the field-size limits.
 - `src/speedo.ts` — the dial: plotted circles, ticks, needle and a 3x5 micro font.
 - `src/championship.ts` — rounds, points and the standings table (no drawing in it).
+- `src/tournament.ts` — the bracket: entries, groups, cuts and eliminations.
 - `src/standings.ts` — the table and the between-rounds screen.
 - `src/drivers.ts` — the six drivers (three builds, two poses each), trophy and medals.
 - `src/victory.ts` — the podium scene.
@@ -191,7 +220,7 @@ nearest-neighbour, so everything stays chunky.
 
 ## Tests
 
-`npm test` runs 397 headless checks (no canvas needed): pixel maps and font
+`npm test` runs 441 headless checks (no canvas needed): pixel maps and font
 coverage (including every accented character the translations use), track
 geometry and grid placement, physics (acceleration, braking, reverse, steering,
 surfaces, grip), nitro (boost, drain, lockout, refill), weather modifiers,
@@ -202,8 +231,10 @@ power penalty), the gearbox (ratios, hysteresis, rev band, the torque cut on a
 change), the dial's scale, brake wear (whole-percent steps, no wear from
 driving, longer stops as it goes), podium awards, the championship (points,
 accumulation, tie-breaks, the calendar, the hidden level staying hidden), the
-racecraft gain over a normal race on every round, and the slipstream, plus full
-six-car AI races on all three circuits in several conditions.
+racecraft gain over a normal race on every round, the slipstream, the
+tournament (bracket shape, twelve entries in two groups, every cut, elimination
+ending a run, and the hidden level and condition staying off the pickers), plus
+full six-car AI races on all three circuits in several conditions.
 
 There is also an end-to-end check that drives the real game in a browser —
 menus, language switching, the start sequence, pause, nitro, recovery, the

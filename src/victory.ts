@@ -45,7 +45,14 @@ export class Celebration {
      * Set for the end of a championship: its own heading, the champion's name
      * and the final table drawn alongside the podium.
      */
-    private readonly season?: { title: string; subtitle: string; rows: Standing[]; specs: CarSpec[] },
+    private readonly season?: {
+      title: string;
+      subtitle: string;
+      rows: Standing[];
+      specs: CarSpec[];
+      /** Off for a knockout, which has places rather than points. */
+      showPoints?: boolean;
+    },
   ) {
     this.award = awardForPlace(place) ?? 'bronze';
   }
@@ -220,10 +227,11 @@ export class Celebration {
     this.drawTitle(g, w);
 
     // Final table beside the podium, so the season reads at a glance.
-    if (this.season) {
+    if (this.season && this.season.rows.length > 0) {
       const tableW = Math.min(168, Math.round(w * 0.3));
       drawTable(g, 12, 74, tableW, this.season.rows, {
         showRacePoints: false,
+        showPoints: this.season.showPoints ?? true,
         rowHeight: 12,
         specs: this.season.specs,
       });

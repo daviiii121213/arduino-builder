@@ -135,6 +135,11 @@ export interface RaceOptions {
   difficulty?: DifficultyDef;
   /** 0 for a normal race, 1 for the championship field. */
   racecraft?: number;
+  /**
+   * Exact line-up, as indices into `specs`, in grid order. Used by the
+   * tournament, where who lines up is decided by the bracket.
+   */
+  grid?: number[];
 }
 
 /**
@@ -149,12 +154,15 @@ export class Race {
   readonly drivers: AIDriver[] = [];
   readonly camera: Vec;
 
-  private specs: CarSpec[];
+  readonly specs: CarSpec[];
   private world: World;
   private particles = new Particles();
   private fx = new WeatherFx();
   private accumulator = 0;
   private playerIndex: number | null;
+  /** Kept so a stand-in driver races at the same level as the field. */
+  private readonly difficulty: DifficultyDef;
+  private readonly racecraft: number;
 
   time = 0;
   /** Set when the player (or the whole field, in a demo) has taken the flag. */
@@ -177,8 +185,10 @@ export class Race {
 
     const difficulty = opts.difficulty ?? difficultyAt(1);
     const racecraft = opts.racecraft ?? 0;
+    this.difficulty = difficulty;
+    this.racecraft = racecraft;
     const opponents = opts.opponents ?? this.specs.length - 1;
-    const order = buildGrid(this.specs.length, this.playerIndex, opponents);
+    const order = opts.grid ?? buildGrid(this.specs.length, this.playerIndex, opponents);
 
     order.forEach((specIndex, slot) => {
       const spec = this.specs[specIndex];
@@ -489,7 +499,10 @@ export class Race {
    */
   autopilot(seconds: number): void {
     const player = this.player;
-    const stand = player ? new AIDriver(player, this.track, skillFor(0, difficultyAt(1))) : null;
+    // The stand-in races at the level of the field it is standing in against.
+    const stand = player
+      ? new AIDriver(player, this.track, skillFor(0, this.difficulty, this.racecraft))
+      : null;
     if (stand) this.drivers.push(stand);
     for (let t = 0; t < seconds; t += STEP) this.step(STEP);
     if (stand) this.drivers.pop();

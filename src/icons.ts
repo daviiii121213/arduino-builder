@@ -61,6 +61,28 @@ const NIGHT_MAP = [
 
 const SUN_PAL: Palette = { '#': '#e8a92c', O: '#ffd75e', W: '#fff3c4', '.': null };
 const RAIN_PAL: Palette = { C: '#5f7186', L: '#93a4b8', D: '#8fc4e8', '.': null };
+/** Night and rain together, for the tournament final. */
+const STORM_MAP = [
+  '.....MM.........',
+  '....MMMM........',
+  '...MMM..........',
+  '...MM...CCCC....',
+  '...MM.CCLLLLCC..',
+  '....MCCLLLLLLCC.',
+  '.....CCCCCCCCCC.',
+  '......CCCCCCCC..',
+  '................',
+  '...D...D...D....',
+  '...D...D...D....',
+  '................',
+  '....D...D...D...',
+  '....D...D...D...',
+  '..D...D...D.....',
+  '..D...D...D.....',
+];
+
+const STORM_PAL: Palette = { M: '#dfe4f2', C: '#3f4a5c', L: '#61708a', D: '#8fc4e8', '.': null };
+
 const NIGHT_PAL: Palette = { M: '#dfe4f2', S: '#fff3c4', '.': null };
 
 /** Start-line gantry light: one housing, three lamps, four lit states. */
@@ -125,6 +147,7 @@ const DEFS: Record<string, { map: string[]; palette: Palette }> = {
   sunny: { map: SUN_MAP, palette: SUN_PAL },
   rain: { map: RAIN_MAP, palette: RAIN_PAL },
   night: { map: NIGHT_MAP, palette: NIGHT_PAL },
+  storm: { map: STORM_MAP, palette: STORM_PAL },
 };
 
 export const ICON_MAPS = DEFS;
