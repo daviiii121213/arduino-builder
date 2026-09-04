@@ -9,7 +9,7 @@ import { MAIN_ROWS, PAUSE_ROWS, SETTINGS_ROWS, SETUP_ROWS, type MenuModel, type 
 import { POINTS, ROUNDS, type RoundLabel } from './championship';
 import { PHASES, TOURNAMENT_LAPS } from './tournament';
 import { getTournamentSpecs } from './cars';
-import { DIFFICULTIES, MAX_OPPONENTS } from './difficulty';
+import { MAX_OPPONENTS } from './difficulty';
 import { buildGrid } from './race';
 import { LANGUAGES, page, pick, t } from './i18n';
 
@@ -534,19 +534,22 @@ export class MenuRenderer {
     plate(g, px, py, pw, rowH * 2 + 14);
 
     const difficultyLabels = [t('easy'), t('normal'), t('hard')];
-    const rows: Array<{ label: string; value: string; pips: number; total: number; color: string }> = [
+    const rows: Array<{
+      label: string;
+      value: string;
+      color: string;
+      /** Only the field size gets pips; the level reads as its own word. */
+      pips?: { filled: number; total: number };
+    }> = [
       {
         label: t('opponents'),
         value: String(model.opponents),
-        pips: model.opponents,
-        total: MAX_OPPONENTS,
         color: '#f2b33d',
+        pips: { filled: model.opponents, total: MAX_OPPONENTS },
       },
       {
         label: t('difficulty2'),
         value: difficultyLabels[model.difficulty],
-        pips: model.difficulty + 1,
-        total: DIFFICULTIES.length,
         color: ['#5fd06a', '#f2b33d', KERB][model.difficulty],
       },
     ];
@@ -562,18 +565,21 @@ export class MenuRenderer {
 
       // Value between two arrows, so it reads as adjustable.
       const vx = px + pw - 14;
-      drawText(g, row.value, vx - 24, y + 4, { scale: 2, color: row.color, align: 'right' });
+      const valueW = textWidth(row.value, { scale: 2 });
+      drawText(g, row.value, vx - 14, y + 4, { scale: 2, color: row.color, align: 'right' });
       if (selected) {
-        drawText(g, '<', px + pw - 118, y + 7, { scale: 1, color: BONE });
+        drawText(g, '<', vx - 14 - valueW - 10, y + 7, { scale: 1, color: BONE });
         drawText(g, '>', vx, y + 7, { scale: 1, color: BONE, align: 'right' });
       }
 
-      // Pips showing where the value sits in its range.
-      const pipX = px + pw - 108;
-      for (let k = 0; k < row.total; k++) {
-        const on = k < row.pips;
-        rect(g, pipX + k * 9, y + 8, 7, 7, INK);
-        rect(g, pipX + k * 9 + 1, y + 9, 5, 5, on ? row.color : '#2a3346');
+      // Pips showing where the value sits in its range, for the field size.
+      if (row.pips) {
+        const pipX = vx - 24 - valueW - 12 - row.pips.total * 9;
+        for (let k = 0; k < row.pips.total; k++) {
+          const on = k < row.pips.filled;
+          rect(g, pipX + k * 9, y + 8, 7, 7, INK);
+          rect(g, pipX + k * 9 + 1, y + 9, 5, 5, on ? row.color : '#2a3346');
+        }
       }
       this.hits.push({ x: px + 4, y, w: pw - 8, h: rowH - 4, index: i });
     });
