@@ -1,6 +1,12 @@
 <!-- The artifact host adds its own charset; this one keeps the file correct
      when it is opened straight from disk or served without one. -->
 <meta charset="utf-8" />
+<!-- Same idea for the viewport: hosts that frame this file supply one, and
+     opening the file directly on a phone needs it too. -->
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+/>
 <title>Pixel Racer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -42,13 +48,23 @@
     color: var(--bone);
     font-family: var(--mono);
     overflow: hidden;
+    /* On a phone nothing here should scroll, bounce, zoom or select. */
+    overscroll-behavior: none;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
   }
 
   .cabinet {
     display: flex;
     flex-direction: column;
+    height: 100vh;
     height: 100dvh;
     background: var(--cabinet);
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
   }
 
   header {
@@ -103,6 +119,7 @@
     height: 100%;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
+    touch-action: none;
   }
 
   .screen.playing canvas#game {
@@ -230,6 +247,56 @@
       display: none;
     }
   }
+
+  /* A phone held sideways has no height to spare: the cabinet trim goes and
+     the screen takes the glass. */
+  @media (max-height: 520px) {
+    header {
+      padding: 6px 12px 5px;
+    }
+    .wordmark {
+      font-size: 10px;
+    }
+    .card {
+      padding: 14px 14px 12px;
+    }
+    .card h2 {
+      font-size: 11px;
+    }
+    .card p {
+      font-size: 11px;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    .keys {
+      font-size: 11px;
+      gap: 5px 10px;
+    }
+    .go {
+      margin-top: 12px;
+    }
+  }
+
+  @media (max-height: 430px) {
+    header,
+    .kerb {
+      display: none;
+    }
+  }
+
+  /* Fingers get the pad instructions; keyboards get the key list. */
+  .pads {
+    display: none;
+  }
+
+  @media (pointer: coarse) {
+    .keys {
+      display: none;
+    }
+    .pads {
+      display: grid;
+    }
+  }
 </style>
 
 <div class="cabinet">
@@ -263,7 +330,21 @@
           <dt><kbd>ESC</kbd></dt>
           <dd>pause menu (settings, quit, continue)</dd>
         </dl>
-        <p class="go">CLICK OR PRESS A KEY TO START</p>
+        <dl class="keys pads">
+          <dt><kbd>LEFT PAD</kbd></dt>
+          <dd>steer</dd>
+          <dt><kbd>RIGHT PAD</kbd></dt>
+          <dd>accelerate / brake and reverse</dd>
+          <dt><kbd>BOLT</kbd></dt>
+          <dd>nitro boost</dd>
+          <dt><kbd>SKID</kbd></dt>
+          <dd>handbrake drift</dd>
+          <dt><kbd>II</kbd></dt>
+          <dd>pause menu, top right</dd>
+          <dt><kbd>TAP</kbd></dt>
+          <dd>choose in the menus &mdash; turn the phone sideways to race</dd>
+        </dl>
+        <p class="go">TAP OR PRESS A KEY TO START</p>
       </div>
     </div>
   </div>

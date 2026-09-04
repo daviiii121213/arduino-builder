@@ -10,6 +10,8 @@ import { wrapAngle } from '../src/math';
 import { DECOR_MAPS as DECOR } from '../src/decor';
 import { ICON_MAPS } from '../src/icons';
 import { supports, textWidth } from '../src/font';
+import { TouchControls } from '../src/touch';
+import { MIN_BUFFER_H, MIN_BUFFER_W, pickZoom } from '../src/viewport';
 import { WEATHERS, weatherById, DEFAULT_WEATHER } from '../src/weather';
 import { MAIN_ROWS, MenuModel, PAUSE_ROWS, SETTINGS_ROWS, SETUP_ROWS } from '../src/menu';
 import { Championship, POINTS, ROUNDS, pointsFor } from '../src/championship';
@@ -1180,6 +1182,138 @@ section('elimination tournament');
   console.log(`  [final] impossible AI on Serpentine: dry ${dry.toFixed(1)}s, storm ${stormy.toFixed(1)}s`);
   check('the storm really does slow the final down', stormy > dry, `${stormy.toFixed(1)} vs ${dry.toFixed(1)}`);
   check('and the impossible AI still gets round it', stormy < 120, stormy.toFixed(1));
+}
+
+section('viewport and on-screen pads');
+{
+  // Desktop framing must not change: the zoom still follows the height.
+  check('1920x1080 keeps zoom 3', pickZoom(1920, 1080) === 3, String(pickZoom(1920, 1080)));
+  check('2560x1440 keeps zoom 4', pickZoom(2560, 1440) === 4, String(pickZoom(2560, 1440)));
+  // Phones: whatever the zoom, the buffer has to stay big enough for a menu.
+  const phones: Array<[string, number, number]> = [
+    ['phone landscape', 844, 390],
+    ['phone portrait', 390, 844],
+    ['small phone landscape', 667, 375],
+    ['tablet landscape', 1180, 820],
+    ['tiny window', 420, 300],
+  ];
+  for (const [label, w, h] of phones) {
+    const zoom = pickZoom(w, h);
+    const bw = Math.ceil(w / zoom);
+    const bh = Math.ceil(h / zoom);
+    check(
+      `${label}: buffer fits the menus`,
+      bw >= MIN_BUFFER_W && bh >= MIN_BUFFER_H,
+      `${bw}x${bh} at zoom ${zoom}`,
+    );
+    check(`${label}: zoom is a whole number in range`, Number.isInteger(zoom) && zoom >= 1 && zoom <= 5, String(zoom));
+  }
+
+  // A stand-in canvas: enough of one for the pads to attach and be poked.
+  const listeners = new Map<string, Array<(e: unknown) => void>>();
+  const canvas = {
+    width: 844,
+    height: 390,
+    addEventListener(type: string, fn: (e: unknown) => void) {
+      const list = listeners.get(type) ?? [];
+      list.push(fn);
+      listeners.set(type, list);
+    },
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 844, height: 390 }),
+  } as unknown as HTMLCanvasElement;
+  const fire = (type: string, e: Record<string, unknown>): void => {
+    for (const fn of listeners.get(type) ?? []) fn({ preventDefault() {}, ...e });
+  };
+
+  const pads = new TouchControls(canvas);
+  pads.measure(844, 390, 1);
+  pads.enabled = true;
+  check('pads stay hidden until a finger arrives', !pads.showing);
+
+  const box = pads.debugLayout();
+  check('layout is reported', box !== null);
+  if (box) {
+    check('left pad is in the left half', box.leftX < 844 / 2 && box.leftX - box.padR >= 0);
+    check('right pad is in the right half', box.rightX > 844 / 2 && box.rightX + box.padR <= 844);
+    check('pads sit at the bottom', box.leftY > 390 * 0.6 && box.leftY + box.padR <= 390);
+    check('a thumb gets about 46 css pixels', box.padR >= 40 && box.padR <= 52, String(box.padR));
+    check(
+      'boost clears the right pad',
+      Math.hypot(box.boostX - box.rightX, box.boostY - box.rightY) > box.padR + box.boostR,
+    );
+    check(
+      'handbrake clears boost',
+      Math.hypot(box.driftX - box.boostX, box.driftY - box.boostY) > box.driftR + box.boostR,
+    );
+    check('everything stays on screen', box.boostY - box.boostR > 0 && box.driftX - box.driftR > 0);
+  }
+
+  // A touch turns the pads on and drives the car.
+  fire('pointerdown', { pointerId: 1, pointerType: 'touch', clientX: 60, clientY: 330 });
+  check('a touch brings the pads up', pads.active && pads.showing);
+  check('resting on the pad steers nothing', Math.abs(pads.state.steer) < 1e-9, String(pads.state.steer));
+  fire('pointermove', { pointerId: 1, clientX: 60 + 40, clientY: 330 });
+  check('dragging right steers right', pads.state.steer > 0.5, String(pads.state.steer));
+  fire('pointermove', { pointerId: 1, clientX: 60 - 200, clientY: 330 });
+  check('steering is clamped to full lock', pads.state.steer === -1, String(pads.state.steer));
+  fire('pointermove', { pointerId: 1, clientX: 62, clientY: 330 });
+  check('a small wobble is inside the deadzone', pads.state.steer === 0, String(pads.state.steer));
+
+  // The right pad is throttle up, brake down — and both pads work at once.
+  fire('pointerdown', { pointerId: 2, pointerType: 'touch', clientX: 780, clientY: 330 });
+  fire('pointermove', { pointerId: 2, clientX: 780, clientY: 330 - 40 });
+  fire('pointermove', { pointerId: 1, clientX: 60 + 40, clientY: 330 });
+  check('pushing up accelerates', pads.state.throttle > 0.5, String(pads.state.throttle));
+  check('both thumbs are read together', pads.state.steer > 0.5 && pads.state.throttle > 0.5);
+  fire('pointermove', { pointerId: 2, clientX: 780, clientY: 330 + 40 });
+  check('pulling down brakes', pads.state.throttle < -0.5, String(pads.state.throttle));
+  fire('pointerup', { pointerId: 2 });
+  check('letting go stops the throttle', pads.state.throttle === 0);
+
+  // Buttons.
+  if (box) {
+    fire('pointerdown', { pointerId: 3, pointerType: 'touch', clientX: box.boostX, clientY: box.boostY });
+    check('the bolt fires the nitro', pads.state.nitro);
+    check('the bolt is not read as a steering pad', pads.state.throttle === 0);
+    fire('pointerup', { pointerId: 3 });
+    check('nitro stops when the button is released', !pads.state.nitro);
+
+    fire('pointerdown', { pointerId: 4, pointerType: 'touch', clientX: box.driftX, clientY: box.driftY });
+    check('the skid button pulls the handbrake', pads.state.handbrake);
+    fire('pointerup', { pointerId: 4 });
+    check('the handbrake lets go', !pads.state.handbrake);
+
+    fire('pointerdown', { pointerId: 5, pointerType: 'touch', clientX: box.pauseX, clientY: box.pauseY });
+    check('the pause square is tapped once', pads.takePause());
+    check('and only once', !pads.takePause());
+    fire('pointerup', { pointerId: 5 });
+  }
+
+  // A keyboard puts them away again; the pads go quiet when a race ends.
+  fire('pointerdown', { pointerId: 6, pointerType: 'touch', clientX: 60, clientY: 330 });
+  fire('pointermove', { pointerId: 6, clientX: 200, clientY: 330 });
+  check('the stick is live before the keyboard', pads.state.steer > 0.5);
+  pads.sawKeyboard();
+  check('a key press hides the pads', !pads.active && !pads.showing);
+  check('and drops whatever was held', pads.state.steer === 0);
+
+  pads.enableTouchUi();
+  pads.enabled = false;
+  fire('pointerdown', { pointerId: 7, pointerType: 'touch', clientX: 60, clientY: 330 });
+  fire('pointermove', { pointerId: 7, clientX: 200, clientY: 330 });
+  check('pads ignore touches while not racing', pads.state.steer === 0 && !pads.showing);
+
+  // A portrait phone: the pads follow the buffer wherever it goes.
+  const zoom = pickZoom(390, 844);
+  pads.measure(Math.ceil(390 / zoom), Math.ceil(844 / zoom), zoom);
+  const tall = pads.debugLayout();
+  check(
+    'portrait keeps the pads on screen',
+    tall !== null &&
+      tall.leftX - tall.padR >= 0 &&
+      tall.rightX + tall.padR <= Math.ceil(390 / zoom) &&
+      tall.leftY + tall.padR <= Math.ceil(844 / zoom),
+  );
 }
 
 section('full AI race');

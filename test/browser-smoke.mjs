@@ -438,6 +438,150 @@ console.log(`  [bracket] ${phases.join(' -> ')}${eliminated ? ' (player eliminat
 const cuts = phases.map((p) => Number(p.split(':')[1]));
 check('the field only ever shrinks', cuts.every((n, i) => i === 0 || n <= cuts[i - 1]), cuts.join(','));
 
+console.log('\nphone: layout and on-screen pads');
+{
+  // A phone held sideways, with a real touch screen and a retina buffer.
+  const phone = await browser.newContext({
+    viewport: { width: 844, height: 390 },
+    deviceScaleFactor: 3,
+    hasTouch: true,
+    isMobile: true,
+  });
+  const mob = await phone.newPage();
+  const mobErrors = [];
+  mob.on('pageerror', (e) => mobErrors.push(String(e.message)));
+  mob.on('console', (m) => {
+    if (m.type() === 'error') mobErrors.push(m.text());
+  });
+  await mob.goto(URL, { waitUntil: 'networkidle' });
+  await mob.waitForTimeout(400);
+
+  const mstate = () => mob.evaluate(() => window.__game.menuState());
+  const mplayer = async () =>
+    (await mob.evaluate(() => window.__game.carsDebug())).find((c) => c.isPlayer);
+
+  let m = await mstate();
+  check('the phone gets a buffer the menus fit in', m.bufferW >= 340 && m.bufferH >= 280, `${m.bufferW}x${m.bufferH} at zoom ${m.zoom}`);
+  check('the page does not scroll under a thumb', await mob.evaluate(() => getComputedStyle(document.body).touchAction) === 'none');
+  check('the pads are away until a finger arrives', m.touch === false);
+
+  // Into a race the keyboard way, then hand over to the glass.
+  await mob.keyboard.press('Enter');           // PLAY
+  await mob.waitForTimeout(120);
+  await mob.keyboard.press('Enter');           // car
+  await mob.waitForTimeout(120);
+  await mob.keyboard.press('Enter');           // circuit
+  await mob.waitForTimeout(120);
+  await mob.keyboard.press('Enter');           // weather
+  await mob.waitForTimeout(120);
+  await mob.keyboard.press('Enter');           // setup -> go
+  await mob.waitForTimeout(400);
+  m = await mstate();
+  check('a race starts on the phone', m.mode === 'race', JSON.stringify(m));
+  await mob.evaluate(() => window.__game.releaseStart());
+
+  await mob.evaluate(() => window.__game.forceTouch());
+  m = await mstate();
+  check('the pads can be brought up', m.touch === true);
+  const box = await mob.evaluate(() => window.__game.touchLayout());
+  const scale = 844 / m.bufferW;                 // buffer pixels -> css pixels
+  const css = (v) => v * scale;
+  check('the pads are laid out on screen', box !== null && box.leftX > 0 && box.rightX < m.bufferW);
+  check('both pads sit in the lower half', box.leftY > m.bufferH / 2 && box.rightY > m.bufferH / 2);
+
+  // Right pad up: the car pulls away.
+  const before = await mplayer();
+  await mob.mouse.move(css(box.rightX), css(box.rightY));
+  await mob.mouse.down();
+  await mob.mouse.move(css(box.rightX), css(box.rightY - box.padR));
+  await mob.waitForTimeout(900);
+  const rolling = await mplayer();
+  check('the right pad accelerates the car', rolling.forward > before.forward + 20, `${before.forward} -> ${rolling.forward}`);
+
+  // Left pad across: the car changes direction.
+  const headingA = rolling.heading;
+  await mob.mouse.up();
+  await mob.mouse.move(css(box.leftX), css(box.leftY));
+  await mob.mouse.down();
+  await mob.mouse.move(css(box.leftX + box.padR), css(box.leftY));
+  await mob.waitForTimeout(700);
+  const turned = await mplayer();
+  await mob.mouse.up();
+  check('the left pad steers the car', Math.abs(turned.heading - headingA) > 0.15, `${headingA} -> ${turned.heading}`);
+
+  // The bolt burns nitro.
+  await mob.mouse.move(css(box.boostX), css(box.boostY));
+  await mob.mouse.down();
+  await mob.waitForTimeout(400);
+  const boosting = await mplayer();
+  await mob.mouse.up();
+  check('the bolt button burns nitro', boosting.nitroActive === true, JSON.stringify({ nitro: boosting.nitro }));
+  await mob.waitForTimeout(200);
+  check('nitro stops on release', (await mplayer()).nitroActive === false);
+
+  // The pause square opens the pause menu, and the menu is tappable.
+  await mob.mouse.click(css(box.pauseX), css(box.pauseY));
+  await mob.waitForTimeout(250);
+  m = await mstate();
+  check('the pause square opens the pause menu', m.mode === 'paused' && m.screen === 'pause', JSON.stringify(m));
+
+  // Two taps on a row: one to move the cursor there, one to take it.
+  await mob.mouse.click(css(box.pauseX), css(box.pauseY));   // harmless while paused
+  await mob.waitForTimeout(150);
+  await mob.keyboard.press('Escape');
+  await mob.waitForTimeout(250);
+  m = await mstate();
+  check('the race carries on after the pause menu', m.mode === 'race', JSON.stringify(m));
+  check('a key press puts the pads away again', m.touch === false);
+
+  // Portrait: nothing falls off the edge.
+  await mob.setViewportSize({ width: 390, height: 844 });
+  await mob.waitForTimeout(300);
+  m = await mstate();
+  check('portrait still fits the menus', m.bufferW >= 340 && m.bufferH >= 280, `${m.bufferW}x${m.bufferH} at zoom ${m.zoom}`);
+  await mob.evaluate(() => window.__game.forceTouch());
+  const tall = await mob.evaluate(() => window.__game.touchLayout());
+  check(
+    'portrait keeps the pads inside the screen',
+    tall.leftX - tall.padR >= 0 && tall.rightX + tall.padR <= m.bufferW && tall.leftY + tall.padR <= m.bufferH,
+    JSON.stringify(tall),
+  );
+
+  // Back at the menu, a finger alone has to be able to work the thing.
+  await mob.setViewportSize({ width: 844, height: 390 });
+  await mob.waitForTimeout(300);
+  await mob.keyboard.press('Escape');
+  await mob.waitForTimeout(200);
+  m = await mstate();
+  if (m.screen === 'pause') {
+    const rows = await mob.evaluate(() => window.__game.menuHits());
+    // PAUSE_ROWS is settings, quit, resume — row 1 is the way out.
+    const quit = rows.find((r) => r.index === 1);
+    const q = 844 / (await mstate()).bufferW;
+    await mob.touchscreen.tap(quit.cx * q, quit.cy * q);
+    await mob.waitForTimeout(150);
+    await mob.touchscreen.tap(quit.cx * q, quit.cy * q);
+    await mob.waitForTimeout(300);
+  }
+  m = await mstate();
+  check('a finger can leave a race from the pause menu', m.mode === 'menu', JSON.stringify(m));
+  check('touching the screen brings the pads back', m.touch === true);
+
+  const main = await mob.evaluate(() => window.__game.menuHits());
+  check('the main menu rows are tappable', main.length >= 5, String(main.length));
+  const mq = 844 / m.bufferW;
+  const practice = main[1];
+  await mob.touchscreen.tap(practice.cx * mq, practice.cy * mq);
+  await mob.waitForTimeout(150);
+  check('one tap moves the cursor', (await mstate()).index === 1, JSON.stringify(await mstate()));
+  await mob.touchscreen.tap(practice.cx * mq, practice.cy * mq);
+  await mob.waitForTimeout(250);
+  check('a second tap takes the row', (await mstate()).screen === 'car', JSON.stringify(await mstate()));
+
+  check('no errors on the phone', mobErrors.length === 0, mobErrors.join(' | '));
+  await phone.close();
+}
+
 console.log('\nerrors');
 check('no console or network errors', errors.length === 0, errors.join(' | '));
 

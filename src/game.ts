@@ -24,13 +24,13 @@ import { Race, STEP } from './race';
 import { Celebration } from './victory';
 import { t } from './i18n';
 import { Input } from './input';
+import { TouchControls } from './touch';
+import { pickZoom } from './viewport';
 import { MenuModel, type MenuAction, type MenuEvent } from './menu';
 import { MenuRenderer, segmentBar } from './menuRender';
 import { Audio } from './audio';
 
 export const TOTAL_LAPS = 3;
-/** Roughly how many world pixels tall the view should be; sets the zoom. */
-const TARGET_VIEW_HEIGHT = 360;
 
 const INK = '#0d1014';
 const BONE = '#f2f0e8';
@@ -71,17 +71,23 @@ export class Game {
   /** Set while a free practice session is running: one car, no flag. */
   private practice = false;
   private zoom = 2;
+  private touch: TouchControls;
   private lastTs = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.g = ctx2d(canvas);
     this.input = new Input(canvas);
+    this.touch = new TouchControls(canvas);
     this.specs = getCarSpecs();
     this.tracks = buildTracks();
     this.menu = new MenuModel(this.specs.length, this.tracks.length, WEATHERS.length);
     this.audio.apply(this.menu.sound);
     window.addEventListener('resize', () => this.resize());
+    window.addEventListener('orientationchange', () => this.resize());
+    // Phone browsers grow and shrink the visible area as their chrome slides
+    // away; the visual viewport reports that, plain resize events do not.
+    window.visualViewport?.addEventListener('resize', () => this.resize());
     this.resize();
   }
 
@@ -97,9 +103,9 @@ export class Game {
   private resize(): void {
     // Measure the element, not the window, so the game fits whatever box the
     // page gives it (full screen, or a panel under a header).
-    const cssW = Math.max(320, this.canvas.clientWidth || window.innerWidth);
-    const cssH = Math.max(240, this.canvas.clientHeight || window.innerHeight);
-    this.zoom = clamp(Math.round(cssH / TARGET_VIEW_HEIGHT), 2, 5);
+    const cssW = Math.max(240, this.canvas.clientWidth || window.innerWidth);
+    const cssH = Math.max(200, this.canvas.clientHeight || window.innerHeight);
+    this.zoom = pickZoom(cssW, cssH);
     this.canvas.width = Math.ceil(cssW / this.zoom);
     this.canvas.height = Math.ceil(cssH / this.zoom);
     this.g = ctx2d(this.canvas);
@@ -144,10 +150,27 @@ export class Game {
     }
 
     // A click selects the row under the pointer; a second click activates it.
+    // A finger is blunter than a mouse, so on touch the rows take a little
+    // slack around them and the nearest one wins.
+    const slack = this.touch.active ? 4 : 0;
     for (const click of this.input.clicks) {
-      const hit = this.menuUi.hitBoxes.find(
-        (b) => click.x >= b.x && click.x <= b.x + b.w && click.y >= b.y && click.y <= b.y + b.h,
-      );
+      let hit: (typeof this.menuUi.hitBoxes)[number] | undefined;
+      let best = Infinity;
+      for (const b of this.menuUi.hitBoxes) {
+        if (
+          click.x < b.x - slack * 2 ||
+          click.x > b.x + b.w + slack * 2 ||
+          click.y < b.y - slack ||
+          click.y > b.y + b.h + slack
+        ) {
+          continue;
+        }
+        const d = Math.hypot(click.x - (b.x + b.w / 2), click.y - (b.y + b.h / 2));
+        if (d < best) {
+          best = d;
+          hit = b;
+        }
+      }
       if (!hit) continue;
       const wasSelected = this.menu.index === hit.index;
       events.push(...this.menu.select(hit.index));
@@ -375,7 +398,7 @@ export class Game {
       this.exitToMenu();
       return;
     }
-    if (!this.input.tapped('enter', ' ')) return;
+    if (!this.confirmed) return;
 
     if (tournament.playerOut) {
       // The player's run is over: there is nothing to continue to.
@@ -493,16 +516,23 @@ export class Game {
 
   // ---- race ---------------------------------------------------------------
 
+  /** Enter, space — or, with the pads up, a tap anywhere. */
+  private get confirmed(): boolean {
+    return this.input.tapped('enter', ' ') || (this.touch.active && this.input.clicks.length > 0);
+  }
+
   private playerControls(): Controls {
     const up = this.input.held('w', 'arrowup');
     const down = this.input.held('s', 'arrowdown');
     const left = this.input.held('a', 'arrowleft');
     const right = this.input.held('d', 'arrowright');
+    // Keys and pads add up, so either can drive and neither blocks the other.
+    const pad = this.touch.state;
     return {
-      throttle: (up ? 1 : 0) + (down ? -1 : 0),
-      steer: (right ? 1 : 0) + (left ? -1 : 0),
-      handbrake: this.input.held(' '),
-      nitro: this.input.held('shift'),
+      throttle: clamp((up ? 1 : 0) + (down ? -1 : 0) + pad.throttle, -1, 1),
+      steer: clamp((right ? 1 : 0) + (left ? -1 : 0) + pad.steer, -1, 1),
+      handbrake: this.input.held(' ') || pad.handbrake,
+      nitro: this.input.held('shift') || pad.nitro,
     };
   }
 
@@ -510,7 +540,7 @@ export class Game {
     const race = this.race;
     if (!race) return;
 
-    if (this.input.tapped('escape')) {
+    if (this.input.tapped('escape') || this.touch.takePause()) {
       this.menu.openPause();
       this.mode = 'paused';
       this.audio.idleEngine();
@@ -568,7 +598,7 @@ export class Game {
 
     if (race.over) {
       this.resultsTimer += dt;
-      if (this.input.tapped('enter', ' ')) this.exitToMenu();
+      if (this.confirmed) this.exitToMenu();
     }
 
     const player = race.player;
@@ -614,7 +644,7 @@ export class Game {
       this.exitToMenu();
       return;
     }
-    if (this.input.tapped('enter', ' ')) {
+    if (this.confirmed) {
       const season = this.season;
       if (season && season.advance()) {
         this.audio.confirm();
@@ -633,7 +663,7 @@ export class Game {
     }
     this.audio.idleEngine();
     show.update(dt, this.canvas.width, this.canvas.height);
-    if (this.input.tapped('enter', ' ', 'escape')) show.skip();
+    if (this.input.tapped('enter', ' ', 'escape') || this.confirmed) show.skip();
     if (show.done) {
       this.celebration = null;
       this.resultsTimer = 0;
@@ -647,6 +677,12 @@ export class Game {
   private update(dt: number): void {
     // Browsers only allow audio to start inside a gesture.
     if (this.input.anyInput) this.audio.start();
+    // A key press means there is a keyboard, so the pads step aside.
+    if (this.input.keyPresses.length > 0) this.touch.sawKeyboard();
+    this.touch.measure(this.canvas.width, this.canvas.height, this.zoom);
+    const driving = this.mode === 'race' && this.race !== null && !this.race.over;
+    if (this.touch.enabled && !driving) this.touch.clear();
+    this.touch.enabled = driving;
     if (this.mode === 'menu' || this.mode === 'paused') this.updateMenu(dt);
     else if (this.mode === 'victory') this.updateVictory(dt);
     else if (this.mode === 'standings') this.updateStandings(dt);
@@ -709,6 +745,7 @@ export class Game {
         specs: this.specs,
         tracks: this.tracks,
         weathers: WEATHERS,
+        touch: this.touch.active,
       });
     } else {
       this.drawHud(g, w, h);
@@ -809,9 +846,18 @@ export class Game {
       });
     }
 
-    drawText(g, race.track.def.name, w - 8, 8, { scale: 1, color: BONE, shadow: INK, align: 'right' });
+    // With the pads up the top right corner belongs to the pause button, and
+    // the gauges move off the bottom so nothing hides under a thumb.
+    const pads = this.touch.active;
+    const rightPad = pads ? 28 : 8;
+    drawText(g, race.track.def.name, w - rightPad, 8, {
+      scale: 1,
+      color: BONE,
+      shadow: INK,
+      align: 'right',
+    });
     const icon = getWeatherIcons()[race.weather.id];
-    g.drawImage(icon, w - 8 - icon.width, 18);
+    g.drawImage(icon, w - rightPad - icon.width, 18);
 
     if (this.season) this.drawSeasonStrip(g, w, player);
     else if (this.tournament) this.drawTournamentStrip(g, w);
@@ -819,9 +865,12 @@ export class Game {
 
     // Gauges stack in the bottom-left corner; the dial sits opposite them.
     const barW = 104;
-    const barX = 8 + 34;
-    const nitroY = h - 34;
-    const brakeY = h - 20;
+    // The bars start clear of the longest label, which is not the same word in
+    // both languages.
+    const barX =
+      8 + Math.max(textWidth(t('nitro'), { scale: 1 }), textWidth(t('brakes'), { scale: 1 })) + 6;
+    const nitroY = pads ? 48 : h - 34;
+    const brakeY = pads ? 62 : h - 20;
 
     const flashing = player.nitroActive && Math.floor(race.time * 14) % 2 === 0;
     const empty = player.nitroLocked;
@@ -862,7 +911,7 @@ export class Game {
 
     // The dial: speed, revs and the gear the box has chosen.
     const radius = Math.min(46, Math.round(Math.min(w, h) * 0.13));
-    drawSpeedometer(g, w - radius - 12, h - radius - 26, radius, {
+    drawSpeedometer(g, w - radius - 12, pads ? radius + 36 : h - radius - 26, radius, {
       kmh: Math.abs(player.forwardSpeed) * 0.75,
       gear: player.gear,
       gearCount: player.gearCount,
@@ -880,6 +929,7 @@ export class Game {
       });
     }
 
+    this.touch.draw(g, player.nitroRatio, player.nitroLocked);
     this.drawStartSequence(g, w, h, race);
     if (race.over) this.drawResults(g, w, h, race);
   }
@@ -1084,7 +1134,33 @@ export class Game {
       playerPoints: this.season
         ? (this.season.standings().find((row) => row.isPlayer)?.points ?? 0)
         : 0,
+      touch: this.touch.active,
+      zoom: this.zoom,
+      bufferW: this.canvas.width,
+      bufferH: this.canvas.height,
     };
+  }
+
+  /** Brings the on-screen pads up without a real finger; used by the test. */
+  forceTouch(on = true): void {
+    if (on) this.touch.enableTouchUi();
+    else this.touch.sawKeyboard();
+  }
+
+  /** The menu rows a pointer can hit, in buffer pixels; used by the test. */
+  menuHits(): Array<Record<string, number>> {
+    return this.menuUi.hitBoxes.map((b) => ({
+      index: b.index,
+      cx: b.x + b.w / 2,
+      cy: b.y + b.h / 2,
+      w: b.w,
+      h: b.h,
+    }));
+  }
+
+  /** Where the pads sit right now, in buffer pixels; used by the test. */
+  touchLayout(): Record<string, number> | null {
+    return this.touch.debugLayout();
   }
 
   /** Plays the podium scene for a given place; used by the browser test. */

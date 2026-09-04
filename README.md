@@ -30,6 +30,28 @@ Other scripts: `npm run build` (typecheck + bundle), `npm run build:standalone`
 In the menus: arrows move, `Enter` selects, `Esc` goes back. The mouse works too —
 click a row to highlight it, click again to confirm.
 
+### On a phone
+
+Touch the screen and the on-screen pads come up by themselves; press a key and
+they go away again.
+
+| Pad | Action |
+| --- | --- |
+| left stick | steer, analogue — the further across, the more lock |
+| right stick | up accelerates, down brakes and reverses |
+| bolt button | nitro boost (its ring doubles as the tank gauge) |
+| skid button | handbrake drift |
+| `II`, top right | pause menu |
+
+Both sticks are read at once, they spring to wherever the thumb lands inside
+their half of the screen, and the gauges and the dial move to the top of the
+screen so nothing sits under a hand. In the menus, tap a row to highlight it and
+tap again to confirm; on the result screens a tap anywhere carries on.
+
+The picture is sized to the window every time it changes — the browser's sliding
+address bar included — and the zoom drops rather than crop a menu, so the layout
+holds up in either orientation. Landscape is the better way to race.
+
 ## The game
 
 **Menu** — `PLAY` walks you through car → circuit → conditions → race setup;
@@ -224,15 +246,20 @@ nitro on the straights.
 - `src/race.ts` — one race: field, fixed-step loop, effects, camera.
 - `src/menu.ts` / `src/menuRender.ts` — the menu state machine and its artwork.
 - `src/audio.ts` — WebAudio synthesis: engine note, nitro roar, impacts, menu blips.
+- `src/touch.ts` — the on-screen pads: pointer tracking, the analogue axes, and
+  the pads' own pixel art.
+- `src/viewport.ts` — the window → buffer rule (canvas-free, so it is tested).
 - `src/game.ts` — app shell: menu, attract race, HUD, results.
 
 Physics runs at a fixed 120 Hz step, independent of frame rate. Rendering targets
 a small pixel buffer (~360px tall) which the browser scales up with
-nearest-neighbour, so everything stays chunky.
+nearest-neighbour, so everything stays chunky. On a screen too short for that,
+the zoom steps down instead of cropping, and the touch pads are sized in CSS
+pixels so a thumb always gets the same amount of glass.
 
 ## Tests
 
-`npm test` runs 457 headless checks (no canvas needed): pixel maps and font
+`npm test` runs 499 headless checks (no canvas needed): pixel maps and font
 coverage (including every accented character the translations use), track
 geometry and grid placement, physics (acceleration, braking, reverse, steering,
 surfaces, grip), nitro (boost, drain, lockout, refill), weather modifiers,
@@ -246,12 +273,18 @@ accumulation, tie-breaks, the calendar, the hidden level staying hidden), the
 racecraft gain over a normal race on every round, the slipstream, the
 tournament (bracket shape, twelve entries in two groups, every cut, elimination
 ending a run, and the hidden level and condition staying off the pickers), free
-practice (its menu path, skipping the setup screen and its one-car grid), plus
-full six-car AI races on all three circuits in several conditions.
+practice (its menu path, skipping the setup screen and its one-car grid), the
+viewport rule (desktop framing unchanged, and phones in both orientations still
+getting a buffer the menus fit in) and the on-screen pads (layout, spacing,
+deadzone, full lock, both thumbs at once, the buttons, the pause tap, and the
+pads standing down for a keyboard), plus full six-car AI races on all three
+circuits in several conditions.
 
 There is also an end-to-end check that drives the real game in a browser —
 menus, language switching, the start sequence, pause, nitro, recovery, the
-podium animations and a full race on each circuit:
+podium animations, a full race on each circuit, and a phone-sized run on an
+emulated touch device where the pads themselves steer, accelerate, boost and
+pause:
 
 ```bash
 npm i -D playwright && npx playwright install chromium

@@ -195,6 +195,18 @@ const STRINGS = {
   keyDrift: ['HANDBRAKE DRIFT', 'FREIO DE MÃO'],
   keyRestart: ['RESTART RACE', 'REINICIAR CORRIDA'],
   keyPause: ['PAUSE MENU', 'MENU DE PAUSA'],
+  // On-screen pads, shown on the controls page once a finger has been used.
+  touchTitle: ['ON-SCREEN PADS', 'CONTROLES NA TELA'],
+  padLeft: ['LEFT PAD', 'ANALÓGICO ESQ'],
+  padRight: ['RIGHT PAD', 'ANALÓGICO DIR'],
+  padBoost: ['BOLT', 'RAIO'],
+  padDrift: ['SKID', 'DERRAPADA'],
+  padPause: ['II', 'II'],
+  touchSteer: ['STEER LEFT AND RIGHT', 'VIRAR PARA OS LADOS'],
+  touchThrottle: ['UP ACCELERATE / DOWN BRAKE', 'CIMA ACELERA / BAIXO FREIA'],
+  touchNitro: ['NITRO BOOST', 'IMPULSO DE NITRO'],
+  touchDrift: ['HANDBRAKE DRIFT', 'FREIO DE MÃO'],
+  touchPause: ['PAUSE MENU, TOP RIGHT', 'MENU DE PAUSA, CANTO SUP.'],
 } as const;
 
 export type StringKey = keyof typeof STRINGS;
@@ -226,6 +238,10 @@ const PAGES: Record<'howTo', [string[], string[]]> = {
       '',
       'COMPETITION RUNS THREE ROUNDS FOR POINTS, AND',
       'THAT FIELD RACES HARDER THAN A SINGLE RACE.',
+      '',
+      'ON A PHONE THE PADS COME UP BY THEMSELVES: LEFT',
+      'STEERS, RIGHT IS THROTTLE AND BRAKE, THE BOLT IS',
+      'NITRO AND THE SKID IS THE HANDBRAKE.',
     ],
     [
       'TRÊS VOLTAS CONTRA CINCO RIVAIS. QUEM CRUZAR A',
@@ -251,6 +267,11 @@ const PAGES: Record<'howTo', [string[], string[]]> = {
       '',
       'A COMPETIÇÃO TEM TRÊS ETAPAS POR PONTOS, E ESSE',
       'GRID CORRE MAIS FORTE QUE NUMA CORRIDA AVULSA.',
+      '',
+      'NO CELULAR OS CONTROLES APARECEM SOZINHOS: O',
+      'ANALÓGICO ESQUERDO VIRA, O DIREITO ACELERA E',
+      'FREIA, O RAIO É O NITRO E A DERRAPADA É O FREIO',
+      'DE MÃO.',
     ],
   ],
 };

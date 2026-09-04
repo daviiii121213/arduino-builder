@@ -32,6 +32,8 @@ export interface MenuContext {
   specs: CarSpec[];
   tracks: Track[];
   weathers: WeatherDef[];
+  /** True once the on-screen pads are up: the controls page then lists them. */
+  touch?: boolean;
 }
 
 export interface HitBox {
@@ -245,7 +247,7 @@ export class MenuRenderer {
         this.drawSound(g, w, h, model);
         break;
       case 'controls':
-        this.drawControls(g, w);
+        this.drawControls(g, w, ctx.touch === true);
         break;
       case 'howto':
         this.drawHowTo(g, w);
@@ -831,8 +833,16 @@ export class MenuRenderer {
     this.hits.push({ x: px + 4, y: backY - 2, w: pw - 8, h: 18, index: 4 });
   }
 
-  private drawControls(g: CanvasRenderingContext2D, w: number): void {
-    const rows: Array<[string[], string]> = [
+  private drawControls(g: CanvasRenderingContext2D, w: number, touch = false): void {
+    const rows: Array<[string[], string]> = touch
+      ? [
+          [[t('padLeft')], t('touchSteer')],
+          [[t('padRight')], t('touchThrottle')],
+          [[t('padBoost')], t('touchNitro')],
+          [[t('padDrift')], t('touchDrift')],
+          [[t('padPause')], t('touchPause')],
+        ]
+      : [
       [['W', 'UP'], t('keyAccelerate')],
       [['S', 'DOWN'], t('keyBrake')],
       [['A', 'LEFT'], t('keyLeft')],
@@ -845,6 +855,9 @@ export class MenuRenderer {
     const pw = Math.min(330, w - 36);
     const px = Math.round((w - pw) / 2);
     const py = 44;
+    if (touch) {
+      drawText(g, t('touchTitle'), px, py - 12, { scale: 1, color: DIM });
+    }
     plate(g, px, py, pw, rows.length * 17 + 16);
     rows.forEach(([keys, action], i) => {
       const y = py + 10 + i * 17;
