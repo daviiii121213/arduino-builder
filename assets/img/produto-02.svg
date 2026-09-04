@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1120" width="900" height="1120" role="img" aria-label="Espaco reservado para imagem da marca Made in Jua">
+<defs>
+<linearGradient id="g7703" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#F2EADD"/><stop offset="1" stop-color="#DCCBB2"/>
+</linearGradient>
+<clipPath id="c7703"><rect width="900" height="1120"/></clipPath>
+</defs>
+<g clip-path="url(#c7703)">
+<rect width="900" height="1120" fill="url(#g7703)"/><g transform="translate(450 560) rotate(3)"><path d="M0 0 C 108 -93, 232 -68, 309 0 C 232 68, 108 93, 0 0 Z" fill="#2A2320" opacity="0.22"/></g><g transform="translate(450 560) rotate(52)"><path d="M0 0 C 119 -102, 256 -75, 341 0 C 256 75, 119 102, 0 0 Z" fill="#B9663A" opacity="0.7"/></g><g transform="translate(450 560) rotate(98)"><path d="M0 0 C 106 -90, 226 -66, 302 0 C 226 66, 106 90, 0 0 Z" fill="#2A2320" opacity="0.22"/></g><g transform="translate(450 560) rotate(153)"><path d="M0 0 C 116 -100, 250 -73, 333 0 C 250 73, 116 100, 0 0 Z" fill="#B9663A" opacity="0.7"/></g><g transform="translate(450 560) rotate(209)"><path d="M0 0 C 115 -99, 246 -72, 329 0 C 246 72, 115 99, 0 0 Z" fill="#2A2320" opacity="0.22"/></g><circle cx="450" cy="560" r="40" fill="#F2EADD"/></g></svg>

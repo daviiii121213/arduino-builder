@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" width="900" height="1200" role="img" aria-label="Espaco reservado para imagem da marca Made in Jua">
+<defs>
+<linearGradient id="g6792" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#E9E3D6"/><stop offset="1" stop-color="#C9B79B"/>
+</linearGradient>
+<clipPath id="c6792"><rect width="900" height="1200"/></clipPath>
+</defs>
+<g clip-path="url(#c6792)">
+<rect width="900" height="1200" fill="url(#g6792)"/><rect x="0" y="0" width="900" height="55.0" fill="#8E4522" opacity="0.55"/><rect x="0" y="100" width="900" height="55.0" fill="#3A473C" opacity="0.1"/><rect x="0" y="200" width="900" height="55.0" fill="#3A473C" opacity="0.1"/><rect x="0" y="300" width="900" height="55.0" fill="#8E4522" opacity="0.55"/><rect x="0" y="400" width="900" height="55.0" fill="#3A473C" opacity="0.1"/><rect x="0" y="500" width="900" height="55.0" fill="#3A473C" opacity="0.1"/><rect x="0" y="600" width="900" height="55.0" fill="#8E4522" opacity="0.55"/><rect x="0" y="700" width="900" height="55.0" fill="#3A473C" opacity="0.1"/><rect x="0" y="800" width="900" height="55.0" fill="#3A473C" opacity="0.1"/><rect x="0" y="900" width="900" height="55.0" fill="#8E4522" opacity="0.55"/><rect x="0" y="1000" width="900" height="55.0" fill="#3A473C" opacity="0.1"/><rect x="0" y="1100" width="900" height="55.0" fill="#3A473C" opacity="0.1"/><rect x="0" y="0" width="30.0" height="1200" fill="#E9E3D6" opacity="0.35"/><rect x="160" y="0" width="30.0" height="1200" fill="#E9E3D6" opacity="0.35"/><rect x="320" y="0" width="30.0" height="1200" fill="#E9E3D6" opacity="0.35"/><rect x="480" y="0" width="30.0" height="1200" fill="#E9E3D6" opacity="0.35"/><rect x="640" y="0" width="30.0" height="1200" fill="#E9E3D6" opacity="0.35"/><rect x="800" y="0" width="30.0" height="1200" fill="#E9E3D6" opacity="0.35"/></g></svg>

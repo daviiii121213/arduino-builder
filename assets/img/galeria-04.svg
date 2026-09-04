@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" width="900" height="900" role="img" aria-label="Espaco reservado para imagem da marca Made in Jua">
+<defs>
+<linearGradient id="g3" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#EBE3D4"/><stop offset="1" stop-color="#CBB89A"/>
+</linearGradient>
+<clipPath id="c3"><rect width="900" height="900"/></clipPath>
+</defs>
+<g clip-path="url(#c3)">
+<rect width="900" height="900" fill="url(#g3)"/><path d="M90 774 L90 252 A78 78 0 0 1 246 252 L246 774 Z" fill="#7F4A2C" opacity="0.85"/><path d="M278 774 L278 238 A78 78 0 0 1 434 238 L434 774 Z" fill="#3F4B3E" opacity="0.28"/><path d="M466 774 L466 393 A78 78 0 0 1 622 393 L622 774 Z" fill="#7F4A2C" opacity="0.85"/><path d="M654 774 L654 349 A78 78 0 0 1 810 349 L810 774 Z" fill="#3F4B3E" opacity="0.28"/><rect x="0" y="774" width="900" height="126" fill="#3F4B3E" opacity="0.12"/></g></svg>
