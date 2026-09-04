@@ -68,6 +68,8 @@ export class Game {
   /** The other group of the opening round, simulated alongside the player's. */
   private sideRace: Race | null = null;
   private bracketTimer = 0;
+  /** Set while a free practice session is running: one car, no flag. */
+  private practice = false;
   private zoom = 2;
   private lastTs = 0;
 
@@ -176,6 +178,9 @@ export class Game {
         case 'tournament':
           this.startTournament(event.car);
           break;
+        case 'practice':
+          this.beginPractice(event.car, event.track, event.weather);
+          break;
         case 'resume':
           if (this.race) this.mode = 'race';
           break;
@@ -213,6 +218,17 @@ export class Game {
   private startSeason(carIndex: number): void {
     this.season = new Championship();
     this.beginSeasonRound(carIndex);
+  }
+
+  /** Formats a lap time as m:ss.hh, or dashes when there is none yet. */
+  private lapTime(seconds: number): string {
+    if (seconds <= 0) return t('noLapYet');
+    const minutes = Math.floor(seconds / 60);
+    const rest = seconds - minutes * 60;
+    const whole = Math.floor(rest);
+    const hundredths = Math.floor((rest - whole) * 100);
+    const pad = (value: number): string => String(value).padStart(2, '0');
+    return minutes > 0 ? `${minutes}:${pad(whole)}.${pad(hundredths)}` : `${whole}.${pad(hundredths)}`;
   }
 
   /** Builds the race for the championship round now due. */
@@ -406,6 +422,34 @@ export class Game {
     this.mode = 'victory';
   }
 
+  /**
+   * Free practice: the chosen car alone on the chosen circuit, in the chosen
+   * weather, with no rivals and no flag. Laps are timed instead.
+   */
+  private beginPractice(carIndex: number, trackIndex: number, weatherIndex: number): void {
+    const track = this.tracks[trackIndex];
+    this.season = null;
+    this.tournament = null;
+    this.sideRace = null;
+    this.practice = true;
+    // A lap count nobody will reach: practice ends when the player says so.
+    this.laps = 9999;
+    this.race = new Race({
+      track,
+      weather: WEATHERS[weatherIndex],
+      specs: this.specs,
+      laps: this.laps,
+      playerCarIndex: carIndex,
+      world: this.world(track),
+      opponents: 0,
+    });
+    this.attract = null;
+    this.attractKey = '';
+    this.resultsTimer = 0;
+    this.celebration = null;
+    this.mode = 'race';
+  }
+
   private beginRace(
     carIndex: number,
     trackIndex: number,
@@ -414,6 +458,7 @@ export class Game {
     difficulty: number,
   ): void {
     const track = this.tracks[trackIndex];
+    this.practice = false;
     this.laps = TOTAL_LAPS;
     this.race = new Race({
       track,
@@ -438,6 +483,7 @@ export class Game {
     this.season = null;
     this.tournament = null;
     this.sideRace = null;
+    this.practice = false;
     this.laps = TOTAL_LAPS;
     this.mode = 'menu';
     this.menu.reset();
@@ -472,7 +518,9 @@ export class Game {
       return;
     }
     if (this.input.tapped('r')) {
-      if (this.tournament) this.beginTournamentRace();
+      if (this.practice) {
+        this.beginPractice(this.menu.carIndex, this.menu.trackIndex, this.menu.weatherIndex);
+      } else if (this.tournament) this.beginTournamentRace();
       else if (this.season) this.beginSeasonRound(this.menu.carIndex);
       else {
         this.beginRace(
@@ -731,16 +779,35 @@ export class Game {
     if (!race || !player) return;
     const spec = race.specs[player.carIndex];
 
-    drawText(g, `${t('lap')} ${player.displayLap(race.laps)}/${race.laps}`, 8, 8, {
-      scale: 2,
-      color: BONE,
-      shadow: INK,
-    });
-    drawText(g, `${t('pos')} ${player.position}/${race.cars.length}`, 8, 24, {
-      scale: 2,
-      color: BONE,
-      shadow: INK,
-    });
+    if (this.practice) {
+      // No flag to run to and nobody to be ahead of: laps and times instead.
+      drawText(g, `${t('lap')} ${Math.max(1, player.lap + 1)}`, 8, 8, {
+        scale: 2,
+        color: BONE,
+        shadow: INK,
+      });
+      drawText(g, `${t('lastLap')} ${this.lapTime(player.lastLap)}`, 8, 26, {
+        scale: 1,
+        color: BONE,
+        shadow: INK,
+      });
+      drawText(g, `${t('bestLap')} ${this.lapTime(player.bestLap)}`, 8, 36, {
+        scale: 1,
+        color: '#f2c14e',
+        shadow: INK,
+      });
+    } else {
+      drawText(g, `${t('lap')} ${player.displayLap(race.laps)}/${race.laps}`, 8, 8, {
+        scale: 2,
+        color: BONE,
+        shadow: INK,
+      });
+      drawText(g, `${t('pos')} ${player.position}/${race.cars.length}`, 8, 24, {
+        scale: 2,
+        color: BONE,
+        shadow: INK,
+      });
+    }
 
     drawText(g, race.track.def.name, w - 8, 8, { scale: 1, color: BONE, shadow: INK, align: 'right' });
     const icon = getWeatherIcons()[race.weather.id];
@@ -748,6 +815,7 @@ export class Game {
 
     if (this.season) this.drawSeasonStrip(g, w, player);
     else if (this.tournament) this.drawTournamentStrip(g, w);
+    else if (this.practice) this.drawLabelStrip(g, w, t('practice'));
 
     // Gauges stack in the bottom-left corner; the dial sits opposite them.
     const barW = 104;
@@ -884,6 +952,19 @@ export class Game {
     drawText(g, text, w / 2, 7, { scale: 1, color: BONE, shadow: INK, align: 'center' });
   }
 
+  /** The slim top strip the modes share. */
+  private drawLabelStrip(g: CanvasRenderingContext2D, w: number, text: string): void {
+    const width = textWidth(text, { scale: 1 }) + 12;
+    const x = Math.round(w / 2 - width / 2);
+    g.fillStyle = 'rgba(8,10,16,0.62)';
+    g.fillRect(x, 4, width, 12);
+    g.fillStyle = '#c8332b';
+    g.fillRect(x, 4, 2, 12);
+    g.fillStyle = '#f2f0e8';
+    g.fillRect(x + width - 2, 4, 2, 12);
+    drawText(g, text, w / 2, 7, { scale: 1, color: BONE, shadow: INK, align: 'center' });
+  }
+
   /** A slim strip naming the round and what it takes to get through. */
   private drawTournamentStrip(g: CanvasRenderingContext2D, w: number): void {
     const tournament = this.tournament;
@@ -987,6 +1068,9 @@ export class Game {
       startSignal: race ? race.startSignal.kind : 'none',
       celebrating: this.celebration !== null,
       place: this.celebration ? this.celebration.place : 0,
+      practice: this.practice,
+      bestLap: race?.player ? Number(race.player.bestLap.toFixed(2)) : 0,
+      lastLap: race?.player ? Number(race.player.lastLap.toFixed(2)) : 0,
       tournament: this.tournament !== null,
       phase: this.tournament ? this.tournament.phase.id : '',
       phaseNumber: this.tournament ? this.tournament.phaseNumber : 0,

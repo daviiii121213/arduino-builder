@@ -45,7 +45,9 @@ export type MenuEvent =
   /** Start a three-round championship with the chosen car. */
   | { type: 'season'; car: number }
   /** Enter the elimination tournament with the chosen car. */
-  | { type: 'tournament'; car: number };
+  | { type: 'tournament'; car: number }
+  /** Open a free practice session: one car, no flag. */
+  | { type: 'practice'; car: number; track: number; weather: number };
 
 /** Rows on the settings screen, in order. */
 export const SETTINGS_ROWS = ['controls', 'sound', 'language', 'howto', 'back'] as const;
@@ -54,7 +56,7 @@ export const PAUSE_ROWS = ['settings', 'quit', 'resume'] as const;
 /** Rows on the last screen before the lights. */
 export const SETUP_ROWS = ['opponents', 'difficulty', 'start'] as const;
 /** Rows on the main menu. */
-export const MAIN_ROWS = ['play', 'competition', 'tournament', 'settings'] as const;
+export const MAIN_ROWS = ['play', 'practice', 'competition', 'tournament', 'settings'] as const;
 
 const STORAGE_KEY = 'pixel-racer.settings';
 
@@ -71,7 +73,7 @@ export class MenuModel {
   sound: SoundSettings = { ...DEFAULT_SOUND };
   language: Language = 'en';
   /** Which way PLAY was entered: a one-off race, or the championship. */
-  entry: 'single' | 'season' | 'tournament' = 'single';
+  entry: 'single' | 'practice' | 'season' | 'tournament' = 'single';
   /** How many AI cars line up, and how hard they race. */
   opponents = DEFAULT_OPPONENTS;
   difficulty = DEFAULT_DIFFICULTY;
@@ -220,7 +222,14 @@ export class MenuModel {
           this.goto('settings');
           return [{ type: 'confirm' }];
         }
-        this.entry = row === 'competition' ? 'season' : row === 'tournament' ? 'tournament' : 'single';
+        this.entry =
+          row === 'competition'
+            ? 'season'
+            : row === 'tournament'
+              ? 'tournament'
+              : row === 'practice'
+                ? 'practice'
+                : 'single';
         this.goto('car', this.carIndex);
         return [{ type: 'confirm' }];
       }
@@ -245,6 +254,20 @@ export class MenuModel {
         return [{ type: 'confirm' }];
       case 'weather':
         this.weatherIndex = this.index;
+        // Practice has nobody to line up against, so it skips the setup screen
+        // and goes straight out on track.
+        if (this.entry === 'practice') {
+          this.save();
+          return [
+            { type: 'confirm' },
+            {
+              type: 'practice',
+              car: this.carIndex,
+              track: this.trackIndex,
+              weather: this.weatherIndex,
+            },
+          ];
+        }
         this.goto('setup', SETUP_ROWS.indexOf('start'));
         return [{ type: 'confirm' }];
       case 'setup': {
@@ -303,7 +326,9 @@ export class MenuModel {
             ? MAIN_ROWS.indexOf('competition')
             : this.entry === 'tournament'
               ? MAIN_ROWS.indexOf('tournament')
-              : 0,
+              : this.entry === 'practice'
+                ? MAIN_ROWS.indexOf('practice')
+                : 0,
         );
         break;
       case 'competition':

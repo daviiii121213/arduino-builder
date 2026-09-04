@@ -33,8 +33,20 @@ click a row to highlight it, click again to confirm.
 ## The game
 
 **Menu** — `PLAY` walks you through car → circuit → conditions → race setup;
-`COMPETITION` runs the three-round championship; `TOURNAMENT` runs the
-elimination bracket; `SETTINGS` holds Controls, Sound, Language and How to Play.
+`FREE PRACTICE` puts you alone on any circuit; `COMPETITION` runs the
+three-round championship; `TOURNAMENT` runs the elimination bracket; `SETTINGS`
+holds Controls, Sound, Language and How to Play.
+
+## Free practice
+
+The circuit to yourself: pick a car, any of the three circuits and any of the
+three conditions, and go straight out — no rivals, no setup screen, no flag.
+
+Laps are timed instead of counted down. The HUD shows the lap you are on, the
+last lap and the best of the session; the timer only starts on your first
+crossing of the line, so the run out of the pit box is never recorded. Every
+other system behaves exactly as it does in a race — gears, brake wear, nitro,
+recovery, weather and the dial — and `R` resets the session.
 
 ## Tournament
 
@@ -220,7 +232,7 @@ nearest-neighbour, so everything stays chunky.
 
 ## Tests
 
-`npm test` runs 441 headless checks (no canvas needed): pixel maps and font
+`npm test` runs 457 headless checks (no canvas needed): pixel maps and font
 coverage (including every accented character the translations use), track
 geometry and grid placement, physics (acceleration, braking, reverse, steering,
 surfaces, grip), nitro (boost, drain, lockout, refill), weather modifiers,
@@ -233,7 +245,8 @@ driving, longer stops as it goes), podium awards, the championship (points,
 accumulation, tie-breaks, the calendar, the hidden level staying hidden), the
 racecraft gain over a normal race on every round, the slipstream, the
 tournament (bracket shape, twelve entries in two groups, every cut, elimination
-ending a run, and the hidden level and condition staying off the pickers), plus
+ending a run, and the hidden level and condition staying off the pickers), free
+practice (its menu path, skipping the setup screen and its one-car grid), plus
 full six-car AI races on all three circuits in several conditions.
 
 There is also an end-to-end check that drives the real game in a browser —

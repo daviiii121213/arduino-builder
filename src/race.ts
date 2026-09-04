@@ -172,6 +172,7 @@ export class Race {
   /** Raised the moment the race ends, whoever advanced the clock. */
   private finishPending = false;
   private finishAnnounced = false;
+  private lapMarks = new Map<RaceCar, number>();
 
   constructor(opts: RaceOptions) {
     this.track = opts.track;
@@ -296,6 +297,7 @@ export class Race {
         car.finishTime = this.time;
       }
     }
+    this.timeLaps();
     this.updatePositions();
     const player = this.player;
     this.over = player ? player.finished : this.cars.every((c) => c.finished);
@@ -304,6 +306,34 @@ export class Race {
       this.finishPending = true;
     }
     this.emitEffects(dt);
+  }
+
+  /**
+   * Times every completed lap. A lap only counts once the car has been round
+   * from the line, so the run out of the grid is never recorded as one.
+   */
+  private timeLaps(): void {
+    for (const car of this.cars) {
+      const lapNow = car.lap;
+      const previous = this.lapMarks.get(car);
+      if (previous === undefined) {
+        this.lapMarks.set(car, lapNow);
+        continue;
+      }
+      if (lapNow === previous) continue;
+      this.lapMarks.set(car, lapNow);
+      if (lapNow > previous) {
+        // The first crossing only starts the clock; there is no lap behind it.
+        if (previous >= 0) {
+          const lapTime = this.time - car.lapStart;
+          car.lastLap = lapTime;
+          if (car.bestLap === 0 || lapTime < car.bestLap) car.bestLap = lapTime;
+        }
+        car.lapStart = this.time;
+      } else {
+        car.lapStart = this.time;
+      }
+    }
   }
 
   /**

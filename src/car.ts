@@ -152,6 +152,12 @@ export class RaceCar {
   raceProgress = 0;
   position = 1;
 
+  /** Lap timing, kept by the race: the clock the current lap started on, and
+   * the last and best laps in seconds (0 when there is none yet). */
+  lapStart = 0;
+  lastLap = 0;
+  bestLap = 0;
+
   controls: Controls = { ...NEUTRAL };
 
   constructor(opts: {

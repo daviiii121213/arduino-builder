@@ -478,7 +478,7 @@ section('menu navigation');
   const screen = (): string => menu.screen;
   check('starts on the main screen', screen() === 'main' && menu.index === 0);
   menu.input('down');
-  check('moving lands on the competition row', MAIN_ROWS[menu.index] === 'competition', String(menu.index));
+  check('moving steps down the main menu', MAIN_ROWS[menu.index] === MAIN_ROWS[1], String(menu.index));
   menu.index = MAIN_ROWS.indexOf('settings');
   menu.input('confirm');
   check('settings opens', screen() === 'settings');
@@ -669,6 +669,45 @@ section('menu: language and pause');
   menu.input('confirm');
   check('settings from the main menu still returns there', screen() === 'main');
   check('the cursor lands back on the settings row', MAIN_ROWS[menu.index] === 'settings');
+}
+
+section('free practice');
+{
+  const menu = new MenuModel(6, 3, 3);
+  const screen = (): string => menu.screen;
+  check('practice sits on the main menu', MAIN_ROWS.includes('practice'), MAIN_ROWS.join(','));
+  menu.index = MAIN_ROWS.indexOf('practice');
+  menu.input('confirm');
+  check('it opens the car select', screen() === 'car');
+  menu.input('confirm');
+  check('then the circuit list', screen() === 'track');
+  check('every circuit is offered', menu.count === 3, String(menu.count));
+  menu.input('down');
+  menu.input('down');
+  menu.input('confirm');
+  check('then the conditions', screen() === 'weather' && menu.trackIndex === 2, String(menu.trackIndex));
+  const events = menu.input('confirm');
+  const go = events.find((e) => e.type === 'practice');
+  check('confirming goes straight out on track', Boolean(go), JSON.stringify(events));
+  check('it skips the setup screen entirely', screen() !== 'setup', screen());
+  check(
+    'it carries the chosen car, circuit and weather',
+    go !== undefined && go.type === 'practice' && go.track === 2,
+    JSON.stringify(go),
+  );
+
+  menu.input('back');
+  check('back from conditions returns to the circuits', screen() === 'track');
+  menu.input('back');
+  menu.input('back');
+  check('and back again reaches the main menu on the practice row', screen() === 'main' && MAIN_ROWS[menu.index] === 'practice');
+
+  // A single-car grid: nobody to line up against.
+  for (const track of tracks) {
+    const grid = buildGrid(6, 1, 0);
+    check(`${track.def.id}: practice puts one car on the grid`, grid.length === 1 && grid[0] === 1, grid.join(','));
+    check(`${track.def.id}: that car starts on the surface`, track.onTrack(track.startSlot(0).pos));
+  }
 }
 
 section('race setup screen');

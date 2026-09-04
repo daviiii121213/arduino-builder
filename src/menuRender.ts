@@ -293,16 +293,22 @@ export class MenuRenderer {
     const labels = MAIN_ROWS.map((row) =>
       row === 'play'
         ? t('play')
-        : row === 'competition'
-          ? t('competition')
-          : row === 'tournament'
-            ? t('tournament')
-            : t('settings'),
+        : row === 'practice'
+          ? t('practice')
+          : row === 'competition'
+            ? t('competition')
+            : row === 'tournament'
+              ? t('tournament')
+              : t('settings'),
     );
-    const bw = 170;
-    const bh = 24;
-    const gap = 7;
-    const startY = Math.round(h * 0.55);
+    const bw = 176;
+    const bh = 22;
+    const gap = 6;
+    // Sit the stack under the logo and clear of the footer, whatever the height.
+    const startY = Math.min(
+      Math.round(h * 0.5),
+      h - 30 - labels.length * (bh + gap),
+    );
     labels.forEach((label, i) => {
       const x = cx - bw / 2;
       const y = startY + i * (bh + gap);

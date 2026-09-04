@@ -45,7 +45,7 @@ const press = async (key, times = 1) => {
   }
 };
 /** Main menu rows, in order, so the tests never hard-code an index. */
-const MAIN = { play: 0, competition: 1, tournament: 2, settings: 3 };
+const MAIN = { play: 0, practice: 1, competition: 2, tournament: 3, settings: 4 };
 
 /**
  * Leaves whatever is on screen the way a player would: skip a podium scene,
@@ -319,6 +319,33 @@ for (const [track, weather, label] of [[0, 0, 'bayside/sunny'], [1, 1, 'dustbowl
 await quitToMenu();
 await page.waitForTimeout(200);
 check('quitting from the pause menu returns to the main menu', (await state()).mode === 'menu');
+
+console.log('\nfree practice');
+await quitToMenu();
+await moveTo(MAIN.practice);
+await press('Enter');                       // FREE PRACTICE -> car
+check('practice opens the car select', (await state()).screen === 'car');
+await press('Enter');                       // car -> circuits
+check('every circuit is on offer', (await state()).screen === 'track');
+await moveTo(2);
+await press('Enter');                       // circuit -> conditions
+check('then the conditions', (await state()).screen === 'weather');
+await press('Enter');                       // straight out on track
+await page.waitForTimeout(300);
+const prac = await state();
+check('practice starts without a setup screen', prac.mode === 'race' && prac.practice === true, JSON.stringify(prac));
+check('the player is alone on track', (await cars()).length === 1, String((await cars()).length));
+check('there is no flag to run to', prac.laps > 100, String(prac.laps));
+await page.evaluate(() => window.__game.releaseStart());
+await page.evaluate(() => window.__game.autopilot(90));
+await page.waitForTimeout(300);
+const timed = await state();
+check('laps are timed', timed.bestLap > 5 && timed.lastLap > 5, JSON.stringify({ best: timed.bestLap, last: timed.lastLap }));
+check('the best lap is never slower than the last', timed.bestLap <= timed.lastLap + 0.001);
+await press('Escape');
+check('the pause menu still works in practice', (await state()).mode === 'paused');
+await quitToMenu();
+check('practice can be left', (await state()).mode === 'menu' && (await state()).practice === false);
 
 console.log('\ncompetition mode');
 await quitToMenu();
