@@ -22,6 +22,17 @@ npm run preview  # serve o dist/
 
 Precisa apenas de um navegador moderno. Requer teclado e mouse.
 
+## Jogar em uma única página
+
+```bash
+npm run pacote   # gera dist/cronos-jurassico.html
+```
+
+O arquivo resultante contém HTML, CSS e JavaScript em linha, sem nenhuma
+referência externa e apenas com caracteres ASCII (os acentos viram entidades),
+então abre com um duplo clique e também funciona embutido em um quadro
+(`iframe`) que não declare codificação.
+
 ## Controles
 
 | Ação | Tecla |

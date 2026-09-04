@@ -42,8 +42,10 @@ body {
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   /* céu pré-histórico distante atrás do palco */
   background:
     radial-gradient(circle at 50% 20%, #23203a 0%, #0b0a12 70%),
@@ -78,8 +80,64 @@ body {
   pointer-events: auto;
 }
 
-#rotate-hint {
-  display: none;
+/* ---------- Legenda de controles sob o palco ---------- */
+
+#legenda {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  max-width: min(96vw, 720px);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: #6f6789;
+  text-align: center;
+}
+
+#legenda b {
+  color: var(--cor-osso-escuro);
+  font-weight: normal;
+}
+
+/* ---------- Aviso de foco (o jogo roda dentro de um quadro) ---------- */
+
+.foco {
+  position: absolute;
+  inset: 0;
+  /* apenas informa: o clique atravessa e já vale como jogada */
+  pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 14%;
+  background: rgba(7, 6, 12, 0.35);
+  animation: pulsar 1.8s ease-in-out infinite;
+}
+
+.foco > span {
+  padding: 6px 12px;
+  border: var(--px) solid var(--cor-osso-escuro);
+  background: var(--cor-fundo-2);
+  color: var(--cor-osso);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+@keyframes pulsar {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foco {
+    animation: none;
+  }
 }
 
 /* ---------- Tela de carregamento ---------- */

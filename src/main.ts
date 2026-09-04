@@ -59,6 +59,30 @@ function definirFavicon(assets: ReturnType<typeof carregarAssets>): void {
   }
 }
 
+/**
+ * Aviso de foco: dentro de um quadro (iframe) o teclado só chega ao jogo
+ * depois de um clique. Some no primeiro clique ou tecla.
+ */
+function avisoDeFoco(): void {
+  const div = document.createElement('div');
+  div.className = 'foco';
+  div.innerHTML = '<span>Clique na tela para jogar</span>';
+  overlay?.appendChild(div);
+  const liberar = () => {
+    div.remove();
+    try {
+      window.focus();
+      canvas?.focus();
+    } catch {
+      // sem foco explícito o jogo ainda funciona depois do clique
+    }
+    window.removeEventListener('pointerdown', liberar);
+    window.removeEventListener('keydown', liberar);
+  };
+  window.addEventListener('pointerdown', liberar);
+  window.addEventListener('keydown', liberar);
+}
+
 async function principal(): Promise<void> {
   if (!canvas) throw new Error('Canvas do jogo não encontrado.');
   const carregando = telaCarregando();
@@ -78,6 +102,7 @@ async function principal(): Promise<void> {
   const jogo = new Jogo(canvas, assets);
   jogo.definirCena(new CenaMenu(jogo));
   jogo.iniciar();
+  avisoDeFoco();
 }
 
 principal().catch(mostrarErro);

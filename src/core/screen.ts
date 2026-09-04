@@ -27,8 +27,10 @@ export class Tela {
   /** Recalcula a escala inteira máxima que caiba na janela. */
   ajustar(): void {
     const margem = 8;
+    // reserva espaço para a legenda de controles abaixo do palco
+    const reservaVertical = 52;
     const dispW = Math.max(160, window.innerWidth - margem * 2);
-    const dispH = Math.max(120, window.innerHeight - margem * 2);
+    const dispH = Math.max(120, window.innerHeight - margem * 2 - reservaVertical);
     let esc = Math.min(dispW / LARGURA, dispH / ALTURA);
     // Escala inteira quando possível (pixel art perfeita); senão, meio passo.
     esc = esc >= 1 ? Math.floor(esc * 2) / 2 : esc;
