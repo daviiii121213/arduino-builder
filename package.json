@@ -1,0 +1,18 @@
+{
+  "name": "cronos-jurassico",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cronos Jurassico - RPG 2D top-down em pixel art (PT-BR)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node tools/smoke.mjs dist"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.3",
+    "vite": "^5.4.10"
+  }
+}

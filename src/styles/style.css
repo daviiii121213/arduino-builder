@@ -1,0 +1,138 @@
+/* ==========================================================================
+   Cronos Jurássico — folha de estilo da interface
+   Tudo em pixel art: bordas duras, sem antialiasing, sem sombras suaves.
+   ========================================================================== */
+
+:root {
+  --cor-fundo: #0b0a12;
+  --cor-fundo-2: #14121f;
+  --cor-osso: #f2e3c2;
+  --cor-osso-escuro: #c9b48c;
+  --cor-madeira: #6b4a2b;
+  --cor-madeira-clara: #8d6437;
+  --cor-madeira-escura: #422a17;
+  --cor-ambar: #ffc75a;
+  --cor-ambar-escuro: #b97d1f;
+  --cor-folha: #4b8b3b;
+  --cor-sangue: #b8322f;
+  --px: 3px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  background: var(--cor-fundo);
+  color: var(--cor-osso);
+  overflow: hidden;
+  font-family: "Courier New", "Lucida Console", monospace;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  text-rendering: optimizeSpeed;
+  cursor: none;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* céu pré-histórico distante atrás do palco */
+  background:
+    radial-gradient(circle at 50% 20%, #23203a 0%, #0b0a12 70%),
+    repeating-linear-gradient(0deg, #0b0a12 0 3px, #0d0c15 3px 6px);
+}
+
+#stage {
+  position: relative;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  line-height: 0;
+  border: var(--px) solid #2b2438;
+  box-shadow: 0 0 0 var(--px) #100e18;
+}
+
+#game {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #101820;
+}
+
+/* Camada HTML sobreposta ao canvas (menus, avisos, diálogos auxiliares). */
+#overlay {
+  position: absolute;
+  inset: 0;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+#overlay .painel {
+  pointer-events: auto;
+}
+
+#rotate-hint {
+  display: none;
+}
+
+/* ---------- Tela de carregamento ---------- */
+
+.carregando {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--cor-fundo);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.carregando .barra {
+  width: 160px;
+  height: 9px;
+  border: var(--px) solid var(--cor-osso-escuro);
+  background: #1a1626;
+  padding: 2px;
+}
+
+.carregando .barra > i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--cor-ambar);
+  transition: width 120ms linear;
+}
+
+/* ---------- Aviso de erro ---------- */
+
+.erro {
+  position: absolute;
+  inset: 0;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #1a0f12;
+  color: #ffd9d0;
+  font-size: 11px;
+}
+
+.erro strong {
+  color: var(--cor-sangue);
+  font-size: 14px;
+  letter-spacing: 2px;
+}
