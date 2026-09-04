@@ -11,8 +11,9 @@
 
 import type { FerramentaId, RecursoId } from '../gfx/sprites/tools';
 
-export type TipoItem = 'ferramenta' | 'recurso';
-export type IdItem = FerramentaId | RecursoId;
+export type TipoItem = 'ferramenta' | 'recurso' | 'arma';
+export type IdArma = 'lanca';
+export type IdItem = FerramentaId | RecursoId | IdArma;
 
 export interface Item {
   tipo: TipoItem;
@@ -48,9 +49,9 @@ export class Recipiente {
     this.liberados = Math.min(liberados, total);
   }
 
-  /** Ferramentas nunca empilham; recursos empilham até `pilhaMax`. */
+  /** Ferramentas e armas nunca empilham; recursos empilham até `pilhaMax`. */
   private limite(item: Item): number {
-    return item.tipo === 'ferramenta' ? 1 : this.pilhaMax;
+    return item.tipo === 'recurso' ? this.pilhaMax : 1;
   }
 
   /** Guarda o item e devolve quanto sobrou (0 = entrou tudo). */
@@ -133,19 +134,35 @@ export class Recipiente {
 }
 
 /** Inventário do jogador: 10 espaços na barra inferior, com espaço selecionado. */
+/** Quantos espaços aparecem na barra inferior (acesso rápido). */
+export const SLOTS_RAPIDOS = 10;
+
 export class Inventario extends Recipiente {
   selecionado = 0;
 
-  constructor(liberados = 6, pilhaMax = 20) {
-    super(10, liberados, pilhaMax);
+  constructor(liberados = SLOTS_RAPIDOS, pilhaMax = 20) {
+    // capacidade máxima 30; os espaços liberados crescem com as melhorias
+    super(30, liberados, pilhaMax);
+  }
+
+  /** Só a primeira fileira é de acesso rápido pela barra inferior. */
+  get slotsRapidos(): number {
+    return Math.min(SLOTS_RAPIDOS, this.liberados);
   }
 
   selecionar(indice: number): void {
-    if (indice >= 0 && indice < this.liberados) this.selecionado = indice;
+    if (indice >= 0 && indice < this.slotsRapidos) this.selecionado = indice;
   }
 
   girarSelecao(passo: number): void {
-    this.selecionado = (this.selecionado + passo + this.liberados) % this.liberados;
+    const n = this.slotsRapidos;
+    this.selecionado = (this.selecionado + passo + n) % n;
+  }
+
+  /** Arma equipada, se houver. */
+  get armaSelecionada(): IdArma | null {
+    const s = this.itemSelecionado;
+    return s && s.tipo === 'arma' ? (s.id as IdArma) : null;
   }
 
   get itemSelecionado(): Item | null {

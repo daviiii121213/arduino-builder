@@ -38,75 +38,66 @@ então abre com um duplo clique e também funciona embutido em um quadro
 | Ação | Tecla |
 | --- | --- |
 | Andar | `W` `A` `S` `D` (setas também) |
-| **Usar a ferramenta escolhida** | **botão esquerdo do mouse** |
-| **Golpe em área, em volta do corpo** | **botão direito do mouse** |
+| **Correr** | **`Shift`** (com barra de resistência) |
+| Usar a ferramenta escolhida | **botão esquerdo do mouse** |
+| Golpe em área com a lança | **botão direito do mouse** |
 | Interagir (porta, cama, baú, máquina, pessoas) | `E` |
-| Escolher espaço do inventário | `1` … `9`, `0` |
-| Espaço anterior | `Q` |
-| Bestiário | `Tab` |
-| Diário (em breve) | `J` |
+| Escolher o item da barra (aparece na mão) | `1` … `9`, `0` |
+| Mochila completa e bestiário | `Tab` |
 | Ligar/desligar som | `M` |
 | Pausar | `Esc` |
 | Painel de atalhos (só no modo teste) | `F1` |
 
-O ataque não tem mira: ele acerta tudo dentro de um círculo em volta do jogador, e
-o círculo aparece na tela no momento do golpe.
+O ataque não tem mira: acerta tudo dentro de um círculo em volta do jogador, e o
+círculo aparece na tela no momento do golpe.
 
 ## O que já existe nesta versão
 
-- **Cinemática de abertura** em cinco atos: o galpão, a descoberta da máquina sob o
-  pano, a ativação, a falha do estabilizador e a queda pelo túnel do tempo (com
-  contador de anos). Pode ser pulada.
-- **Movimento livre e suave** com aceleração, atrito por terreno (areia, lama, água
-  rasa) e colisão top-down resolvida eixo por eixo.
-- **Combate em área**: o golpe do botão direito atinge tudo num raio de 38 pixels,
-  com círculo desenhado no chão, lança girando, faíscas, números de dano, empurrão
-  e tremor de câmera.
-- **Dez corações** (com meio coração de granularidade), invulnerabilidade curta após
-  o dano e **regeneração de 1 coração a cada 3 segundos** — que só funciona quando o
-  personagem **não está com fome**.
-- **Quatro ferramentas**, cada uma com desenho, animação de batida e função própria:
-  - **machado** derruba araucárias e cicadáceas (madeira, fibra, semente);
-  - **picareta** quebra pedras e veios (pedra, minério de ferro, cristal);
-  - **pá** cava os montinhos de terra fofa (argila, osso, semente, fóssil);
-  - **enxada** ara a terra boa e colhe o capim alto (fibra, semente).
-  Cada nó de recurso tem vida, barrinha de progresso, lascas voando e volta a
-  crescer depois de um tempo.
-- **Dinheiro**: nove recursos com valor próprio e uma **máquina de venda** ao lado da
-  cabana, com lista de recursos, quantidade, valor unitário, total por linha e ganho
-  da visita (vender 1, vender a pilha ou vender tudo).
-- **Cabana de melhorias** ao lado da casa, com exterior, interior, oficina e duas
-  pessoas: **Bruna** melhora as quatro ferramentas (pedra → ferro → cristal, e o
-  desenho muda na mão do jogador) e **Nilo** melhora a bolsa (6 → 8 → 10 espaços e
-  20 → 50 → 99 por espaço), o baú (12 → 24) e a casa (cama macia, telhado novo com
-  cata-vento visível no mundo).
-- **Casa interativa**: a cama faz dormir e adianta o ciclo do dia, o baú guarda e
-  devolve itens (com o baú aberto aparecendo no cenário), a porta leva para dentro e
-  para fora, e a lareira, a estante e a janela respondem com falas.
-- **Inventário de 10 espaços** na base da tela, com espaços trancados até serem
-  comprados, empilhamento, ferramentas que não empilham e troca com o baú.
-- **Ciclo de dia e noite** rodando, com relógio na interface e tinta ambiente.
-- **Dez dinossauros**, dois de cada categoria, cada um com arte, animação, ficha e
-  comportamento próprios:
-  - **Mágicos** — Luminassauro, Etherodonte: flutuam, atiram orbes e se teleportam ao levar dano.
-  - **Carnívoros** — Raptornoz, Dentesangue: percebem o jogador, caçam e mordem.
-  - **Herbívoros** — Folhalonga, Tricornis: pastam em paz e fogem quando feridos (o Tricornis revida se você insistir).
+- **Cinemática de abertura** em cinco atos: o galpão, a máquina sob o pano, a
+  ativação, a falha do estabilizador e o túnel do tempo. Pode ser pulada.
+- **Traço compacto**: gente e dinossauros têm proporções baixas e largas (o
+  protagonista tem 18x16 pixels, com a cabeça ocupando quase metade do corpo), e a
+  casa (64x56) e a cabana (76x62) são pequenas e cheias em vez de grandes e vazias.
+- **Movimento** com aceleração, atrito por terreno e **corrida no `Shift`**, com
+  barra de resistência, poeira nos pés e passo mais rápido.
+- **Equipamento na mão**: o item escolhido na barra aparece sempre na mão — lança,
+  machado, picareta, pá ou enxada — com pose de repouso, de uso e de golpe.
+- **Lança de pedra** como arma permanente: nunca sai do inventário, tem desenho
+  próprio (cabo com amarração e ponta de pedra), animação de giro, som e dano maior
+  que bater com uma ferramenta.
+- **Dez corações**, invulnerabilidade curta e regeneração de 1 coração a cada 3
+  segundos (parada quando houver fome).
+- **Armaduras compradas com dinheiro** na cabana: couro, placas de osso e casca de
+  cristal. Cada uma tem camada própria sobre o corpo (capacete + peitoral em três
+  vistas), ícone, absorção de dano e peso — e aparece no personagem na hora.
+- **Quatro ferramentas** com três níveis (pedra, ferro, cristal), animação de batida
+  e função própria: machado (árvores), picareta (pedras e veios), pá (montinhos de
+  terra) e enxada (ara a terra e colhe capim).
+- **Dinheiro** com nove recursos e a **máquina de venda** ao lado da cabana.
+- **Inventário 10 / 20 / 30**: começa com 10 espaços de acesso rápido na barra
+  inferior e cresce para 20 e 30 com as melhorias — os espaços extras ficam no menu
+  do `Tab`, junto com o bestiário e o espaço de armadura.
+- **HUD enxuto**: corações, barra de corrida, moeda e relógio, barra de itens e um
+  aviso por vez. O alvo da ferramenta é marcado com cantoneiras no próprio objeto,
+  sem texto sobre o mundo.
+- **Casa interativa**: cama (dorme e adianta o dia), baú (guarda e devolve, e abre
+  visivelmente), porta, lareira, estante e janela.
+- **Dez dinossauros**, dois de cada categoria, todos redesenhados compactos:
+  - **Mágicos** — Luminassauro, Etherodonte: flutuam, atiram orbes e se teleportam.
+  - **Carnívoros** — Raptornoz, Dentesangue: caçam e mordem.
+  - **Herbívoros** — Folhalonga, Tricornis: pastam e fogem quando feridos.
   - **Terrestres** — Casconte, Pedrapata: lentos, resistentes e territoriais.
-  - **Aquáticos** — Nadalonga, Escamarela: nunca saem da água e atacam quem entra nela.
-- **Mundo gerado por ruído determinístico** (mesma semente, mesmo vale): lagos,
-  praias, lama, afloramentos de rocha, campos de flores, capim alto, araucárias,
-  cicadáceas, montinhos de terra, troncos caídos, ossadas e cristais mágicos.
-- **Modo teste**, separado do jogo normal: selo permanente na tela, dinheiro e
-  recursos infinitos, todas as ferramentas e melhorias liberadas, inventário cheio e
-  um **painel de atalhos (F1)** com uma entrada para cada sistema — entrar na casa e
-  na cabana, abrir a venda, as melhorias e o baú, dormir, adiantar o relógio, encher
-  ou zerar a bolsa, zerar as melhorias para testar as compras de novo, trazer um
-  dinossauro para o lado e levar dano.
-- **Interface**: corações em duas fileiras, dinheiro, relógio, avisos, título do
-  local, dica de interação, dica da ferramenta em foco, bestiário com as dez fichas,
-  menu principal com pôr do sol animado, pausa e tela de fim de jogo.
-- **Áudio procedural** (Web Audio, sem arquivos): golpe, acerto, dano, rugidos,
-  passos, cura, magia, portal, trovão e a máquina do tempo.
+  - **Aquáticos** — Nadalonga, Escamarela: não saem da água.
+- **Perseguição com fim**: cada espécie tem raio de percepção, raio de território e
+  paciência. Se o jogador escapa, se o bicho se afasta demais da própria área ou se
+  a caçada se arrasta, ele desiste, volta caminhando para casa e ignora o jogador
+  por alguns segundos.
+- **Ciclo de dia e noite** rodando, com relógio e tinta ambiente.
+- **Modo teste** separado do jogo normal: selo na tela, dinheiro e recursos
+  infinitos, tudo liberado e um **painel de atalhos (`F1`)** com uma entrada para
+  cada sistema (entrar nos prédios, vender, melhorias, baú, dormir, trocar armadura,
+  zerar melhorias para testar compras, trazer um dinossauro, levar dano).
+- **Áudio procedural** (Web Audio, sem arquivos).
 
 ## Estrutura do código
 
@@ -143,6 +134,8 @@ tools/        teste de fumaça automatizado (opcional, usa Playwright)
   `src/systems/tools.ts` (o alvo é um tipo de nó; a animação e a mira já funcionam).
 - **Nova melhoria**: um objeto em `CATALOGO`, em `src/systems/progression.ts`, com
   custo, vendedor e o que muda no progresso.
+- **Nova armadura**: uma paleta em `src/gfx/sprites/armor.ts` e uma ficha em
+  `src/systems/armor.ts` — a camada sobre o corpo, o ícone e a venda saem prontos.
 - **Novo objeto interativo**: acrescente um `Interativo` ao nível e trate a ação em
   `executarInterativo`, na cena de jogo.
 - **Novo efeito**: acrescente os quadros em `src/gfx/sprites/effects.ts` e dispare com

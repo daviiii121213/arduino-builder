@@ -18,7 +18,7 @@ import { pointInRect } from '../core/math';
 
 const LARG = 390;
 const ALT = 172;
-const SLOT = 21;
+const SLOT = 19;
 
 export class PainelBau {
   aberta = false;

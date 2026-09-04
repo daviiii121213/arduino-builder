@@ -1,7 +1,14 @@
 /**
- * Arte do protagonista (Téo) — 16x18 pixels, desenhada à mão.
- * Três vistas (frente, costas, lado) com três quadros de caminhada cada.
- * A vista lateral é espelhada em tempo de execução para o lado esquerdo.
+ * Arte do protagonista (Téo) — 18x16 pixels, desenhada à mão.
+ *
+ * Proporções propositalmente baixas e largas: cabeça grande (quase metade do
+ * corpo), ombros largos e pernas curtas. Três vistas (frente, costas, lado) com
+ * três quadros de caminhada cada; a vista lateral é espelhada em tempo de
+ * execução.
+ *
+ * O corpo é a camada de baixo: a armadura entra como sobreposição do mesmo
+ * tamanho (ver `armor.ts`), então basta desenhar uma camada nova para criar um
+ * conjunto novo.
  */
 
 import { P } from '../palette';
@@ -22,77 +29,75 @@ const PAL: Paleta = {
   r: P.cachecol,
   m: P.pedraClara,
   t: P.tronco,
+  T: P.troncoLuz,
   M: P.pedra,
 };
 
-/** Centraliza um bloco de 10 colunas num sprite de 16. */
-const F = (m: string) => '...' + m + '...';
+export const JOGADOR_W = 18;
+export const JOGADOR_H = 16;
 
-// ---------------------------------------------------------------- tronco
+// ------------------------------------------------------------------ tronco
 
 const TRONCO_FRENTE = [
-  F('..kkkkkk..'),
-  F('.khhhhhhk.'),
-  F('khhhhhhhhk'),
-  F('khhhhhhhhk'),
-  F('khpppppphk'),
-  F('khpkppkphk'),
-  F('khppppPPhk'),
-  F('kkrrrrrrkk'),
-  F('kssssssssk'),
-  F('ksSsrrsSsk'),
-  F('kssssssssk'),
-  F('kpsssssspk'),
-  F('kcccccccck'),
+  '.....kkkkkkkk.....',
+  '...kkhhhhhhhhkk...',
+  '..khhhhhhhhhhhhk..',
+  '..khhpppppppphhk..',
+  '..khppkppppkpphk..',
+  '..khpppppppppphk..',
+  '..kkppPPPPPPppkk..',
+  '...kkrrrrrrrrkk...',
+  '..kssssssssssssk..',
+  '..ksSssrrrrssSsk..',
+  '.kpssssssssssspk..',
+  '..kcccccccccccck..',
 ];
 
 const TRONCO_COSTAS = [
-  F('..kkkkkk..'),
-  F('.khhhhhhk.'),
-  F('khhhhhhhhk'),
-  F('khhhhhhhhk'),
-  F('khhhhhhhhk'),
-  F('khHhhhhHhk'),
-  F('khhhhhhhhk'),
-  F('kkrrrrrrkk'),
-  F('kssssssssk'),
-  F('ksSssssSsk'),
-  F('kssssssssk'),
-  F('kpsssssspk'),
-  F('kcccccccck'),
+  '.....kkkkkkkk.....',
+  '...kkhhhhhhhhkk...',
+  '..khhhhhhhhhhhhk..',
+  '..khhhhhhhhhhhhk..',
+  '..khhhhhhhhhhhhk..',
+  '..khHhhhhhhhhHhk..',
+  '..kkhhhhhhhhhhkk..',
+  '...kkrrrrrrrrkk...',
+  '..kssssssssssssk..',
+  '..ksSssssssssSsk..',
+  '.kpssssssssssspk..',
+  '..kcccccccccccck..',
 ];
 
 const TRONCO_LADO = [
-  F('..kkkkk...'),
-  F('.khhhhhk..'),
-  F('khhhhhppk.'),
-  F('khhhhpkpk.'),
-  F('khhhppppk.'),
-  F('.khhppPpk.'),
-  F('.kkrrrrkk.'),
-  F('.ksssssk..'),
-  F('.ksSsssk..'),
-  F('.kssssspk.'),
-  F('.kssssspk.'),
-  F('.ksssskkk.'),
-  F('.kcccccck.'),
+  '....kkkkkkkk......',
+  '..kkhhhhhhhhkk....',
+  '.khhhhhhhhppppk...',
+  '.khhhhhhhpkppk....',
+  '.khhhhhhppppppk...',
+  '..khhhhpppppPk....',
+  '..kkhhpppPPPkk....',
+  '...kkrrrrrrkk.....',
+  '..ksssssssssk.....',
+  '..ksSsssssssk.....',
+  '..kssssssssspk....',
+  '..kcccccccccck....',
 ];
 
-// ---------------------------------------------------------------- pernas
+// ------------------------------------------------------------------ pernas
 
 const PERNAS_FRENTE = [
   // parado
-  [F('kccckkccck'), F('kccckkccck'), F('kCCCkkCCCk'), F('kbbbkkbbbk'), F('.kkk..kkk.')],
+  ['..kccccckkccccck..', '..kCCCCCkkCCCCCk..', '..kbbbbbkkbbbbbk..', '...kkkkk..kkkkk...'],
   // passo A
-  [F('kccckkccck'), F('kccckkccck'), F('kCCCk.kCCk'), F('kbbbk.kbbk'), F('.kkk...kk.')],
+  ['..kccccckkccccck..', '..kCCCCCkkCCCCk...', '..kbbbbbkkbbbk....', '...kkkkk..kkk.....'],
   // passo B
-  [F('kccckkccck'), F('kccckkccck'), F('kCCk.kCCCk'), F('kbbk.kbbbk'), F('.kk...kkk.')],
+  ['..kccccckkccccck..', '...kCCCCkkCCCCCk..', '....kbbbkkbbbbbk..', '.....kkk..kkkkk...'],
 ];
 
 const PERNAS_LADO = [
-  [F('.kcccccck.'), F('.kcckkcck.'), F('.kCCkkCCk.'), F('.kbbkkbbk.'), F('..kk..kk..')],
-  [F('.kcccccck.'), F('.kcckkcck.'), F('.kCCkkCCk.'), F('.kbbk.kbbk'), F('..kk...kk.')],
-  [F('.kcccccck.'), F('.kcckkcck.'), F('.kCCkkCCk.'), F('kbbk.kbbk.'), F('.kk...kk..')],
+  ['..kcccccccccck....', '..kCCCCkkCCCCk....', '..kbbbbkkbbbbk....', '...kkkk..kkkk.....'],
+  ['..kcccccccccck....', '.kCCCCkkCCCCk.....', '.kbbbbkkbbbbk.....', '..kkkk..kkkk......'],
+  ['..kcccccccccck....', '...kCCCCkkCCCCk...', '...kbbbbkkbbbbk...', '....kkkk..kkkk....'],
 ];
 
 function montar(tronco: readonly string[], pernas: readonly string[]): Sprite {
@@ -114,20 +119,21 @@ export function criarJogador(): QuadrosJogador {
   const direita = PERNAS_LADO.map((p) => montar(TRONCO_LADO, p));
   const esquerda = direita.map((s) => espelharH(s));
 
+  /**
+   * Lança de pedra: cabo com contorno (para não desaparecer no chão de terra),
+   * amarração vermelha e ponta larga. Pivô em (2, 3), na mão do jogador.
+   */
   const lanca = pintar(
     [
-      '..........kkk...',
-      '.........kmMMk..',
-      'kttttttttkmmMMMk',
-      '.........kmMMk..',
-      '..........kkk...',
+      '.............kkk.',
+      '...........kkMMMk',
+      'kkkkkkkkkkkmMMMMk',
+      'kTttttrrttTmmMMMk',
+      'kkkkkkkkkkkmMMMk.',
+      '.............kkk.',
     ],
     PAL,
   );
 
   return { baixo, cima, direita, esquerda, lanca };
 }
-
-/** Largura/altura da arte do jogador (usada pelas colisões e pela câmera). */
-export const JOGADOR_W = 16;
-export const JOGADOR_H = 18;

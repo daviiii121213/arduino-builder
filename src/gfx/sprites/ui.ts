@@ -121,26 +121,23 @@ const CURSOR_PRONTO = [
   '......kk.',
 ];
 
-/** Moldura de item da barra inferior (10 espaços, estilo original). */
+/** Moldura de item, compacta (18x18) — usada na barra e nas janelas. */
 function slot(selecionado: boolean): Sprite {
-  const p = new Pincel(20, 20);
-  p.retangulo(0, 0, 20, 20, P.painel);
-  p.retangulo(2, 2, 16, 16, '#1c1727');
-  p.contorno(0, 0, 20, 20, P.contorno);
-  const borda = selecionado ? P.ambar : P.ossoEscuro;
-  p.contorno(1, 1, 18, 18, borda);
-  // cantos em osso, como rebites
+  const p = new Pincel(18, 18);
+  p.retangulo(0, 0, 18, 18, P.painel);
+  p.retangulo(2, 2, 14, 14, '#1c1727');
+  p.contorno(0, 0, 18, 18, P.contorno);
+  p.contorno(1, 1, 16, 16, selecionado ? P.ambar : '#5b5470');
   for (const [x, y] of [
     [1, 1],
-    [18, 1],
-    [1, 18],
-    [18, 18],
+    [16, 1],
+    [1, 16],
+    [16, 16],
   ]) {
-    p.ponto(x, y, selecionado ? P.brilho : P.osso);
+    p.ponto(x, y, selecionado ? P.brilho : '#7a7391');
   }
-  // brilho interno
-  p.linha(3, 3, 16, 3, selecionado ? '#3a3050' : '#241f33');
-  p.linha(3, 3, 3, 16, selecionado ? '#3a3050' : '#241f33');
+  p.linha(3, 3, 14, 3, selecionado ? '#3a3050' : '#241f33');
+  p.linha(3, 3, 3, 14, selecionado ? '#3a3050' : '#241f33');
   return p.finalizar();
 }
 

@@ -254,7 +254,7 @@ export class CenaMenu implements Cena {
     });
 
     this.menu.desenhar(g);
-    texto(g, 'Versão 2 · arte em pixel feita à mão', 6, ALTURA - 11, {
+    texto(g, 'Versão 3 · arte em pixel feita à mão', 6, ALTURA - 11, {
       cor: '#8b83a3',
       sombra: P.contorno,
     });
@@ -292,18 +292,19 @@ export class CenaMenu implements Cena {
         alinhamento: 'centro',
       });
       const linhas = [
-        'W A S D — andar pelo vale',
+        'W A S D — andar · SHIFT — correr',
         'BOTÃO ESQUERDO — usar a ferramenta escolhida',
-        'BOTÃO DIREITO — golpe em área, em volta do corpo',
+        'BOTÃO DIREITO — golpe em área com a lança',
         'E — interagir (portas, cama, baú, máquina, pessoas)',
-        '1 a 0 — escolher o espaço do inventário',
-        'TAB — bestiário · J — diário · M — som · ESC — pausar',
+        '1 a 0 — escolher o item da barra (aparece na mão)',
+        'TAB — mochila e bestiário · M — som · ESC — pausar',
         '',
         'Dez corações, e um volta a cada três segundos.',
         'Machado corta árvores, picareta quebra pedras,',
         'pá cava os montinhos e enxada trabalha a terra.',
-        'Venda o que colher na máquina ao lado da cabana e',
-        'melhore ferramentas, bolsa e casa com Bruna e Nilo.',
+        'Venda o que colher na máquina ao lado da cabana;',
+        'a Bruna melhora ferramentas e vende armaduras, e o',
+        'Nilo aumenta a bolsa (10, 20 e 30 espaços) e a casa.',
       ];
       paragrafo(g, linhas, x + 16, y + 30, { cor: P.osso, sombra: P.contorno });
     } else {
@@ -313,7 +314,7 @@ export class CenaMenu implements Cena {
         alinhamento: 'centro',
       });
       const txt =
-        'Cronos Jurássico — versão 2. Jogo, código, fonte de bitmap, ' +
+        'Cronos Jurássico — versão 3. Jogo, código, fonte de bitmap, ' +
         'cenários, criaturas, interface e efeitos sonoros criados do zero ' +
         'em TypeScript e HTML5 Canvas. Nenhuma imagem ou som externo foi ' +
         'usado: cada pixel é desenhado pelo próprio jogo.';
@@ -323,9 +324,9 @@ export class CenaMenu implements Cena {
         g,
         [
           '',
-          'Nesta versão: ferramentas, recursos, dinheiro,',
-          'cabana de melhorias, baú, cama e ciclo de dia',
-          'e noite. Em breve: missões no diário e cavernas.',
+          'Nesta versão: ferramentas na mão, armaduras,',
+          'corrida, mochila de 30 espaços e interiores',
+          'compactos. Em breve: missões no diário e cavernas.',
         ],
         x + 16,
         y + 32 + linhas.length * 9,

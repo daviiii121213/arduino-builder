@@ -14,6 +14,8 @@ import { criarGalpao, type ArteGalpao } from './sprites/warehouse';
 import { criarFerramentas, type ArteFerramentas } from './sprites/tools';
 import { criarColheita, type ArteColheita } from './sprites/harvest';
 import { criarCabana, type ArteCabana } from './sprites/cabin';
+import { criarArmaduras, type ArteArmadura } from './sprites/armor';
+import type { ArmaduraId } from './sprites/armor';
 import { sombra, type Sprite } from './pixel';
 import { LARGURA, ALTURA } from '../core/screen';
 
@@ -29,6 +31,7 @@ export interface Assets {
   ferramentas: ArteFerramentas;
   colheita: ArteColheita;
   cabana: ArteCabana;
+  armaduras: Record<ArmaduraId, ArteArmadura>;
   /** Sombras elípticas em alguns tamanhos padrão. */
   sombras: Record<'p' | 'm' | 'g' | 'gg', Sprite>;
   vinheta: Sprite;
@@ -52,6 +55,7 @@ export function carregarAssets(aviso?: EtapaCarregamento): Assets {
   etapas.push(['Forjando as ferramentas', () => (parcial.ferramentas = criarFerramentas())]);
   etapas.push(['Semeando os recursos', () => (parcial.colheita = criarColheita())]);
   etapas.push(['Levantando a cabana', () => (parcial.cabana = criarCabana())]);
+  etapas.push(['Batendo as armaduras', () => (parcial.armaduras = criarArmaduras())]);
   etapas.push([
     'Ajustando as sombras',
     () => {

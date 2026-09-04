@@ -26,8 +26,8 @@ export const ID_CABANA = 'cabana-de-melhorias';
 /** Canto superior esquerdo da casa e da cabana, em pixels do mundo. */
 export const CASA_X = 26 * TAM_TILE;
 export const CASA_Y = 24 * TAM_TILE;
-export const CABANA_X = 38 * TAM_TILE;
-export const CABANA_Y = 23 * TAM_TILE;
+export const CABANA_X = 33 * TAM_TILE;
+export const CABANA_Y = 24 * TAM_TILE;
 
 const LARG_TILES = 120;
 const ALT_TILES = 92;
@@ -130,8 +130,8 @@ export function gerarMundo(assets: Assets): MundoGerado {
   const casaX = casaTX * TAM_TILE;
   const casaY = casaTY * TAM_TILE;
   // a clareira cobre a casa, o quintal e a cabana de melhorias ao lado
-  for (let ty = casaTY - 5; ty < casaTY + 14; ty++) {
-    for (let tx = casaTX - 5; tx < casaTX + 26; tx++) {
+  for (let ty = casaTY - 4; ty < casaTY + 11; ty++) {
+    for (let tx = casaTX - 4; tx < casaTX + 20; tx++) {
       const t = nivel.tile(tx, ty);
       if (t === Tile.Vazio) continue;
       nivel.definirTile(tx, ty, rng.chance(0.15) ? Tile.GramaFlorida : Tile.Grama, rng.int(0, 3));
@@ -140,17 +140,17 @@ export function gerarMundo(assets: Assets): MundoGerado {
   // caminho de terra saindo da porta
   const portaTX = Math.floor((casaX + CASA_PORTA.x + CASA_PORTA.w / 2) / TAM_TILE);
   const portaTY = Math.floor((casaY + CASA_H) / TAM_TILE);
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 7; i++) {
     nivel.definirTile(portaTX, portaTY + i, Tile.Terra, rng.int(0, 2));
     if (i > 1) nivel.definirTile(portaTX + 1, portaTY + i, Tile.Terra, rng.int(0, 2));
   }
-  for (let i = 0; i < 20; i++) {
-    nivel.definirTile(portaTX + 1 + i, portaTY + 8, Tile.Terra, rng.int(0, 2));
+  for (let i = 0; i < 14; i++) {
+    nivel.definirTile(portaTX + 1 + i, portaTY + 6, Tile.Terra, rng.int(0, 2));
   }
   // ramal que sobe até a porta da cabana
   const cabanaPortaTX = Math.floor((CABANA_X + CABANA_PORTA.x + CABANA_PORTA.w / 2) / TAM_TILE);
   const cabanaPortaTY = Math.floor((CABANA_Y + CABANA_H) / TAM_TILE);
-  for (let ty = cabanaPortaTY; ty <= portaTY + 8; ty++) {
+  for (let ty = cabanaPortaTY; ty <= portaTY + 6; ty++) {
     nivel.definirTile(cabanaPortaTX, ty, Tile.Terra, rng.int(0, 2));
     nivel.definirTile(cabanaPortaTX + 1, ty, Tile.Terra, rng.int(0, 2));
   }
@@ -171,7 +171,7 @@ export function gerarMundo(assets: Assets): MundoGerado {
     h: CASA_COLISAO.h - 14,
   };
   // o lampião ao lado da porta ilumina a noite do vale
-  nivel.luzes.push({ x: casaX + 58, y: casaY + 57 });
+  nivel.luzes.push({ x: casaX + 44, y: casaY + 39 });
   nivel.portais.push({
     area: {
       x: casaX + CASA_PORTA.x,
@@ -186,16 +186,16 @@ export function gerarMundo(assets: Assets): MundoGerado {
   });
 
   // quintal: cerca, horta, barril, placa
-  colocar(nivel, assets.casa.cerca, casaX - 14, casaY + CASA_H - 2, { colisao: { w: 16, h: 6 } });
-  colocar(nivel, assets.casa.cerca, casaX - 30, casaY + CASA_H - 2, { colisao: { w: 16, h: 6 } });
-  colocar(nivel, assets.casa.horta, casaX - 22, casaY + CASA_H + 20);
-  colocar(nivel, assets.casa.horta, casaX - 6, casaY + CASA_H + 20);
-  colocar(nivel, assets.casa.barril, casaX + CASA_W + 8, casaY + CASA_H - 4, {
-    colisao: { w: 10, h: 6 },
+  colocar(nivel, assets.casa.cerca, casaX - 10, casaY + CASA_H - 2, { colisao: { w: 12, h: 5 } });
+  colocar(nivel, assets.casa.cerca, casaX - 22, casaY + CASA_H - 2, { colisao: { w: 12, h: 5 } });
+  colocar(nivel, assets.casa.horta, casaX - 18, casaY + CASA_H + 14);
+  colocar(nivel, assets.casa.horta, casaX - 4, casaY + CASA_H + 14);
+  colocar(nivel, assets.casa.barril, casaX + CASA_W + 6, casaY + CASA_H - 3, {
+    colisao: { w: 10, h: 5 },
     sombra: assets.sombras.p,
   });
-  colocar(nivel, assets.casa.placa, casaX + CASA_W + 22, casaY + CASA_H + 10, {
-    colisao: { w: 6, h: 4 },
+  colocar(nivel, assets.casa.placa, casaX + CASA_W + 18, casaY + CASA_H + 8, {
+    colisao: { w: 5, h: 4 },
   });
 
   // ---------------------------------------------------- cabana de melhorias
@@ -217,7 +217,7 @@ export function gerarMundo(assets: Assets): MundoGerado {
   nivel.portais.push({
     area: {
       x: CABANA_X + CABANA_PORTA.x,
-      y: CABANA_Y + CABANA_PORTA.y + 10,
+      y: CABANA_Y + CABANA_PORTA.y + 6,
       w: CABANA_PORTA.w,
       h: CABANA_PORTA.h,
     },
@@ -226,16 +226,16 @@ export function gerarMundo(assets: Assets): MundoGerado {
     entradaY: 0,
     rotulo: 'Entrar na cabana',
   });
-  nivel.luzes.push({ x: CABANA_X + 24, y: CABANA_Y + 62 });
+  nivel.luzes.push({ x: CABANA_X + 16, y: CABANA_Y + 42 });
 
   // máquina de venda, encostada na cabana
   const maquina = assets.cabana.maquinaVenda;
-  const maqX = CABANA_X + CABANA_W + 20;
-  const maqY = CABANA_Y + CABANA_H - 4;
+  const maqX = CABANA_X + CABANA_W + 14;
+  const maqY = CABANA_Y + CABANA_H - 2;
   colocar(nivel, maquina, maqX, maqY, { colisao: { w: 20, h: 8 }, sombra: assets.sombras.g });
-  colocar(nivel, assets.colheita.placa, maqX + 22, maqY - 2, { colisao: { w: 6, h: 4 } });
+  colocar(nivel, assets.colheita.placa, maqX + 17, maqY - 2, { colisao: { w: 6, h: 4 } });
   nivel.interativos.push({
-    area: { x: maqX - 16, y: maqY - 8, w: 32, h: 20 },
+    area: { x: maqX - 14, y: maqY - 10, w: 28, h: 22 },
     rotulo: 'Vender recursos',
     acao: 'venda',
   });
@@ -468,109 +468,28 @@ export function gerarMundo(assets: Assets): MundoGerado {
 }
 
 /**
- * Interior da casa: sala única mobiliada, do tamanho da tela (a câmera fica
- * praticamente parada) e com colisão em cada móvel.
+ * Interior da casa: um quarto pequeno (11x7 tiles) com a mobília encostada nas
+ * quatro paredes. Fora do quarto fica escuro, para o olho ir direto na sala.
  */
 export function criarInterior(assets: Assets): Nivel {
   const LT = 30;
-  const AT = 18;
-  const nivel = new Nivel(ID_CASA, 'Dentro de casa', LT, AT, 'interior', Tile.ParedeInterna);
+  const AT = 17;
+  const nivel = new Nivel(ID_CASA, 'Dentro de casa', LT, AT, 'interior', Tile.Vazio);
   const rng = new Rng(777);
 
-  // piso da sala; tudo em volta continua parede (a tela nunca mostra vazio)
-  const x0 = 2;
-  const x1 = 27;
-  const y0 = 3;
-  const y1 = 16;
+  const x0 = 10;
+  const x1 = 20;
+  const y0 = 5;
+  const y1 = 11;
+  // anel de parede em volta do quarto; o resto do mapa fica escuro
+  for (let ty = y0 - 2; ty <= y1 + 1; ty++) {
+    for (let tx = x0 - 2; tx <= x1 + 2; tx++) {
+      nivel.definirTile(tx, ty, Tile.ParedeInterna, rng.int(0, 1));
+    }
+  }
   for (let ty = y0; ty <= y1; ty++) {
     for (let tx = x0; tx <= x1; tx++) {
       nivel.definirTile(tx, ty, Tile.PisoMadeira, rng.int(0, 2));
-    }
-  }
-
-  // porta: duas colunas na parede de baixo
-  const portaTX = 14;
-  nivel.portais.push({
-    area: {
-      x: portaTX * TAM_TILE,
-      y: y1 * TAM_TILE,
-      w: TAM_TILE * 2,
-      h: TAM_TILE,
-    },
-    destino: ID_MUNDO,
-    entradaX: 0,
-    entradaY: 0,
-    rotulo: 'Sair',
-  });
-  nivel.entradaX = (portaTX + 1) * TAM_TILE;
-  nivel.entradaY = y1 * TAM_TILE + 10;
-
-  const c = assets.casa;
-  // ---- tapete primeiro (fica embaixo de tudo)
-  colocar(nivel, c.tapete, 240, 226, { ajusteBase: -58 });
-
-  // ---- parede do fundo: estante, janela, prateleira, troféu e lareira
-  colocar(nivel, c.estante, 92, 66, { colisao: { w: 40, h: 8 } });
-  colocar(nivel, c.janela, 162, 58);
-  colocar(nivel, c.prateleiraParede, 218, 54);
-  colocar(nivel, assets.cenario.caveira, 262, 52);
-  colocar(nivel, c.lareira, 332, 70, { colisao: { w: 36, h: 10 } });
-  nivel.fogos.push({ x: 332, y: 61 });
-  nivel.luzes.push({ x: 332, y: 58 });
-  colocar(nivel, c.quadro, 400, 58);
-
-  // ---- lado esquerdo: cama, armário e uma caixa de mantimentos
-  colocar(nivel, c.cama, 58, 152, { colisao: { w: 24, h: 22 } });
-  colocar(nivel, c.armario, 58, 202, { colisao: { w: 26, h: 10 } });
-  colocar(nivel, c.caixa, 52, 236, { colisao: { w: 22, h: 7 } });
-  colocar(nivel, c.vaso, 118, 246);
-
-  // ---- centro: mesa, duas cadeiras e o lampião aceso
-  colocar(nivel, c.mesa, 240, 210, { colisao: { w: 44, h: 12 } });
-  colocar(nivel, c.cadeira, 204, 214, { colisao: { w: 12, h: 6 } });
-  colocar(nivel, c.cadeira, 276, 214, { colisao: { w: 12, h: 6 } });
-  colocar(nivel, c.lampiao, 240, 194, { ajusteBase: 20 });
-  nivel.luzes.push({ x: 240, y: 188 });
-
-  // ---- lado direito: baú, banco, barril e planta
-  const bau = colocar(nivel, c.bau, 408, 132, { colisao: { w: 24, h: 9 } });
-  nivel.nomeados.set('bau', bau.objeto);
-  colocar(nivel, c.banco, 406, 184, { colisao: { w: 28, h: 8 } });
-  colocar(nivel, c.barril, 416, 238, { colisao: { w: 15, h: 7 } });
-  colocar(nivel, c.vaso, 356, 248);
-
-  // ---- o que dá para usar dentro de casa
-  nivel.interativos.push(
-    { area: { x: 40, y: 118, w: 40, h: 40 }, rotulo: 'Dormir até amanhecer', acao: 'cama' },
-    { area: { x: 392, y: 116, w: 34, h: 24 }, rotulo: 'Abrir o baú', acao: 'bau' },
-    { area: { x: 312, y: 44, w: 42, h: 30 }, rotulo: 'Aquecer as mãos', acao: 'lareira' },
-    { area: { x: 74, y: 40, w: 40, h: 30 }, rotulo: 'Ler o diário do avô', acao: 'estante' },
-    { area: { x: 146, y: 40, w: 34, h: 26 }, rotulo: 'Olhar pela janela', acao: 'janela' },
-  );
-
-  nivel.ordenarObjetos();
-  return nivel;
-}
-
-/**
- * Interior da cabana de melhorias: oficina com forja, bigorna, bancadas e as
- * duas pessoas que atendem o jogador.
- */
-export function criarInteriorCabana(assets: Assets): Nivel {
-  const LT = 30;
-  const AT = 18;
-  const nivel = new Nivel(ID_CABANA, 'Cabana de melhorias', LT, AT, 'cabana', Tile.ParedeInterna);
-  const rng = new Rng(4242);
-
-  const x0 = 2;
-  const x1 = 27;
-  const y0 = 3;
-  const y1 = 16;
-  for (let ty = y0; ty <= y1; ty++) {
-    for (let tx = x0; tx <= x1; tx++) {
-      // piso de madeira, e pedra em volta da forja (canto direito)
-      const perto = tx >= 19 && ty <= 8;
-      nivel.definirTile(tx, ty, perto ? Tile.Rocha : Tile.PisoMadeira, rng.int(0, 2));
     }
   }
 
@@ -583,47 +502,128 @@ export function criarInteriorCabana(assets: Assets): Nivel {
     rotulo: 'Sair',
   });
   nivel.entradaX = (portaTX + 1) * TAM_TILE;
-  nivel.entradaY = y1 * TAM_TILE + 10;
+  nivel.entradaY = y1 * TAM_TILE + 12;
+
+  const c = assets.casa;
+  // ---- tapete embaixo de tudo
+  colocar(nivel, c.tapete, 248, 176, { ajusteBase: -34 });
+
+  // ---- parede do fundo
+  colocar(nivel, c.estante, 186, 96, { colisao: { w: 26, h: 6 } });
+  colocar(nivel, c.janela, 218, 88);
+  colocar(nivel, c.prateleiraParede, 246, 86);
+  colocar(nivel, assets.cenario.caveira, 268, 86);
+  colocar(nivel, c.lareira, 302, 98, { colisao: { w: 24, h: 8 } });
+  nivel.fogos.push({ x: 302, y: 88 });
+  nivel.luzes.push({ x: 302, y: 86 });
+  colocar(nivel, c.quadro, 328, 88);
+
+  // ---- lado esquerdo
+  colocar(nivel, c.cama, 172, 128, { colisao: { w: 15, h: 12 } });
+  colocar(nivel, c.armario, 172, 158, { colisao: { w: 16, h: 7 } });
+
+  // ---- centro: mesa, cadeiras e lampião aceso
+  colocar(nivel, c.mesa, 248, 168, { colisao: { w: 28, h: 8 } });
+  colocar(nivel, c.cadeira, 226, 172, { colisao: { w: 8, h: 4 } });
+  colocar(nivel, c.cadeira, 272, 172, { colisao: { w: 8, h: 4 } });
+  colocar(nivel, c.lampiao, 248, 160, { ajusteBase: 14 });
+  nivel.luzes.push({ x: 248, y: 156 });
+
+  // ---- lado direito
+  const bau = colocar(nivel, c.bau, 322, 126, { colisao: { w: 16, h: 6 } });
+  nivel.nomeados.set('bau', bau.objeto);
+  colocar(nivel, c.banco, 322, 152, { colisao: { w: 18, h: 5 } });
+  colocar(nivel, c.barril, 326, 182, { colisao: { w: 10, h: 5 } });
+  colocar(nivel, c.caixa, 178, 184, { colisao: { w: 14, h: 5 } });
+  colocar(nivel, c.vaso, 202, 186);
+
+  // ---- o que dá para usar dentro de casa
+  nivel.interativos.push(
+    { area: { x: 160, y: 110, w: 28, h: 26 }, rotulo: 'Dormir até amanhecer', acao: 'cama' },
+    { area: { x: 310, y: 112, w: 26, h: 22 }, rotulo: 'Abrir o baú', acao: 'bau' },
+    { area: { x: 290, y: 78, w: 28, h: 24 }, rotulo: 'Aquecer as mãos', acao: 'lareira' },
+    { area: { x: 172, y: 78, w: 28, h: 22 }, rotulo: 'Ler o diário do avô', acao: 'estante' },
+    { area: { x: 208, y: 74, w: 24, h: 20 }, rotulo: 'Olhar pela janela', acao: 'janela' },
+  );
+
+  nivel.ordenarObjetos();
+  return nivel;
+}
+
+/**
+ * Interior da cabana: oficina apertada, com forja de pedra num canto e as duas
+ * pessoas que atendem o jogador.
+ */
+export function criarInteriorCabana(assets: Assets): Nivel {
+  const LT = 30;
+  const AT = 17;
+  const nivel = new Nivel(ID_CABANA, 'Cabana de melhorias', LT, AT, 'cabana', Tile.Vazio);
+  const rng = new Rng(4242);
+
+  const x0 = 9;
+  const x1 = 20;
+  const y0 = 5;
+  const y1 = 11;
+  for (let ty = y0 - 2; ty <= y1 + 1; ty++) {
+    for (let tx = x0 - 2; tx <= x1 + 2; tx++) {
+      nivel.definirTile(tx, ty, Tile.ParedeInterna, rng.int(0, 1));
+    }
+  }
+  for (let ty = y0; ty <= y1; ty++) {
+    for (let tx = x0; tx <= x1; tx++) {
+      // piso de madeira, e pedra no canto da forja
+      const forja = tx >= 17 && ty <= 7;
+      nivel.definirTile(tx, ty, forja ? Tile.Rocha : Tile.PisoMadeira, rng.int(0, 2));
+    }
+  }
+
+  const portaTX = 14;
+  nivel.portais.push({
+    area: { x: portaTX * TAM_TILE, y: y1 * TAM_TILE, w: TAM_TILE * 2, h: TAM_TILE },
+    destino: ID_MUNDO,
+    entradaX: 0,
+    entradaY: 0,
+    rotulo: 'Sair',
+  });
+  nivel.entradaX = (portaTX + 1) * TAM_TILE;
+  nivel.entradaY = y1 * TAM_TILE + 12;
 
   const c = assets.cabana;
   const casa = assets.casa;
 
-  // ---- parede do fundo: suporte de ferramentas, caixas e a forja
-  colocar(nivel, c.suporteFerramentas, 96, 60, { colisao: { w: 28, h: 6 } });
-  colocar(nivel, c.caixaPecas, 168, 58, { colisao: { w: 20, h: 6 } });
-  colocar(nivel, casa.quadro, 236, 52);
-  colocar(nivel, c.fornalha, 368, 84, { colisao: { w: 30, h: 12 } });
-  nivel.fogos.push({ x: 368, y: 66 });
-  nivel.luzes.push({ x: 368, y: 64 });
+  // ---- parede do fundo: ferramentas, peças e a forja
+  colocar(nivel, c.suporteFerramentas, 168, 94, { colisao: { w: 18, h: 5 } });
+  colocar(nivel, c.caixaPecas, 200, 90, { colisao: { w: 14, h: 5 } });
+  colocar(nivel, casa.quadro, 226, 88);
+  colocar(nivel, c.fornalha, 300, 100, { colisao: { w: 18, h: 7 } });
+  nivel.fogos.push({ x: 300, y: 90 });
+  nivel.luzes.push({ x: 300, y: 88 });
 
   // ---- estações de trabalho
-  colocar(nivel, c.bancadaOficina, 148, 118, { colisao: { w: 32, h: 12 } });
-  colocar(nivel, c.bigorna, 328, 116, { colisao: { w: 14, h: 8 }, sombra: assets.sombras.p });
-  colocar(nivel, casa.estante, 424, 168, { colisao: { w: 40, h: 8 } });
-  colocar(nivel, casa.barril, 60, 96, { colisao: { w: 13, h: 6 } });
-  colocar(nivel, casa.caixa, 62, 132, { colisao: { w: 22, h: 7 } });
-  colocar(nivel, casa.tapete, 240, 208, { ajusteBase: -58 });
-  colocar(nivel, casa.mesa, 240, 202, { colisao: { w: 44, h: 12 } });
-  colocar(nivel, casa.cadeira, 204, 208, { colisao: { w: 12, h: 6 } });
-  colocar(nivel, casa.cadeira, 276, 208, { colisao: { w: 12, h: 6 } });
-  colocar(nivel, casa.lampiao, 240, 192, { ajusteBase: 20 });
-  nivel.luzes.push({ x: 240, y: 186 });
-  colocar(nivel, casa.vaso, 424, 236);
-  colocar(nivel, casa.barril, 400, 150, { colisao: { w: 13, h: 6 } });
+  colocar(nivel, c.bancadaOficina, 168, 132, { colisao: { w: 22, h: 8 } });
+  colocar(nivel, c.bigorna, 288, 130, { colisao: { w: 10, h: 6 }, sombra: assets.sombras.p });
+  colocar(nivel, casa.estante, 200, 184, { colisao: { w: 26, h: 6 } });
+  colocar(nivel, casa.barril, 156, 176, { colisao: { w: 10, h: 5 } });
+  colocar(nivel, casa.caixa, 320, 186, { colisao: { w: 14, h: 5 } });
+  colocar(nivel, casa.tapete, 264, 168, { ajusteBase: -34 });
+  colocar(nivel, casa.mesa, 264, 162, { colisao: { w: 28, h: 8 } });
+  colocar(nivel, casa.lampiao, 264, 154, { ajusteBase: 14 });
+  nivel.luzes.push({ x: 264, y: 150 });
+  colocar(nivel, casa.vaso, 324, 152);
 
-  // ---- as duas pessoas que atendem (as posições casam com npcs.ts)
+  // ---- as duas pessoas (as posições casam com npcs.ts)
   nivel.interativos.push(
     {
-      area: { x: 298, y: 100, w: 48, h: 46 },
-      rotulo: 'Falar com Bruna (ferramentas)',
+      area: { x: 250, y: 104, w: 44, h: 40 },
+      rotulo: 'Falar com Bruna (ferramentas e armaduras)',
       acao: 'melhoria-ferreira',
     },
     {
-      area: { x: 116, y: 124, w: 48, h: 46 },
+      area: { x: 148, y: 140, w: 44, h: 40 },
       rotulo: 'Falar com Nilo (inventário e casa)',
       acao: 'melhoria-marceneiro',
     },
-    { area: { x: 132, y: 100, w: 36, h: 24 }, rotulo: 'Olhar a bancada', acao: 'bancada' },
+    { area: { x: 158, y: 118, w: 30, h: 20 }, rotulo: 'Olhar a bancada', acao: 'bancada' },
   );
 
   nivel.ordenarObjetos();

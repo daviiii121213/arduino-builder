@@ -70,6 +70,12 @@ export function desenharTerreno(
       const t = nivel.tile(tx, ty);
       const px = tx * TAM_TILE - camX;
       const py = ty * TAM_TILE - camY;
+      if (t === Tile.Vazio && nivel.ambiente !== 'exterior') {
+        // dentro de um prédio, o que está fora do quarto é só escuridão
+        g.fillStyle = '#0c0a14';
+        g.fillRect(px, py, TAM_TILE, TAM_TILE);
+        continue;
+      }
       const s = texturaDe(assets, t, nivel.variacao(tx, ty), quadroAgua);
       g.drawImage(s, px, py);
       if (t === Tile.Vazio) {

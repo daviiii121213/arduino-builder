@@ -43,12 +43,12 @@ import { PainelVenda } from '../ui/venda';
 import { PainelMelhorias } from '../ui/melhorias';
 import { PainelBau } from '../ui/bau';
 import { PainelTestes, type AcaoTeste } from '../ui/testes';
+import { PainelMochila } from '../ui/mochila';
 import { Botao, ListaBotoes, textoGrande } from '../ui/widgets';
 import { desenharPainel } from '../gfx/sprites/ui';
-import { texto, paragrafo, quebrarTexto } from '../gfx/font';
+import { texto } from '../gfx/font';
 import { P } from '../gfx/palette';
 import { clamp, dist, rectsOverlap, TAU } from '../core/math';
-import { TODAS_FICHAS, NOME_CATEGORIA } from '../entities/dinoTypes';
 import { CASA_H, CASA_PORTA } from '../gfx/sprites/house';
 import { CABANA_H, CABANA_PORTA } from '../gfx/sprites/cabin';
 import { Tile } from '../world/tiles';
@@ -95,18 +95,23 @@ export class CenaJogo implements Cena {
   private painelMelhorias: PainelMelhorias;
   private painelBau: PainelBau;
   private painelTestes: PainelTestes;
+  private painelMochila!: PainelMochila;
 
   private pausado = false;
-  private bestiario = false;
   private menuPausa!: ListaBotoes;
   private menuMorte!: ListaBotoes;
   private painelPausa: Sprite;
-  private painelGrande: Sprite;
 
   private transicao: { t: number; fase: 'saindo' | 'entrando'; acao: (() => void) | null } | null =
     null;
   private dica: { rotulo: string; x: number; y: number } | null = null;
-  private dicaFerramenta: { rotulo: string; x: number; y: number } | null = null;
+  private dicaFerramenta: {
+    rotulo: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null = null;
   private listaDesenho: ItemDesenho[] = [];
   /** Nó em foco (mostra a barrinha de vida por alguns segundos). */
   private noEmFoco: { no: NoRecurso; tempo: number } | null = null;
@@ -151,7 +156,8 @@ export class CenaJogo implements Cena {
     this.inventario = new Inventario(this.progresso.slotsInventario, this.progresso.pilhaMax);
     this.bau = new Recipiente(24, this.progresso.slotsBau, 99);
 
-    // as quatro ferramentas vêm com o jogador; o resto é comprado
+    // a lança é a arma de sempre; as quatro ferramentas vêm com o jogador
+    this.inventario.guardar(criarItem('arma', 'lanca'));
     this.inventario.guardar(criarItem('ferramenta', 'machado'));
     this.inventario.guardar(criarItem('ferramenta', 'picareta'));
     this.inventario.guardar(criarItem('ferramenta', 'pa'));
@@ -159,7 +165,6 @@ export class CenaJogo implements Cena {
     if (this.progresso.demo) this.encherRecursos();
 
     this.painelPausa = desenharPainel(212, 152);
-    this.painelGrande = desenharPainel(420, 234);
     this.tempoDoDia.ativo = true;
     this.tempoDoDia.fase = 0.34;
 
@@ -216,6 +221,16 @@ export class CenaJogo implements Cena {
       () => this.jogo.audio.menu(),
     );
 
+    this.painelMochila = new PainelMochila(
+      this.inventario,
+      this.progresso,
+      this.carteira,
+      jogo.assets,
+      () => {
+        this.jogador.armadura = this.progresso.armaduraVestida;
+        this.jogo.audio.confirmar();
+      },
+    );
     this.painelTestes = new PainelTestes(this.acoesDeTeste());
     this.montarMenus();
     if (opcoes.chegada) this.chegadaDramatica = true;
@@ -236,7 +251,8 @@ export class CenaJogo implements Cena {
       this.painelVenda.aberta ||
       this.painelMelhorias.aberta ||
       this.painelBau.aberta ||
-      this.painelTestes.aberta
+      this.painelTestes.aberta ||
+      this.painelMochila.aberta
     );
   }
 
@@ -299,6 +315,32 @@ export class CenaJogo implements Cena {
         },
       },
       {
+        rotulo: 'Abrir a mochila (TAB)',
+        grupo: 'itens',
+        executar: () => this.painelMochila.abrir('bolsa'),
+      },
+      {
+        rotulo: 'Trocar de armadura',
+        grupo: 'armadura',
+        executar: () => {
+          const ordem: (typeof this.progresso.armaduraVestida)[] = [
+            'couro',
+            'osso',
+            'cristal',
+            null,
+          ];
+          const i = ordem.indexOf(this.progresso.armaduraVestida);
+          this.progresso.armaduraVestida = ordem[(i + 1) % ordem.length];
+          this.jogador.armadura = this.progresso.armaduraVestida;
+          this.hud.avisar(
+            this.progresso.armaduraVestida
+              ? `Vestindo ${this.progresso.armaduraVestida}.`
+              : 'Sem armadura.',
+            2,
+          );
+        },
+      },
+      {
         rotulo: 'Zerar melhorias (testar compras)',
         grupo: 'melhorias',
         executar: () => this.zerarProgresso(),
@@ -331,12 +373,15 @@ export class CenaJogo implements Cena {
     for (const id of Object.keys(this.progresso.ferramentas) as FerramentaId[]) {
       this.progresso.ferramentas[id] = 0;
     }
-    this.progresso.slotsInventario = 6;
+    this.progresso.slotsInventario = 10;
     this.progresso.pilhaMax = 20;
     this.progresso.slotsBau = 12;
     this.progresso.casa = { camaMacia: false, bauReforcado: false, telhadoNovo: false };
+    this.progresso.armaduras.clear();
+    this.progresso.armaduraVestida = null;
+    this.jogador.armadura = null;
     this.progresso.compradas.clear();
-    this.inventario.liberados = 6;
+    this.inventario.liberados = 10;
     this.inventario.pilhaMax = 20;
     this.bau.redimensionar(24, 12);
     this.objetoCasa.sprite = this.jogo.assets.casa.exterior;
@@ -380,8 +425,9 @@ export class CenaJogo implements Cena {
     const x = Math.round(cx - larg / 2);
     this.menuPausa = new ListaBotoes([
       new Botao(x, 92, larg, 18, 'Continuar', () => this.retomar()),
-      new Botao(x, 116, larg, 18, 'Bestiário', () => {
-        this.bestiario = true;
+      new Botao(x, 116, larg, 18, 'Mochila e bestiário', () => {
+        this.pausado = false;
+        this.painelMochila.abrir('bestiario');
       }),
       new Botao(x, 140, larg, 18, this.rotuloSom(), () => this.alternarSom()),
       new Botao(x, 164, larg, 18, 'Voltar ao menu', () => this.voltarAoMenu()),
@@ -434,9 +480,8 @@ export class CenaJogo implements Cena {
         150,
         { vida: 1.2, gravidade: 100 },
       );
-      this.hud.avisar('Você caiu a mais de 100 milhões de anos do seu tempo.', 6);
-      this.hud.avisar('Botão ESQUERDO usa a ferramenta, DIREITO golpeia em volta.', 8);
-      this.hud.avisar('Sua casa está ali; a cabana de melhorias, ao lado.', 10);
+      this.hud.avisar('Mais de 100 milhões de anos no passado.', 4);
+      this.hud.avisar('ESQUERDO: ferramenta · DIREITO: golpe · TAB: mochila', 7);
       window.setTimeout(() => this.jogo.audio.rugido(true), 1400);
     }
   }
@@ -466,19 +511,8 @@ export class CenaJogo implements Cena {
       this.painelMelhorias.atualizar(dt, entrada);
       this.painelBau.atualizar(dt, entrada);
       this.painelTestes.atualizar(dt, entrada);
+      this.painelMochila.atualizar(dt, entrada);
       this.particulas.atualizar(dt);
-      return;
-    }
-
-    // ---- bestiário
-    if (this.bestiario) {
-      if (
-        entrada.teclaAgora('Escape', 'Tab', 'Enter', 'Space') ||
-        entrada.botaoAgora(0) ||
-        entrada.botaoAgora(2)
-      ) {
-        this.bestiario = false;
-      }
       return;
     }
 
@@ -511,7 +545,7 @@ export class CenaJogo implements Cena {
     }
 
     if (entrada.teclaAgora('Tab')) {
-      this.bestiario = true;
+      this.painelMochila.abrir('bolsa');
       this.jogo.audio.menu();
       return;
     }
@@ -555,6 +589,7 @@ export class CenaJogo implements Cena {
     if (entrada.teclaAgora('KeyQ')) this.inventario.girarSelecao(-1);
 
     this.tempoJogo += dt;
+    this.sincronizarEquipamento();
     this.mundo.nivel = this.nivel;
     this.mundo.tempo = this.tempoJogo;
     this.mundo.dinos = this.dinos;
@@ -585,6 +620,20 @@ export class CenaJogo implements Cena {
     this.camera.atualizar(dt);
   }
 
+  /** O que está na mão e o que está vestido, lido do inventário e do progresso. */
+  private sincronizarEquipamento(): void {
+    const item = this.inventario.itemSelecionado;
+    if (item?.tipo === 'arma') {
+      this.jogador.equipado = { tipo: 'arma', id: 'lanca', nivel: 0 };
+    } else if (item?.tipo === 'ferramenta') {
+      const id = item.id as FerramentaId;
+      this.jogador.equipado = { tipo: 'ferramenta', id, nivel: this.progresso.nivel(id) };
+    } else {
+      this.jogador.equipado = null;
+    }
+    this.jogador.armadura = this.progresso.armaduraVestida;
+  }
+
   // ------------------------------------------------------------ ferramentas
 
   /** Nó mais próximo que a ferramenta escolhida sabe trabalhar. */
@@ -608,17 +657,25 @@ export class CenaJogo implements Cena {
     this.dicaFerramenta = null;
     if (!id) {
       if (entrada.botaoAgora(0)) {
-        this.hud.avisar('Escolha uma ferramenta na barra de itens (1 a 4).', 2.5);
+        this.hud.avisar(
+          this.inventario.armaSelecionada
+            ? 'A lança é arma: ataque com o botão direito.'
+            : 'Escolha uma ferramenta na barra (2 a 5).',
+          2.2,
+        );
       }
       return;
     }
 
     const alvo = this.alvoDaFerramenta(id);
     if (alvo) {
+      const s = alvo.objeto.sprite;
       this.dicaFerramenta = {
-        rotulo: `${FERRAMENTAS[id].verbo}: ${alvo.def.nome}`,
-        x: alvo.x - this.camera.desenhoX,
-        y: alvo.y - 46 - this.camera.desenhoY,
+        rotulo: alvo.def.nome,
+        x: alvo.objeto.x - this.camera.desenhoX - 2,
+        y: alvo.objeto.y - this.camera.desenhoY - 2,
+        w: s.width + 3,
+        h: s.height + 3,
       };
     }
 
@@ -913,6 +970,7 @@ export class CenaJogo implements Cena {
   /** Efeitos visíveis de uma melhoria comprada. */
   private aplicarMelhoria(nome: string): void {
     this.inventario.liberados = this.progresso.slotsInventario;
+    this.jogador.armadura = this.progresso.armaduraVestida;
     this.inventario.pilhaMax = this.progresso.pilhaMax;
     this.bau.redimensionar(24, this.progresso.slotsBau);
     if (this.progresso.casa.telhadoNovo) {
@@ -1056,6 +1114,11 @@ export class CenaJogo implements Cena {
       g.globalAlpha = 1;
     }
 
+    if (this.dicaFerramenta) {
+      const d = this.dicaFerramenta;
+      this.hud.desenharAlvo(g, d.x, d.y, d.w, d.h);
+    }
+
     g.drawImage(this.jogo.assets.vinheta, 0, 0);
 
     // ---- interface
@@ -1066,10 +1129,8 @@ export class CenaJogo implements Cena {
       carteira: this.carteira,
       hora: this.tempoDoDia.horaDoDia,
       periodo: this.tempoDoDia.periodo,
+      alvo: this.dicaFerramenta?.rotulo ?? null,
     });
-    if (this.dicaFerramenta && !this.dica) {
-      this.hud.desenharDicaFerramenta(g, this.dicaFerramenta.rotulo, this.dicaFerramenta.x, this.dicaFerramenta.y);
-    }
     if (this.dica) {
       this.hud.desenharDicaInteracao(g, this.dica.rotulo, this.dica.x, this.dica.y);
     }
@@ -1091,12 +1152,12 @@ export class CenaJogo implements Cena {
     this.painelMelhorias.desenhar(g);
     this.painelBau.desenhar(g);
     this.painelTestes.desenhar(g);
+    this.painelMochila.desenhar(g);
 
     if (this.pausado) this.desenharPausa(g);
     if (!this.jogador.vivo) this.desenharMorte(g);
-    if (this.bestiario) this.desenharBestiario(g);
 
-    if (this.jogo.entrada.mouseNaTela && !this.bestiario) {
+    if (this.jogo.entrada.mouseNaTela) {
       this.hud.desenharCursor(
         g,
         this.jogo.assets,
@@ -1222,45 +1283,4 @@ export class CenaJogo implements Cena {
     );
   }
 
-  private desenharBestiario(g: CanvasRenderingContext2D): void {
-    g.globalAlpha = 0.86;
-    g.fillStyle = '#07060c';
-    g.fillRect(0, 0, LARGURA, ALTURA);
-    g.globalAlpha = 1;
-    const x = Math.round((LARGURA - this.painelGrande.width) / 2);
-    const y = 18;
-    g.drawImage(this.painelGrande, x, y);
-    texto(g, 'BESTIÁRIO DO VALE', LARGURA / 2, y + 10, {
-      cor: P.ambar,
-      sombra: P.contorno,
-      alinhamento: 'centro',
-    });
-
-    const colunas = 2;
-    const largCol = 196;
-    TODAS_FICHAS.forEach((f, i) => {
-      const col = i % colunas;
-      const linha = Math.floor(i / colunas);
-      const cx = x + 10 + col * (largCol + 8);
-      const cy = y + 26 + linha * 40;
-      const q = this.jogo.assets.dinos[f.id].direita[0];
-      g.drawImage(q, Math.round(cx + 18 - q.width / 2), Math.round(cy + 30 - q.height));
-      texto(g, f.nome, cx + 40, cy, { cor: P.osso, sombra: P.contorno });
-      texto(g, NOME_CATEGORIA[f.categoria], cx + 40, cy + 9, {
-        cor: P.ambar,
-        sombra: P.contorno,
-      });
-      const desc = quebrarTexto(f.descricao, largCol - 44);
-      paragrafo(g, desc.slice(0, 2), cx + 40, cy + 19, {
-        cor: '#a89fbe',
-        sombra: P.contorno,
-      });
-    });
-
-    texto(g, 'TAB ou ESC para fechar', LARGURA / 2, y + this.painelGrande.height - 12, {
-      cor: '#8b83a3',
-      sombra: P.contorno,
-      alinhamento: 'centro',
-    });
-  }
 }

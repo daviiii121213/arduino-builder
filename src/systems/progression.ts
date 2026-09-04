@@ -6,7 +6,9 @@
  */
 
 import type { FerramentaId } from '../gfx/sprites/tools';
+import type { ArmaduraId } from '../gfx/sprites/armor';
 import { FERRAMENTAS, nomeFerramenta } from './tools';
+import { ARMADURAS, TODAS_ARMADURAS } from './armor';
 
 /** Quem atende o jogador na cabana. */
 export type Vendedor = 'ferreira' | 'marceneiro';
@@ -28,8 +30,12 @@ export class Progresso {
     pa: 0,
     enxada: 0,
   };
-  /** Espaços liberados no inventário (de 6 a 10). */
-  slotsInventario = 6;
+  /** Espaços liberados no inventário: 10 no começo, 20 e 30 com as melhorias. */
+  slotsInventario = 10;
+  /** Armaduras compradas. */
+  armaduras = new Set<ArmaduraId>();
+  /** Armadura vestida (null = sem armadura). */
+  armaduraVestida: ArmaduraId | null = null;
   /** Quanto cabe em cada espaço. */
   pilhaMax = 20;
   /** Espaços do baú de casa. */
@@ -49,10 +55,12 @@ export class Progresso {
     for (const id of Object.keys(this.ferramentas) as FerramentaId[]) {
       this.ferramentas[id] = FERRAMENTAS[id].niveis.length - 1;
     }
-    this.slotsInventario = 10;
+    this.slotsInventario = 30;
     this.pilhaMax = 999;
     this.slotsBau = 24;
     this.casa = { camaMacia: true, bauReforcado: true, telhadoNovo: true };
+    for (const a of TODAS_ARMADURAS) this.armaduras.add(a.id);
+    this.armaduraVestida = 'cristal';
     for (const m of CATALOGO) this.compradas.add(m.id);
   }
 }
@@ -64,7 +72,7 @@ export interface Melhoria {
   descricao: string;
   custo: number;
   /** Categoria mostrada na lista. */
-  grupo: 'Ferramentas' | 'Inventário' | 'Casa';
+  grupo: 'Ferramentas' | 'Armadura' | 'Inventário' | 'Casa';
   /** Já pode ser comprada? (respeita a ordem das melhorias em cadeia) */
   disponivel: (p: Progresso) => boolean;
   /** Já foi comprada / não faz mais sentido? */
@@ -89,38 +97,59 @@ function melhoriaFerramenta(id: FerramentaId, nivel: number): Melhoria {
   };
 }
 
+/** Uma armadura à venda na ferreira. */
+function melhoriaArmadura(id: ArmaduraId): Melhoria {
+  const a = ARMADURAS[id];
+  return {
+    id: `armadura-${id}`,
+    vendedor: 'ferreira',
+    grupo: 'Armadura',
+    nome: a.nome,
+    descricao: a.descricao,
+    custo: a.custo,
+    disponivel: () => true,
+    concluida: (p) => p.armaduras.has(id),
+    aplicar: (p) => {
+      p.armaduras.add(id);
+      p.armaduraVestida = id;
+    },
+  };
+}
+
 export const CATALOGO: Melhoria[] = [
   // ---------------------------------------------------- ferreira: ferramentas
   ...(Object.keys(FERRAMENTAS) as FerramentaId[]).flatMap((id) => [
     melhoriaFerramenta(id, 1),
     melhoriaFerramenta(id, 2),
   ]),
+  // ---------------------------------------------------- ferreira: armaduras
+  ...TODAS_ARMADURAS.map((a) => melhoriaArmadura(a.id)),
 
   // -------------------------------------------- marceneiro: inventário e casa
   {
     id: 'bolsa-1',
     vendedor: 'marceneiro',
     grupo: 'Inventário',
-    nome: 'Bolsa de couro',
-    descricao: 'Libera dois espaços no inventário (6 → 8).',
-    custo: 150,
-    disponivel: (p) => p.slotsInventario === 6,
-    concluida: (p) => p.slotsInventario >= 8,
+    nome: 'Bolsa de couro (nível 2)',
+    descricao: 'Dobra o inventário: 10 → 20 espaços, vistos no TAB.',
+    custo: 320,
+    disponivel: (p) => p.slotsInventario === 10,
+    concluida: (p) => p.slotsInventario >= 20,
     aplicar: (p) => {
-      p.slotsInventario = 8;
+      p.slotsInventario = 20;
     },
   },
   {
     id: 'bolsa-2',
     vendedor: 'marceneiro',
     grupo: 'Inventário',
-    nome: 'Mochila de fibra',
-    descricao: 'Libera os dois últimos espaços do inventário (8 → 10).',
-    custo: 360,
-    disponivel: (p) => p.slotsInventario === 8,
-    concluida: (p) => p.slotsInventario >= 10,
+    nome: 'Mochila de expedição (nível 3)',
+    descricao: 'Leva o inventário ao máximo: 20 → 30 espaços.',
+    custo: 700,
+    disponivel: (p) => p.slotsInventario === 20,
+    concluida: (p) => p.slotsInventario >= 30,
     aplicar: (p) => {
-      p.slotsInventario = 10;
+      p.slotsInventario = 30;
     },
   },
   {

@@ -20,7 +20,15 @@ import { texto } from '../gfx/font';
 import type { Mundo } from './context';
 import { PROPS } from '../world/tiles';
 
-type Estado = 'vagar' | 'pastar' | 'perseguir' | 'preparar' | 'recuar' | 'fugir' | 'atordoado';
+type Estado =
+  | 'vagar'
+  | 'pastar'
+  | 'perseguir'
+  | 'preparar'
+  | 'recuar'
+  | 'fugir'
+  | 'atordoado'
+  | 'voltando';
 
 const TEMPO_RESSURGIR = 26;
 
@@ -54,6 +62,13 @@ export class Dino {
   private rng: Rng;
   private pegada: Pegada;
   private vezesFerido = 0;
+  /** Enquanto for maior que zero, o dino ignora o jogador (acabou de desistir). */
+  private desinteresse = 0;
+  /**
+   * Tempo total de caçada. Diferente de `tempoEstado`, não reinicia entre
+   * perseguir/preparar/recuar — é o que garante que a perseguição acaba.
+   */
+  private tempoPerseguindo = 0;
   private empurraoX = 0;
   private empurraoY = 0;
 
@@ -104,6 +119,10 @@ export class Dino {
   private trocarEstado(e: Estado): void {
     this.estado = e;
     this.tempoEstado = 0;
+    // sair da caçada zera o cronômetro de paciência
+    if (e === 'vagar' || e === 'pastar' || e === 'voltando' || e === 'fugir') {
+      this.tempoPerseguindo = 0;
+    }
   }
 
   atualizar(dt: number, mundo: Mundo): void {
@@ -116,6 +135,10 @@ export class Dino {
     if (this.alerta > 0) this.alerta -= dt;
     if (this.calma > 0) this.calma -= dt;
     if (this.recarga > 0) this.recarga -= dt;
+    if (this.desinteresse > 0) this.desinteresse -= dt;
+    if (this.estado === 'perseguir' || this.estado === 'preparar' || this.estado === 'recuar') {
+      this.tempoPerseguindo += dt;
+    }
 
     // ---- morto: espera para reaparecer
     if (!this.vivo) {
@@ -128,9 +151,10 @@ export class Dino {
     const distJogador = j.vivo ? dist(this.x, this.centroY, j.centroX, j.centroY) : Infinity;
     const jogadorNaAgua = j.vivo && PROPS[mundo.nivel.tileEm(j.x, j.y)].agua;
 
-    // ---- percepção
+    // ---- percepção (desligada por alguns segundos depois de desistir)
+    const distDeCasa = dist(this.x, this.y, this.nascimentoX, this.nascimentoY);
     let percebe = false;
-    if (j.vivo) {
+    if (j.vivo && this.desinteresse <= 0) {
       if (f.aquatico) {
         // só se interessa por quem entra na água (ou chega bem na beira)
         percebe = distJogador < f.percepcao && (jogadorNaAgua || distJogador < 46);
@@ -169,8 +193,14 @@ export class Dino {
       }
 
       case 'perseguir': {
-        if (!j.vivo || distJogador > f.percepcao * 1.5) {
-          this.trocarEstado(f.categoria === 'herbivoro' ? 'pastar' : 'vagar');
+        // desiste se o jogador escapou, se saiu do território ou se cansou
+        const escapou = !j.vivo || distJogador > f.percepcao * 1.6;
+        const longeDeCasa = distDeCasa > f.raioTerritorio;
+        const cansou = this.tempoPerseguindo > f.paciencia;
+        if (escapou || longeDeCasa || cansou) {
+          this.desinteresse = escapou ? 2.5 : 6;
+          this.trocarEstado('voltando');
+          if (longeDeCasa || cansou) mundo.particulas.texto('...', this.x, this.centroY - 10, '#a89fbe');
           break;
         }
         // aquáticos não saem da água: rondam a margem mais próxima
@@ -217,12 +247,23 @@ export class Dino {
         break;
       }
 
+      case 'voltando': {
+        // volta caminhando para o próprio território e retoma a rotina
+        this.irPara(this.nascimentoX, this.nascimentoY, f.velocidade * 0.9, dt, mundo);
+        if (distDeCasa < 24 || this.tempoEstado > 12) {
+          this.escolherDestino();
+          this.trocarEstado(f.categoria === 'herbivoro' ? 'pastar' : 'vagar');
+        }
+        break;
+      }
+
       case 'fugir': {
         const ax = this.x - (j.centroX - this.x);
         const ay = this.y - (j.centroY - this.y);
         this.irPara(ax, ay, f.velocidadeCorrida, dt, mundo);
         if (this.tempoEstado > 4 || distJogador > f.percepcao * 1.6) {
-          this.trocarEstado(f.categoria === 'herbivoro' ? 'pastar' : 'vagar');
+          this.desinteresse = 3;
+          this.trocarEstado(distDeCasa > f.raioTerritorio ? 'voltando' : 'vagar');
           this.escolherDestino();
         }
         break;
@@ -420,6 +461,7 @@ export class Dino {
     this.vezesFerido = 0;
     this.vx = 0;
     this.vy = 0;
+    this.desinteresse = 0;
     this.trocarEstado(this.ficha.categoria === 'herbivoro' ? 'pastar' : 'vagar');
     mundo.particulas.animacao(mundo.assets.efeitos.ondaBranca, this.x, this.centroY, 0.5);
   }

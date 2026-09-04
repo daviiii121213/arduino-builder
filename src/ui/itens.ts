@@ -13,6 +13,7 @@ import { nomeFerramenta } from '../systems/tools';
 import { RECURSOS } from '../systems/resources';
 
 export function iconeDoItem(assets: Assets, progresso: Progresso, item: Item): Sprite {
+  if (item.tipo === 'arma') return assets.jogador.lanca;
   if (item.tipo === 'ferramenta') {
     const id = item.id as FerramentaId;
     return assets.ferramentas.ferramentas[id][progresso.nivel(id)];
@@ -21,6 +22,7 @@ export function iconeDoItem(assets: Assets, progresso: Progresso, item: Item): S
 }
 
 export function nomeDoItem(progresso: Progresso, item: Item): string {
+  if (item.tipo === 'arma') return 'Lança de pedra';
   if (item.tipo === 'ferramenta') {
     const id = item.id as FerramentaId;
     return nomeFerramenta(id, progresso.nivel(id));
@@ -29,6 +31,7 @@ export function nomeDoItem(progresso: Progresso, item: Item): string {
 }
 
 export function descricaoDoItem(progresso: Progresso, item: Item): string {
+  if (item.tipo === 'arma') return 'Sua arma: ataque em área com o botão direito.';
   if (item.tipo === 'ferramenta') {
     const id = item.id as FerramentaId;
     void progresso;

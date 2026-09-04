@@ -36,30 +36,28 @@ const ARAUCARIA = [
   '.........kFfk.........',
   '........kFffdk........',
   '.......kFfffddk.......',
-  '......kFffffdddk......',
-  '.....kkFfffddddkk.....',
-  '.......kFfffddk.......',
-  '......kFffffdddk......',
-  '.....kFfffffddddk.....',
-  '....kFffffffddddk.....',
-  '...kkFfffffdddddkk....',
-  '.....kFfffffddddk.....',
-  '....kFffffffddddk.....',
-  '...kFfffffffdddddk....',
-  '..kFfffffffdddddddk...',
-  '.kkFfffffffdddddddkk..',
-  '....kFfffffffddddk....',
-  '...kFfffffffdddddk....',
-  '..kFfffffffddddddddk..',
-  '.kFfffffffdddddddddk..',
-  'kkFfffffffdddddddddkk.',
-  '.....kkkkTtkkkkk......',
-  '.........kTtk.........',
-  '.........kTtk.........',
-  '.........kTtk.........',
-  '........kkTttk........',
-  '.......kTtttttk.......',
-  '......kkttkkkttk......',
+  '......kkFfffddkk......',
+  '........kFffdk........',
+  '.......kFffffdk.......',
+  '......kFfffffddk......',
+  '.....kkFfffffddkk.....',
+  '.......kFffffdk.......',
+  '......kFfffffddk......',
+  '.....kFfffffffddk.....',
+  '....kkFfffffffddkk....',
+  '......kFfffffddk......',
+  '.....kFfffffffddk.....',
+  '...kFfffffffffdddk....',
+  '..kkFfffffffffdddkk...',
+  '.....kFfffffffdk......',
+  '...kFfffffffffdddk....',
+  '.kkFfffffffffffdddkk..',
+  '......kkkkTtkkkk......',
+  '..........kTtk........',
+  '..........kTtk........',
+  '.........kkTttk.......',
+  '........kTtttttk......',
+  '.......kkttkkkttk.....',
 ];
 
 /**
@@ -67,17 +65,17 @@ const ARAUCARIA = [
  * compostas. Desenhada com traços radiais — cada folha tem nervura e folíolos.
  */
 function desenharCicadacea(): Sprite {
-  const W = 34;
-  const H = 34;
+  const W = 28;
+  const H = 28;
   const p = new Pincel(W, H);
   const rng = new Rng(4711);
   const cx = W / 2;
   const baseTronco = H - 1;
-  const topo = 14;
+  const topo = 15;
 
   // tronco escamoso
   for (let y = topo; y <= baseTronco; y++) {
-    const larg = 3 + Math.floor((y - topo) / 7);
+    const larg = 2 + Math.floor((y - topo) / 7);
     for (let x = -larg; x <= larg; x++) {
       const cor = x < -larg + 1 ? P.tronco : x > larg - 1 ? '#4a2f1c' : P.troncoLuz;
       p.ponto(cx + x, y, cor);
@@ -94,9 +92,9 @@ function desenharCicadacea(): Sprite {
   p.linha(cx - 4, baseTronco, cx + 4, baseTronco, P.contorno);
 
   // coroa de folhas
-  const angulos = [-2.95, -2.55, -2.15, -1.75, -1.4, -1.0, -0.6, -0.2];
+  const angulos = [-3.0, -2.7, -2.4, -2.1, -1.8, -1.5, -1.2, -0.9, -0.6, -0.3, -0.05];
   for (const ang of angulos) {
-    const comp = 13 + rng.int(0, 3);
+    const comp = 12 + rng.int(0, 2);
     const claro = Math.cos(ang) < 0;
     for (let t = 0; t < comp; t++) {
       // a folha arqueia para baixo nas pontas
@@ -109,7 +107,7 @@ function desenharCicadacea(): Sprite {
       if (t > 2 && t % 2 === 0) {
         const nx = -Math.sin(ang);
         const ny = Math.cos(ang);
-        const tam = 1 + Math.round((1 - t / comp) * 2);
+        const tam = 1 + Math.round((1 - t / comp) * 3);
         for (let k = 1; k <= tam; k++) {
           p.ponto(x + nx * k, y + ny * k, claro ? P.folha : P.folhaEscura);
           p.ponto(x - nx * k, y - ny * k, claro ? P.folhaClara : P.folha);

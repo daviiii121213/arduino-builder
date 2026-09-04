@@ -9,8 +9,8 @@ export function criarNpcsDaCabana(assets: Assets): Npc[] {
       'Bruna',
       'Ferreira',
       'ferreira',
-      322,
-      132,
+      272,
+      128,
       assets.cabana.ferreira,
       [
         'Traga dinheiro e eu deixo essas suas ferramentas de pedra irreconhecíveis.',
@@ -21,8 +21,8 @@ export function criarNpcsDaCabana(assets: Assets): Npc[] {
       'Nilo',
       'Marceneiro',
       'marceneiro',
-      140,
-      156,
+      170,
+      164,
       assets.cabana.marceneiro,
       [
         'Bolsa apertada? Baú pequeno? Telhado furado? Isso eu resolvo.',
