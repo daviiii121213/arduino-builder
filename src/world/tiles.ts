@@ -15,6 +15,7 @@ export enum Tile {
   ParedeInterna,
   Tapete,
   Concreto,
+  TerraArada,
 }
 
 export interface PropTile {
@@ -45,6 +46,7 @@ export const PROPS: Record<Tile, PropTile> = {
   [Tile.ParedeInterna]: { ...PADRAO, solido: true },
   [Tile.Tapete]: { ...PADRAO },
   [Tile.Concreto]: { ...PADRAO },
+  [Tile.TerraArada]: { ...PADRAO, atrito: 0.95 },
 };
 
 export function ehAgua(t: Tile): boolean {

@@ -1,7 +1,7 @@
 /** Ajudantes para posicionar objetos de cenário com colisão e sombra. */
 
 import type { Sprite } from '../gfx/pixel';
-import type { Nivel } from './level';
+import type { Colisor, Nivel, ObjetoCenario } from './level';
 
 export interface OpcoesObjeto {
   /** Caixa de colisão na base: largura e altura em pixels. */
@@ -24,23 +24,26 @@ export function colocar(
   x: number,
   y: number,
   opc: OpcoesObjeto = {},
-): void {
+): { objeto: ObjetoCenario; colisor?: Colisor } {
   const px = Math.round(x - sprite.width / 2);
   const py = Math.round(y - sprite.height);
-  nivel.adicionarObjeto({
+  const objeto: ObjetoCenario = {
     sprite,
     x: px,
     y: py,
     base: y + (opc.ajusteBase ?? 0),
     balanca: opc.balanca,
     sombra: opc.sombra,
-  });
+  };
+  nivel.adicionarObjeto(objeto);
+  let colisor: Colisor | undefined;
   if (opc.colisao) {
-    nivel.adicionarColisor({
+    colisor = nivel.adicionarColisor({
       x: Math.round(x - opc.colisao.w / 2),
       y: Math.round(y - opc.colisao.h),
       w: opc.colisao.w,
       h: opc.colisao.h,
     });
   }
+  return { objeto, colisor };
 }

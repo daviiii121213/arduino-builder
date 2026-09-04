@@ -8,29 +8,38 @@
 import { Vida } from '../systems/health';
 import { Fome } from '../systems/hunger';
 import { mover, type Pegada } from '../systems/collision';
-import { angleDelta, clamp, damp, TAU } from '../core/math';
+import { clamp, damp, TAU } from '../core/math';
 import { JOGADOR_H, JOGADOR_W } from '../gfx/sprites/player';
 import { P } from '../gfx/palette';
 import { tingirCache } from '../gfx/pixel';
 import type { Mundo } from './context';
 import type { Entrada } from '../core/input';
 import { PROPS } from '../world/tiles';
+import type { FerramentaId } from '../gfx/sprites/tools';
 
 export type Direcao = 'baixo' | 'cima' | 'esquerda' | 'direita';
 
+/** Corações do jogador. */
+export const CORACOES_INICIAIS = 10;
+
+/** Ajustes do uso de ferramenta (machado, picareta, pá e enxada). */
+export const USO_FERRAMENTA = {
+  duracao: 0.42,
+  /** Instante em que a ferramenta encosta no alvo. */
+  momento: 0.18,
+  recarga: 0.14,
+};
+
 /** Ajustes do combate — reunidos aqui para facilitar o balanceamento. */
 export const COMBATE = {
-  duracao: 0.3,
+  duracao: 0.34,
   /** Instante (dentro da duração) em que o golpe acerta. */
-  momentoGolpe: 0.1,
-  recarga: 0.4,
-  alcance: 32,
-  /** Meia abertura do arco de acerto, em radianos. */
-  arco: Math.PI * 0.42,
+  momentoGolpe: 0.12,
+  recarga: 0.42,
+  /** Raio da área circular atingida em volta do jogador. */
+  raio: 38,
   dano: 3,
   empurrao: 108,
-  /** Pequeno avanço do jogador ao golpear (peso no ataque). */
-  avanco: 46,
 };
 
 const VELOCIDADE = 80;
@@ -42,16 +51,27 @@ export class Jogador {
   vx = 0;
   vy = 0;
   direcao: Direcao = 'baixo';
-  vida = new Vida(5);
+  vida = new Vida(CORACOES_INICIAIS);
   fome = new Fome();
 
   pegada: Pegada = { x: 0, y: 0, metadeW: 5, metadeH: 3.5 };
 
-  /** Ângulo de mira (segue o cursor). */
-  mira = 0;
-  /** Estado do ataque em andamento. */
-  ataque: { t: number; acertou: boolean; angulo: number } | null = null;
+  /** Estado do ataque em andamento (o golpe é em área, não tem mira). */
+  ataque: { t: number; acertou: boolean } | null = null;
   recarga = 0;
+  /** Estado do uso de ferramenta. */
+  ferramenta: {
+    t: number;
+    id: FerramentaId;
+    nivel: number;
+    angulo: number;
+    disparou: boolean;
+  } | null = null;
+  /**
+   * Preenchido no instante em que a ferramenta acerta o alvo; a cena de jogo
+   * consome o evento e aplica a colheita.
+   */
+  eventoFerramenta: { id: FerramentaId; angulo: number } | null = null;
   /** Empurrão sofrido ao tomar dano. */
   empurraoX = 0;
   empurraoY = 0;
@@ -95,7 +115,30 @@ export class Jogador {
   }
 
   get podeAtacar(): boolean {
-    return this.recarga <= 0 && this.ataque === null && this.vivo;
+    return this.recarga <= 0 && this.ataque === null && this.ferramenta === null && this.vivo;
+  }
+
+  get usandoFerramenta(): boolean {
+    return this.ferramenta !== null;
+  }
+
+  get podeUsarFerramenta(): boolean {
+    return this.recarga <= 0 && this.ataque === null && this.ferramenta === null && this.vivo;
+  }
+
+  /** Começa a batida da ferramenta na direção do alvo. */
+  usarFerramenta(id: FerramentaId, nivel: number, angulo: number): void {
+    if (!this.podeUsarFerramenta) return;
+    this.ferramenta = { t: 0, id, nivel, angulo, disparou: false };
+    this.direcao = this.direcaoDoAngulo(angulo);
+  }
+
+  private direcaoDoAngulo(a: number): Direcao {
+    const oct = ((a % TAU) + TAU) % TAU / TAU;
+    if (oct < 0.125 || oct >= 0.875) return 'direita';
+    if (oct < 0.375) return 'baixo';
+    if (oct < 0.625) return 'esquerda';
+    return 'cima';
   }
 
   // ------------------------------------------------------------------ lógica
@@ -108,14 +151,10 @@ export class Jogador {
       return;
     }
 
-    // ---- mira: sempre na direção do cursor
-    const mundoMouse = mundo.camera.telaParaMundo(entrada.mouseX, entrada.mouseY);
-    this.mira = Math.atan2(mundoMouse.y - this.centroY, mundoMouse.x - this.centroX);
-
     // ---- movimento
     const dir = entrada.direcaoMovimento();
     const atrito = PROPS[mundo.nivel.tileEm(this.x, this.y)].atrito;
-    const penalidadeAtaque = this.ataque ? 0.45 : 1;
+    const penalidadeAtaque = this.ataque ? 0.45 : this.ferramenta ? 0.35 : 1;
     const alvoVx = dir.x * VELOCIDADE * atrito * penalidadeAtaque;
     const alvoVy = dir.y * VELOCIDADE * atrito * penalidadeAtaque;
     this.vx = damp(this.vx, alvoVx, ACELERACAO, dt);
@@ -138,15 +177,11 @@ export class Jogador {
     if (r.bateuX) this.vx *= 0.2;
     if (r.bateuY) this.vy *= 0.2;
 
-    // ---- direção visual
+    // ---- direção visual: só o movimento manda (o golpe sai em volta do corpo)
     const andando = Math.hypot(this.vx, this.vy) > 6;
-    if (this.ataque) {
-      this.direcao = this.direcaoDoAngulo(this.ataque.angulo);
-    } else if (andando) {
+    if (andando && !this.ferramenta) {
       if (Math.abs(this.vx) > Math.abs(this.vy)) this.direcao = this.vx > 0 ? 'direita' : 'esquerda';
       else this.direcao = this.vy > 0 ? 'baixo' : 'cima';
-    } else if (entrada.mouseNaTela) {
-      this.direcao = this.direcaoDoAngulo(this.mira);
     }
 
     // ---- animação de caminhada
@@ -178,6 +213,19 @@ export class Jogador {
     if (this.recarga > 0) this.recarga = Math.max(0, this.recarga - dt);
     if (entrada.botao(2) && this.podeAtacar) this.iniciarAtaque(mundo);
 
+    // ---- ferramenta em uso
+    if (this.ferramenta) {
+      this.ferramenta.t += dt;
+      if (!this.ferramenta.disparou && this.ferramenta.t >= USO_FERRAMENTA.momento) {
+        this.ferramenta.disparou = true;
+        this.eventoFerramenta = { id: this.ferramenta.id, angulo: this.ferramenta.angulo };
+      }
+      if (this.ferramenta.t >= USO_FERRAMENTA.duracao) {
+        this.ferramenta = null;
+        this.recarga = USO_FERRAMENTA.recarga;
+      }
+    }
+
     if (this.ataque) {
       this.ataque.t += dt;
       if (!this.ataque.acertou && this.ataque.t >= COMBATE.momentoGolpe) {
@@ -206,40 +254,28 @@ export class Jogador {
     if (this.piscar > 0) this.piscar -= dt;
   }
 
-  private direcaoDoAngulo(a: number): Direcao {
-    const oct = ((a + TAU) % TAU) / TAU;
-    if (oct < 0.125 || oct >= 0.875) return 'direita';
-    if (oct < 0.375) return 'baixo';
-    if (oct < 0.625) return 'esquerda';
-    return 'cima';
-  }
-
   private iniciarAtaque(mundo: Mundo): void {
-    this.ataque = { t: 0, acertou: false, angulo: this.mira };
+    this.ataque = { t: 0, acertou: false };
     mundo.audio.golpe();
-    // avanço curto na direção do golpe
-    this.empurraoX += Math.cos(this.mira) * COMBATE.avanco;
-    this.empurraoY += Math.sin(this.mira) * COMBATE.avanco;
-    // arco visual do golpe, girado para a mira
-    const px = this.centroX + Math.cos(this.mira) * 8;
-    const py = this.centroY + Math.sin(this.mira) * 8;
+    // a área do golpe: um círculo em volta do jogador, rente ao chão
     mundo.particulas.animacao(
-      mundo.assets.efeitos.golpe,
-      px,
-      py,
-      COMBATE.duracao * 0.8,
-      this.mira,
-      0.2,
+      mundo.assets.efeitos.areaAtaque,
+      this.centroX,
+      this.y - 4,
+      COMBATE.duracao * 0.9,
+      0,
+      0.15,
     );
-    mundo.particulas.leque(
-      this.centroX + Math.cos(this.mira) * 14,
-      this.centroY + Math.sin(this.mira) * 14,
-      this.mira,
-      0.5,
-      [P.brilho, P.ambar, P.osso],
-      5,
-      70,
-    );
+    // rajada de pó saindo do corpo em todas as direções
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * TAU;
+      mundo.particulas.pixel(
+        this.centroX + Math.cos(a) * 8,
+        this.y - 4 + Math.sin(a) * 5,
+        i % 2 ? P.brilho : P.ambar,
+        { vx: Math.cos(a) * 60, vy: Math.sin(a) * 40, vida: 0.3 },
+      );
+    }
   }
 
   private aplicarGolpe(mundo: Mundo): void {
@@ -249,15 +285,13 @@ export class Jogador {
       const dx = d.x - this.centroX;
       const dy = d.centroY - this.centroY;
       const distancia = Math.hypot(dx, dy);
-      if (distancia > COMBATE.alcance + d.raioCorpo) continue;
-      const ang = Math.atan2(dy, dx);
-      if (Math.abs(angleDelta(this.ataque!.angulo, ang)) > COMBATE.arco) continue;
-      d.receberDano(COMBATE.dano, this.ataque!.angulo, COMBATE.empurrao, mundo);
+      // área circular: acerta tudo em volta, sem precisar apontar
+      if (distancia > COMBATE.raio + d.raioCorpo) continue;
+      d.receberDano(COMBATE.dano, Math.atan2(dy, dx), COMBATE.empurrao, mundo);
       acertos++;
     }
-    // acerto em cheio: tremor e faísca; golpe no vazio: só o vento
     if (acertos > 0) {
-      mundo.camera.tremer(2.2, 0.18);
+      mundo.camera.tremer(2.2 + Math.min(2, acertos * 0.6), 0.18);
       mundo.audio.acerto();
     }
   }
@@ -315,22 +349,46 @@ export class Jogador {
       g.globalAlpha = 0.9;
     }
     // a lança fica atrás do corpo quando o golpe vem de cima
+    // ferramenta em uso: arco de batida na direção do alvo
+    let ferramentaAtras = false;
+    let desenharFerramenta: (() => void) | null = null;
+    if (this.ferramenta) {
+      const f = this.ferramenta;
+      const tf = clamp(f.t / USO_FERRAMENTA.duracao, 0, 1);
+      // levanta devagar, para no alto e desce com força
+      const curva = tf < 0.45 ? -1.15 + (tf / 0.45) * 0.2 : -0.95 + ((tf - 0.45) / 0.55) * 1.7;
+      const ang = f.angulo + curva;
+      const raio = 8 + Math.sin(tf * Math.PI) * 5;
+      const sprite = mundo.assets.ferramentas.ferramentas[f.id][f.nivel];
+      const hx = this.centroX + Math.cos(ang) * raio - camX;
+      const hy = this.centroY + Math.sin(ang) * raio * 0.8 - camY + afunda;
+      ferramentaAtras = Math.sin(ang) < -0.2;
+      desenharFerramenta = () => {
+        g.save();
+        g.translate(Math.round(hx), Math.round(hy));
+        g.rotate(ang + Math.PI / 4);
+        g.drawImage(sprite, -sprite.width / 2, -sprite.height / 2);
+        g.restore();
+      };
+    }
+
+    const giro = this.ataque ? clamp(this.ataque.t / COMBATE.duracao, 0, 1) : 0;
+    const anguloGiro = -Math.PI / 2 + giro * TAU;
     const desenharLanca = () => {
       const lanca = q.lanca;
       let ang: number;
       let raio: number;
       if (this.ataque) {
-        const t = clamp(this.ataque.t / COMBATE.duracao, 0, 1);
-        // arco de -0.9 a +0.9 radiano ao redor da mira
-        ang = this.ataque.angulo - 0.9 + t * 1.8;
-        raio = 6 + Math.sin(t * Math.PI) * 7;
+        // o golpe é em área: a lança dá uma volta completa em torno do corpo
+        ang = anguloGiro;
+        raio = 8 + Math.sin(giro * Math.PI) * 6;
       } else {
         // em repouso a lança fica apoiada no ombro, seguindo a direção do corpo
         ang = this.direcao === 'esquerda' ? Math.PI - 0.5 : this.direcao === 'cima' ? -1.9 : 0.5;
         raio = 5;
       }
       const hx = this.centroX + Math.cos(ang) * raio - camX;
-      const hy = this.centroY + Math.sin(ang) * raio - camY + afunda;
+      const hy = this.centroY + Math.sin(ang) * raio * 0.8 - camY + afunda;
       g.save();
       g.translate(Math.round(hx), Math.round(hy));
       g.rotate(ang);
@@ -338,10 +396,13 @@ export class Jogador {
       g.restore();
     };
 
-    const lancaAtras = this.direcao === 'cima';
-    if (lancaAtras) desenharLanca();
+    const lancaAtras = this.ataque ? Math.sin(anguloGiro) < 0 : this.direcao === 'cima';
+    const mostrarLanca = !this.ferramenta;
+    if (mostrarLanca && lancaAtras) desenharLanca();
+    if (ferramentaAtras) desenharFerramenta?.();
     g.drawImage(sprite, px, py + afunda);
-    if (!lancaAtras) desenharLanca();
+    if (mostrarLanca && !lancaAtras) desenharLanca();
+    if (!ferramentaAtras) desenharFerramenta?.();
     g.globalAlpha = 1;
 
     // linha d'água na altura dos pés

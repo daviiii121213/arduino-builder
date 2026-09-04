@@ -48,10 +48,11 @@ export class CenaMenu implements Cena {
     const larg = 150;
     const x = Math.round((LARGURA - larg) / 2);
     this.menu = new ListaBotoes([
-      new Botao(x, 150, larg, 20, 'Nova expedição', () => this.comecar(true)),
-      new Botao(x, 174, larg, 20, 'Pular a cinemática', () => this.comecar(false)),
-      new Botao(x, 198, larg, 20, 'Como jogar', () => (this.painelAtivo = 'comoJogar')),
-      new Botao(x, 222, larg, 20, 'Créditos', () => (this.painelAtivo = 'creditos')),
+      new Botao(x, 142, larg, 19, 'Nova expedição', () => this.comecar(true)),
+      new Botao(x, 164, larg, 19, 'Pular a cinemática', () => this.comecar(false)),
+      new Botao(x, 186, larg, 19, 'Modo teste', () => this.comecar(false, true)),
+      new Botao(x, 208, larg, 19, 'Como jogar', () => (this.painelAtivo = 'comoJogar')),
+      new Botao(x, 230, larg, 19, 'Créditos', () => (this.painelAtivo = 'creditos')),
     ]);
 
     // silhuetas de dinossauros atravessando o horizonte
@@ -179,10 +180,10 @@ export class CenaMenu implements Cena {
 
   // ---------------------------------------------------------- atualização
 
-  private comecar(comCinematica: boolean): void {
+  private comecar(comCinematica: boolean, demo = false): void {
     this.jogo.audio.iniciar();
     if (comCinematica) this.jogo.trocarCena(new CenaCinematica(this.jogo), 0.9);
-    else this.jogo.trocarCena(new CenaJogo(this.jogo, true), 0.9);
+    else this.jogo.trocarCena(new CenaJogo(this.jogo, { chegada: true, demo }), 0.9);
   }
 
   atualizar(dt: number): void {
@@ -253,7 +254,7 @@ export class CenaMenu implements Cena {
     });
 
     this.menu.desenhar(g);
-    texto(g, 'Versão 1 · arte em pixel feita à mão', 6, ALTURA - 11, {
+    texto(g, 'Versão 2 · arte em pixel feita à mão', 6, ALTURA - 11, {
       cor: '#8b83a3',
       sombra: P.contorno,
     });
@@ -292,17 +293,17 @@ export class CenaMenu implements Cena {
       });
       const linhas = [
         'W A S D — andar pelo vale',
-        'BOTÃO DIREITO — atacar na direção do cursor',
-        'E — interagir (entrar e sair de casa)',
+        'BOTÃO ESQUERDO — usar a ferramenta escolhida',
+        'BOTÃO DIREITO — golpe em área, em volta do corpo',
+        'E — interagir (portas, cama, baú, máquina, pessoas)',
         '1 a 0 — escolher o espaço do inventário',
-        'TAB — bestiário · J — diário · M — som',
-        'ESC — pausar',
+        'TAB — bestiário · J — diário · M — som · ESC — pausar',
         '',
-        'Você tem cinco corações e recupera um a cada',
-        'três segundos, desde que não esteja com fome.',
-        'Carnívoros caçam, herbívoros fogem, os terrestres',
-        'defendem seu território, os aquáticos não saem da',
-        'água e os mágicos disparam orbes e se teleportam.',
+        'Dez corações, e um volta a cada três segundos.',
+        'Machado corta árvores, picareta quebra pedras,',
+        'pá cava os montinhos e enxada trabalha a terra.',
+        'Venda o que colher na máquina ao lado da cabana e',
+        'melhore ferramentas, bolsa e casa com Bruna e Nilo.',
       ];
       paragrafo(g, linhas, x + 16, y + 30, { cor: P.osso, sombra: P.contorno });
     } else {
@@ -312,7 +313,7 @@ export class CenaMenu implements Cena {
         alinhamento: 'centro',
       });
       const txt =
-        'Cronos Jurássico — versão 1. Jogo, código, fonte de bitmap, ' +
+        'Cronos Jurássico — versão 2. Jogo, código, fonte de bitmap, ' +
         'cenários, criaturas, interface e efeitos sonoros criados do zero ' +
         'em TypeScript e HTML5 Canvas. Nenhuma imagem ou som externo foi ' +
         'usado: cada pixel é desenhado pelo próprio jogo.';
@@ -322,9 +323,9 @@ export class CenaMenu implements Cena {
         g,
         [
           '',
-          'Em breve: inventário completo, missões no diário,',
-          'NPCs humanos, cavernas, recursos e o ciclo de',
-          'dia e noite.',
+          'Nesta versão: ferramentas, recursos, dinheiro,',
+          'cabana de melhorias, baú, cama e ciclo de dia',
+          'e noite. Em breve: missões no diário e cavernas.',
         ],
         x + 16,
         y + 32 + linhas.length * 9,

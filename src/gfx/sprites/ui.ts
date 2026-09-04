@@ -94,27 +94,31 @@ const ICONE_LANCA = [
 ];
 
 const CURSOR = [
-  '....k....',
-  '....o....',
-  '..kkokk..',
-  '.ko...ok.',
-  'kok...kok',
-  '.ko...ok.',
-  '..kkokk..',
-  '....o....',
-  '....k....',
+  'ko.......',
+  'koo......',
+  'kooo.....',
+  'koooo....',
+  'kooooo...',
+  'koooooo..',
+  'kooookkk.',
+  'kookoo...',
+  'kok.koo..',
+  'kk...kok.',
+  '......kk.',
 ];
 
 const CURSOR_PRONTO = [
-  '....a....',
-  '....w....',
-  '..aawaa..',
-  '.aw...wa.',
-  'awa...awa',
-  '.aw...wa.',
-  '..aawaa..',
-  '....w....',
-  '....a....',
+  'ka.......',
+  'kaw......',
+  'kaww.....',
+  'kawww....',
+  'kawwww...',
+  'kawwwww..',
+  'kawwwkkk.',
+  'kawwkaa..',
+  'kak.kaw..',
+  'kk...kak.',
+  '......kk.',
 ];
 
 /** Moldura de item da barra inferior (10 espaços, estilo original). */

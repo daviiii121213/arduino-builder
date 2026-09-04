@@ -188,7 +188,7 @@ export class CenaCinematica implements Cena {
   }
 
   private irParaOJogo(): void {
-    this.jogo.trocarCena(new CenaJogo(this.jogo, true), 1.2);
+    this.jogo.trocarCena(new CenaJogo(this.jogo, { chegada: true }), 1.2);
     this.etapa = 99;
   }
 

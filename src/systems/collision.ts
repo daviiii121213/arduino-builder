@@ -43,6 +43,7 @@ export function livre(nivel: Nivel, p: Pegada, x: number, y: number): boolean {
 
   if (!p.ignoraObjetos) {
     for (const c of nivel.colisores) {
+      if (c.ativo === false) continue;
       if (rectsOverlap(r, c)) return false;
     }
   }

@@ -241,6 +241,29 @@ function tapete(semente: number): Sprite {
   return p.finalizar();
 }
 
+/** Terra arada pela enxada: sulcos regulares e barro fofo. */
+function terraArada(semente: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#6f4a2c');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.1)) p.ponto(x, y, '#5c3d24');
+      else if (rng.chance(0.08)) p.ponto(x, y, '#87603a');
+    }
+  }
+  // sulcos: crista clara em cima, sombra embaixo
+  for (let y = 1; y < TAM_TILE; y += 4) {
+    p.linha(0, y, TAM_TILE - 1, y, '#94693d');
+    p.linha(0, y + 1, TAM_TILE - 1, y + 1, '#4f351f');
+  }
+  for (let i = 0; i < 4; i++) {
+    const x = rng.int(0, TAM_TILE - 1);
+    const y = rng.int(0, TAM_TILE - 1);
+    p.ponto(x, y, '#3f2a17');
+  }
+  return p.finalizar();
+}
+
 /** Piso de concreto do galpão (usado na cinemática). */
 function concreto(semente: number): Sprite {
   const rng = new Rng(semente);
@@ -266,6 +289,7 @@ export interface TexturasTerreno {
   paredeInterna: Sprite[];
   tapete: Sprite[];
   concreto: Sprite[];
+  terraArada: Sprite[];
 }
 
 export const QUADROS_AGUA = 4;
@@ -293,5 +317,6 @@ export function criarTerreno(): TexturasTerreno {
     paredeInterna: varias(paredeInterna, 2, 6001),
     tapete: varias(tapete, 2, 7001),
     concreto: varias(concreto, 3, 8001),
+    terraArada: varias(terraArada, 2, 9001),
   };
 }

@@ -25,6 +25,27 @@ export class TempoDoDia {
     this.fase = (this.fase + dt / this.duracaoDia) % 1;
   }
 
+  /** Nome do período, para o relógio da interface. */
+  get periodo(): string {
+    const f = this.fase;
+    if (f < 0.22) return 'madrugada';
+    if (f < 0.34) return 'amanhecer';
+    if (f < 0.5) return 'manhã';
+    if (f < 0.72) return 'tarde';
+    if (f < 0.84) return 'anoitecer';
+    return 'noite';
+  }
+
+  /** Salta para um ponto do dia (usado ao dormir). */
+  avancarPara(fase: number): void {
+    this.fase = ((fase % 1) + 1) % 1;
+  }
+
+  /** Avança um tanto de horas. */
+  avancarHoras(horas: number): void {
+    this.fase = (this.fase + horas / 24) % 1;
+  }
+
   get horaDoDia(): string {
     const minutos = Math.floor(this.fase * 24 * 60);
     const h = Math.floor(minutos / 60);
@@ -39,11 +60,11 @@ export class TempoDoDia {
     // amanhecer 0.20-0.30 | dia 0.30-0.72 | anoitecer 0.72-0.82 | noite
     if (f > 0.3 && f < 0.72) return null;
     if (f >= 0.2 && f <= 0.3) {
-      return { cor: '#ffb27a', alpha: clamp((0.3 - f) / 0.1, 0, 1) * 0.28 };
+      return { cor: '#ffb27a', alpha: clamp((0.3 - f) / 0.1, 0, 1) * 0.24 };
     }
     if (f >= 0.72 && f <= 0.82) {
-      return { cor: '#ff8a4a', alpha: clamp((f - 0.72) / 0.1, 0, 1) * 0.3 };
+      return { cor: '#ff8a4a', alpha: clamp((f - 0.72) / 0.1, 0, 1) * 0.26 };
     }
-    return { cor: '#101c3a', alpha: 0.45 };
+    return { cor: '#101c3a', alpha: 0.4 };
   }
 }

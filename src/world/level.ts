@@ -7,6 +7,7 @@ import { TAM_TILE } from '../gfx/sprites/terrain';
 import { Tile, PROPS } from './tiles';
 import type { Rect } from '../core/math';
 import type { Sprite } from '../gfx/pixel';
+import type { NoRecurso } from '../systems/harvest';
 
 /** Objeto decorativo desenhado no mundo (ordenado pelo eixo Y). */
 export interface ObjetoCenario {
@@ -31,16 +32,44 @@ export interface Portal {
   rotulo: string;
 }
 
-export type Ambiente = 'exterior' | 'interior' | 'galpao';
+export type Ambiente = 'exterior' | 'interior' | 'galpao' | 'cabana';
+
+/** Caixa de colisão que pode ser desligada (árvore derrubada, pedra quebrada). */
+export interface Colisor extends Rect {
+  ativo?: boolean;
+}
+
+/** Ação disponível ao apertar E perto de algo. */
+export interface Interativo {
+  area: Rect;
+  rotulo: string;
+  /** O que a cena de jogo deve abrir/fazer. */
+  acao:
+    | 'cama'
+    | 'bau'
+    | 'venda'
+    | 'melhoria-ferreira'
+    | 'melhoria-marceneiro'
+    | 'lareira'
+    | 'estante'
+    | 'janela'
+    | 'bancada';
+}
 
 export class Nivel {
   readonly tiles: Uint8Array;
   readonly variacoes: Uint8Array;
-  readonly colisores: Rect[] = [];
+  readonly colisores: Colisor[] = [];
   readonly objetos: ObjetoCenario[] = [];
   readonly portais: Portal[] = [];
   /** Objetos desenhados por cima do jogador (copas de árvore, telhados). */
   readonly objetosFrente: ObjetoCenario[] = [];
+  /** Nós de recurso (árvores, pedras, montinhos) deste nível. */
+  readonly nos: NoRecurso[] = [];
+  /** Coisas com que o jogador interage apertando E. */
+  readonly interativos: Interativo[] = [];
+  /** Objetos que outros sistemas precisam achar depois (ex.: o baú). */
+  readonly nomeados = new Map<string, ObjetoCenario>();
 
   /** Focos de luz (lampiões, tochas) desenhados por cima da cena. */
   readonly luzes: { x: number; y: number }[] = [];
@@ -110,8 +139,9 @@ export class Nivel {
     return p.solido;
   }
 
-  adicionarColisor(r: Rect): void {
+  adicionarColisor(r: Colisor): Colisor {
     this.colisores.push(r);
+    return r;
   }
 
   adicionarObjeto(o: ObjetoCenario): void {

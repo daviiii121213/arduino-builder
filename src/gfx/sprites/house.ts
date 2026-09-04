@@ -18,7 +18,7 @@ export const CASA_COLISAO = { x: 6, y: 42, w: 76, h: 38 };
 /** Porta (área de interação), relativa ao canto superior esquerdo. */
 export const CASA_PORTA = { x: 35, y: 62, w: 18, h: 18 };
 
-function desenharCasa(): Sprite {
+function desenharCasa(telhadoNovo = false): Sprite {
   const p = new Pincel(CASA_W, CASA_H);
   const rng = new Rng(4242);
 
@@ -41,34 +41,45 @@ function desenharCasa(): Sprite {
   // ---------------- telhado ----------------
   const yTopo = 10;
   const yBase = 42;
+  // o telhado novo (melhoria comprada) usa telhas claras e sem remendos
+  const corTelha = telhadoNovo ? '#c9553f' : P.telhado;
+  const corTelhaLuz = telhadoNovo ? '#e8785c' : P.telhadoLuz;
+  const corTelhaEscura = telhadoNovo ? '#8e2f28' : P.telhadoEscuro;
   for (let y = yTopo; y <= yBase; y++) {
     const t = (y - yTopo) / (yBase - yTopo);
     const xe = Math.round(32 - t * 30);
     const xd = Math.round(56 + t * 30);
     for (let x = xe; x <= xd; x++) {
       // duas luzes: a metade esquerda pega o sol
-      const cor = x < (xe + xd) / 2 ? P.telhadoLuz : P.telhado;
+      const cor = x < (xe + xd) / 2 ? corTelhaLuz : corTelha;
       p.ponto(x, y, cor);
     }
     // fileiras de telhas
     if ((y - yTopo) % 4 === 3) {
-      for (let x = xe; x <= xd; x++) p.ponto(x, y, P.telhadoEscuro);
+      for (let x = xe; x <= xd; x++) p.ponto(x, y, corTelhaEscura);
     }
     const grupo = Math.floor((y - yTopo) / 4);
     for (let x = xe + (grupo % 2 ? 3 : 6); x <= xd; x += 6) {
-      if ((y - yTopo) % 4 !== 3) p.ponto(x, y, P.telhadoEscuro);
+      if ((y - yTopo) % 4 !== 3) p.ponto(x, y, corTelhaEscura);
     }
     p.ponto(xe, y, P.contorno);
     p.ponto(xd, y, P.contorno);
   }
   // cumeeira
-  p.linha(32, yTopo, 56, yTopo, P.telhadoLuz);
+  p.linha(32, yTopo, 56, yTopo, corTelhaLuz);
   p.linha(32, yTopo - 1, 56, yTopo - 1, P.contorno);
-  p.linha(33, yTopo + 1, 55, yTopo + 1, '#d9705f');
+  p.linha(33, yTopo + 1, 55, yTopo + 1, telhadoNovo ? '#f09a7c' : '#d9705f');
+  if (telhadoNovo) {
+    // ventoinha de cata-vento no alto: sinal visível da melhoria
+    p.linha(44, yTopo - 8, 44, yTopo - 1, P.metalEscuro);
+    p.retangulo(45, yTopo - 8, 4, 3, P.metal);
+    p.ponto(43, yTopo - 7, P.metal);
+    p.ponto(44, yTopo - 9, P.ambar);
+  }
 
   // beiral com sombra
-  p.retangulo(0, yBase, CASA_W, 3, P.telhadoEscuro);
-  p.linha(0, yBase, CASA_W - 1, yBase, '#5f221f');
+  p.retangulo(0, yBase, CASA_W, 3, corTelhaEscura);
+  p.linha(0, yBase, CASA_W - 1, yBase, telhadoNovo ? '#6f231d' : '#5f221f');
   p.linha(0, yBase + 2, CASA_W - 1, yBase + 2, P.contorno);
 
   // ---------------- paredes ----------------
@@ -202,6 +213,7 @@ const PAL: Paleta = {
   V: P.vidroLuz,
   d: P.folhaEscura,
   x: '#1a1016',
+  A: P.ambarEscuro,
   n: '#a8552f',
   N: '#c46f42',
   G: P.folhaClara,
@@ -335,6 +347,23 @@ const BAU = [
 ];
 
 // --------------------------------------------------------------- lareira
+/** Baú aberto: tampa levantada e o conteúdo à vista. */
+const BAU_ABERTO = [
+  '..kkkkkkkkkkkkkkkkkkkkkk..',
+  '.kDttttttttttttttttttttDk.',
+  'kDtTttttttttttttttttttTtDk',
+  'kMMMMMMMMMMMMMMMMMMMMMMMMk',
+  'kkkkkkkkkkkkkkkkkkkkkkkkkk',
+  '.kDxxxxxxxxxxxxxxxxxxxxDk.',
+  '.kDxaAxxoOxxxMmxxxaAxxxxDk',
+  '.kDxaAxxoOxxxMmxxxaAxxxxDk',
+  '.kDxxxxxxxxxxxxxxxxxxxxDk.',
+  '.kMMMMMMMMMMMMMMMMMMMMMMk.',
+  '.kDttttttttttttttttttttDk.',
+  '.kDtTttttttttttttttttTtDk.',
+  '.kkkkkkkkkkkkkkkkkkkkkkkk.',
+];
+
 const LAREIRA = [
   '......kkkkkkkkkkkkkkkkkkkkkkkkkk......',
   ...repetir(
@@ -624,6 +653,8 @@ function desenharTapete(): Sprite {
 
 export interface ArteCasa {
   exterior: Sprite;
+  exteriorNovo: Sprite;
+  bauAberto: Sprite;
   haloLampiao: Sprite;
   cama: Sprite;
   armario: Sprite;
@@ -649,7 +680,9 @@ export interface ArteCasa {
 
 export function criarCasa(): ArteCasa {
   return {
-    exterior: desenharCasa(),
+    exterior: desenharCasa(false),
+    exteriorNovo: desenharCasa(true),
+    bauAberto: pintar(BAU_ABERTO, PAL),
     haloLampiao: desenharHaloLampiao(),
     cama: pintar(CAMA, PAL),
     armario: pintar(ARMARIO, PAL),

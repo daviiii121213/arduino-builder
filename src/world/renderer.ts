@@ -44,6 +44,8 @@ function texturaDe(assets: Assets, t: Tile, variacao: number, quadroAgua: number
       return esc(tex.tapete);
     case Tile.Concreto:
       return esc(tex.concreto);
+    case Tile.TerraArada:
+      return esc(tex.terraArada);
     default:
       return esc(tex.rocha);
   }

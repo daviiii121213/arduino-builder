@@ -8,6 +8,8 @@ import { P } from '../palette';
 import { TAU } from '../../core/math';
 
 const TAM_ARCO = 40;
+/** Diâmetro da área de ataque (círculo em volta do jogador). */
+export const TAM_AREA = 84;
 
 /** Arco do golpe da lança, apontando para a direita. Centro em (20,20). */
 function arcoGolpe(quadro: number, total: number): Sprite {
@@ -28,6 +30,69 @@ function arcoGolpe(quadro: number, total: number): Sprite {
       const y = cy + Math.sin(a) * r;
       const cor = e < 1 ? P.brilho : forca > 0.5 ? '#ffe9a8' : P.ambar;
       p.ponto(x, y, cor, alpha * (0.45 + forca * 0.55));
+    }
+  }
+  return p.finalizar();
+}
+
+/**
+ * Área de ataque: o círculo que aparece em volta do jogador quando o golpe é
+ * acionado. Anel grosso com contorno escuro (para ler em qualquer terreno),
+ * anel interno e rajadas girando.
+ */
+function areaAtaque(quadro: number, total: number): Sprite {
+  const p = new Pincel(TAM_AREA, TAM_AREA);
+  const c = (TAM_AREA - 1) / 2;
+  const t = quadro / (total - 1);
+  const raioMax = c - 3;
+  const raio = raioMax * (0.55 + t * 0.45);
+  const achatamento = 0.8;
+  const alpha = 1 - t * 0.6;
+
+  const anel = (r: number, cor: string, a: number) => {
+    if (r < 2) return;
+    const passo = 0.7 / r;
+    for (let ang = 0; ang < TAU; ang += passo) {
+      p.ponto(c + Math.cos(ang) * r, c + Math.sin(ang) * r * achatamento, cor, a);
+    }
+  };
+
+  // contorno escuro por fora e por dentro: garante leitura sobre grama e areia
+  anel(raio + 1, P.contorno, alpha * 0.55);
+  anel(raio, P.brilho, alpha);
+  anel(raio - 1, '#ffe9a8', alpha);
+  anel(raio - 2, P.ambar, alpha * 0.9);
+  anel(raio - 3, P.contorno, alpha * 0.35);
+
+  // anel interno, um passo atrás, tracejado
+  const interno = raio - 7 - t * 5;
+  if (interno > 4) {
+    const passo = 0.7 / interno;
+    let i = 0;
+    for (let ang = 0; ang < TAU; ang += passo, i++) {
+      if ((i >> 1) % 2 === 0) continue;
+      p.ponto(
+        c + Math.cos(ang) * interno,
+        c + Math.sin(ang) * interno * achatamento,
+        P.ambar,
+        alpha * 0.6,
+      );
+    }
+  }
+
+  // rajadas de vento acompanhando o giro da lança
+  for (let k = 0; k < 8; k++) {
+    const base = (k / 8) * TAU + t * 3.6;
+    for (let j = 0; j < 8; j++) {
+      const ang = base + j * 0.045;
+      const r = raio - 3 - j * 1.6;
+      if (r < 5) break;
+      p.ponto(
+        c + Math.cos(ang) * r,
+        c + Math.sin(ang) * r * achatamento,
+        j < 3 ? P.brilho : P.ambar,
+        alpha * (1 - j / 9),
+      );
     }
   }
   return p.finalizar();
@@ -159,6 +224,7 @@ function calma(): Sprite {
 
 export interface ArteEfeitos {
   golpe: Sprite[];
+  areaAtaque: Sprite[];
   faisca: Sprite[];
   poeira: Sprite[];
   respingo: Sprite[];
@@ -175,6 +241,7 @@ export function criarEfeitos(): ArteEfeitos {
     Array.from({ length: q }, (_, i) => f(i, q));
   return {
     golpe: n(5, arcoGolpe),
+    areaAtaque: n(5, areaAtaque),
     faisca: n(5, faisca),
     poeira: n(4, poeira),
     respingo: n(5, respingo),
