@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moto Infinita 3D — Rodovia Sem Fim</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0b1016; }
+  body { font-family: "Segoe UI", Roboto, Arial, sans-serif; color: #fff; }
+  #cena { position: fixed; inset: 0; }
+
+  /* ---------- HUD superior ---------- */
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; justify-content: center; gap: 10px;
+    padding: 12px 10px; pointer-events: none;
+    background: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,0));
+    z-index: 10;
+  }
+  .painel {
+    min-width: 118px; text-align: center;
+    background: rgba(10, 16, 24, .62);
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 10px; padding: 7px 14px;
+    backdrop-filter: blur(4px);
+  }
+  .rotulo {
+    font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase;
+    color: #9fb4c9; margin-bottom: 2px;
+  }
+  .valor { font-size: 23px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .unidade { font-size: 13px; font-weight: 500; color: #cfe0f0; }
+  #valVel { color: #6fe0a0; }
+  #painelBatidas .valor { color: #ffd166; }
+  #painelBatidas.perigo .valor { color: #ff6b6b; }
+
+  /* ---------- Avisos e telas ---------- */
+  #flashDano {
+    position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 12;
+    box-shadow: inset 0 0 220px rgba(255, 30, 30, .95);
+    background: radial-gradient(ellipse at center, rgba(255,0,0,0) 45%, rgba(255,0,0,.35) 100%);
+    transition: opacity .18s ease-out;
+  }
+  #aviso {
+    position: fixed; top: 46%; left: 0; right: 0; text-align: center; z-index: 11;
+    font-size: 34px; font-weight: 800; letter-spacing: 2px; color: #ff5a5a;
+    text-shadow: 0 3px 14px rgba(0,0,0,.9); opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+  }
+  .tela {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 14px; padding: 24px;
+    background: rgba(4, 8, 14, .82); backdrop-filter: blur(6px);
+  }
+  .tela.oculta { display: none; }
+  .tela h1 { font-size: 40px; letter-spacing: 3px; text-transform: uppercase; }
+  .tela h1 span { color: #6fe0a0; }
+  #telaFim h1 { color: #ff6b6b; }
+  .tela p { color: #b9cbdc; font-size: 16px; max-width: 620px; line-height: 1.55; }
+  .teclas { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+  .tecla { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .tecla b {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 42px; height: 42px; border-radius: 8px; font-size: 18px;
+    background: #16202c; border: 1px solid rgba(255,255,255,.22);
+    box-shadow: 0 3px 0 rgba(0,0,0,.5);
+  }
+  .tecla span { font-size: 13px; color: #9fb4c9; }
+  .resumo { display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; margin: 6px 0 2px; }
+  .resumo div { min-width: 120px; }
+  .resumo .rotulo { font-size: 11px; }
+  .resumo .valor { font-size: 26px; }
+  .dica { font-size: 14px; color: #7f93a6; }
+  .piscar { animation: piscar 1.2s ease-in-out infinite; }
+  @keyframes piscar { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+  #carregando { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 30; background: #0b1016; }
+</style>
+</head>
+<body>
+<canvas id="cena"></canvas>
+
+<div id="hud">
+  <div class="painel">
+    <div class="rotulo">Distância</div>
+    <div class="valor"><span id="valDist">0.00</span> <span class="unidade">km</span></div>
+  </div>
+  <div class="painel">
+    <div class="rotulo">Tempo</div>
+    <div class="valor" id="valTempo">00:00</div>
+  </div>
+  <div class="painel">
+    <div class="rotulo">Velocidade</div>
+    <div class="valor"><span id="valVel">0</span> <span class="unidade">km/h</span></div>
+  </div>
+  <div class="painel" id="painelBatidas">
+    <div class="rotulo">Batidas</div>
+    <div class="valor"><span id="valBatidas">0</span> <span class="unidade">/ 3</span></div>
+  </div>
+</div>
+
+<div id="flashDano"></div>
+<div id="aviso">BATIDA!</div>
+
+<div class="tela" id="telaInicio">
+  <h1>Moto <span>Infinita</span> 3D</h1>
+  <p>Pilote em primeira pessoa por uma rodovia infinita de três faixas. Ultrapasse carros, caminhões e motos,
+     encare curvas e desvios e vá o mais longe que conseguir. Você aguenta duas batidas — na terceira, a corrida acaba.</p>
+  <div class="teclas">
+    <div class="tecla"><b>W</b><span>Acelerar</span></div>
+    <div class="tecla"><b>S</b><span>Frear</span></div>
+    <div class="tecla"><b>A</b><span>Ir para a esquerda</span></div>
+    <div class="tecla"><b>D</b><span>Ir para a direita</span></div>
+  </div>
+  <p class="dica">A moto nunca anda de ré. Mantenha-se na pista e não bata!</p>
+  <p class="piscar"><b>Pressione ENTER ou ESPAÇO para começar</b></p>
+</div>
+
+<div class="tela oculta" id="telaFim">
+  <h1>Fim de Jogo</h1>
+  <p>Você bateu três vezes. A corrida terminou.</p>
+  <div class="resumo">
+    <div><div class="rotulo">Distância</div><div class="valor"><span id="fimDist">0.00</span> <span class="unidade">km</span></div></div>
+    <div><div class="rotulo">Tempo</div><div class="valor" id="fimTempo">00:00</div></div>
+    <div><div class="rotulo">Vel. máxima</div><div class="valor"><span id="fimVel">0</span> <span class="unidade">km/h</span></div></div>
+  </div>
+  <p class="piscar"><b>Pressione R para pilotar de novo</b></p>
+</div>
+
+<div id="carregando">Carregando a rodovia...</div>
+
+<!-- three.js r128 (MIT) incluído localmente: o jogo roda sem internet -->
+<script src="vendor/three.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // =====================================================================
+  //  Constantes do mundo
+  // =====================================================================
+  const LARG_FAIXA   = 4.0;                 // largura de cada faixa (m)
+  const N_FAIXAS     = 3;
+  const LARG_PISTA   = LARG_FAIXA * N_FAIXAS;      // 12 m de pista
+  const LARG_TOTAL   = LARG_PISTA + 3.0;           // pista + acostamentos
+  const FAIXAS_X     = [-LARG_FAIXA, 0, LARG_FAIXA]; // centro de cada faixa
+  const LIM_LATERAL  = LARG_TOTAL / 2 - 0.6;
+  const BORDA_PISTA  = LARG_PISTA / 2;
+
+  const PASSO        = 4;      // distância entre amostras da linha central (m)
+  const N_AMOSTRAS   = 260;    // amostras visíveis (~1040 m de estrada)
+  const VIS_FRENTE   = 620;    // horizonte de geração (m)
+
+  const VEL_MAX      = 61;     // m/s  (~220 km/h)
+  const ACEL         = 11.5;   // m/s²
+  const FREIO        = 26.0;   // m/s²
+  const ATRITO       = 2.2;    // desaceleração natural (m/s²)
+  const VEL_LATERAL  = 6.2;    // m/s de deslocamento lateral máximo
+
+  const ALTURA_OLHOS = 1.50;   // altura dos olhos do piloto (m)
+  const MAX_BATIDAS  = 3;
+  const T_INVULN     = 1.8;    // segundos de invulnerabilidade após bater
+
+  // =====================================================================
+  //  Utilidades
+  // =====================================================================
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const lerp  = (a, b, t) => a + (b - a) * t;
+  const rand  = (a, b) => a + Math.random() * (b - a);
+  const escolha = arr => arr[(Math.random() * arr.length) | 0];
+
+  function formataTempo(seg) {
+    const m = Math.floor(seg / 60), s = Math.floor(seg % 60);
+    return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  }
+
+  // =====================================================================
+  //  Renderizador, cena e câmera
+  // =====================================================================
+  const canvas = document.getElementById("cena");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = false;
+
+  const cena = new THREE.Scene();
+  const COR_CEU = 0x8fc4e8;
+  cena.background = new THREE.Color(COR_CEU);
+  cena.fog = new THREE.Fog(COR_CEU, 180, 560);
+
+  const camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.1, 1400);
+
+  cena.add(new THREE.HemisphereLight(0xbfd8ef, 0x4a5a3a, 0.95));
+  const sol = new THREE.DirectionalLight(0xfff2d8, 0.85);
+  sol.position.set(-60, 120, 40);
+  cena.add(sol);
+
+  // =====================================================================
+  //  Geração procedural da linha central (retas, curvas e desvios)
+  // =====================================================================
+  const centro = [];          // { x, z, h, s }
+  let baseS = 0;              // valor de "s" da amostra centro[0]
+  let gerX = 0, gerZ = 0, gerH = 0, gerS = 0;
+  let segAtual = null;
+
+  function novoSegmento() {
+    const tipo = Math.random();
+    if (tipo < 0.34) {
+      // trecho reto
+      return { comp: rand(90, 220), curv: 0, perc: 0 };
+    } else if (tipo < 0.78) {
+      // curva aberta ou fechada
+      const forca = rand(0.0035, 0.0125) * (Math.random() < 0.5 ? -1 : 1);
+      return { comp: rand(80, 210), curv: forca, perc: 0 };
+    }
+    // desvio (curva curta e forte, geralmente seguida da oposta)
+    const forca = rand(0.010, 0.017) * (Math.random() < 0.5 ? -1 : 1);
+    return { comp: rand(45, 75), curv: forca, perc: 0, desvio: true };
+  }
+
+  function estender(ateS) {
+    while (gerS < ateS) {
+      if (!segAtual || segAtual.perc >= segAtual.comp) {
+        if (segAtual && segAtual.desvio && !segAtual.contra) {
+          segAtual = { comp: segAtual.comp, curv: -segAtual.curv, perc: 0, contra: true };
+        } else {
+          segAtual = novoSegmento();
+        }
+      }
+      // suaviza a entrada e a saída da curva para não criar "quinas"
+      const t = segAtual.perc / segAtual.comp;
+      const rampa = Math.min(1, Math.min(t, 1 - t) / 0.22);
+      const k = segAtual.curv * (rampa * rampa * (3 - 2 * rampa));
+
+      gerH += k * PASSO;
+      gerX += Math.sin(gerH) * PASSO;
+      gerZ += Math.cos(gerH) * PASSO;
+      gerS += PASSO;
+      segAtual.perc += PASSO;
+      centro.push({ x: gerX, z: gerZ, h: gerH, s: gerS });
+    }
+  }
+
+  function reiniciaEstrada() {
+    centro.length = 0;
+    baseS = 0; gerX = 0; gerZ = 0; gerH = 0; gerS = 0; segAtual = null;
+    centro.push({ x: 0, z: 0, h: 0, s: 0 });
+    // primeiros 120 m sempre retos, para começar tranquilo
+    segAtual = { comp: 120, curv: 0, perc: 0 };
+    estender(VIS_FRENTE + 200);
+  }
+
+  // amostra interpolada da linha central
+  const _am = { x: 0, z: 0, h: 0 };
+  function amostra(s) {
+    const idx = (s - baseS) / PASSO;
+    let i = Math.floor(idx);
+    if (i < 0) i = 0;
+    if (i > centro.length - 2) i = centro.length - 2;
+    const f = clamp(idx - i, 0, 1);
+    const a = centro[i], b = centro[i + 1];
+    _am.x = lerp(a.x, b.x, f);
+    _am.z = lerp(a.z, b.z, f);
+    _am.h = lerp(a.h, b.h, f);
+    return _am;
+  }
+
+  // posição no mundo a partir de (distância ao longo da pista, deslocamento lateral)
+  function posMundo(s, lat, alvo) {
+    const a = amostra(s);
+    const dirX = Math.cos(a.h), dirZ = -Math.sin(a.h); // vetor "direita" da pista
+    alvo.x = a.x + dirX * lat;
+    alvo.z = a.z + dirZ * lat;
+    alvo.h = a.h;
+    return alvo;
+  }
+  const _p1 = { x: 0, z: 0, h: 0 }, _p2 = { x: 0, z: 0, h: 0 };
+
+  function curvaturaEm(s) {
+    const h1 = amostra(s).h, h2 = amostra(s + 12).h;
+    return (h2 - h1) / 12;
+  }
+
+  // =====================================================================
+  //  Textura do asfalto (faixas contínuas nas bordas e tracejadas no meio)
+  // =====================================================================
+  function texturaPista() {
+    const L = 512, A = 1024;              // A representa 16 m de comprimento
+    const c = document.createElement("canvas");
+    c.width = L; c.height = A;
+    const g = c.getContext("2d");
+    const px = L / LARG_TOTAL;            // pixels por metro (largura)
+    const py = A / 16;                    // pixels por metro (comprimento)
+    const meio = L / 2;
+
+    g.fillStyle = "#3a3f45"; g.fillRect(0, 0, L, A);
+    // acostamento levemente mais escuro
+    g.fillStyle = "#33383e";
+    g.fillRect(0, 0, meio - BORDA_PISTA * px, A);
+    g.fillRect(meio + BORDA_PISTA * px, 0, meio, A);
+    // ruído do asfalto
+    for (let i = 0; i < 9000; i++) {
+      g.fillStyle = "rgba(255,255,255," + (Math.random() * 0.045) + ")";
+      g.fillRect(Math.random() * L, Math.random() * A, 2, 2);
+    }
+    // linhas contínuas das bordas da pista
+    g.fillStyle = "#f2f2f2";
+    g.fillRect(meio - BORDA_PISTA * px - 0.09 * px, 0, 0.18 * px, A);
+    g.fillRect(meio + BORDA_PISTA * px - 0.09 * px, 0, 0.18 * px, A);
+    // linhas tracejadas entre as faixas (3 m de traço, 5 m de vão)
+    g.fillStyle = "#e8e8e8";
+    [-LARG_FAIXA / 2, LARG_FAIXA / 2].forEach(function (xm) {
+      const x = meio + xm * px; // divisórias em -2 m e +2 m
+      for (let d = 0; d < 16; d += 8) {
+        g.fillRect(x - 0.07 * px, d * py, 0.14 * px, 3 * py);
+      }
+    });
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return tex;
+  }
+
+  // =====================================================================
+  //  Malha da pista (fita atualizada a cada quadro)
+  // =====================================================================
+  const posPista = new Float32Array(N_AMOSTRAS * 2 * 3);
+  const uvPista  = new Float32Array(N_AMOSTRAS * 2 * 2);
+  const norPista = new Float32Array(N_AMOSTRAS * 2 * 3);
+  for (let i = 1; i < norPista.length; i += 3) norPista[i] = 1;   // normais para cima
+  const idxPista = [];
+  for (let i = 0; i < N_AMOSTRAS - 1; i++) {
+    const a = i * 2;
+    idxPista.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+  }
+  const geoPista = new THREE.BufferGeometry();
+  geoPista.setAttribute("position", new THREE.BufferAttribute(posPista, 3));
+  geoPista.setAttribute("uv", new THREE.BufferAttribute(uvPista, 2));
+  geoPista.setAttribute("normal", new THREE.BufferAttribute(norPista, 3));
+  geoPista.setIndex(idxPista);
+  const malhaPista = new THREE.Mesh(
+    geoPista,
+    new THREE.MeshLambertMaterial({ map: texturaPista() })
+  );
+  malhaPista.frustumCulled = false;
+  cena.add(malhaPista);
+
+  // grama / terreno
+  const chao = new THREE.Mesh(
+    new THREE.PlaneGeometry(4000, 4000),
+    new THREE.MeshLambertMaterial({ color: 0x5d7a44 })
+  );
+  chao.rotation.x = -Math.PI / 2;
+  chao.position.y = -0.06;
+  cena.add(chao);
+
+  function atualizaPista(sJogador) {
+    const s0 = Math.floor((sJogador - 60) / PASSO) * PASSO;
+    for (let i = 0; i < N_AMOSTRAS; i++) {
+      const s = s0 + i * PASSO;
+      posMundo(s, -LARG_TOTAL / 2, _p1);
+      posMundo(s, LARG_TOTAL / 2, _p2);
+      const o = i * 6;
+      posPista[o]     = _p1.x; posPista[o + 1] = 0.02; posPista[o + 2] = _p1.z;
+      posPista[o + 3] = _p2.x; posPista[o + 4] = 0.02; posPista[o + 5] = _p2.z;
+      const u = i * 4, v = s / 16;
+      uvPista[u] = 0; uvPista[u + 1] = v;
+      uvPista[u + 2] = 1; uvPista[u + 3] = v;
+    }
+    geoPista.attributes.position.needsUpdate = true;
+    geoPista.attributes.uv.needsUpdate = true;
+    chao.position.x = Math.round(_p1.x / 200) * 200;
+    chao.position.z = Math.round(_p1.z / 200) * 200;
+  }
+
+  // =====================================================================
+  //  Cenário lateral (postes e árvores reaproveitados)
+  // =====================================================================
+  const cenario = [];
+  (function criaCenario() {
+    const geoTronco = new THREE.CylinderGeometry(0.22, 0.3, 2.6, 6);
+    const matTronco = new THREE.MeshLambertMaterial({ color: 0x5b432c });
+    const geoCopa = new THREE.ConeGeometry(2.1, 5.2, 7);
+    const matCopa = new THREE.MeshLambertMaterial({ color: 0x3f6b34 });
+    const geoPoste = new THREE.CylinderGeometry(0.13, 0.16, 8, 6);
+    const matPoste = new THREE.MeshLambertMaterial({ color: 0x9aa3aa });
+    const geoBraco = new THREE.BoxGeometry(2.4, 0.16, 0.3);
+
+    for (let i = 0; i < 70; i++) {
+      const g = new THREE.Group();
+      if (i % 4 === 0) {
+        const p = new THREE.Mesh(geoPoste, matPoste); p.position.y = 4; g.add(p);
+        const b = new THREE.Mesh(geoBraco, matPoste); b.position.set(-1.0, 7.9, 0); g.add(b);
+      } else {
+        const t = new THREE.Mesh(geoTronco, matTronco); t.position.y = 1.3; g.add(t);
+        const c = new THREE.Mesh(geoCopa, matCopa); c.position.y = 4.4; g.add(c);
+        const e = 0.75 + Math.random() * 0.7;
+        g.scale.set(e, e, e);
+      }
+      g.userData = { s: i * 26, lado: i % 2 === 0 ? -1 : 1, off: rand(4, 14) };
+      cena.add(g);
+      cenario.push(g);
+    }
+  })();
+
+  function atualizaCenario(sJogador) {
+    const _t = { x: 0, z: 0, h: 0 };
+    for (const g of cenario) {
+      const d = g.userData;
+      while (d.s < sJogador - 40) d.s += cenario.length * 26;
+      while (d.s > sJogador + 900) d.s -= cenario.length * 26;
+      posMundo(d.s, d.lado * (LARG_TOTAL / 2 + d.off), _t);
+      g.position.set(_t.x, 0, _t.z);
+      g.rotation.y = _t.h;
+    }
+  }
+
+  // =====================================================================
+  //  Moto do jogador (visão em primeira pessoa)
+  // =====================================================================
+  const grupoMoto = new THREE.Group();          // posição + direção na pista
+  const grupoInclina = new THREE.Group();       // inclinação (lean) da moto
+  grupoMoto.add(grupoInclina);
+  // a câmera do three.js olha para -Z, mas a pista avança em +Z: este suporte
+  // gira 180° para que a visão em primeira pessoa aponte para a frente da moto
+  const suporteCam = new THREE.Group();
+  suporteCam.rotation.y = Math.PI;
+  grupoInclina.add(suporteCam);
+  suporteCam.add(camera);
+  cena.add(grupoMoto);
+
+  (function montaMoto() {
+    const preto  = new THREE.MeshLambertMaterial({ color: 0x1a1c20 });
+    const metal  = new THREE.MeshLambertMaterial({ color: 0xb8c0c8 });
+    const pintura = new THREE.MeshLambertMaterial({ color: 0xc02a2a });
+    const vidro  = new THREE.MeshLambertMaterial({ color: 0x2c3a4a });
+
+    const m = new THREE.Group();
+
+    // guidão
+    const guidao = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.5, 8), metal);
+    guidao.rotation.z = Math.PI / 2;
+    guidao.position.set(0, 0.98, 0.80);
+    m.add(guidao);
+    [-0.62, 0.62].forEach(function (x) {
+      const punho = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.26, 8), preto);
+      punho.rotation.z = Math.PI / 2;
+      punho.position.set(x, 0.98, 0.80);
+      m.add(punho);
+      // retrovisor
+      const haste = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.34, 6), preto);
+      haste.position.set(x * 0.86, 1.14, 0.82);
+      haste.rotation.z = -x * 0.28;
+      m.add(haste);
+      const espelho = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.04), vidro);
+      espelho.position.set(x * 1.06, 1.32, 0.84);
+      espelho.rotation.y = -x * 0.5;
+      m.add(espelho);
+    });
+
+    // painel / carenagem
+    const painel = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.14), preto);
+    painel.position.set(0, 1.04, 1.00);
+    painel.rotation.x = -0.4;
+    m.add(painel);
+    const carenagem = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.5, 0.5), pintura);
+    carenagem.position.set(0, 0.80, 1.16);
+    m.add(carenagem);
+    const parabrisa = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.34, 0.04), vidro);
+    parabrisa.position.set(0, 1.18, 1.10);
+    parabrisa.rotation.x = -0.35;
+    m.add(parabrisa);
+
+    // tanque (visível embaixo, dá a sensação de estar em cima da moto)
+    const tanque = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.28, 0.72), pintura);
+    tanque.position.set(0, 0.80, 0.58);
+    m.add(tanque);
+
+    // garfo e roda dianteira
+    [-0.2, 0.2].forEach(function (x) {
+      const garfo = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 8), metal);
+      garfo.position.set(x, 0.60, 1.28);
+      garfo.rotation.x = 0.22;
+      m.add(garfo);
+    });
+    const roda = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.1, 8, 18), preto);
+    roda.position.set(0, 0.34, 1.42);
+    roda.rotation.y = Math.PI / 2;
+    m.add(roda);
+    const paralama = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.1, 0.7), pintura);
+    paralama.position.set(0, 0.62, 1.42);
+    m.add(paralama);
+
+    // braços do piloto
+    [-0.5, 0.5].forEach(function (x) {
+      const braco = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.10, 0.58), new THREE.MeshLambertMaterial({ color: 0x24303c }));
+      braco.position.set(x * 0.86, 0.97, 0.58);
+      braco.rotation.y = -x * 0.13;
+      m.add(braco);
+    });
+
+    m.position.y = 0;
+    grupoInclina.add(m);
+  })();
+
+  // =====================================================================
+  //  Trânsito: carros, caminhões e motos
+  // =====================================================================
+  const TIPOS = {
+    carro:    { larg: 1.9, comp: 4.5, velMin: 21, velMax: 33 },
+    caminhao: { larg: 2.5, comp: 9.5, velMin: 16, velMax: 24 },
+    moto:     { larg: 0.9, comp: 2.2, velMin: 26, velMax: 36 }
+  };
+  const CORES_CARRO = [0x2f6fb5, 0xb5352f, 0xe0e4e8, 0x2d2f33, 0xd7a32b, 0x2e8f5b, 0x7a4bbd];
+
+  function criaCarro(cor) {
+    const g = new THREE.Group();
+    const corpo = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.85, 4.5), new THREE.MeshLambertMaterial({ color: cor }));
+    corpo.position.y = 0.75; g.add(corpo);
+    const teto = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.66, 2.3), new THREE.MeshLambertMaterial({ color: cor }));
+    teto.position.set(0, 1.42, -0.2); g.add(teto);
+    const jan = new THREE.Mesh(new THREE.BoxGeometry(1.76, 0.42, 2.34), new THREE.MeshLambertMaterial({ color: 0x1e2a36 }));
+    jan.position.set(0, 1.5, -0.2); g.add(jan);
+    const lanterna = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.16, 0.1), new THREE.MeshBasicMaterial({ color: 0xff3b30 }));
+    lanterna.position.set(0, 0.9, -2.26); g.add(lanterna);
+    rodas(g, 1.0, [1.4, -1.4], 0.35);
+    return g;
+  }
+  function criaCaminhao(cor) {
+    const g = new THREE.Group();
+    const cabine = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.2, 2.4), new THREE.MeshLambertMaterial({ color: cor }));
+    cabine.position.set(0, 1.5, 3.3); g.add(cabine);
+    const vidro = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.8, 0.12), new THREE.MeshLambertMaterial({ color: 0x1e2a36 }));
+    vidro.position.set(0, 2.0, 4.52); g.add(vidro);
+    const bau = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.9, 6.6), new THREE.MeshLambertMaterial({ color: 0xdfe3e6 }));
+    bau.position.set(0, 1.95, -1.2); g.add(bau);
+    const lanterna = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.2, 0.12), new THREE.MeshBasicMaterial({ color: 0xff3b30 }));
+    lanterna.position.set(0, 0.8, -4.55); g.add(lanterna);
+    rodas(g, 1.3, [3.2, -1.6, -3.0], 0.5);
+    return g;
+  }
+  function criaMotoTransito(cor) {
+    const g = new THREE.Group();
+    const corpo = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 1.7), new THREE.MeshLambertMaterial({ color: cor }));
+    corpo.position.y = 0.75; g.add(corpo);
+    const piloto = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.9, 0.5), new THREE.MeshLambertMaterial({ color: 0x22262b }));
+    piloto.position.set(0, 1.35, -0.2); g.add(piloto);
+    const capacete = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), new THREE.MeshLambertMaterial({ color: 0xf0f0f0 }));
+    capacete.position.set(0, 1.95, -0.2); g.add(capacete);
+    const lanterna = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.08), new THREE.MeshBasicMaterial({ color: 0xff3b30 }));
+    lanterna.position.set(0, 0.9, -0.9); g.add(lanterna);
+    rodas(g, 0.34, [0.75, -0.75], 0.34, 0.16);
+    return g;
+  }
+  function rodas(g, meiaLarg, zs, raio, larg) {
+    const mat = new THREE.MeshLambertMaterial({ color: 0x15171a });
+    const geo = new THREE.CylinderGeometry(raio, raio, larg || 0.3, 10);
+    zs.forEach(function (z) {
+      [-meiaLarg, meiaLarg].forEach(function (x) {
+        if (larg && x < 0) return; // moto tem apenas uma roda por eixo
+        const r = new THREE.Mesh(geo, mat);
+        r.rotation.z = Math.PI / 2;
+        r.position.set(larg ? 0 : x, raio, z);
+        g.add(r);
+      });
+    });
+  }
+
+  const transito = [];
+  const N_TRANSITO = 22;
+  (function criaTransito() {
+    for (let i = 0; i < N_TRANSITO; i++) {
+      const v = {
+        tipo: null, s: 0, faixa: 1, lat: 0, vel: 0, ativo: false,
+        malhas: {
+          carro: criaCarro(escolha(CORES_CARRO)),
+          caminhao: criaCaminhao(escolha([0x2f6fb5, 0xb5352f, 0x2d2f33, 0xd7a32b])),
+          moto: criaMotoTransito(escolha(CORES_CARRO))
+        },
+        obj: null
+      };
+      for (const k in v.malhas) { v.malhas[k].visible = false; cena.add(v.malhas[k]); }
+      transito.push(v);
+    }
+  })();
+
+  function livre(s, faixa, comp, ignorar) {
+    for (const o of transito) {
+      if (!o.ativo || o === ignorar || o.faixa !== faixa) continue;
+      const dist = Math.abs(o.s - s);
+      if (dist < (comp + TIPOS[o.tipo].comp) / 2 + 22) return false;
+    }
+    return true;
+  }
+
+  function nasceVeiculo(v, sJogador) {
+    const tipo = Math.random() < 0.16 ? "caminhao" : (Math.random() < 0.75 ? "carro" : "moto");
+    const t = TIPOS[tipo];
+    for (let tent = 0; tent < 12; tent++) {
+      const faixa = (Math.random() * N_FAIXAS) | 0;
+      const s = sJogador + rand(120, 540);
+      if (!livre(s, faixa, t.comp, v)) continue;
+      if (v.obj) v.obj.visible = false;
+      v.tipo = tipo; v.faixa = faixa; v.s = s;
+      v.lat = FAIXAS_X[faixa];
+      v.vel = rand(t.velMin, t.velMax);
+      v.obj = v.malhas[tipo];
+      v.obj.visible = true;
+      v.ativo = true;
+      return;
+    }
+  }
+
+  function atualizaTransito(dt, sJogador) {
+    const _t = { x: 0, z: 0, h: 0 };
+    for (const v of transito) {
+      if (!v.ativo) { nasceVeiculo(v, sJogador); continue; }
+      v.s += v.vel * dt;
+      if (v.s < sJogador - 90 || v.s > sJogador + 780) {
+        v.ativo = false;
+        if (v.obj) v.obj.visible = false;
+        nasceVeiculo(v, sJogador);
+        continue;
+      }
+      // pequena acomodação lateral dentro da faixa
+      v.lat += (FAIXAS_X[v.faixa] - v.lat) * Math.min(1, dt * 2);
+      posMundo(v.s, v.lat, _t);
+      v.obj.position.set(_t.x, 0, _t.z);
+      v.obj.rotation.y = _t.h;
+    }
+  }
+
+  // =====================================================================
+  //  Obstáculos: cones de obra (forçam desvio de faixa)
+  // =====================================================================
+  const cones = [];
+  (function criaCones() {
+    const geo = new THREE.ConeGeometry(0.3, 0.85, 8);
+    const mat = new THREE.MeshLambertMaterial({ color: 0xff7a1a });
+    const base = new THREE.BoxGeometry(0.62, 0.08, 0.62);
+    for (let i = 0; i < 18; i++) {
+      const g = new THREE.Group();
+      const c = new THREE.Mesh(geo, mat); c.position.y = 0.45; g.add(c);
+      const b = new THREE.Mesh(base, mat); b.position.y = 0.04; g.add(b);
+      g.visible = false;
+      cena.add(g);
+      cones.push({ obj: g, s: 0, lat: 0, ativo: false });
+    }
+  })();
+  let proxObra = 900;
+
+  function atualizaCones(sJogador) {
+    if (sJogador + 500 > proxObra) {
+      const faixa = (Math.random() * N_FAIXAS) | 0;
+      const sBase = proxObra;
+      let usados = 0;
+      for (const c of cones) {
+        if (c.ativo || usados >= 6) continue;
+        c.ativo = true;
+        c.s = sBase + usados * 7;
+        c.lat = FAIXAS_X[faixa] + Math.sin(usados) * 0.4;
+        c.obj.visible = true;
+        usados++;
+      }
+      proxObra += rand(750, 1500);
+    }
+    const _t = { x: 0, z: 0, h: 0 };
+    for (const c of cones) {
+      if (!c.ativo) continue;
+      if (c.s < sJogador - 60) { c.ativo = false; c.obj.visible = false; continue; }
+      posMundo(c.s, c.lat, _t);
+      c.obj.position.set(_t.x, 0, _t.z);
+      c.obj.rotation.y = _t.h;
+    }
+  }
+
+  // =====================================================================
+  //  Estado do jogo e entrada do teclado
+  // =====================================================================
+  const ESTADO = { INICIO: 0, JOGANDO: 1, FIM: 2 };
+  let estado = ESTADO.INICIO;
+
+  const teclas = { w: false, s: false, a: false, d: false };
+  const jogo = {
+    s: 0, lat: 0, vel: 0, direcao: 0, inclinacao: 0,
+    tempo: 0, batidas: 0, invuln: 0, velMax: 0, balanco: 0
+  };
+
+  window.addEventListener("keydown", function (e) {
+    const k = e.key.toLowerCase();
+    if (k === "w" || k === "arrowup") teclas.w = true;
+    if (k === "s" || k === "arrowdown") teclas.s = true;
+    if (k === "a" || k === "arrowleft") teclas.a = true;
+    if (k === "d" || k === "arrowright") teclas.d = true;
+    if (estado === ESTADO.INICIO && (k === "enter" || k === " ")) iniciaPartida();
+    if (estado === ESTADO.FIM && k === "r") iniciaPartida();
+    if (["w","a","s","d"," ","arrowup","arrowdown","arrowleft","arrowright"].indexOf(k) >= 0) e.preventDefault();
+  });
+  window.addEventListener("keyup", function (e) {
+    const k = e.key.toLowerCase();
+    if (k === "w" || k === "arrowup") teclas.w = false;
+    if (k === "s" || k === "arrowdown") teclas.s = false;
+    if (k === "a" || k === "arrowleft") teclas.a = false;
+    if (k === "d" || k === "arrowright") teclas.d = false;
+  });
+  window.addEventListener("blur", function () { teclas.w = teclas.s = teclas.a = teclas.d = false; });
+
+  // =====================================================================
+  //  HUD
+  // =====================================================================
+  const elDist = document.getElementById("valDist");
+  const elTempo = document.getElementById("valTempo");
+  const elVel = document.getElementById("valVel");
+  const elBatidas = document.getElementById("valBatidas");
+  const painelBatidas = document.getElementById("painelBatidas");
+  const flash = document.getElementById("flashDano");
+  const aviso = document.getElementById("aviso");
+  const telaInicio = document.getElementById("telaInicio");
+  const telaFim = document.getElementById("telaFim");
+
+  function atualizaHUD() {
+    elDist.textContent = (jogo.s / 1000).toFixed(2);
+    elTempo.textContent = formataTempo(jogo.tempo);
+    elVel.textContent = Math.round(jogo.vel * 3.6);
+    elBatidas.textContent = jogo.batidas;
+    painelBatidas.classList.toggle("perigo", jogo.batidas >= 2);
+  }
+
+  let avisoTimer = 0;
+  function mostraAviso(txt) {
+    aviso.textContent = txt;
+    aviso.style.opacity = "1";
+    avisoTimer = 1.4;
+  }
+
+  // =====================================================================
+  //  Colisões
+  // =====================================================================
+  const MEIA_LARG_MOTO = 0.55, MEIA_COMP_MOTO = 1.1;
+
+  function verificaColisoes() {
+    if (jogo.invuln > 0) return;
+    for (const v of transito) {
+      if (!v.ativo) continue;
+      const t = TIPOS[v.tipo];
+      if (Math.abs(v.s - jogo.s) < (t.comp / 2 + MEIA_COMP_MOTO) &&
+          Math.abs(v.lat - jogo.lat) < (t.larg / 2 + MEIA_LARG_MOTO)) {
+        registraBatida(v.tipo === "caminhao" ? "Bateu no caminhão!" :
+                       v.tipo === "carro" ? "Bateu no carro!" : "Bateu na moto!");
+        return;
+      }
+    }
+    for (const c of cones) {
+      if (!c.ativo) continue;
+      if (Math.abs(c.s - jogo.s) < (0.4 + MEIA_COMP_MOTO) &&
+          Math.abs(c.lat - jogo.lat) < (0.35 + MEIA_LARG_MOTO)) {
+        registraBatida("Bateu nos cones!");
+        return;
+      }
+    }
+  }
+
+  function registraBatida(texto) {
+    jogo.batidas++;
+    jogo.invuln = T_INVULN;
+    jogo.vel *= 0.35;
+    flash.style.opacity = "1";
+    setTimeout(function () { flash.style.opacity = "0"; }, 220);
+    atualizaHUD();
+    if (jogo.batidas >= MAX_BATIDAS) {
+      terminaPartida();
+    } else {
+      mostraAviso(texto + "  (" + jogo.batidas + "/" + MAX_BATIDAS + ")");
+    }
+  }
+
+  // =====================================================================
+  //  Ciclo da partida
+  // =====================================================================
+  function iniciaPartida() {
+    reiniciaEstrada();
+    jogo.s = 0; jogo.lat = 0; jogo.vel = 0; jogo.direcao = 0; jogo.inclinacao = 0;
+    jogo.tempo = 0; jogo.batidas = 0; jogo.invuln = 0; jogo.velMax = 0; jogo.balanco = 0;
+    proxObra = 900;
+    for (const v of transito) { v.ativo = false; if (v.obj) v.obj.visible = false; }
+    for (const c of cones) { c.ativo = false; c.obj.visible = false; }
+    for (const v of transito) nasceVeiculo(v, 0);
+    telaInicio.classList.add("oculta");
+    telaFim.classList.add("oculta");
+    aviso.style.opacity = "0";
+    atualizaHUD();
+    estado = ESTADO.JOGANDO;
+  }
+
+  function terminaPartida() {
+    estado = ESTADO.FIM;
+    document.getElementById("fimDist").textContent = (jogo.s / 1000).toFixed(2);
+    document.getElementById("fimTempo").textContent = formataTempo(jogo.tempo);
+    document.getElementById("fimVel").textContent = Math.round(jogo.velMax * 3.6);
+    telaFim.classList.remove("oculta");
+    aviso.style.opacity = "0";
+  }
+
+  // =====================================================================
+  //  Física da moto + câmera dinâmica em primeira pessoa
+  // =====================================================================
+  function atualizaJogador(dt) {
+    // ---- aceleração / freio (nunca dá ré) ----
+    if (teclas.w) {
+      const perdaTopo = 1 - (jogo.vel / VEL_MAX) * 0.65;
+      jogo.vel += ACEL * perdaTopo * dt;
+    }
+    if (teclas.s) jogo.vel -= FREIO * dt;
+    if (!teclas.w && !teclas.s) jogo.vel -= ATRITO * dt;
+    jogo.vel = clamp(jogo.vel, 0, VEL_MAX);   // mínimo zero: sem marcha à ré
+
+    // ---- direção lateral ----
+    const alvoDir = (teclas.d ? 1 : 0) - (teclas.a ? 1 : 0);
+    jogo.direcao += (alvoDir - jogo.direcao) * Math.min(1, dt * 5.5);
+    const fator = 0.35 + 0.65 * (jogo.vel / VEL_MAX);
+    jogo.lat += jogo.direcao * VEL_LATERAL * fator * dt;
+
+    // fora da pista: perde aderência e velocidade
+    if (Math.abs(jogo.lat) > BORDA_PISTA) jogo.vel -= 7 * dt;
+    jogo.lat = clamp(jogo.lat, -LIM_LATERAL, LIM_LATERAL);
+    jogo.vel = Math.max(0, jogo.vel);
+
+    // ---- avanço na pista ----
+    jogo.s += jogo.vel * dt;
+    jogo.tempo += dt;
+    if (jogo.vel > jogo.velMax) jogo.velMax = jogo.vel;
+    if (jogo.invuln > 0) jogo.invuln -= dt;
+
+    estender(jogo.s + VIS_FRENTE + 200);
+    // descarta amostras já ultrapassadas
+    const descarte = Math.floor((jogo.s - 120 - baseS) / PASSO);
+    if (descarte > 60) { centro.splice(0, descarte); baseS += descarte * PASSO; }
+
+    // ---- inclinação (lean) da moto e da câmera ----
+    const curv = curvaturaEm(jogo.s);
+    const leanDirecao = jogo.direcao * 0.26 * (0.35 + 0.65 * jogo.vel / VEL_MAX);
+    const leanCurva   = clamp(curv * jogo.vel * 1.4, -0.18, 0.18);
+    const alvoLean = clamp(leanDirecao + leanCurva, -0.32, 0.32);
+    jogo.inclinacao += (alvoLean - jogo.inclinacao) * Math.min(1, dt * 6);
+
+    // ---- posicionamento da moto no mundo ----
+    posMundo(jogo.s, jogo.lat, _p1);
+    grupoMoto.position.set(_p1.x, 0, _p1.z);
+    grupoMoto.rotation.y = _p1.h + jogo.direcao * 0.10; // leve guinada ao trocar de faixa
+    grupoInclina.rotation.z = -jogo.inclinacao;
+
+    // ---- câmera: chacoalho, altura e FOV variando com a velocidade ----
+    jogo.balanco += dt * (4 + jogo.vel * 0.32);
+    const intensidade = 0.006 + jogo.vel / VEL_MAX * 0.016;
+    // eixos locais invertidos pelo suporte de 180°: os sinais abaixo já consideram isso
+    camera.position.set(
+      Math.sin(jogo.balanco * 0.9) * intensidade,
+      ALTURA_OLHOS + Math.sin(jogo.balanco * 1.7) * intensidade,
+      0.32
+    );
+    camera.rotation.set(
+      -Math.sin(jogo.balanco * 1.3) * intensidade * 0.6 + jogo.vel / VEL_MAX * 0.02,
+      jogo.direcao * 0.11 + curv * 9,        // olha um pouco para dentro da curva
+      jogo.inclinacao * 0.22                 // a cabeça acompanha a inclinação
+    );
+    const fovAlvo = 74 + (jogo.vel / VEL_MAX) * 16;
+    camera.fov += (fovAlvo - camera.fov) * Math.min(1, dt * 3);
+    camera.updateProjectionMatrix();
+  }
+
+  // =====================================================================
+  //  Laço principal
+  // =====================================================================
+  let ultimo = performance.now();
+  function laco(agora) {
+    requestAnimationFrame(laco);
+    let dt = (agora - ultimo) / 1000;
+    ultimo = agora;
+    dt = Math.min(dt, 0.05);
+
+    if (estado === ESTADO.JOGANDO) {
+      atualizaJogador(dt);
+      atualizaTransito(dt, jogo.s);
+      atualizaCones(jogo.s);
+      verificaColisoes();
+      atualizaHUD();
+      if (avisoTimer > 0) {
+        avisoTimer -= dt;
+        if (avisoTimer <= 0) aviso.style.opacity = "0";
+      }
+    } else {
+      // nas telas de início e fim a cena continua viva, apenas parada
+      atualizaTransito(dt * (estado === ESTADO.INICIO ? 1 : 0), jogo.s);
+    }
+
+    atualizaPista(jogo.s);
+    atualizaCenario(jogo.s);
+    renderer.render(cena, camera);
+  }
+
+  window.addEventListener("resize", function () {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // ---- estado inicial: moto parada no começo da rodovia ----
+  reiniciaEstrada();
+  for (const v of transito) nasceVeiculo(v, 0);
+  posMundo(0, 0, _p1);
+  grupoMoto.position.set(_p1.x, 0, _p1.z);
+  camera.position.set(0, ALTURA_OLHOS, 0.32);
+  atualizaPista(0);
+  atualizaCenario(0);
+  document.getElementById("carregando").style.display = "none";
+  requestAnimationFrame(laco);
+})();
+</script>
+</body>
+</html>
