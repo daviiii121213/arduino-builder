@@ -1,0 +1,516 @@
+<title>Cardápio Guaraná da Casa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+  :root{
+    --ground:#eef2ec;
+    --panel:#ffffff;
+    --ink:#0f1f18;
+    --ink-soft:#4a5f55;
+    --ink-faint:#8399907a;
+    --rule:#c9d5cc;
+    --verde:#128c3f;
+    --verde-deep:#0a5c2a;
+    --azul:#1b3fa0;
+    --berry:#c81e2c;
+    --stage-1:#dfe7de;
+    --stage-2:#c3d2c4;
+    --shadow:0 18px 40px -28px rgba(10,45,30,.55);
+    --leader:#b9c8bd;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0b1310;
+      --panel:#111c17;
+      --ink:#e9f1ea;
+      --ink-soft:#9fb3a7;
+      --ink-faint:#5d7268;
+      --rule:#22332b;
+      --verde:#33bd60;
+      --verde-deep:#0a5c2a;
+      --azul:#5b7ce0;
+      --berry:#f0525f;
+      --stage-1:#16221c;
+      --stage-2:#0a120e;
+      --shadow:0 18px 44px -26px rgba(0,0,0,.8);
+      --leader:#2c3f35;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0b1310;
+    --panel:#111c17;
+    --ink:#e9f1ea;
+    --ink-soft:#9fb3a7;
+    --ink-faint:#5d7268;
+    --rule:#22332b;
+    --verde:#33bd60;
+    --verde-deep:#0a5c2a;
+    --azul:#5b7ce0;
+    --berry:#f0525f;
+    --stage-1:#16221c;
+    --stage-2:#0a120e;
+    --shadow:0 18px 44px -26px rgba(0,0,0,.8);
+    --leader:#2c3f35;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:"Newsreader",Georgia,serif;
+    font-size:17px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1240px;margin:0 auto;padding:36px 26px 80px}
+  .eyebrow{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  header.top{
+    display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;
+    gap:18px;border-bottom:2px solid var(--ink);padding-bottom:16px;
+  }
+  h1{
+    font-family:"Archivo Black",Impact,sans-serif;
+    font-size:clamp(30px,5.2vw,54px);line-height:.95;margin:6px 0 0;
+    letter-spacing:-.01em;text-wrap:balance;text-transform:uppercase;
+  }
+  h1 em{font-style:normal;color:var(--verde)}
+  .top .meta{text-align:right;color:var(--ink-soft);font-size:14px}
+  .layout{display:grid;grid-template-columns:minmax(340px,44%) 1fr;gap:44px;margin-top:34px;align-items:start}
+  @media (max-width:900px){.layout{grid-template-columns:1fr;gap:34px}}
+
+  /* ---------- palco 3D ---------- */
+  .stage-col{position:sticky;top:24px}
+  @media (max-width:900px){.stage-col{position:static}}
+  .stage{
+    position:relative;height:460px;border-radius:4px;
+    background:radial-gradient(120% 90% at 50% 12%,var(--stage-1),var(--stage-2));
+    border:1px solid var(--rule);
+    overflow:hidden;cursor:grab;touch-action:none;
+    perspective:1100px;
+  }
+  .stage:active{cursor:grabbing}
+  .stage:focus-visible{outline:3px solid var(--verde);outline-offset:3px}
+  .scene{position:absolute;left:50%;top:50%;transform-style:preserve-3d}
+  .spin{position:absolute;left:0;top:0;transform-style:preserve-3d}
+  .slat{position:absolute;left:0;top:0;background-repeat:no-repeat;backface-visibility:hidden}
+  .lid,.base{position:absolute;left:0;top:0;border-radius:50%}
+  .lid{background:
+      radial-gradient(circle at 50% 50%,#d8dde0 0 34%,#a9b1b5 35% 42%,#e6eaec 43% 62%,#8f989d 63% 72%,#cfd6d9 73% 92%,#79838a 93% 100%);}
+  .base{background:radial-gradient(circle at 50% 50%,#96a0a4 0 62%,#c7ced1 63% 88%,#6f797f 89% 100%)}
+  .gloss{position:absolute;left:0;top:0;pointer-events:none;border-radius:2px;
+    background:linear-gradient(90deg,
+      rgba(0,0,0,.62) 0%, rgba(0,0,0,.30) 9%, rgba(0,0,0,0) 20%,
+      rgba(255,255,255,.42) 31%, rgba(255,255,255,.10) 42%,
+      rgba(0,0,0,0) 58%, rgba(0,0,0,.28) 82%, rgba(0,0,0,.60) 100%);
+    mix-blend-mode:multiply;opacity:.75}
+  .gloss.light{mix-blend-mode:screen;opacity:.55;background:linear-gradient(90deg,
+      rgba(255,255,255,0) 18%, rgba(255,255,255,.55) 30%, rgba(255,255,255,0) 41%)}
+  .floor{position:absolute;left:50%;bottom:52px;width:230px;height:26px;transform:translateX(-50%);
+    background:radial-gradient(ellipse at center,rgba(6,30,18,.42),rgba(6,30,18,0) 70%);filter:blur(1px)}
+  .hint{
+    position:absolute;left:14px;bottom:12px;right:14px;display:flex;justify-content:space-between;
+    gap:10px;pointer-events:none;
+    font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .readout{font-variant-numeric:tabular-nums}
+  .stage-note{margin:10px 2px 0;font-size:13.5px;color:var(--ink-soft)}
+  .stage-note b{color:var(--ink);font-weight:500}
+
+  /* ---------- cardápio ---------- */
+  .sec{margin-top:6px}
+  .sec + .sec{margin-top:38px}
+  .sec h2{
+    font-family:"Archivo Black",Impact,sans-serif;text-transform:uppercase;
+    font-size:15px;letter-spacing:.08em;margin:0 0 4px;
+  }
+  .sec .sub{color:var(--ink-soft);font-size:14.5px;font-style:italic;margin:0 0 14px}
+  .item{display:grid;grid-template-columns:1fr auto;gap:2px 14px;padding:14px 0;border-top:1px solid var(--rule)}
+  .item:first-of-type{border-top:1.5px solid var(--ink)}
+  .item .name{font-weight:500;font-size:19px;display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+  .item .name .vol{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.1em;color:var(--ink-soft)}
+  .item .price{font-family:"IBM Plex Mono",monospace;font-size:15px;font-variant-numeric:tabular-nums;align-self:baseline}
+  .item .desc{grid-column:1/-1;color:var(--ink-soft);font-size:15.5px;max-width:62ch;margin-top:2px}
+  .tag{
+    font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    padding:2px 7px;border-radius:2px;background:var(--verde);color:#fff;
+  }
+  .tag.berry{background:var(--berry)}
+
+  .hero-item{
+    background:var(--panel);border-left:4px solid var(--verde);
+    padding:20px 22px;box-shadow:var(--shadow);margin-bottom:26px;
+  }
+  .hero-item h3{font-family:"Archivo Black",Impact,sans-serif;font-size:26px;margin:6px 0 6px;text-transform:uppercase;letter-spacing:-.005em}
+  .hero-item p{margin:0;max-width:60ch}
+  .hero-item .row{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-top:16px;flex-wrap:wrap}
+  .hero-item .row .price{font-family:"Archivo Black",Impact,sans-serif;font-size:28px;color:var(--berry)}
+
+  .ficha{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;border-top:1.5px solid var(--ink);margin-top:8px}
+  .ficha div{padding:12px 14px 12px 0;border-bottom:1px solid var(--rule)}
+  .ficha dt{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+  .ficha dd{margin:3px 0 0;font-size:16px}
+  footer{margin-top:52px;border-top:1px solid var(--rule);padding-top:14px;color:var(--ink-soft);font-size:13px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Cardápio · bebidas geladas · serviço o dia todo</div>
+      <h1>Guaraná <em>da Casa</em></h1>
+    </div>
+    <div class="meta">
+      Lata de 350 ml servida a 3 °C<br>
+      Arraste a lata para girar 360°
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="stage-col">
+      <div class="stage" id="stage" tabindex="0" role="img"
+           aria-label="Lata verde de 350 ml de refrigerante de guaraná em vista 3D. Arraste com o mouse ou use as setas do teclado para girar.">
+        <div class="floor"></div>
+        <div class="hint">
+          <span>Arraste para girar</span>
+          <span class="readout" id="readout">0° / 0°</span>
+        </div>
+      </div>
+      <p class="stage-note"><b>Vista 360°.</b> Arraste na horizontal para girar a lata em torno do eixo e na vertical para inclinar. Solte para o giro continuar por inércia; um duplo clique volta à posição de vitrine.</p>
+    </div>
+
+    <main>
+      <div class="hero-item">
+        <span class="tag">Carro-chefe</span>
+        <h3>Guaraná da Amazônia · lata 350 ml</h3>
+        <p>Fruto colhido no baixo Amazonas, torrado e extraído a frio. Na taça o cheiro é de casca verde e maçã amassada; na boca vem doce curto, gás fino e um amargo de semente que fecha o gole e limpa a gordura do prato. Servimos direto da lata gelada, com um copo alto e uma rodela de limão à parte.</p>
+        <div class="row">
+          <div class="eyebrow">100% guaraná da Amazônia · sem corante artificial</div>
+          <div class="price">R$ 9,50</div>
+        </div>
+      </div>
+
+      <section class="sec">
+        <h2>Latas geladas</h2>
+        <p class="sub">Todas a 350 ml, tiradas da geladeira de vidro no salão.</p>
+
+        <article class="item">
+          <div class="name">Guaraná <span class="vol">350 ml</span> <span class="tag berry">O clássico</span></div>
+          <div class="price">R$ 9,50</div>
+          <div class="desc">Doçura média, acidez baixa, amargor de semente no final. A bebida mais pedida da casa e a única que combina com tudo que sai da chapa.</div>
+        </article>
+
+        <article class="item">
+          <div class="name">Guaraná com limão espremido <span class="vol">350 ml + 1/2 limão</span></div>
+          <div class="price">R$ 11,00</div>
+          <div class="desc">A mesma lata, servida sobre gelo com meio limão taiti espremido na hora. O ácido corta o doce e o gole fica seco — pedida certa para o fim de tarde.</div>
+        </article>
+
+        <article class="item">
+          <div class="name">Laranja <span class="vol">350 ml</span></div>
+          <div class="price">R$ 8,50</div>
+          <div class="desc">Cítrico redondo, mais doce que o guaraná e com corpo maior. Vai bem com fritura e com queijo derretido.</div>
+        </article>
+
+        <article class="item">
+          <div class="name">Uva <span class="vol">350 ml</span></div>
+          <div class="price">R$ 8,50</div>
+          <div class="desc">Aroma de uva rosada, final adocicado e longo. É a preferida da mesa das crianças.</div>
+        </article>
+      </section>
+
+      <section class="sec">
+        <h2>Copos, jarras e combos</h2>
+        <p class="sub">Preparados no balcão, com gelo feito de água filtrada.</p>
+
+        <article class="item">
+          <div class="name">Copo alto no gelo <span class="vol">400 ml</span></div>
+          <div class="price">R$ 10,00</div>
+          <div class="desc">Guaraná servido em copo americano grande, gelo até a borda e casca de limão torcida sobre a espuma.</div>
+        </article>
+
+        <article class="item">
+          <div class="name">Jarra da mesa <span class="vol">1,4 l · serve 4</span></div>
+          <div class="price">R$ 32,00</div>
+          <div class="desc">Quatro latas viradas na jarra com gelo em cubo grande, rodelas de limão e folhas de hortelã amassadas na hora do serviço.</div>
+        </article>
+
+        <article class="item">
+          <div class="name">Combo prato feito <span class="vol">almoço · 11h às 15h</span> <span class="tag">Economia R$ 4</span></div>
+          <div class="price">R$ 28,00</div>
+          <div class="desc">Prato do dia, lata de 350 ml da sua escolha e cafezinho depois. Válido de segunda a sexta, no salão.</div>
+        </article>
+
+        <article class="item">
+          <div class="name">Vaca-preta da casa <span class="vol">350 ml + 2 bolas</span></div>
+          <div class="price">R$ 18,00</div>
+          <div class="desc">Guaraná despejado devagar sobre duas bolas de sorvete de creme, em taça de vidro grosso. Sai com colher longa e canudo de papel.</div>
+        </article>
+      </section>
+
+      <section class="sec">
+        <h2>Ficha de serviço</h2>
+        <p class="sub">Como a casa serve a lata de 350 ml.</p>
+        <dl class="ficha">
+          <div><dt>Volume</dt><dd>350 ml</dd></div>
+          <div><dt>Temperatura</dt><dd>3 a 5 °C</dd></div>
+          <div><dt>Copo</dt><dd>Americano alto, 400 ml</dd></div>
+          <div><dt>Gelo</dt><dd>Cubo grande, 3 unidades</dd></div>
+          <div><dt>Harmoniza com</dt><dd>Fritura, chapa, feijoada</dd></div>
+          <div><dt>Origem do fruto</dt><dd>Baixo Amazonas</dd></div>
+        </dl>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <span>Preços em reais, serviço de 10% opcional. Consulte a equipe sobre alergênicos.</span>
+    <span class="eyebrow">Vista 3D interativa · arraste, incline, gire</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var stage = document.getElementById('stage');
+  var readout = document.getElementById('readout');
+
+  // ---- dimensões da lata (proporção real: 66 mm de diâmetro x 115 mm de altura)
+  var H = 300, R = 86, N = 44;
+  var CIRC = 2 * Math.PI * R;
+  var slatW = CIRC / N;
+
+  var scene = document.createElement('div');
+  scene.className = 'scene';
+  var spin = document.createElement('div');
+  spin.className = 'spin';
+  scene.appendChild(spin);
+  stage.appendChild(scene);
+
+  var slats = [];
+  for (var i = 0; i < N; i++){
+    var s = document.createElement('div');
+    s.className = 'slat';
+    s.style.width = (slatW + 1.2) + 'px';
+    s.style.height = H + 'px';
+    s.style.backgroundSize = CIRC + 'px ' + H + 'px';
+    s.style.backgroundPosition = (-i * slatW) + 'px 0';
+    s.style.transform = 'translate(-50%,-50%) rotateY(' + (i * 360 / N) + 'deg) translateZ(' + R + 'px)';
+    s.style.backgroundColor = '#149447';
+    spin.appendChild(s);
+    slats.push(s);
+  }
+
+  var lid = document.createElement('div');
+  lid.className = 'lid';
+  lid.style.width = (R * 1.76) + 'px';
+  lid.style.height = (R * 1.76) + 'px';
+  lid.style.transform = 'translate(-50%,-50%) translateY(' + (-H / 2 + 4) + 'px) rotateX(90deg)';
+  spin.appendChild(lid);
+
+  var base = document.createElement('div');
+  base.className = 'base';
+  base.style.width = (R * 1.8) + 'px';
+  base.style.height = (R * 1.8) + 'px';
+  base.style.transform = 'translate(-50%,-50%) translateY(' + (H / 2 - 2) + 'px) rotateX(90deg)';
+  spin.appendChild(base);
+
+  function overlay(cls){
+    var g = document.createElement('div');
+    g.className = cls;
+    g.style.width = (2 * R) + 'px';
+    g.style.height = H + 'px';
+    g.style.transform = 'translate(-50%,-50%) translateZ(' + (R + 2) + 'px)';
+    scene.appendChild(g);
+    return g;
+  }
+  overlay('gloss');
+  overlay('gloss light');
+
+  // ---- textura da lata, desenhada em canvas e aplicada nas fatias
+  function drawLabel(){
+    var W = 1760, HH = 1000, c = document.createElement('canvas');
+    c.width = W; c.height = HH;
+    var x = c.getContext('2d');
+
+    var g = x.createLinearGradient(0, 0, 0, HH);
+    g.addColorStop(0, '#0f8a3f'); g.addColorStop(.5, '#16a24c'); g.addColorStop(1, '#0d7a37');
+    x.fillStyle = g; x.fillRect(0, 0, W, HH);
+
+    function metal(y0, y1){
+      var m = x.createLinearGradient(0, y0, 0, y1);
+      m.addColorStop(0, '#9aa3a7'); m.addColorStop(.45, '#e4e9ea');
+      m.addColorStop(.7, '#b3bbbe'); m.addColorStop(1, '#8b9498');
+      x.fillStyle = m; x.fillRect(0, y0, W, y1 - y0);
+    }
+    metal(0, 46); metal(HH - 40, HH);
+
+    function panel(cx){
+      // faixa azul atrás do nome
+      x.save();
+      x.translate(cx, 430); x.rotate(-0.035);
+      x.fillStyle = '#1b3fa0';
+      x.beginPath();
+      x.moveTo(-345, -95); x.lineTo(348, -118); x.lineTo(332, 78);
+      x.lineTo(-18, 86); x.lineTo(-62, 158); x.lineTo(-104, 84);
+      x.lineTo(-338, 96);
+      x.closePath(); x.fill();
+      x.restore();
+
+      // nome
+      x.save();
+      x.translate(cx, 430); x.rotate(-0.035);
+      x.textAlign = 'center'; x.textBaseline = 'middle';
+      if ('letterSpacing' in x) x.letterSpacing = '6px';
+      x.fillStyle = '#ffffff';
+      x.font = '160px "Archivo Black", Impact, sans-serif';
+      x.fillText('FANTA', 0, -8);
+      if ('letterSpacing' in x) x.letterSpacing = '0px';
+      x.font = '30px "Archivo Black", Impact, sans-serif';
+      x.fillText('®', 300, -70);
+      x.restore();
+
+      // pílula "guaraná"
+      x.save();
+      x.translate(cx - 118, 588);
+      x.fillStyle = '#c81e2c';
+      var pw = 268, ph = 78, r = ph / 2;
+      x.beginPath();
+      x.moveTo(-pw / 2 + r, -ph / 2);
+      x.arcTo(pw / 2, -ph / 2, pw / 2, ph / 2, r);
+      x.arcTo(pw / 2, ph / 2, -pw / 2, ph / 2, r);
+      x.arcTo(-pw / 2, ph / 2, -pw / 2, -ph / 2, r);
+      x.arcTo(-pw / 2, -ph / 2, pw / 2, -ph / 2, r);
+      x.closePath(); x.fill();
+      x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = '46px "Archivo Black", Impact, sans-serif';
+      x.fillText('guaraná', 0, 3);
+      x.restore();
+
+      // frutos de guaraná + respingos
+      x.save();
+      x.translate(cx + 152, 606);
+      x.fillStyle = '#c81e2c';
+      [[0, 0, 62], [66, 26, 44]].forEach(function(b){
+        x.beginPath(); x.arc(b[0], b[1], b[2], 0, Math.PI * 2); x.fill();
+      });
+      x.fillStyle = '#8f1520';
+      x.beginPath(); x.arc(-6, -6, 22, 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#f4f0e6';
+      x.beginPath(); x.arc(-6, -6, 11, 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#c81e2c';
+      [[104, -34, 15], [128, 6, 10], [-58, 48, 12], [96, 62, 9]].forEach(function(d){
+        x.beginPath(); x.arc(d[0], d[1], d[2], 0, Math.PI * 2); x.fill();
+      });
+      x.restore();
+
+      // selo de origem
+      x.save();
+      x.translate(cx - 262, 250);
+      x.strokeStyle = 'rgba(255,255,255,.9)'; x.lineWidth = 3;
+      x.beginPath(); x.arc(0, 0, 62, 0, Math.PI * 2); x.stroke();
+      x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = '38px "Archivo Black", Impact, sans-serif';
+      x.fillText('100%', 0, -6);
+      x.font = '15px "IBM Plex Mono", monospace';
+      x.fillText('GUARANÁ', 0, 24);
+      x.fillText('DA AMAZÔNIA', 0, 42);
+      x.restore();
+
+      // volume
+      x.save();
+      x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = '58px "Archivo Black", Impact, sans-serif';
+      x.fillText('350 ml', cx, 830);
+      x.restore();
+    }
+
+    panel(W * 0.25);
+    panel(W * 0.75);
+
+    var url = c.toDataURL('image/png');
+    for (var i = 0; i < slats.length; i++) slats[i].style.backgroundImage = 'url(' + url + ')';
+  }
+
+  if (document.fonts && document.fonts.load){
+    Promise.all([
+      document.fonts.load('400 160px "Archivo Black"'),
+      document.fonts.load('400 16px "IBM Plex Mono"')
+    ]).then(drawLabel).catch(drawLabel);
+  } else {
+    drawLabel();
+  }
+
+  // ---- rotação por arraste
+  var rotY = -18, rotX = -6, velY = 0, dragging = false, lastX = 0, lastY = 0, moved = false;
+  var idle = 0;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function apply(){
+    scene.style.transform = 'translate(-50%,-50%) rotateX(' + rotX + 'deg)';
+    spin.style.transform = 'rotateY(' + rotY + 'deg)';
+    var norm = ((rotY % 360) + 360) % 360;
+    readout.textContent = Math.round(norm) + '° / ' + Math.round(rotX) + '°';
+  }
+  apply();
+
+  stage.addEventListener('pointerdown', function(e){
+    dragging = true; moved = false; velY = 0;
+    lastX = e.clientX; lastY = e.clientY;
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener('pointermove', function(e){
+    if (!dragging) return;
+    var dx = e.clientX - lastX, dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    if (Math.abs(dx) + Math.abs(dy) > 2) moved = true;
+    rotY += dx * 0.45;
+    velY = dx * 0.45;
+    rotX = Math.max(-42, Math.min(42, rotX - dy * 0.32));
+    idle = 0;
+    apply();
+  });
+  function release(e){
+    if (!dragging) return;
+    dragging = false;
+    try { stage.releasePointerCapture(e.pointerId); } catch (err) {}
+  }
+  stage.addEventListener('pointerup', release);
+  stage.addEventListener('pointercancel', release);
+
+  stage.addEventListener('dblclick', function(){
+    rotY = -18; rotX = -6; velY = 0; apply();
+  });
+
+  stage.addEventListener('keydown', function(e){
+    var step = e.shiftKey ? 15 : 5, used = true;
+    if (e.key === 'ArrowLeft') rotY -= step;
+    else if (e.key === 'ArrowRight') rotY += step;
+    else if (e.key === 'ArrowUp') rotX = Math.max(-42, rotX - step);
+    else if (e.key === 'ArrowDown') rotX = Math.min(42, rotX + step);
+    else if (e.key === 'Home'){ rotY = -18; rotX = -6; }
+    else used = false;
+    if (used){ e.preventDefault(); idle = 0; velY = 0; apply(); }
+  });
+
+  function tick(){
+    if (!dragging){
+      if (Math.abs(velY) > 0.02){
+        rotY += velY;
+        velY *= 0.94;
+        idle = 0;
+        apply();
+      } else if (!reduce){
+        idle++;
+        if (idle > 150){ rotY += 0.16; apply(); }
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
