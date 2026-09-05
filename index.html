@@ -36,6 +36,15 @@
   #painelBatidas.perigo .valor { color: #ff6b6b; }
 
   /* ---------- Avisos e telas ---------- */
+  .giro { height: 5px; margin-top: 6px; border-radius: 3px; overflow: hidden; background: rgba(255,255,255,.14); }
+  .giro i { display: block; height: 100%; width: 0; border-radius: 3px;
+            background: linear-gradient(90deg, #6fe0a0, #ffd166 68%, #ff6b6b); }
+  #painelMarcha.limite .giro i { background: #ff5a5a; }
+  #dicaMarcha {
+    position: fixed; top: 96px; left: 0; right: 0; text-align: center; z-index: 10;
+    font-size: 15px; font-weight: 700; letter-spacing: .5px; color: #ffd166;
+    text-shadow: 0 2px 8px rgba(0,0,0,.8); pointer-events: none; display: none;
+  }
   #flashDano {
     position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 12;
     box-shadow: inset 0 0 220px rgba(255, 30, 30, .95);
@@ -94,12 +103,18 @@
     <div class="rotulo">Velocidade</div>
     <div class="valor"><span id="valVel">0</span> <span class="unidade">km/h</span></div>
   </div>
+  <div class="painel" id="painelMarcha">
+    <div class="rotulo">Marcha</div>
+    <div class="valor" id="valMarcha">1</div>
+    <div class="giro"><i id="barraGiro"></i></div>
+  </div>
   <div class="painel" id="painelBatidas">
     <div class="rotulo">Batidas</div>
     <div class="valor"><span id="valBatidas">0</span> <span class="unidade">/ 3</span></div>
   </div>
 </div>
 
+<div id="dicaMarcha">Reduza a marcha (Q)</div>
 <div id="flashDano"></div>
 <div id="aviso">BATIDA!</div>
 
@@ -110,10 +125,13 @@
   <div class="teclas">
     <div class="tecla"><b>W</b><span>Acelerar</span></div>
     <div class="tecla"><b>ESPAÇO</b><span>Frear</span></div>
-    <div class="tecla"><b>A</b><span>Ir para a esquerda</span></div>
-    <div class="tecla"><b>D</b><span>Ir para a direita</span></div>
+    <div class="tecla"><b>A</b><span>Fazer a curva à esquerda</span></div>
+    <div class="tecla"><b>D</b><span>Fazer a curva à direita</span></div>
+    <div class="tecla"><b>Q</b><span>Reduzir marcha</span></div>
+    <div class="tecla"><b>E</b><span>Subir marcha</span></div>
   </div>
-  <p class="dica">A moto nunca anda de ré. Mantenha-se na pista e não bata!</p>
+  <p class="dica">São 6 marchas: suba de marcha quando o giro chegar no vermelho e reduza para
+     retomar força nas saídas. A moto só faz a curva em movimento e nunca anda de ré.</p>
   <p class="piscar"><b>Pressione ENTER para começar</b></p>
 </div>
 
@@ -151,11 +169,14 @@
   const N_AMOSTRAS   = 260;    // amostras visíveis (~1040 m de estrada)
   const VIS_FRENTE   = 620;    // horizonte de geração (m)
 
-  const VEL_MAX      = 61;     // m/s  (~220 km/h)
-  const ACEL         = 11.5;   // m/s²
+  // velocidade máxima de cada uma das 6 marchas, em m/s (45 a 220 km/h)
+  const MARCHAS      = [12.5, 22.0, 32.0, 42.0, 52.0, 61.0];
+  const VEL_MAX      = MARCHAS[MARCHAS.length - 1];
+  const ACEL         = 5.6;    // m/s² (multiplicada pela força da marcha e pelo torque)
   const FREIO        = 26.0;   // m/s²
   const ATRITO       = 2.2;    // desaceleração natural (m/s²)
-  const VEL_LATERAL  = 10.5;   // m/s de deslocamento lateral máximo
+  const ESTERCO_MAX  = 0.46;   // ângulo máximo da moto em relação à pista (rad)
+  const VEL_ESTERCO  = 12;     // m/s a partir dos quais a moto vira por completo
 
   const PITCH_BASE   = 0.10;   // o piloto olha um pouco para baixo
   const ALTURA_OLHOS = 1.62;   // altura dos olhos do piloto (m)
@@ -185,11 +206,47 @@
   renderer.shadowMap.enabled = false;
 
   const cena = new THREE.Scene();
-  const COR_CEU = 0x8fc4e8;
-  cena.background = new THREE.Color(COR_CEU);
-  cena.fog = new THREE.Fog(COR_CEU, 180, 560);
+  const COR_HORIZONTE = 0xcfe3f2;
+  cena.background = new THREE.Color(COR_HORIZONTE);
+  cena.fog = new THREE.Fog(COR_HORIZONTE, 260, 900);
 
-  const camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.1, 1400);
+  const camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.1, 7000);
+
+  // ---- domo de céu: degradê azul com nuvens ----
+  const domo = (function () {
+    const c = document.createElement("canvas");
+    c.width = 1024; c.height = 512;
+    const g = c.getContext("2d");
+    const grad = g.createLinearGradient(0, 0, 0, 512);
+    grad.addColorStop(0.00, "#0d5cbb");
+    grad.addColorStop(0.30, "#2b83d8");
+    grad.addColorStop(0.55, "#4e9ee2");
+    grad.addColorStop(0.80, "#8fc6ec");
+    grad.addColorStop(1.00, "#cfe3f2");
+    g.fillStyle = grad; g.fillRect(0, 0, 1024, 512);
+    // nuvens esparsas, só na parte alta do céu (o horizonte fica limpo)
+    for (let n = 0; n < 16; n++) {
+      const cx = Math.random() * 1024, cy = 45 + Math.random() * 130;
+      const esc = 0.45 + Math.random() * 0.75;
+      g.save();
+      g.globalAlpha = 0.55;
+      for (let i = 0; i < 7; i++) {
+        const rx = (26 + Math.random() * 34) * esc, ry = (10 + Math.random() * 13) * esc;
+        g.fillStyle = i < 4 ? "#ffffff" : "rgba(214,229,242,.9)";
+        g.beginPath();
+        g.ellipse(cx + (i - 3) * 22 * esc, cy + (Math.random() - 0.5) * 16 * esc, rx, ry, 0, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.restore();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    const malha = new THREE.Mesh(
+      new THREE.SphereGeometry(900, 32, 20),
+      new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, fog: false })
+    );
+    cena.add(malha);
+    return malha;
+  })();
 
   cena.add(new THREE.HemisphereLight(0xbfd8ef, 0x4a5a3a, 0.95));
   const sol = new THREE.DirectionalLight(0xfff2d8, 0.85);
@@ -349,10 +406,60 @@
   malhaPista.frustumCulled = false;
   cena.add(malhaPista);
 
+  // ---- defensas metálicas dos dois lados da pista ----
+  function texturaDefensa() {
+    const c = document.createElement("canvas");
+    c.width = 256; c.height = 64;             // x = comprimento (4 m), y = altura
+    const g = c.getContext("2d");
+    const grad = g.createLinearGradient(0, 0, 0, 64);
+    grad.addColorStop(0, "#d4dade"); grad.addColorStop(0.42, "#8f989f");
+    grad.addColorStop(0.5, "#6c757c"); grad.addColorStop(0.58, "#9aa3aa");
+    grad.addColorStop(1, "#b6bfc5");
+    g.fillStyle = grad; g.fillRect(0, 0, 256, 64);
+    g.fillStyle = "rgba(60,66,72,.85)";       // poste a cada 4 m
+    g.fillRect(0, 0, 12, 64);
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    return tex;
+  }
+  const LAT_DEFENSA = LARG_TOTAL / 2 + 1.1;
+  const defensas = [1, -1].map(function (lado) {
+    const pos = new Float32Array(N_AMOSTRAS * 2 * 3);
+    const uv  = new Float32Array(N_AMOSTRAS * 2 * 2);
+    const nor = new Float32Array(N_AMOSTRAS * 2 * 3);
+    for (let i = 1; i < nor.length; i += 3) nor[i] = 1;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    geo.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+    geo.setIndex(idxPista);
+    const malha = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({
+      map: texturaDefensa(), side: THREE.DoubleSide
+    }));
+    malha.frustumCulled = false;
+    cena.add(malha);
+    return { lado: lado, geo: geo, pos: pos, uv: uv };
+  });
+
   // grama / terreno
   const chao = new THREE.Mesh(
     new THREE.PlaneGeometry(4000, 4000),
-    new THREE.MeshLambertMaterial({ color: 0x5d7a44 })
+    new THREE.MeshLambertMaterial({ map: (function () {
+      const c = document.createElement("canvas");
+      c.width = c.height = 256;
+      const g = c.getContext("2d");
+      g.fillStyle = "#6d8c46"; g.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 5000; i++) {
+        const t = Math.random();
+        g.fillStyle = t < 0.5 ? "rgba(120,150,74,.55)" : (t < 0.8 ? "rgba(88,116,58,.5)" : "rgba(158,178,96,.35)");
+        g.fillRect(Math.random() * 256, Math.random() * 256, 3, 3);
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(260, 260);
+      return tex;
+    })() })
   );
   chao.rotation.x = -Math.PI / 2;
   chao.position.y = -0.06;
@@ -374,6 +481,21 @@
     }
     geoPista.attributes.position.needsUpdate = true;
     geoPista.attributes.uv.needsUpdate = true;
+
+    for (const d of defensas) {
+      for (let i = 0; i < N_AMOSTRAS; i++) {
+        const s = s0 + i * PASSO;
+        posMundo(s, d.lado * LAT_DEFENSA, _p1);
+        const o = i * 6;
+        d.pos[o]     = _p1.x; d.pos[o + 1] = 0.52; d.pos[o + 2] = _p1.z;
+        d.pos[o + 3] = _p1.x; d.pos[o + 4] = 0.92; d.pos[o + 5] = _p1.z;
+        const u = i * 4, v = s / 4;
+        d.uv[u] = v; d.uv[u + 1] = 0;
+        d.uv[u + 2] = v; d.uv[u + 3] = 1;
+      }
+      d.geo.attributes.position.needsUpdate = true;
+      d.geo.attributes.uv.needsUpdate = true;
+    }
     chao.position.x = Math.round(_p1.x / 200) * 200;
     chao.position.z = Math.round(_p1.z / 200) * 200;
   }
@@ -383,41 +505,89 @@
   // =====================================================================
   const cenario = [];
   (function criaCenario() {
-    const geoTronco = new THREE.CylinderGeometry(0.22, 0.3, 2.6, 6);
-    const matTronco = new THREE.MeshLambertMaterial({ color: 0x5b432c });
-    const geoCopa = new THREE.ConeGeometry(2.1, 5.2, 7);
-    const matCopa = new THREE.MeshLambertMaterial({ color: 0x3f6b34 });
-    const geoPoste = new THREE.CylinderGeometry(0.13, 0.16, 8, 6);
-    const matPoste = new THREE.MeshLambertMaterial({ color: 0x9aa3aa });
-    const geoBraco = new THREE.BoxGeometry(2.4, 0.16, 0.3);
+    const tronco   = new THREE.CylinderGeometry(0.24, 0.36, 3.0, 6);
+    const matTronco= new THREE.MeshLambertMaterial({ color: 0x6b4a2f });
+    const copa     = new THREE.SphereGeometry(1, 8, 6);
+    const verdes   = [0x3d6b2e, 0x497f36, 0x5a8f3d, 0x35602a].map(function (c) {
+      return new THREE.MeshLambertMaterial({ color: c });
+    });
+    const matPoste = new THREE.MeshLambertMaterial({ color: 0xa8b0b6 });
+    const geoPoste = new THREE.CylinderGeometry(0.14, 0.19, 9, 6);
+    const geoBraco = new THREE.CylinderGeometry(0.10, 0.10, 2.6, 6);
+    const geoLuz   = new THREE.BoxGeometry(0.9, 0.18, 0.44);
+    const matLuz   = new THREE.MeshLambertMaterial({ color: 0xd8dde1 });
+    const geoArbusto = new THREE.SphereGeometry(1, 6, 5);
 
-    for (let i = 0; i < 70; i++) {
+    for (let i = 0; i < 78; i++) {
       const g = new THREE.Group();
-      if (i % 4 === 0) {
-        const p = new THREE.Mesh(geoPoste, matPoste); p.position.y = 4; g.add(p);
-        const b = new THREE.Mesh(geoBraco, matPoste); b.position.set(-1.0, 7.9, 0); g.add(b);
+      const tipo = i % 6;
+      if (tipo === 0) {
+        // poste de iluminação com o braço curvado sobre a pista
+        const p = new THREE.Mesh(geoPoste, matPoste); p.position.y = 4.5; g.add(p);
+        const b = new THREE.Mesh(geoBraco, matPoste);
+        b.position.set(-1.1, 8.9, 0); b.rotation.z = Math.PI / 2 - 0.22; g.add(b);
+        const l = new THREE.Mesh(geoLuz, matLuz); l.position.set(-2.3, 8.6, 0); g.add(l);
+        g.userData = { off: 4.5 };
+      } else if (tipo === 5) {
+        // moita baixa junto ao acostamento
+        for (let k = 0; k < 3; k++) {
+          const a = new THREE.Mesh(geoArbusto, verdes[(i + k) % verdes.length]);
+          a.position.set((Math.random() - 0.5) * 1.6, 0.5, (Math.random() - 0.5) * 1.6);
+          a.scale.set(0.9, 0.6, 0.9);
+          g.add(a);
+        }
+        g.userData = { off: 3 + Math.random() * 5 };
       } else {
-        const t = new THREE.Mesh(geoTronco, matTronco); t.position.y = 1.3; g.add(t);
-        const c = new THREE.Mesh(geoCopa, matCopa); c.position.y = 4.4; g.add(c);
-        const e = 0.75 + Math.random() * 0.7;
-        g.scale.set(e, e, e);
+        // árvore frondosa: tronco + 3 esferas de copa
+        const t = new THREE.Mesh(tronco, matTronco); t.position.y = 1.5; g.add(t);
+        const alt = 3.2 + Math.random() * 1.8, raio = 2.0 + Math.random() * 1.0;
+        for (let k = 0; k < 3; k++) {
+          const c = new THREE.Mesh(copa, verdes[(i + k) % verdes.length]);
+          c.position.set((Math.random() - 0.5) * raio, alt + k * 0.8 - Math.random() * 0.5,
+                         (Math.random() - 0.5) * raio);
+          const e = raio * (1 - k * 0.16);
+          c.scale.set(e, e * 0.82, e);
+          g.add(c);
+        }
+        g.userData = { off: 6 + Math.random() * 18 };
       }
-      g.userData = { s: i * 26, lado: i % 2 === 0 ? -1 : 1, off: rand(4, 14) };
+      g.userData.s = i * 22;
+      g.userData.lado = i % 2 === 0 ? -1 : 1;
       cena.add(g);
       cenario.push(g);
     }
+  })();
+
+  // ---- skyline distante, como na linha do horizonte da rodovia ----
+  const skyline = new THREE.Group();
+  (function criaSkyline() {
+    const cores = [0xa9bccd, 0x9cb0c3, 0xb3c4d3, 0x93a9bd];
+    for (let i = 0; i < 34; i++) {
+      const larg = 40 + Math.random() * 60, alt = 70 + Math.random() * 170;
+      const b = new THREE.Mesh(
+        new THREE.BoxGeometry(larg, alt, larg * 0.8),
+        // sem neblina: a cor já é a do ar distante
+        new THREE.MeshBasicMaterial({ color: cores[i % cores.length], fog: false })
+      );
+      b.position.set((i - 17) * 80 + (Math.random() - 0.5) * 40, alt / 2, (Math.random() - 0.5) * 260);
+      skyline.add(b);
+    }
+    cena.add(skyline);
   })();
 
   function atualizaCenario(sJogador) {
     const _t = { x: 0, z: 0, h: 0 };
     for (const g of cenario) {
       const d = g.userData;
-      while (d.s < sJogador - 40) d.s += cenario.length * 26;
-      while (d.s > sJogador + 900) d.s -= cenario.length * 26;
-      posMundo(d.s, d.lado * (LARG_TOTAL / 2 + d.off), _t);
+      while (d.s < sJogador - 40) d.s += cenario.length * 22;
+      while (d.s > sJogador + 900) d.s -= cenario.length * 22;
+      posMundo(d.s, d.lado * (LAT_DEFENSA + d.off), _t);
       g.position.set(_t.x, 0, _t.z);
-      g.rotation.y = _t.h;
+      g.rotation.y = _t.h + (d.lado > 0 ? Math.PI : 0);
     }
+    // a cidade fica sempre na mesma direção do mundo, lá no horizonte
+    posMundo(sJogador, 0, _t);
+    skyline.position.set(_t.x - 2100, 0, _t.z + 2600);
   }
 
   // =====================================================================
@@ -730,9 +900,20 @@
 
   const teclas = { w: false, freio: false, a: false, d: false };
   const jogo = {
-    s: 0, dist: 0, lat: 0, vel: 0, direcao: 0, inclinacao: 0,
+    s: 0, dist: 0, lat: 0, vel: 0, direcao: 0, esterco: 0, inclinacao: 0, marcha: 0, giro: 0,
     tempo: 0, batidas: 0, invuln: 0, velMax: 0, balanco: 0
   };
+
+  function trocaMarcha(passo) {
+    const nova = jogo.marcha + passo;
+    if (nova < 0 || nova >= MARCHAS.length) return;
+    if (passo < 0) {
+      // reduzir só é possível se o giro couber na marcha mais curta
+      const topoNova = MARCHAS[nova];
+      if (jogo.vel > topoNova * 1.02) { mostraAviso("Giro alto demais para reduzir!"); return; }
+    }
+    jogo.marcha = nova;
+  }
 
   window.addEventListener("keydown", function (e) {
     const k = e.key.toLowerCase();
@@ -740,9 +921,13 @@
     if (k === " " || k === "arrowdown") teclas.freio = true;   // o freio é o ESPAÇO
     if (k === "a" || k === "arrowleft") teclas.a = true;
     if (k === "d" || k === "arrowright") teclas.d = true;
+    if (estado === ESTADO.JOGANDO && !e.repeat) {
+      if (k === "e" || k === "shift") trocaMarcha(1);
+      if (k === "q" || k === "control") trocaMarcha(-1);
+    }
     if (estado === ESTADO.INICIO && k === "enter") iniciaPartida();
     if (estado === ESTADO.FIM && k === "r") iniciaPartida();
-    if (["w","a","d"," ","arrowup","arrowdown","arrowleft","arrowright"].indexOf(k) >= 0) e.preventDefault();
+    if (["w","a","d","q","e"," ","arrowup","arrowdown","arrowleft","arrowright"].indexOf(k) >= 0) e.preventDefault();
   });
   window.addEventListener("keyup", function (e) {
     const k = e.key.toLowerCase();
@@ -760,6 +945,10 @@
   const elTempo = document.getElementById("valTempo");
   const elVel = document.getElementById("valVel");
   const elBatidas = document.getElementById("valBatidas");
+  const elMarcha = document.getElementById("valMarcha");
+  const barraGiro = document.getElementById("barraGiro");
+  const painelMarcha = document.getElementById("painelMarcha");
+  const dicaMarcha = document.getElementById("dicaMarcha");
   const painelBatidas = document.getElementById("painelBatidas");
   const flash = document.getElementById("flashDano");
   const aviso = document.getElementById("aviso");
@@ -772,6 +961,12 @@
     elVel.textContent = Math.round(jogo.vel * 3.6);
     elBatidas.textContent = jogo.batidas;
     painelBatidas.classList.toggle("perigo", jogo.batidas >= 2);
+    elMarcha.textContent = jogo.marcha + 1;
+    barraGiro.style.width = Math.min(100, jogo.giro * 100) + "%";
+    painelMarcha.classList.toggle("limite", jogo.giro >= 0.97);
+    // avisa quando a marcha está alta demais para a velocidade atual
+    const engasgando = estado === ESTADO.JOGANDO && jogo.marcha > 0 && jogo.giro < 0.12;
+    dicaMarcha.style.display = engasgando ? "block" : "none";
   }
 
   let avisoTimer = 0;
@@ -851,7 +1046,8 @@
   // =====================================================================
   function iniciaPartida() {
     reiniciaEstrada();
-    jogo.s = 0; jogo.dist = 0; jogo.lat = 0; jogo.vel = 0; jogo.direcao = 0; jogo.inclinacao = 0;
+    jogo.s = 0; jogo.dist = 0; jogo.lat = 0; jogo.vel = 0; jogo.direcao = 0; jogo.esterco = 0;
+    jogo.inclinacao = 0; jogo.marcha = 0; jogo.giro = 0;
     jogo.tempo = 0; jogo.batidas = 0; jogo.invuln = 0; jogo.velMax = 0; jogo.balanco = 0;
     proxObra = 900;
     for (const v of transito) { v.ativo = false; if (v.obj) v.obj.visible = false; }
@@ -877,20 +1073,35 @@
   //  Física da moto + câmera dinâmica em primeira pessoa
   // =====================================================================
   function atualizaJogador(dt) {
+    // ---- motor: giro da marcha atual ----
+    const topo = MARCHAS[jogo.marcha];
+    const piso = jogo.marcha === 0 ? 0 : MARCHAS[jogo.marcha - 1] * 0.70;
+    jogo.giro = clamp((jogo.vel - piso) / (topo - piso), 0, 1.05);
+
     // ---- aceleração / freio (nunca dá ré) ----
     if (teclas.w) {
-      const perdaTopo = 1 - (jogo.vel / VEL_MAX) * 0.65;
-      jogo.vel += ACEL * perdaTopo * dt;
+      // torque cheio no meio do giro; fraco embaixo (pede redução) e cortado no limitador
+      const torque = clamp(1.30 - Math.pow(Math.abs(jogo.giro - 0.70), 1.3) * 2.0, 0.10, 1);
+      const forcaMarcha = 2.2 - jogo.marcha * 0.28;
+      if (jogo.giro < 1) jogo.vel += ACEL * torque * forcaMarcha * dt;
     }
     if (teclas.freio) jogo.vel -= FREIO * dt;
-    if (!teclas.w && !teclas.freio) jogo.vel -= ATRITO * dt;
-    jogo.vel = clamp(jogo.vel, 0, VEL_MAX);   // mínimo zero: sem marcha à ré
+    // sem acelerar: freio-motor, mais forte nas marchas baixas
+    if (!teclas.w && !teclas.freio) jogo.vel -= (ATRITO + (5 - jogo.marcha) * 0.55) * dt;
+    jogo.vel = clamp(jogo.vel, 0, topo);   // mínimo zero: sem marcha à ré
 
-    // ---- direção lateral ----
+    // ---- esterço: a moto realmente faz a curva, angulando em relação à pista ----
     const alvoDir = (teclas.d ? 1 : 0) - (teclas.a ? 1 : 0);
     jogo.direcao += (alvoDir - jogo.direcao) * Math.min(1, dt * 11);
-    const fator = 0.55 + 0.45 * (jogo.vel / VEL_MAX);
-    jogo.lat += jogo.direcao * VEL_LATERAL * fator * dt;
+    // parada a moto não vira; em alta o ângulo de curva diminui
+    const eficacia = clamp(jogo.vel / VEL_ESTERCO, 0, 1) * (1 - 0.45 * jogo.vel / VEL_MAX);
+    const alvoEsterco = jogo.direcao * ESTERCO_MAX * eficacia;
+    jogo.esterco += (alvoEsterco - jogo.esterco) * Math.min(1, dt * 4.5);
+
+    // o deslocamento vem do ângulo da moto, não de um passo lateral direto
+    const avanco = jogo.vel * dt;
+    jogo.lat += Math.sin(jogo.esterco) * avanco;
+    const percorrido = Math.cos(jogo.esterco) * avanco;
 
     // fora da pista: perde aderência e velocidade
     if (Math.abs(jogo.lat) > BORDA_PISTA) jogo.vel -= 7 * dt;
@@ -898,8 +1109,8 @@
     jogo.vel = Math.max(0, jogo.vel);
 
     // ---- avanço na pista ----
-    jogo.s += jogo.vel * dt;
-    jogo.dist += jogo.vel * dt;
+    jogo.s += percorrido;
+    jogo.dist += percorrido;
     jogo.tempo += dt;
     if (jogo.vel > jogo.velMax) jogo.velMax = jogo.vel;
     if (jogo.invuln > 0) jogo.invuln -= dt;
@@ -909,17 +1120,16 @@
     const descarte = Math.floor((jogo.s - 120 - baseS) / PASSO);
     if (descarte > 60) { centro.splice(0, descarte); baseS += descarte * PASSO; }
 
-    // ---- inclinação (lean) da moto e da câmera ----
+    // ---- inclinação (lean): a moto deita para dentro da curva que está fazendo ----
     const curv = curvaturaEm(jogo.s);
-    const leanDirecao = jogo.direcao * 0.30 * (0.45 + 0.55 * jogo.vel / VEL_MAX);
-    const leanCurva   = clamp(-curv * jogo.vel * 0.5, -0.07, 0.07);
-    const alvoLean = clamp(leanDirecao + leanCurva, -0.34, 0.34);
+    const leanCurva = clamp(-curv * jogo.vel * 0.5, -0.07, 0.07);
+    const alvoLean = clamp(jogo.esterco * 0.85 + leanCurva, -0.34, 0.34);
     jogo.inclinacao += (alvoLean - jogo.inclinacao) * Math.min(1, dt * 6);
 
     // ---- posicionamento da moto no mundo ----
     posMundo(jogo.s, jogo.lat, _p1);
     grupoMoto.position.set(_p1.x, 0, _p1.z);
-    grupoMoto.rotation.y = _p1.h - jogo.direcao * 0.06; // leve guinada ao trocar de faixa
+    grupoMoto.rotation.y = _p1.h - jogo.esterco;   // a moto aponta para onde está virando
     grupoInclina.rotation.z = jogo.inclinacao;
 
     // ---- câmera: chacoalho, altura e FOV variando com a velocidade ----
@@ -933,7 +1143,7 @@
     );
     camera.rotation.set(
       PITCH_BASE - Math.sin(jogo.balanco * 1.3) * intensidade * 0.6 + jogo.vel / VEL_MAX * 0.02,
-      -jogo.direcao * 0.07,                  // olha um pouco para dentro da curva
+      -jogo.direcao * 0.05,                  // olha um pouco para dentro da curva
       -jogo.inclinacao * 0.20                // a cabeça acompanha a inclinação
     );
     const fovAlvo = 74 + (jogo.vel / VEL_MAX) * 16;
@@ -971,6 +1181,7 @@
 
     atualizaPista(jogo.s);
     atualizaCenario(jogo.s);
+    domo.position.copy(grupoMoto.position);
     renderer.render(cena, camera);
   }
 

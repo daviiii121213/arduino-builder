@@ -13,8 +13,10 @@ pressione **ENTER** para começar.
 | ----- | ---- |
 | `W` | Acelera a moto |
 | `ESPAÇO` | Freia / desacelera (**nunca dá ré**) |
-| `A` | Move a moto para a esquerda |
-| `D` | Move a moto para a direita |
+| `A` | Faz a curva para a esquerda |
+| `D` | Faz a curva para a direita |
+| `E` | Sobe a marcha |
+| `Q` | Reduz a marcha |
 | `R` | Reinicia a corrida após o fim de jogo |
 
 ## O que o jogo tem
@@ -22,6 +24,12 @@ pressione **ENTER** para começar.
 - **Visão em primeira pessoa** com câmera dinâmica: ela acompanha o movimento da
   moto, inclina para a esquerda e para a direita junto com a pilotagem e ainda
   reage à curvatura da pista, à velocidade (campo de visão) e ao balanço do motor.
+- **Pilotagem com curva de verdade**: a moto ganha ângulo em relação à pista e o
+  deslocamento vem desse ângulo, em vez de andar de lado. Parada, a moto não vira.
+- **Câmbio de 6 marchas** com giro, limitador e freio-motor: cada marcha tem sua
+  velocidade máxima, o torque cai fora da faixa de giro e a redução é recusada
+  quando o giro está alto demais. O HUD mostra a marcha, a barra de giro e o
+  aviso "Reduza a marcha".
 - **Rodovia infinita de três faixas**, gerada proceduralmente com trechos retos,
   curvas abertas, curvas fechadas e desvios em "S". Não existe linha de chegada.
 - **Trânsito** com carros, caminhões e outras motos ocupando as três faixas em
@@ -31,6 +39,8 @@ pressione **ENTER** para começar.
   terceira, a corrida termina.
 - **HUD no topo da tela** com distância percorrida (km), tempo da corrida,
   velocidade atual em km/h e o contador de batidas.
+- **Cenário de rodovia**: defensas metálicas dos dois lados, campo com árvores e
+  moitas, postes de iluminação, céu com nuvens e a silhueta de uma cidade no horizonte.
 - Sair do asfalto faz a moto perder velocidade (não conta como batida).
 - Os veículos são sólidos: a moto é bloqueada por eles em vez de atravessá-los.
 
