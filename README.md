@@ -15,8 +15,9 @@ pressione **ENTER** para começar.
 | `ESPAÇO` | Freia / desacelera (**nunca dá ré**) |
 | `A` | Faz a curva para a esquerda |
 | `D` | Faz a curva para a direita |
-| `E` | Sobe a marcha |
-| `Q` | Reduz a marcha |
+| `M` | Alterna câmbio automático / manual |
+| `E` | Sobe a marcha (no manual) |
+| `Q` | Reduz a marcha (no manual) |
 | `R` | Reinicia a corrida após o fim de jogo |
 
 ## O que o jogo tem
@@ -26,10 +27,11 @@ pressione **ENTER** para começar.
   reage à curvatura da pista, à velocidade (campo de visão) e ao balanço do motor.
 - **Pilotagem com curva de verdade**: a moto ganha ângulo em relação à pista e o
   deslocamento vem desse ângulo, em vez de andar de lado. Parada, a moto não vira.
-- **Câmbio de 6 marchas** com giro, limitador e freio-motor: cada marcha tem sua
-  velocidade máxima, o torque cai fora da faixa de giro e a redução é recusada
-  quando o giro está alto demais. O HUD mostra a marcha, a barra de giro e o
-  aviso "Reduza a marcha".
+- **Câmbio de 6 marchas, automático por padrão**: sobe e reduz sozinho conforme o
+  giro (inclusive reduzindo até a 1ª ao frear). A tecla `M` passa para o manual,
+  com `Q`/`E` — e no manual **não há limitador**: a moto continua ganhando
+  velocidade sem teto. O HUD mostra a marcha, o modo, a barra de giro e o aviso
+  "Reduza a marcha".
 - **Rodovia infinita de três faixas**, gerada proceduralmente com trechos retos,
   curvas abertas, curvas fechadas e desvios em "S". Não existe linha de chegada.
 - **Trânsito** com carros, caminhões e outras motos ocupando as três faixas em

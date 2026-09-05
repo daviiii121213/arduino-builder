@@ -40,6 +40,7 @@
   .giro i { display: block; height: 100%; width: 0; border-radius: 3px;
             background: linear-gradient(90deg, #6fe0a0, #ffd166 68%, #ff6b6b); }
   #painelMarcha.limite .giro i { background: #ff5a5a; }
+  #modoCambio { color: #6fe0a0; font-size: 10px; letter-spacing: 1px; }
   #dicaMarcha {
     position: fixed; top: 96px; left: 0; right: 0; text-align: center; z-index: 10;
     font-size: 15px; font-weight: 700; letter-spacing: .5px; color: #ffd166;
@@ -104,7 +105,7 @@
     <div class="valor"><span id="valVel">0</span> <span class="unidade">km/h</span></div>
   </div>
   <div class="painel" id="painelMarcha">
-    <div class="rotulo">Marcha</div>
+    <div class="rotulo">Marcha <b id="modoCambio">auto</b></div>
     <div class="valor" id="valMarcha">1</div>
     <div class="giro"><i id="barraGiro"></i></div>
   </div>
@@ -127,11 +128,12 @@
     <div class="tecla"><b>ESPAÇO</b><span>Frear</span></div>
     <div class="tecla"><b>A</b><span>Fazer a curva à esquerda</span></div>
     <div class="tecla"><b>D</b><span>Fazer a curva à direita</span></div>
-    <div class="tecla"><b>Q</b><span>Reduzir marcha</span></div>
-    <div class="tecla"><b>E</b><span>Subir marcha</span></div>
+    <div class="tecla"><b>M</b><span>Câmbio auto/manual</span></div>
   </div>
-  <p class="dica">São 6 marchas: suba de marcha quando o giro chegar no vermelho e reduza para
-     retomar força nas saídas. A moto só faz a curva em movimento e nunca anda de ré.</p>
+  <p class="dica">O câmbio é automático: as 6 marchas sobem e reduzem sozinhas conforme o giro.
+     No modo manual (tecla M) use <b>Q</b> para reduzir e <b>E</b> para subir — e lá não existe
+     limitador: a moto continua ganhando velocidade sem teto.
+     A moto só faz a curva em movimento e nunca anda de ré.</p>
   <p class="piscar"><b>Pressione ENTER para começar</b></p>
 </div>
 
@@ -900,11 +902,12 @@
 
   const teclas = { w: false, freio: false, a: false, d: false };
   const jogo = {
-    s: 0, dist: 0, lat: 0, vel: 0, direcao: 0, esterco: 0, inclinacao: 0, marcha: 0, giro: 0,
+    s: 0, dist: 0, lat: 0, vel: 0, direcao: 0, esterco: 0, inclinacao: 0, marcha: 0, giro: 0, auto: true, esperaTroca: 0,
     tempo: 0, batidas: 0, invuln: 0, velMax: 0, balanco: 0
   };
 
   function trocaMarcha(passo) {
+    if (jogo.auto) { mostraAviso("Câmbio automático — aperte M para manual"); return; }
     const nova = jogo.marcha + passo;
     if (nova < 0 || nova >= MARCHAS.length) return;
     if (passo < 0) {
@@ -924,10 +927,15 @@
     if (estado === ESTADO.JOGANDO && !e.repeat) {
       if (k === "e" || k === "shift") trocaMarcha(1);
       if (k === "q" || k === "control") trocaMarcha(-1);
+      if (k === "m") {
+        jogo.auto = !jogo.auto;
+        jogo.esperaTroca = 0.5;
+        mostraAviso(jogo.auto ? "Câmbio automático" : "Câmbio manual — sem limitador (Q e E)");
+      }
     }
     if (estado === ESTADO.INICIO && k === "enter") iniciaPartida();
     if (estado === ESTADO.FIM && k === "r") iniciaPartida();
-    if (["w","a","d","q","e"," ","arrowup","arrowdown","arrowleft","arrowright"].indexOf(k) >= 0) e.preventDefault();
+    if (["w","a","d","q","e","m"," ","arrowup","arrowdown","arrowleft","arrowright"].indexOf(k) >= 0) e.preventDefault();
   });
   window.addEventListener("keyup", function (e) {
     const k = e.key.toLowerCase();
@@ -949,6 +957,7 @@
   const barraGiro = document.getElementById("barraGiro");
   const painelMarcha = document.getElementById("painelMarcha");
   const dicaMarcha = document.getElementById("dicaMarcha");
+  const modoCambio = document.getElementById("modoCambio");
   const painelBatidas = document.getElementById("painelBatidas");
   const flash = document.getElementById("flashDano");
   const aviso = document.getElementById("aviso");
@@ -965,7 +974,8 @@
     barraGiro.style.width = Math.min(100, jogo.giro * 100) + "%";
     painelMarcha.classList.toggle("limite", jogo.giro >= 0.97);
     // avisa quando a marcha está alta demais para a velocidade atual
-    const engasgando = estado === ESTADO.JOGANDO && jogo.marcha > 0 && jogo.giro < 0.12;
+    modoCambio.textContent = jogo.auto ? "auto" : "manual";
+    const engasgando = estado === ESTADO.JOGANDO && !jogo.auto && jogo.marcha > 0 && jogo.giro < 0.12;
     dicaMarcha.style.display = engasgando ? "block" : "none";
   }
 
@@ -1047,7 +1057,7 @@
   function iniciaPartida() {
     reiniciaEstrada();
     jogo.s = 0; jogo.dist = 0; jogo.lat = 0; jogo.vel = 0; jogo.direcao = 0; jogo.esterco = 0;
-    jogo.inclinacao = 0; jogo.marcha = 0; jogo.giro = 0;
+    jogo.inclinacao = 0; jogo.marcha = 0; jogo.giro = 0; jogo.esperaTroca = 0;
     jogo.tempo = 0; jogo.batidas = 0; jogo.invuln = 0; jogo.velMax = 0; jogo.balanco = 0;
     proxObra = 900;
     for (const v of transito) { v.ativo = false; if (v.obj) v.obj.visible = false; }
@@ -1078,23 +1088,37 @@
     const piso = jogo.marcha === 0 ? 0 : MARCHAS[jogo.marcha - 1] * 0.70;
     jogo.giro = clamp((jogo.vel - piso) / (topo - piso), 0, 1.05);
 
+    // ---- câmbio automático ----
+    if (jogo.esperaTroca > 0) jogo.esperaTroca -= dt;
+    if (jogo.auto && jogo.esperaTroca <= 0) {
+      if (jogo.giro > 0.94 && jogo.marcha < MARCHAS.length - 1 && teclas.w) {
+        jogo.marcha++; jogo.esperaTroca = 0.45;
+      } else if (jogo.giro < 0.26 && jogo.marcha > 0 && jogo.vel <= MARCHAS[jogo.marcha - 1]) {
+        jogo.marcha--; jogo.esperaTroca = 0.45;
+      }
+    }
+
     // ---- aceleração / freio (nunca dá ré) ----
+    // no câmbio manual não há limitador: a moto segue ganhando velocidade sem teto
+    const semLimite = !jogo.auto;
     if (teclas.w) {
       // torque cheio no meio do giro; fraco embaixo (pede redução) e cortado no limitador
       const torque = clamp(1.30 - Math.pow(Math.abs(jogo.giro - 0.70), 1.3) * 2.0, 0.10, 1);
       const forcaMarcha = 2.2 - jogo.marcha * 0.28;
       if (jogo.giro < 1) jogo.vel += ACEL * torque * forcaMarcha * dt;
+      else if (semLimite) jogo.vel += ACEL * 0.30 * forcaMarcha * dt;
     }
     if (teclas.freio) jogo.vel -= FREIO * dt;
     // sem acelerar: freio-motor, mais forte nas marchas baixas
     if (!teclas.w && !teclas.freio) jogo.vel -= (ATRITO + (5 - jogo.marcha) * 0.55) * dt;
-    jogo.vel = clamp(jogo.vel, 0, topo);   // mínimo zero: sem marcha à ré
+    jogo.vel = clamp(jogo.vel, 0, semLimite ? Infinity : topo);   // mínimo zero: sem marcha à ré
 
     // ---- esterço: a moto realmente faz a curva, angulando em relação à pista ----
     const alvoDir = (teclas.d ? 1 : 0) - (teclas.a ? 1 : 0);
     jogo.direcao += (alvoDir - jogo.direcao) * Math.min(1, dt * 11);
     // parada a moto não vira; em alta o ângulo de curva diminui
-    const eficacia = clamp(jogo.vel / VEL_ESTERCO, 0, 1) * (1 - 0.45 * jogo.vel / VEL_MAX);
+    const relVel = clamp(jogo.vel / VEL_MAX, 0, 1);
+    const eficacia = clamp(jogo.vel / VEL_ESTERCO, 0, 1) * (1 - 0.45 * relVel);
     const alvoEsterco = jogo.direcao * ESTERCO_MAX * eficacia;
     jogo.esterco += (alvoEsterco - jogo.esterco) * Math.min(1, dt * 4.5);
 
@@ -1134,7 +1158,7 @@
 
     // ---- câmera: chacoalho, altura e FOV variando com a velocidade ----
     jogo.balanco += dt * (4 + jogo.vel * 0.32);
-    const intensidade = 0.006 + jogo.vel / VEL_MAX * 0.016;
+    const intensidade = 0.006 + clamp(jogo.vel / VEL_MAX, 0, 1.3) * 0.016;
     // eixos locais invertidos pelo suporte de 180°: os sinais abaixo já consideram isso
     camera.position.set(
       Math.sin(jogo.balanco * 0.9) * intensidade,
@@ -1142,11 +1166,11 @@
       0.46
     );
     camera.rotation.set(
-      PITCH_BASE - Math.sin(jogo.balanco * 1.3) * intensidade * 0.6 + jogo.vel / VEL_MAX * 0.02,
+      PITCH_BASE - Math.sin(jogo.balanco * 1.3) * intensidade * 0.6 + clamp(jogo.vel / VEL_MAX, 0, 1.3) * 0.02,
       -jogo.direcao * 0.05,                  // olha um pouco para dentro da curva
       -jogo.inclinacao * 0.20                // a cabeça acompanha a inclinação
     );
-    const fovAlvo = 74 + (jogo.vel / VEL_MAX) * 16;
+    const fovAlvo = 74 + clamp(jogo.vel / VEL_MAX, 0, 1.35) * 16;
     camera.fov += (fovAlvo - camera.fov) * Math.min(1, dt * 3);
     camera.updateProjectionMatrix();
   }
@@ -1154,7 +1178,7 @@
   // =====================================================================
   //  Laço principal
   // =====================================================================
-  window.__depuracao = { jogo: jogo, transito: transito, TIPOS: TIPOS };  // estado exposto para testes
+  window.__depuracao = { jogo: jogo, transito: transito, cones: cones, TIPOS: TIPOS };  // estado exposto para testes
 
   let ultimo = performance.now();
   function laco(agora) {
