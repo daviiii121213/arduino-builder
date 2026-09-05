@@ -3,9 +3,15 @@
  * Os efeitos são sintetizados com osciladores e ruído na Web Audio API.
  */
 
+import type { SomBioma } from '../world/biomes';
+
 export class Audio {
   private ctx: AudioContext | null = null;
   private mestre: GainNode | null = null;
+  /** Camada de som ambiente do bioma (um oscilador só, sempre baixinho). */
+  private amb: { osc: OscillatorNode; lfo: OscillatorNode; ganho: GainNode; filtro: BiquadFilterNode } | null =
+    null;
+  private ambAtual: SomBioma | null = null;
   ligado = true;
   volume = 0.35;
 
@@ -28,6 +34,49 @@ export class Audio {
     this.ligado = !this.ligado;
     if (this.mestre) this.mestre.gain.value = this.ligado ? this.volume : 0;
     return this.ligado;
+  }
+
+  /**
+   * Zumbido de fundo do bioma. É uma nota só, filtrada e com vibrato lento —
+   * suficiente para dar clima sem pesar: um oscilador vale por todo o mapa.
+   * Chamar com null (ou dentro de casa) silencia a camada.
+   */
+  ambiente(som: SomBioma | null): void {
+    if (!this.ctx || !this.mestre) return;
+    if (som === this.ambAtual) return;
+    this.ambAtual = som;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    if (this.amb) {
+      const velho = this.amb;
+      velho.ganho.gain.cancelScheduledValues(t);
+      velho.ganho.gain.setValueAtTime(velho.ganho.gain.value, t);
+      velho.ganho.gain.linearRampToValueAtTime(0.0001, t + 0.6);
+      velho.osc.stop(t + 0.7);
+      velho.lfo.stop(t + 0.7);
+      this.amb = null;
+    }
+    if (!som) return;
+    const osc = ctx.createOscillator();
+    osc.type = som.tipo;
+    osc.frequency.value = som.freq;
+    const filtro = ctx.createBiquadFilter();
+    filtro.type = 'lowpass';
+    filtro.frequency.value = som.corte;
+    const ganho = ctx.createGain();
+    ganho.gain.setValueAtTime(0.0001, t);
+    ganho.gain.linearRampToValueAtTime(som.ganho, t + 1.2);
+    // vibrato lento: o zumbido nunca fica parado
+    const lfo = ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.16;
+    const lfoG = ctx.createGain();
+    lfoG.gain.value = som.freq * 0.02;
+    lfo.connect(lfoG).connect(osc.frequency);
+    osc.connect(filtro).connect(ganho).connect(this.mestre);
+    osc.start(t);
+    lfo.start(t);
+    this.amb = { osc, lfo, ganho, filtro };
   }
 
   private get pronto(): boolean {

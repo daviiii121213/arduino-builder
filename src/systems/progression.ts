@@ -7,6 +7,9 @@
 
 import type { FerramentaId } from '../gfx/sprites/tools';
 import type { ArmaduraId } from '../gfx/sprites/armor';
+import type { EspecieId } from '../gfx/sprites/dinos';
+import { ORDEM_BIOMAS, type BiomaId } from '../world/biomes';
+import { TODAS_FICHAS } from '../entities/dinoTypes';
 import { FERRAMENTAS, nomeFerramenta } from './tools';
 import { ARMADURAS, TODAS_ARMADURAS } from './armor';
 
@@ -45,6 +48,23 @@ export class Progresso {
   demo = false;
   /** Melhorias já compradas, por id. */
   compradas = new Set<string>();
+  /** Biomas em que o jogador já pisou. */
+  biomasVisitados = new Set<BiomaId>(['vale']);
+  /** Criaturas já vistas de perto — é o que preenche o bestiário. */
+  especiesVistas = new Set<EspecieId>();
+
+  visitarBioma(id: BiomaId): boolean {
+    if (this.biomasVisitados.has(id)) return false;
+    this.biomasVisitados.add(id);
+    return true;
+  }
+
+  /** Registra uma criatura no bestiário. Devolve true se ela é novidade. */
+  descobrir(id: EspecieId): boolean {
+    if (this.especiesVistas.has(id)) return false;
+    this.especiesVistas.add(id);
+    return true;
+  }
 
   nivel(id: FerramentaId): number {
     return this.ferramentas[id];
@@ -62,6 +82,9 @@ export class Progresso {
     for (const a of TODAS_ARMADURAS) this.armaduras.add(a.id);
     this.armaduraVestida = 'cristal';
     for (const m of CATALOGO) this.compradas.add(m.id);
+    // no modo de teste o bestiário e o mapa já vêm preenchidos
+    for (const b of ORDEM_BIOMAS) this.biomasVisitados.add(b);
+    for (const f of TODAS_FICHAS) this.especiesVistas.add(f.id);
   }
 }
 

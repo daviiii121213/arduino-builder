@@ -23,4 +23,6 @@ export interface Mundo {
   criarOrbe(x: number, y: number, angulo: number, dano: number, velocidade: number): void;
   /** Mensagem curta no rodapé (avisos e dicas). */
   avisar(texto: string, segundos?: number): void;
+  /** Avisa que uma criatura caiu (missões do diário). */
+  aoAbater?(especie: import('../gfx/sprites/dinos').EspecieId): void;
 }

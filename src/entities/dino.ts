@@ -280,6 +280,23 @@ export class Dino {
       }
     }
 
+    // ---- rastro de quem corre: cada estilo levanta uma coisa diferente
+    if (this.estado === 'perseguir' && this.rng.chance(dt * 9)) {
+      const cor =
+        this.ficha.bioma === 'deserto'
+          ? '#e8d7a0'
+          : this.ficha.bioma === 'vulcanico'
+            ? '#ffb14a'
+            : this.ficha.bioma === 'pantano'
+              ? '#5f7d4a'
+              : '#a89fbe';
+      mundo.particulas.pixel(this.x + this.rng.range(-6, 6), this.y, cor, {
+        vy: -14,
+        vida: 0.5,
+        gravidade: 20,
+      });
+    }
+
     // ---- brilho e faíscas dos mágicos
     if (f.flutua && this.rng.chance(dt * 8)) {
       mundo.particulas.pixel(
@@ -362,6 +379,7 @@ export class Dino {
     const distanciaAtual = dist(this.x, this.centroY, j.centroX, j.centroY);
     if (distanciaAtual <= f.alcance + f.pegada.w / 2 + 6) {
       j.receberDano(f.dano, this.x, this.centroY, mundo);
+      if (f.veneno) j.envenenar(f.veneno, mundo);
       mundo.particulas.animacao(mundo.assets.efeitos.faisca, j.centroX, j.centroY, 0.25);
     } else {
       // errou: poeira no chão
@@ -437,6 +455,7 @@ export class Dino {
 
   private morrer(mundo: Mundo): void {
     this.vivo = false;
+    mundo.aoAbater?.(this.ficha.id);
     this.tempoMorte = 0;
     this.vida = 0;
     mundo.audio.morte();
@@ -473,7 +492,30 @@ export class Dino {
     this.alturaArte = arte.h;
     const quadros = this.olhandoDireita ? arte.direita : arte.esquerda;
     const andando = Math.hypot(this.vx, this.vy) > 5;
-    const idx = andando ? Math.floor(this.animTempo * 7) % quadros.length : 0;
+
+    // ---- cada estilo de andar tem a sua cadência e o seu balanço
+    const correndo =
+      this.estado === 'perseguir' || this.estado === 'fugir' || this.estado === 'preparar';
+    const estilo = this.ficha.estilo;
+    const cadencia =
+      estilo === 'rasteja' ? 5 : estilo === 'salta' ? 10 : estilo === 'ondula' ? 8 : 7;
+    const idx = andando
+      ? Math.floor(this.animTempo * (correndo ? cadencia * 1.5 : cadencia)) % quadros.length
+      : 0;
+    let balanco = 0;
+    if (estilo === 'salta' && andando) {
+      // pula a cada passada, mais alto quando corre
+      balanco = -Math.abs(Math.sin(this.animTempo * (correndo ? 15 : 9))) * (correndo ? 4 : 2.5);
+    } else if (estilo === 'ondula') {
+      // o corpo comprido ondula mesmo parado
+      balanco = Math.sin(this.animTempo * (andando ? 7 : 2.5)) * 1.5;
+    } else if (estilo === 'rasteja') {
+      // vive colado no chão
+      balanco = 2 + (andando ? Math.sin(this.animTempo * 5) : 0);
+    } else if (estilo === 'passos' && andando && correndo) {
+      // a passada pesada sacode o corpo
+      balanco = Math.sin(this.animTempo * 14) * 1;
+    }
     let sprite = quadros[idx];
 
     // efeito de morte: some com brilho
@@ -487,7 +529,7 @@ export class Dino {
     const flutuando = this.ficha.flutua ? Math.sin(this.bob) * 2.5 : 0;
     const submerso = this.ficha.aquatico ? 4 : 0;
     const px = Math.round(this.x - sprite.width / 2 - camX);
-    const py = Math.round(this.y - sprite.height - camY - flutuando + submerso);
+    const py = Math.round(this.y - sprite.height - camY - flutuando + submerso + balanco);
 
     // sombra
     const sombra = mundo.assets.sombras[this.ficha.sombra];
@@ -502,7 +544,8 @@ export class Dino {
     // preparo do ataque: o corpo brilha em vermelho (aviso justo ao jogador)
     if (this.estado === 'preparar') {
       const pulso = 0.35 + Math.sin(this.tempoEstado * 26) * 0.25;
-      sprite = tingirCache(sprite, this.ficha.distancia ? P.magiaClara : P.coracaoLuz, pulso);
+      // o aviso do golpe usa a cor da própria criatura: dá para reconhecer de longe
+      sprite = tingirCache(sprite, this.ficha.veneno ? '#8fe05a' : this.ficha.corSangue, pulso);
     } else if (this.piscar > 0 && Math.floor(this.piscar * 20) % 2 === 0) {
       sprite = tingirCache(sprite, '#ffffff', 0.85);
     }

@@ -20,7 +20,14 @@ export type RecursoId =
   | 'fibra'
   | 'osso'
   | 'fossil'
-  | 'semente';
+  | 'semente'
+  // ---- recursos nativos dos biomas
+  | 'essencia'
+  | 'turfa'
+  | 'resina'
+  | 'obsidiana'
+  | 'enxofre'
+  | 'vidro';
 
 /** Paletas das cabeças, por nível de melhoria. */
 const MATERIAIS = [
@@ -144,6 +151,19 @@ const PAL_RECURSO: Paleta = {
   m: P.magia,
   M: P.magiaClara,
   y: P.florAmarela,
+  // ---- tons dos recursos de bioma
+  e: '#5ad8c8',
+  E: '#b8fff2',
+  u: '#4a3a24',
+  U: '#6b5436',
+  r: '#d89a3a',
+  R: '#ffd680',
+  b: '#241c2e',
+  B: '#4a3c62',
+  x: '#d8c23a',
+  X: '#fff08a',
+  v: '#8fd8e8',
+  V: '#e6fbff',
 };
 
 const R_MADEIRA = [
@@ -274,6 +294,74 @@ const SACO_MOEDAS = [
   '..kkkkkkk..',
 ];
 
+
+// ---- recursos nativos dos biomas
+
+const R_ESSENCIA = [
+  '...kkk....',
+  '..kEEEk...',
+  '.kEeeeEk..',
+  'kEeeeeeEk.',
+  'kEeeeeeEk.',
+  'kEeeeeeEk.',
+  '.kEeeeEk..',
+  '..kEeEk...',
+  '...kkk....',
+];
+
+const R_TURFA = [
+  '..kkkkkk..',
+  '.kUUuuUUk.',
+  'kUuuUuuuUk',
+  'kUuufuuUUk',
+  'kUUuuuUuuk',
+  '.kUuuUUuk.',
+  '..kkkkkk..',
+];
+
+const R_RESINA = [
+  '....kk....',
+  '...kRRk...',
+  '..kRrrRk..',
+  '.kRrrrrRk.',
+  '.kRrrrrrk.',
+  '.kRrrrrrk.',
+  '..kRrrrk..',
+  '...kkkk...',
+];
+
+const R_OBSIDIANA = [
+  '...kkk....',
+  '..kBBBk...',
+  '.kBbbbBk..',
+  'kBbbbbbBk.',
+  'kBbbbbbbk.',
+  '.kbbBbbbk.',
+  '..kbbbbk..',
+  '...kkkk...',
+];
+
+const R_ENXOFRE = [
+  '..kkk.kk..',
+  '.kXxk.kXk.',
+  'kXxxxkxxk.',
+  'kxxxxXxxxk',
+  '.kxxxxxxk.',
+  '..kxxxxk..',
+  '...kkkk...',
+];
+
+const R_VIDRO = [
+  '....kk....',
+  '...kVVk...',
+  '..kVvvVk..',
+  '.kVvvvvVk.',
+  'kVvvvvvvVk',
+  '.kvvvvvvk.',
+  '..kvvvvk..',
+  '...kkkk...',
+];
+
 const DESENHOS_RECURSO: Record<RecursoId, string[]> = {
   madeira: R_MADEIRA,
   pedra: R_PEDRA,
@@ -284,6 +372,12 @@ const DESENHOS_RECURSO: Record<RecursoId, string[]> = {
   osso: R_OSSO,
   fossil: R_FOSSIL,
   semente: R_SEMENTE,
+  essencia: R_ESSENCIA,
+  turfa: R_TURFA,
+  resina: R_RESINA,
+  obsidiana: R_OBSIDIANA,
+  enxofre: R_ENXOFRE,
+  vidro: R_VIDRO,
 };
 
 export interface ArteFerramentas {

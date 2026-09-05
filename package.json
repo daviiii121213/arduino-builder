@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "smoke": "node tools/smoke.mjs dist",
-    "pacote": "vite build && node tools/empacotar.mjs"
+    "pacote": "vite build && node tools/empacotar.mjs",
+    "biomas": "node tools/biomas.mjs"
   },
   "devDependencies": {
     "typescript": "~5.6.3",

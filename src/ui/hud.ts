@@ -36,6 +36,8 @@ export interface DadosHUD {
   periodo: string;
   /** Nome do alvo em foco da ferramenta (aparece junto ao item na mão). */
   alvo?: string | null;
+  /** Páginas do diário ainda não lidas (marcador discreto no canto). */
+  diarioNovo?: number;
 }
 
 export class HUD {
@@ -150,6 +152,22 @@ export class HUD {
       cor: this.destaqueMoeda > 0 ? P.brilho : P.ambar,
       sombra: P.contorno,
     });
+
+    // marcador de página nova no diário: pisca de leve até o jogador abrir
+    if (dados.diarioNovo) {
+      const rotulo = `J: ${dados.diarioNovo} no diário`;
+      const lb = larguraTexto(rotulo) + 6;
+      const py = y + 15;
+      g.globalAlpha = 0.6 + Math.sin(this.tempo * 5) * 0.4;
+      g.fillStyle = 'rgba(16,14,26,0.7)';
+      g.fillRect(LARGURA - lb - 4, py, lb, 11);
+      texto(g, rotulo, LARGURA - 7, py + 2, {
+        cor: P.ambar,
+        sombra: P.contorno,
+        alinhamento: 'direita',
+      });
+      g.globalAlpha = 1;
+    }
   }
 
   // -------------------------------------------------- barra de acesso rápido

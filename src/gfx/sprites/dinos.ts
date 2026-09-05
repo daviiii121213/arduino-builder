@@ -20,7 +20,27 @@ export type EspecieId =
   | 'nadalonga'
   | 'escamarela'
   | 'luminassauro'
-  | 'etherodonte';
+  | 'etherodonte'
+  // ---- clareira encantada
+  | 'arcanoraptor'
+  | 'cristalossauro'
+  | 'lumidraco'
+  // ---- pantano das raizes
+  | 'pantanossauro'
+  | 'crocossauro'
+  | 'venomossauro'
+  // ---- floresta fechada
+  | 'silvassauro'
+  | 'espinosselva'
+  | 'feroxossauro'
+  // ---- campo de lava
+  | 'magmossauro'
+  | 'ignissauro'
+  | 'vulcanor'
+  // ---- deserto de vidro
+  | 'arenossauro'
+  | 'dunassauro'
+  | 'tempestossauro';
 
 interface Desenho {
   corpo: string[];
@@ -298,6 +318,364 @@ const DESENHOS: Record<EspecieId, Desenho> = {
     pernas: [
       ['....kmmk.kmmk.....', '.....km...mk......'],
       ['...km.mk.km.mk....', '.....m.....m......'],
+    ],
+  },
+
+  // ------------------------------------------------- MAGICO agil
+  arcanoraptor: {
+    cores: {
+      k: '#1c1436', a: '#5b47b0', b: '#8b6fe0', c: '#3a2a78', d: '#cfc0ff', e: '#2f2160', f: '#7ff0e0',
+      g: '#e6ffff', m: '#7ff0e0',
+    },
+    corpo: [
+      '.............kfk.',
+      '..........kkkfffk',
+      '.........kbbbbffk',
+      '........kaaoaaak.',
+      '.......kaaaaakttk',
+      '...kkkkaaaaakkk..',
+      'kkkbaaaeaaaak....',
+      'kbaaaeaaaeaaadk..',
+      'kkkbaaaaaaadddk..',
+      '..kaddddddddk....',
+      '...kaaaaaaak.....',
+    ],
+    pernas: [
+      ['...kaakkaak......', '..kaak..kaak.....', '..kggk..kggk.....', '..kkk....kkk.....'],
+      ['...kaakkaak......', '.kaak....kaak....', '.kggk....kggk....', '.kkk......kkk....'],
+    ],
+  },
+
+  // ------------------------------------------------- MAGICO couracado de cristal
+  cristalossauro: {
+    cores: {
+      k: '#241a3f', a: '#4a6fb0', b: '#6f9ae0', c: '#2f4a80', d: '#cfe4ff', e: '#3a5590', f: '#a8f0ff',
+      g: '#ffffff', m: '#a8f0ff',
+    },
+    corpo: [
+      '.....kfk..kfk..kfk.',
+      '....kfffkkfffkkfffk',
+      'kkk..kfk.kaaak.kfk.',
+      'kbbkaaaaaaaaaaaaaak',
+      'kaoaaaaaeaaaaeaaaak',
+      'kattkaaaaaaaaaaaak.',
+      '.kkk.kaddddddddk...',
+      '.....kaaaaaaaak....',
+    ],
+    pernas: [
+      ['....kaak.....kaak..', '....kaak.....kaak..', '....kggk.....kggk..', '....kkk.......kkk..'],
+      ['....kaak.....kaak..', '...kaak.......kaak.', '...kggk.......kggk.', '...kkk.........kkk.'],
+    ],
+  },
+
+  // ------------------------------------------------- MAGICO alado, o mais perigoso
+  lumidraco: {
+    cores: {
+      k: '#3a2a10', a: '#e0c060', b: '#fff3b0', c: '#a8842f', d: '#fffbe0', e: '#ffd680', f: '#ffffff',
+      g: '#fff3b0', m: '#ffffff',
+    },
+    corpo: [
+      '.kfk.........kfk.',
+      'kffk...kkk...kffk',
+      'kfffk.kbbbk.kfffk',
+      '.kfffkbaoabkfffk.',
+      '..kffkaaaaakffk..',
+      '...kkkaaaaakkk...',
+      '....kaaeaaak.....',
+      '...kaaddddaak....',
+      '....kddddk.......',
+      '.....kddk........',
+    ],
+    pernas: [
+      ['....kmmk.kmmk....', '.....km...mk.....'],
+      ['...km.mk.km.mk...', '.....m.....m.....'],
+    ],
+  },
+
+  // ------------------------------------------------- PANTANO manso e pesado
+  pantanossauro: {
+    cores: {
+      k: '#12200f', a: '#4a6b3a', b: '#6b8f4a', c: '#2f4a24', d: '#a8b87a', e: '#35502a', f: '#7a9a4a',
+      g: '#c8d89a',
+    },
+    corpo: [
+      '..........kfffffk..',
+      '.......kkfffffffffk',
+      '.kkk..kbbbaaaaaaaak',
+      'kboakbaaaaaeaaaaaak',
+      'kaaakaaaaaaaaaaaaak',
+      '.kkk.kaddddddddddk.',
+      '.....kaaaaaaaaaak..',
+    ],
+    pernas: [
+      ['.....kaak....kaak..', '.....kaak....kaak..', '.....kggk....kggk..', '.....kkk......kkk..'],
+      ['.....kaak....kaak..', '....kaak......kaak.', '....kggk......kggk.', '....kkk........kkk.'],
+    ],
+  },
+
+  // ------------------------------------------------- PANTANO rasteiro de agua parada
+  crocossauro: {
+    cores: {
+      k: '#0f1a12', a: '#3f5a3a', b: '#5f7d4a', c: '#26382a', d: '#b0a878', e: '#2a3f28', f: '#6f8f52',
+      g: '#e8e0c0',
+    },
+    corpo: [
+      '.....kfk.kfk.kfk.kfk',
+      'kkkkkbbbkbbbkbbbkbbk',
+      'kbookaaaaaaaaaaaaaak',
+      'kattaaaaaaaaaeaaaaak',
+      'kkkkkaaaaaaaaaaaaaak',
+      '....kadddddddddddk..',
+      '....kaaaaaaaaaaak...',
+    ],
+    pernas: [
+      ['.....kaak......kaak.', '.....kggk......kggk.', '.....kkk........kkk.'],
+      ['....kaak........kaak', '....kggk........kggk', '....kkk..........kkk'],
+    ],
+  },
+
+  // ------------------------------------------------- PANTANO peconhento
+  venomossauro: {
+    cores: {
+      k: '#1a1024', a: '#4f7a3a', b: '#6f9f4a', c: '#33502a', d: '#c8e0a0', e: '#7a3ac0', f: '#b06fe8',
+      g: '#e0c0ff', m: '#b06fe8',
+    },
+    corpo: [
+      '..............kfk..',
+      '...........kkkfffk.',
+      '..........kbbbbffk.',
+      '.........kaaoaaak..',
+      '........kaaaaakttk.',
+      '.....kfk.kaaaak....',
+      '...kkfkkkaaaaaakk..',
+      'kkkbaaaaaaaeaaaaadk',
+      'kbaaaeaaaaaaaaaaddk',
+      'kkkbaaaaaaaaadddk..',
+      '..kadddddddddk.....',
+      '...kaaaaaaaak......',
+    ],
+    pernas: [
+      ['.....kaakkaaak.....', '.....kaak.kaak.....', '....kggak.kaggk....', '....kkkk...kkkk....'],
+      ['.....kaakkaaak.....', '....kaak...kaak....', '...kggak...kaggk...', '...kkkk.....kkkk...'],
+    ],
+  },
+
+  // ------------------------------------------------- FLORESTA pequeno e assustado
+  silvassauro: {
+    cores: {
+      k: '#152a12', a: '#6f9a4a', b: '#93bf68', c: '#4a6f32', d: '#dbe8b0', e: '#3f6b28', f: '#57a544',
+      g: '#c8e88a',
+    },
+    corpo: [
+      '.........kfk.',
+      '.......kffffk',
+      '....kkkkbbbk.',
+      '...kbaaoaak..',
+      '..kbaaaaakttk',
+      'kkkaaaaaaak..',
+      'kbaaaeaaadk..',
+      'kkkaadddddk..',
+      '..kaaaaaak...',
+    ],
+    pernas: [
+      ['..kaakkaak...', '.kaak..kaak..', '.kggk..kggk..', '.kkk....kkk..'],
+      ['..kaakkaak...', 'kaak....kaak.', 'kggk....kggk.', 'kkk......kkk.'],
+    ],
+  },
+
+  // ------------------------------------------------- FLORESTA de vela espinhosa
+  espinosselva: {
+    cores: {
+      k: '#1c2412', a: '#7a6a3a', b: '#9f8a4a', c: '#54492a', d: '#d8c890', e: '#3f5a28', f: '#c0602a',
+      g: '#e8d8a0',
+    },
+    corpo: [
+      '........kfk.kfk.kfk.',
+      '.......kfffkfffkfffk',
+      '.....kkkbbbbbbbbbbk.',
+      '....kbaoaaaaaaaaaak.',
+      '...kbaattkaaaaaaaak.',
+      'kkkkbaaaaaaaaaaaaak.',
+      'kbaaaaaeaaaeaaaaddk.',
+      'kkkbaaaaaaaaaaadddk.',
+      '..kaddddddddddk.....',
+      '...kaaaaaaaaak......',
+    ],
+    pernas: [
+      ['....kaak....kaak....', '....kaak....kaak....', '....kggk....kggk....', '....kkk......kkk....'],
+      ['....kaak....kaak....', '...kaak......kaak...', '...kggk......kggk...', '...kkk........kkk...'],
+    ],
+  },
+
+  // ------------------------------------------------- FLORESTA cacador de emboscada
+  feroxossauro: {
+    cores: {
+      k: '#161f10', a: '#3f5a2a', b: '#5f7f3a', c: '#2a3d1c', d: '#c9d6a0', e: '#7a3a12', f: '#b8322f',
+      g: '#e8e0c0',
+    },
+    corpo: [
+      '................kkkk..',
+      '...............kfffbk.',
+      '..............kbaaaoak',
+      '..............kaaaaaak',
+      '..............kaattttk',
+      '.........kkkkkkaakkkk.',
+      '....kkkkkbaaaaaaak....',
+      'kkkkkaaaaaeaaaeaaak...',
+      'kbaaaaaaeaaaeaaaaadk..',
+      'kkkkbaaaaaaaaaaaddddk.',
+      '....kkaaddddddddddk...',
+      '......kaaaaaaaaaak....',
+    ],
+    pernas: [
+      ['.......kaakkaaak......', '.......kaak.kaak......', '......kggak.kaggk.....', '......kkkk...kkkk.....'],
+      ['.......kaakkaaak......', '......kaak...kaak.....', '.....kggak...kaggk....', '.....kkkk.....kkkk....'],
+    ],
+  },
+
+  // ------------------------------------------------- VULCANICO couraca de pedra quente
+  magmossauro: {
+    cores: {
+      k: '#0f0a0a', a: '#3a2f2f', b: '#5a4a46', c: '#241c1c', d: '#6b5a54', e: '#ff6a2a', f: '#ffb14a',
+      g: '#ffd680', m: '#ff6a2a',
+    },
+    corpo: [
+      '.....kek..kek..kek.',
+      '....kfffkkfffkkfffk',
+      'kkk.kaaaaaaaaaaaaak',
+      'kbbkaaaaeaaaaeaaaak',
+      'kaoaaaaaaaaaaaaaaak',
+      'kattkaaaeaaaaaaaak.',
+      '.kkk.kaddddddddk...',
+      '.....kaaaaaaaak....',
+    ],
+    pernas: [
+      ['....kaak.....kaak..', '....kaak.....kaak..', '....kggk.....kggk..', '....kkk.......kkk..'],
+      ['....kaak.....kaak..', '...kaak.......kaak.', '...kggk.......kggk.', '...kkk.........kkk.'],
+    ],
+  },
+
+  // ------------------------------------------------- VULCANICO crista em brasa
+  ignissauro: {
+    cores: {
+      k: '#180c08', a: '#7a2f1a', b: '#a8492a', c: '#4a1c10', d: '#e8a860', e: '#ff6a2a', f: '#ffb14a',
+      g: '#fff0a0', m: '#ffb14a',
+    },
+    corpo: [
+      '............kek.kfk',
+      '.........kkkefeffk.',
+      '........kbbbbeffk..',
+      '.......kaaoaaak....',
+      '......kaaaaakttk...',
+      '..kkkkaaaaakkk.....',
+      'kkkbaaaaaaaak......',
+      'kbaaaeaaaeaaadk....',
+      'kkkbaaaaaaadddk....',
+      '.kaddddddddk.......',
+      '..kaaaaaaak........',
+    ],
+    pernas: [
+      ['..kaakkaak.........', '.kaak..kaak........', '.kggk..kggk........', '.kkk....kkk........'],
+      ['..kaakkaak.........', 'kaak....kaak.......', 'kggk....kggk.......', 'kkk......kkk.......'],
+    ],
+  },
+
+  // ------------------------------------------------- VULCANICO o colosso do campo de lava
+  vulcanor: {
+    cores: {
+      k: '#0d0605', a: '#4a1f14', b: '#7a3520', c: '#2a100a', d: '#c98a4a', e: '#ff4a1a', f: '#ffa030',
+      g: '#ffe08a', m: '#ff4a1a',
+    },
+    corpo: [
+      '..................kkkk..',
+      '.................kfffbk.',
+      '................kbaaaoak',
+      '................kaaaaaak',
+      '................kaattttk',
+      '....kek.kek.kekkkaakkkk.',
+      '...kfffkfffkfffbaaaak...',
+      'kkkkkbaaaaaaaaaaaaak....',
+      'kbaaaaaeaaaeaaaeaaaadk..',
+      'kkkkbaaaaaaaaaaaaddddk..',
+      '....kkaaddddddddddk.....',
+      '......kaaaaaaaaaak......',
+    ],
+    pernas: [
+      ['.......kaakkaaak........', '.......kaak.kaak........', '......kggak.kaggk.......', '......kkkk...kkkk.......'],
+      ['.......kaakkaaak........', '......kaak...kaak.......', '.....kggak...kaggk......', '.....kkkk.....kkkk......'],
+    ],
+  },
+
+  // ------------------------------------------------- DESERTO leve e arisco
+  arenossauro: {
+    cores: {
+      k: '#3a2a14', a: '#c9a45a', b: '#e8c88a', c: '#9a7a38', d: '#f2e0b0', e: '#a8834a', f: '#d8b46a',
+      g: '#fff3d0',
+    },
+    corpo: [
+      '..........kfk..',
+      '........kkfffk.',
+      '.......kbbbbk..',
+      '......kaaoaak..',
+      '.....kaaaaakttk',
+      '.kkkkkaaaaakkk.',
+      'kfkbaaaaaaak...',
+      'kffkbaaeaaadk..',
+      'kfkkkaaaadddk..',
+      '...kaddddddk...',
+      '....kaaaaak....',
+    ],
+    pernas: [
+      ['....kaakkaak...', '...kaak..kaak..', '...kggk..kggk..', '...kkk....kkk..'],
+      ['....kaakkaak...', '..kaak....kaak.', '..kggk....kggk.', '..kkk......kkk.'],
+    ],
+  },
+
+  // ------------------------------------------------- DESERTO corcunda das dunas
+  dunassauro: {
+    cores: {
+      k: '#3f2f18', a: '#b08a4a', b: '#d8b06a', c: '#7a5a2a', d: '#e8d8a8', e: '#8a6a30', f: '#e8e0c0',
+      g: '#fff3d0',
+    },
+    corpo: [
+      '........kbbbbk....',
+      '......kkbaaaabkk..',
+      'kfk.kbaaaaaaaaabk.',
+      'kfkkbaaaaaeaaaaabk',
+      'kaoaaaaaaaaaaaaaak',
+      'kattkaaaaaaaaaaak.',
+      '.kkk..kddddddddk..',
+      '......kaaaaaaak...',
+    ],
+    pernas: [
+      ['.....kaak....kaak.', '.....kaak....kaak.', '.....kggk....kggk.', '.....kkk......kkk.'],
+      ['.....kaak....kaak.', '....kaak......kaak', '....kggk......kggk', '....kkk........kkk'],
+    ],
+  },
+
+  // ------------------------------------------------- DESERTO da tempestade de areia
+  tempestossauro: {
+    cores: {
+      k: '#141826', a: '#4a5570', b: '#6f7d9f', c: '#2f3850', d: '#c0cadf', e: '#8a93b0', f: '#ffe066',
+      g: '#fffbe0', m: '#ffe066',
+    },
+    corpo: [
+      '..............kfk..',
+      '............kkkfk..',
+      '...........kbbbbk..',
+      '..........kaaoaak..',
+      '.........kaaaaakttk',
+      '....kfk..kaaaaak...',
+      '..kkfkkkkaaaaaakk..',
+      'kkkbaaaaaaaeaaaaadk',
+      'kbaaaeaaaaaaaaaaddk',
+      'kkkbaaaaaaaaadddk..',
+      '..kadddddddddk.....',
+      '...kaaaaaaaak......',
+    ],
+    pernas: [
+      ['.....kaakkaaak.....', '.....kaak.kaak.....', '....kggak.kaggk....', '....kkkk...kkkk....'],
+      ['.....kaakkaaak.....', '....kaak...kaak....', '...kggak...kaggk...', '...kkkk.....kkkk...'],
     ],
   },
 };

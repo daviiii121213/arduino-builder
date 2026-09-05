@@ -29,7 +29,9 @@ import {
   CASA_Y,
   CABANA_X,
   CABANA_Y,
+  pontoDoBioma,
 } from '../world/worldgen';
+import { BIOMAS, TODOS_BIOMAS, type BiomaId } from '../world/biomes';
 import { criarNpcsDaCabana } from '../world/npcs';
 import { desenharTerreno, objetosVisiveis, desenharObjeto } from '../world/renderer';
 import { HUD } from '../ui/hud';
@@ -44,6 +46,8 @@ import { PainelMelhorias } from '../ui/melhorias';
 import { PainelBau } from '../ui/bau';
 import { PainelTestes, type AcaoTeste } from '../ui/testes';
 import { PainelMochila } from '../ui/mochila';
+import { PainelDiario } from '../ui/diario';
+import { Diario } from '../systems/missions';
 import { Botao, ListaBotoes, textoGrande } from '../ui/widgets';
 import { desenharPainel } from '../gfx/sprites/ui';
 import { texto } from '../gfx/font';
@@ -96,6 +100,8 @@ export class CenaJogo implements Cena {
   private painelBau: PainelBau;
   private painelTestes: PainelTestes;
   private painelMochila!: PainelMochila;
+  private painelDiario!: PainelDiario;
+  private diario!: Diario;
 
   private pausado = false;
   private menuPausa!: ListaBotoes;
@@ -121,6 +127,10 @@ export class CenaJogo implements Cena {
   private maquinaY = 0;
   /** Escurecimento extra ao dormir. */
   private dormindo = 0;
+  /** Bioma em que o jogador está agora (atmosfera, som e partículas). */
+  private biomaAtual: BiomaId = 'vale';
+  /** Acumulador fracionário das partículas de ambiente. */
+  private restoAmbiente = 0;
 
   constructor(
     private jogo: Jogo,
@@ -182,6 +192,7 @@ export class CenaJogo implements Cena {
         this.projeteis.push(new Orbe(x, y, ang, dano, vel));
       },
       avisar: (txt, seg) => this.hud.avisar(txt, seg),
+      aoAbater: () => this.diario.abateu(),
     };
 
     this.painelVenda = new PainelVenda(
@@ -203,6 +214,7 @@ export class CenaJogo implements Cena {
             gravidade: 90,
           });
         }
+        this.diario.vendeu(moedas);
         void nome;
         void quantidade;
       },
@@ -231,6 +243,25 @@ export class CenaJogo implements Cena {
         this.jogo.audio.confirmar();
       },
     );
+    // ---- diário: as missões chegam sozinhas conforme o jogador avança
+    this.diario = new Diario(
+      (m) => {
+        this.carteira.ganhar(m.recompensa);
+        this.jogo.audio.confirmar();
+        this.hud.avisar(`Missão concluída: ${m.titulo} (+${m.recompensa} moedas).`, 4);
+        this.particulas.texto(
+          `+${formatarMoedas(m.recompensa)}`,
+          this.jogador.centroX,
+          this.jogador.y - 30,
+          P.ambar,
+        );
+      },
+      (m) => {
+        this.hud.avisar(`Nova página no diário: ${m.titulo}. Aperte J.`, 4);
+      },
+    );
+    this.painelDiario = new PainelDiario(this.diario, this.progresso, this.carteira, jogo.assets);
+
     this.painelTestes = new PainelTestes(this.acoesDeTeste());
     this.montarMenus();
     if (opcoes.chegada) this.chegadaDramatica = true;
@@ -252,7 +283,8 @@ export class CenaJogo implements Cena {
       this.painelMelhorias.aberta ||
       this.painelBau.aberta ||
       this.painelTestes.aberta ||
-      this.painelMochila.aberta
+      this.painelMochila.aberta ||
+      this.painelDiario.aberta
     );
   }
 
@@ -276,6 +308,11 @@ export class CenaJogo implements Cena {
         grupo: 'mundo',
         executar: () => this.teleportar('maquina'),
       },
+      ...TODOS_BIOMAS.map((f) => ({
+        rotulo: `Ir ao bioma: ${f.nome}`,
+        grupo: 'biomas',
+        executar: () => this.teleportarBioma(f.id),
+      })),
       { rotulo: 'Vender recursos', grupo: 'dinheiro', executar: () => this.painelVenda.abrir() },
       {
         rotulo: 'Melhorar ferramentas (Bruna)',
@@ -318,6 +355,16 @@ export class CenaJogo implements Cena {
         rotulo: 'Abrir a mochila (TAB)',
         grupo: 'itens',
         executar: () => this.painelMochila.abrir('bolsa'),
+      },
+      {
+        rotulo: 'Abrir o diário de missões (J)',
+        grupo: 'missões',
+        executar: () => this.painelDiario.abrir(),
+      },
+      {
+        rotulo: 'Abrir o bestiário (25 criaturas)',
+        grupo: 'missões',
+        executar: () => this.painelMochila.abrir('bestiario'),
       },
       {
         rotulo: 'Trocar de armadura',
@@ -512,6 +559,7 @@ export class CenaJogo implements Cena {
       this.painelBau.atualizar(dt, entrada);
       this.painelTestes.atualizar(dt, entrada);
       this.painelMochila.atualizar(dt, entrada);
+      this.painelDiario.atualizar(dt, entrada);
       this.particulas.atualizar(dt);
       return;
     }
@@ -555,7 +603,9 @@ export class CenaJogo implements Cena {
       this.hud.avisar(ligado ? 'Som ligado' : 'Som desligado', 1.6);
     }
     if (entrada.teclaAgora('KeyJ')) {
-      this.hud.avisar('Diário: as missões chegam na próxima expedição.', 3);
+      this.painelDiario.abrir();
+      this.jogo.audio.menu();
+      return;
     }
 
     // ---- atalhos do modo de teste
@@ -596,7 +646,18 @@ export class CenaJogo implements Cena {
 
     // ---- entidades
     this.jogador.atualizar(dt, entrada, this.mundo);
-    for (const d of this.dinos) d.atualizar(dt, this.mundo);
+    for (const d of this.dinos) {
+      d.atualizar(dt, this.mundo);
+      // bestiário: basta ver a criatura de perto para ela entrar na lista
+      if (d.vivo && dist(d.x, d.y, this.jogador.centroX, this.jogador.y) < 120) {
+        if (this.progresso.descobrir(d.ficha.id)) {
+          this.hud.avisar(`Bestiário: ${d.ficha.nome} (${d.ficha.dificuldade}/5) anotado.`, 3);
+          this.jogo.audio.confirmar();
+        }
+        // o diário acompanha o total anotado (no modo teste já vem completo)
+        this.diario.anotou(this.progresso.especiesVistas.size);
+      }
+    }
     for (const n of this.npcs) n.atualizar(dt);
     for (const no of this.nivel.nos) no.atualizar(dt);
     for (let i = this.projeteis.length - 1; i >= 0; i--) {
@@ -615,9 +676,60 @@ export class CenaJogo implements Cena {
     // ---- interações (E)
     this.atualizarInteracoes(entrada);
 
+    // ---- bioma: nome, clima, partículas e zumbido de fundo
+    this.atualizarBioma(dt);
+
     // ---- câmera
     this.camera.seguir(this.jogador.centroX, this.jogador.centroY, dt, 7);
     this.camera.atualizar(dt);
+  }
+
+  // ---------------------------------------------------------------- biomas
+
+  /** Descobre em que bioma o jogador está e liga a atmosfera dele. */
+  private atualizarBioma(dt: number): void {
+    if (this.nivel.id !== ID_MUNDO) {
+      this.jogo.audio.ambiente(null);
+      return;
+    }
+    const b = this.nivel.biomaEm(this.jogador.centroX, this.jogador.y);
+    if (b !== this.biomaAtual) {
+      this.biomaAtual = b;
+      const ficha = BIOMAS[b];
+      this.hud.mostrarLocal(ficha.nome);
+      this.hud.avisar(ficha.descricao, 3.5);
+      this.jogo.audio.ambiente(ficha.som);
+      if (this.progresso.visitarBioma(b)) this.diario.visitou(b);
+    }
+    this.emitirAmbiente(dt);
+  }
+
+  /**
+   * Partículas do ar do bioma (faísca mágica, mosquito, folha, brasa, areia).
+   * Só nascem dentro do quadro visível e são poucas por segundo — o custo fica
+   * igual ao de qualquer outro efeito do jogo.
+   */
+  private emitirAmbiente(dt: number): void {
+    const amb = BIOMAS[this.biomaAtual].ambiente;
+    if (!amb) return;
+    this.restoAmbiente += amb.taxa * dt;
+    const quantas = Math.floor(this.restoAmbiente);
+    this.restoAmbiente -= quantas;
+    const camX = this.camera.desenhoX;
+    const camY = this.camera.desenhoY;
+    for (let i = 0; i < quantas; i++) {
+      this.particulas.pixel(
+        camX + this.rng.range(-12, LARGURA + 12),
+        camY + this.rng.range(-12, ALTURA + 12),
+        this.rng.pick(amb.cores),
+        {
+          vx: amb.vx * this.rng.range(0.5, 1.5),
+          vy: amb.vy * this.rng.range(0.5, 1.5),
+          vida: amb.vida * this.rng.range(0.7, 1.3),
+          gravidade: amb.gravidade,
+        },
+      );
+    }
   }
 
   /** O que está na mão e o que está vestido, lido do inventário e do progresso. */
@@ -805,6 +917,7 @@ export class CenaJogo implements Cena {
     for (const q of quedas) {
       const sobrou = this.inventario.guardar(criarItem('recurso', q.id, q.quantidade));
       const entrou = q.quantidade - sobrou;
+      if (entrou > 0) this.diario.coletou(q.id, entrou);
       const nome = RECURSOS[q.id].nome;
       if (entrou > 0) {
         this.particulas.texto(`+${entrou} ${nome}`, x, y - 18 - alturaTexto, P.osso);
@@ -943,6 +1056,22 @@ export class CenaJogo implements Cena {
         this.hud.avisar(`Amanheceu: ${this.tempoDoDia.horaDoDia}.`, 4);
       },
     };
+  }
+
+  /** Atalho do modo de teste: leva o jogador ao miolo de um bioma. */
+  private teleportarBioma(bioma: BiomaId): void {
+    const mundoNivel = this.niveis.get(ID_MUNDO)!;
+    if (this.nivel.id !== ID_MUNDO) {
+      this.nivel = mundoNivel;
+      this.mundo.nivel = this.nivel;
+      this.mundo.dinos = this.dinos;
+      this.camera.definirLimites(this.nivel.larguraPx, this.nivel.alturaPx);
+    }
+    const p = pontoDoBioma(mundoNivel, bioma);
+    this.jogador.reposicionar(p.x, p.y);
+    this.camera.focar(this.jogador.centroX, this.jogador.centroY);
+    this.atualizarBioma(0);
+    this.hud.avisar(`Teleporte: ${BIOMAS[bioma].nome}.`, 2);
   }
 
   /** Atalho do modo de teste: leva o jogador direto a cada sistema. */
@@ -1105,6 +1234,17 @@ export class CenaJogo implements Cena {
     this.desenharBarraDoNo(g, camX, camY);
     this.desenharLuzes(g, camX, camY);
 
+    // tinta atmosférica do bioma (só no mundo aberto)
+    if (this.nivel.id === ID_MUNDO) {
+      const tinta = BIOMAS[this.biomaAtual].tinta;
+      if (tinta) {
+        g.globalAlpha = tinta.alpha;
+        g.fillStyle = tinta.cor;
+        g.fillRect(0, 0, LARGURA, ALTURA);
+        g.globalAlpha = 1;
+      }
+    }
+
     // tinta do ciclo de dia e noite
     const amb = this.tempoDoDia.ambiente();
     if (amb) {
@@ -1130,6 +1270,7 @@ export class CenaJogo implements Cena {
       hora: this.tempoDoDia.horaDoDia,
       periodo: this.tempoDoDia.periodo,
       alvo: this.dicaFerramenta?.rotulo ?? null,
+      diarioNovo: this.diario.naoLidas,
     });
     if (this.dica) {
       this.hud.desenharDicaInteracao(g, this.dica.rotulo, this.dica.x, this.dica.y);
@@ -1153,6 +1294,7 @@ export class CenaJogo implements Cena {
     this.painelBau.desenhar(g);
     this.painelTestes.desenhar(g);
     this.painelMochila.desenhar(g);
+    this.painelDiario.desenhar(g);
 
     if (this.pausado) this.desenharPausa(g);
     if (!this.jogador.vivo) this.desenharMorte(g);
@@ -1241,7 +1383,7 @@ export class CenaJogo implements Cena {
       g,
       this.progresso.demo
         ? 'TESTE: F1 atalhos · R recursos · T +2h · H/C/B teleportes'
-        : 'TAB bestiário · M som · J diário',
+        : 'TAB mochila e bestiário · J diário · M som',
       LARGURA / 2,
       236,
       { cor: '#8b83a3', sombra: P.contorno, alinhamento: 'centro' },

@@ -275,6 +275,269 @@ function concreto(semente: number): Sprite {
   return p.finalizar();
 }
 
+// ---------------------------------------------------------------- biomas
+
+/** Grama do bioma mágico: azulada, com faíscas e liquens luminosos. */
+function gramaMagica(semente: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#4a5a9e');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.12)) p.ponto(x, y, '#3a4780');
+      else if (rng.chance(0.1)) p.ponto(x, y, '#5f72bd');
+    }
+  }
+  for (let i = 0; i < 5; i++) {
+    const x = rng.int(1, TAM_TILE - 2);
+    const y = rng.int(2, TAM_TILE - 2);
+    p.ponto(x, y, '#7f8fe0');
+    p.ponto(x, y - 1, '#9fa9f2');
+  }
+  if (rng.chance(0.7)) {
+    const x = rng.int(2, TAM_TILE - 3);
+    const y = rng.int(2, TAM_TILE - 3);
+    p.ponto(x, y, '#d7f2ff');
+    p.ponto(x + 1, y, '#a56bff');
+    p.ponto(x, y + 1, '#a56bff');
+  }
+  return p.finalizar();
+}
+
+/** Chão de cristal: lajes translúcidas com veios. */
+function soloCristal(semente: number): Sprite {
+  const rng = new Rng(semente);
+  // veio de cristal: mesma família de cor da grama mágica, para não virar um
+  // buraco retangular no mapa; o que muda é o brilho e os cacos angulares
+  const p = base('#55508f');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.14)) p.ponto(x, y, '#453f78');
+      else if (rng.chance(0.1)) p.ponto(x, y, '#6a63ab');
+    }
+  }
+  // cacos: losangos irregulares, nunca retângulos
+  for (let i = 0; i < 3; i++) {
+    const cx = rng.int(3, TAM_TILE - 4);
+    const cy = rng.int(3, TAM_TILE - 4);
+    const r = rng.int(2, 4);
+    const claro = rng.chance(0.5) ? '#a9a0f2' : '#8f86d8';
+    p.linha(cx - r, cy, cx, cy - r, claro);
+    p.linha(cx, cy - r, cx + r, cy, claro);
+    p.linha(cx + r, cy, cx, cy + r, '#3f3a6b');
+    p.linha(cx, cy + r, cx - r, cy, '#3f3a6b');
+    p.ponto(cx, cy - r + 1, '#d7d0ff');
+    p.ponto(cx, cy, rng.chance(0.5) ? '#7a72c0' : '#6a63ab');
+  }
+  for (let i = 0; i < 3; i++) {
+    p.ponto(rng.int(0, TAM_TILE - 1), rng.int(0, TAM_TILE - 1), '#d7b4ff');
+  }
+  return p.finalizar();
+}
+
+/** Turfa do pântano: capim encharcado sobre barro. */
+function turfa(semente: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#4a5c3a');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.14)) p.ponto(x, y, '#3b4a2d');
+      else if (rng.chance(0.1)) p.ponto(x, y, '#5d7148');
+    }
+  }
+  for (let i = 0; i < 6; i++) {
+    const x = rng.int(1, TAM_TILE - 2);
+    const y = rng.int(2, TAM_TILE - 2);
+    p.ponto(x, y, '#6f8a52');
+    p.ponto(x, y - 1, '#6f8a52');
+  }
+  for (let i = 0; i < 3; i++) {
+    p.ponto(rng.int(0, TAM_TILE - 1), rng.int(0, TAM_TILE - 1), '#2f3a24');
+  }
+  return p.finalizar();
+}
+
+/** Lama funda: escura, brilhante e cheia de bolhas. */
+function lamaFunda(semente: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#453a26');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.12)) p.ponto(x, y, '#372e1e');
+      else if (rng.chance(0.08)) p.ponto(x, y, '#57482f');
+    }
+  }
+  for (let i = 0; i < 3; i++) {
+    const x = rng.int(2, TAM_TILE - 3);
+    const y = rng.int(2, TAM_TILE - 3);
+    p.anel(x, y, 2, '#6a5a3a', 1);
+    p.ponto(x, y - 2, '#7d6c48');
+  }
+  return p.finalizar();
+}
+
+/** Água parada do pântano: verde-escura, com limo. */
+function aguaPantano(semente: number, quadro: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#2e4433');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.1)) p.ponto(x, y, '#26382a');
+      else if (rng.chance(0.08)) p.ponto(x, y, '#3d5940');
+    }
+  }
+  const desloc = quadro * 2;
+  for (let i = 0; i < 5; i++) {
+    const x = (rng.int(0, TAM_TILE - 1) + desloc) % TAM_TILE;
+    const y = (rng.int(0, TAM_TILE - 1) + desloc) % TAM_TILE;
+    p.ponto(x, y, '#5c7a52');
+    p.ponto((x + 1) % TAM_TILE, y, '#5c7a52');
+  }
+  return p.finalizar();
+}
+
+/** Grama densa da floresta: verde profundo com sombra de copa. */
+function gramaFloresta(semente: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#356b30');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.16)) p.ponto(x, y, '#2a5626');
+      else if (rng.chance(0.1)) p.ponto(x, y, '#47843c');
+    }
+  }
+  for (let i = 0; i < 8; i++) {
+    const x = rng.int(1, TAM_TILE - 2);
+    const y = rng.int(2, TAM_TILE - 2);
+    const c = rng.chance(0.5) ? '#47843c' : '#24491f';
+    p.ponto(x, y, c);
+    p.ponto(x, y - 1, c);
+  }
+  return p.finalizar();
+}
+
+/** Serrapilheira: folhas caídas no chão da mata. */
+function folhagem(semente: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#3e5c2c');
+  for (let i = 0; i < 22; i++) {
+    const x = rng.int(0, TAM_TILE - 2);
+    const y = rng.int(0, TAM_TILE - 1);
+    const cor = rng.pick(['#6b5a24', '#7d6b2c', '#4a6b2a', '#8a5a2c']);
+    p.ponto(x, y, cor);
+    p.ponto(x + 1, y, cor);
+  }
+  for (let i = 0; i < 6; i++) {
+    p.ponto(rng.int(0, TAM_TILE - 1), rng.int(0, TAM_TILE - 1), '#2a4520');
+  }
+  return p.finalizar();
+}
+
+/** Cinzas vulcânicas, com brasas espalhadas. */
+function cinzas(semente: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#4a4148');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.14)) p.ponto(x, y, '#3b343f');
+      else if (rng.chance(0.1)) p.ponto(x, y, '#5c525c');
+    }
+  }
+  for (let i = 0; i < 3; i++) {
+    p.ponto(rng.int(0, TAM_TILE - 1), rng.int(0, TAM_TILE - 1), '#7a4a3a');
+  }
+  if (rng.chance(0.35)) {
+    const x = rng.int(1, TAM_TILE - 2);
+    const y = rng.int(1, TAM_TILE - 2);
+    p.ponto(x, y, '#ff8a3c');
+    p.ponto(x + 1, y, '#b8422a');
+  }
+  return p.finalizar();
+}
+
+/** Rocha vulcânica: basalto rachado com veios quentes. */
+function rochaVulcanica(semente: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#3a3138');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.16)) p.ponto(x, y, '#2c252c');
+      else if (rng.chance(0.1)) p.ponto(x, y, '#4c424c');
+    }
+  }
+  for (let i = 0; i < 2; i++) {
+    let x = rng.int(0, TAM_TILE - 1);
+    let y = rng.int(0, TAM_TILE - 1);
+    for (let k = 0; k < 8; k++) {
+      p.ponto(x, y, rng.chance(0.4) ? '#a8442a' : '#241d24');
+      x += rng.int(-1, 2);
+      y += rng.int(0, 2);
+    }
+  }
+  return p.finalizar();
+}
+
+/** Lava: correnteza incandescente, animada. */
+function lava(semente: number, quadro: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#c4451f');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.16)) p.ponto(x, y, '#8f2f16');
+      else if (rng.chance(0.14)) p.ponto(x, y, '#e87a2c');
+    }
+  }
+  const desloc = quadro * 3;
+  for (let i = 0; i < 5; i++) {
+    const y = (rng.int(0, TAM_TILE - 1) + desloc) % TAM_TILE;
+    const x = (rng.int(0, TAM_TILE - 1) + desloc * 2) % TAM_TILE;
+    for (let k = 0; k < 3; k++) p.ponto((x + k) % TAM_TILE, y, '#ffd76b');
+    p.ponto((x + 3) % TAM_TILE, (y + 1) % TAM_TILE, '#6b2010');
+  }
+  return p.finalizar();
+}
+
+/** Areia clara das dunas, com marcas de vento. */
+function areiaClara(semente: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#e8d49a');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.1)) p.ponto(x, y, '#d4bd7f');
+      else if (rng.chance(0.08)) p.ponto(x, y, '#f4e5b8');
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    const y = rng.int(1, TAM_TILE - 2);
+    const x = rng.int(0, 8);
+    const larg = rng.int(4, 8);
+    for (let k = 0; k < larg; k++) p.ponto((x + k) % TAM_TILE, y, '#d4bd7f');
+    p.ponto((x + larg) % TAM_TILE, y - 1, '#f4e5b8');
+  }
+  return p.finalizar();
+}
+
+/** Solo rachado do deserto. */
+function soloRachado(semente: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#b99a63');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.1)) p.ponto(x, y, '#a5874f');
+      else if (rng.chance(0.08)) p.ponto(x, y, '#cdae76');
+    }
+  }
+  for (let i = 0; i < 3; i++) {
+    let x = rng.int(0, TAM_TILE - 1);
+    let y = rng.int(0, TAM_TILE - 1);
+    for (let k = 0; k < 9; k++) {
+      p.ponto(x, y, '#7d6338');
+      x += rng.int(-1, 2);
+      y += rng.int(0, 2);
+    }
+  }
+  return p.finalizar();
+}
+
 export interface TexturasTerreno {
   grama: Sprite[];
   gramaSeca: Sprite[];
@@ -290,6 +553,18 @@ export interface TexturasTerreno {
   tapete: Sprite[];
   concreto: Sprite[];
   terraArada: Sprite[];
+  gramaMagica: Sprite[];
+  soloCristal: Sprite[];
+  turfa: Sprite[];
+  lamaFunda: Sprite[];
+  aguaPantano: Sprite[][];
+  gramaFloresta: Sprite[];
+  folhagem: Sprite[];
+  cinzas: Sprite[];
+  rochaVulcanica: Sprite[];
+  lava: Sprite[][];
+  areiaClara: Sprite[];
+  soloRachado: Sprite[];
 }
 
 export const QUADROS_AGUA = 4;
@@ -318,5 +593,21 @@ export function criarTerreno(): TexturasTerreno {
     tapete: varias(tapete, 2, 7001),
     concreto: varias(concreto, 3, 8001),
     terraArada: varias(terraArada, 2, 9001),
+    gramaMagica: varias(gramaMagica, 4, 10001),
+    soloCristal: varias(soloCristal, 3, 11001),
+    turfa: varias(turfa, 4, 12001),
+    lamaFunda: varias(lamaFunda, 3, 13001),
+    aguaPantano: Array.from({ length: 2 }, (_, v) =>
+      Array.from({ length: QUADROS_AGUA }, (_, q) => aguaPantano(14001 + v * 331, q)),
+    ),
+    gramaFloresta: varias(gramaFloresta, 4, 15001),
+    folhagem: varias(folhagem, 3, 16001),
+    cinzas: varias(cinzas, 4, 17001),
+    rochaVulcanica: varias(rochaVulcanica, 3, 18001),
+    lava: Array.from({ length: 2 }, (_, v) =>
+      Array.from({ length: QUADROS_AGUA }, (_, q) => lava(19001 + v * 331, q)),
+    ),
+    areiaClara: varias(areiaClara, 4, 20001),
+    soloRachado: varias(soloRachado, 3, 21001),
   };
 }

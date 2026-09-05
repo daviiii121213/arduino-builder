@@ -44,6 +44,7 @@ então abre com um duplo clique e também funciona embutido em um quadro
 | Interagir (porta, cama, baú, máquina, pessoas) | `E` |
 | Escolher o item da barra (aparece na mão) | `1` … `9`, `0` |
 | Mochila completa e bestiário | `Tab` |
+| Diário do avô (missões) | `J` |
 | Ligar/desligar som | `M` |
 | Pausar | `Esc` |
 | Painel de atalhos (só no modo teste) | `F1` |
@@ -73,7 +74,7 @@ círculo aparece na tela no momento do golpe.
 - **Quatro ferramentas** com três níveis (pedra, ferro, cristal), animação de batida
   e função própria: machado (árvores), picareta (pedras e veios), pá (montinhos de
   terra) e enxada (ara a terra e colhe capim).
-- **Dinheiro** com nove recursos e a **máquina de venda** ao lado da cabana.
+- **Dinheiro** com quinze recursos e a **máquina de venda** ao lado da cabana.
 - **Inventário 10 / 20 / 30**: começa com 10 espaços de acesso rápido na barra
   inferior e cresce para 20 e 30 com as melhorias — os espaços extras ficam no menu
   do `Tab`, junto com o bestiário e o espaço de armadura.
@@ -82,12 +83,45 @@ círculo aparece na tela no momento do golpe.
   sem texto sobre o mundo.
 - **Casa interativa**: cama (dorme e adianta o dia), baú (guarda e devolve, e abre
   visivelmente), porta, lareira, estante e janela.
-- **Dez dinossauros**, dois de cada categoria, todos redesenhados compactos:
-  - **Mágicos** — Luminassauro, Etherodonte: flutuam, atiram orbes e se teleportam.
-  - **Carnívoros** — Raptornoz, Dentesangue: caçam e mordem.
-  - **Herbívoros** — Folhalonga, Tricornis: pastam e fogem quando feridos.
-  - **Terrestres** — Casconte, Pedrapata: lentos, resistentes e territoriais.
-  - **Aquáticos** — Nadalonga, Escamarela: não saem da água.
+- **Cinco biomas** com identidade própria — terreno, vegetação, recursos, tinta de
+  ar, partículas, som de fundo e criaturas nativas —, separados por fronteiras
+  orgânicas (Voronoi deformado por ruído) em que os dois lados se misturam tile a
+  tile, sem emenda reta:
+  - **Vale dos Gigantes** — campo aberto, lagos rasos, araucárias. É onde fica a casa.
+  - **Clareira Encantada** — grama azul, veios de cristal, árvores de cristal,
+    faíscas no ar e um zumbido baixo. Dá **cristal** e **essência arcana**.
+  - **Pântano das Raízes** — água parada, turfa e lama funda (que segura o passo),
+    ciprestes e árvores mortas. Dá **turfa**, argila e fósseis.
+  - **Floresta Fechada** — copas altas e escuras, folhagem no chão, samambaias
+    gigantes e arbustos de baga. Dá **madeira** em quantidade e **resina**.
+  - **Campo de Lava** — cinza no ar, pedra negra, fumarolas acesas e rios de lava
+    intransponíveis. Dá **obsidiana** e **enxofre**.
+  - **Deserto de Vidro** — dunas claras, solo rachado, cactos, arenito e oásis com
+    palmeiras. Dá **vidro do deserto**, pedra e fósseis.
+- **Vinte e cinco dinossauros**, todos desenhados à mão e compactos, com
+  **dificuldade de 1 a 5** que muda vida, dano, velocidade de corrida, raio de
+  percepção, paciência na caçada e comportamento — não só a barra de vida:
+  - **Vale** — Raptornoz, Dentesangue, Folhalonga, Tricornis, Casconte, Pedrapata.
+  - **Clareira Encantada** — Luminassauro, Etherodonte, **Arcanoraptor** (3/5),
+    **Cristalossauro** (4/5), **Lumidraco** (5/5).
+  - **Pântano** — Nadalonga, Escamarela, **Pântanossauro** (2/5), **Crocossauro**
+    (3/5), **Venomossauro** (5/5, deixa veneno que tira vida por alguns segundos —
+    sem sangue e sem cena forte).
+  - **Floresta** — **Silvassauro** (1/5), **Espinosselva** (3/5), **Feroxossauro** (4/5).
+  - **Campo de Lava** — **Magmossauro** (3/5), **Ignissauro** (4/5, cospe fogo à
+    distância), **Vulcanor** (5/5).
+  - **Deserto** — **Arenossauro** (2/5), **Dunassauro** (3/5), **Tempestossauro** (5/5).
+- **Animação por estilo de andar**: passos pesados, saltos, rastejar colado no chão,
+  ondular e flutuar — cada estilo tem cadência, balanço e rastro próprios, e o aviso
+  de golpe pulsa na cor da própria criatura.
+- **Bestiário com as 25 criaturas** (`Tab` → `BESTIÁRIO`): lista agrupada por bioma,
+  bolinhas de dificuldade, ficha com bioma e categoria, e o que ainda não foi
+  encontrado aparece só como silhueta. Basta chegar perto de uma criatura para
+  anotá-la.
+- **Missões pelo diário do avô** (`J`): as páginas chegam sozinhas conforme o jogo
+  avança (até três abertas por vez), com barra de progresso, recompensa em moedas e
+  o mapa das regiões já conhecidas. A corrente de missões leva o jogador do quintal
+  até cada um dos cinco biomas.
 - **Perseguição com fim**: cada espécie tem raio de percepção, raio de território e
   paciência. Se o jogador escapa, se o bicho se afasta demais da própria área ou se
   a caçada se arrasta, ele desiste, volta caminhando para casa e ignora o jogador
@@ -106,11 +140,11 @@ src/
   core/       laço do jogo, tela, entrada, câmera, matemática e ruído
   gfx/        motor de pixel art, paleta, fonte de bitmap e todos os sprites
     sprites/  jogador, dinossauros, terreno, cenário, casa, galpão, interface, efeitos
-  world/      terreno, nível, geração do mundo, interiores, nós de recurso e desenho
+  world/      terreno, biomas, nível, geração do mundo, interiores, nós e desenho
   entities/   jogador, dinossauros (IA), fichas das espécies, projéteis, NPCs
   systems/    vida, fome, colisão, partículas, dia/noite, itens, recursos,
-              ferramentas, colheita, dinheiro e progresso
-  ui/         HUD, janelas (venda, melhorias, baú, testes), diálogo e widgets
+              ferramentas, colheita, dinheiro, progresso e missões
+  ui/         HUD, janelas (venda, melhorias, baú, testes, mochila, diário) e widgets
   scenes/     menu, cinemática e jogo
   audio/      síntese dos efeitos sonoros
 tools/        teste de fumaça automatizado (opcional, usa Playwright)
@@ -122,6 +156,13 @@ tools/        teste de fumaça automatizado (opcional, usa Playwright)
   pernas + cores), acrescente a ficha em `src/entities/dinoTypes.ts` e inclua a espécie
   na lista de nascimentos em `src/world/worldgen.ts`. Toda a IA, a barra de vida, o
   bestiário e o dano funcionam sozinhos a partir da ficha.
+- **Novo bioma**: uma ficha em `src/world/biomes.ts` (nome, função de terreno, tinta,
+  partículas, som, recursos e espécies nativas), um centro em `CENTROS`, as texturas
+  de chão em `src/gfx/sprites/terrain.ts` e um `case` na vegetação, em
+  `src/world/worldgen.ts`. O mapa, as fronteiras, o bestiário, o diário e a
+  atmosfera passam a considerá-lo sozinhos.
+- **Nova missão**: uma linha em `CATALOGO_MISSOES`, em `src/systems/missions.ts`, com
+  o objetivo, a recompensa e as missões que ela exige antes.
 - **Novo mapa**: crie um `Nivel`, preencha os tiles, adicione objetos com `colocar()` e
   ligue-o por um `Portal`. Registre-o no mapa de níveis em `src/scenes/play.ts`.
 - **Novo objeto de cenário**: desenhe em `src/gfx/sprites/props.ts` e posicione com
@@ -145,8 +186,6 @@ tools/        teste de fumaça automatizado (opcional, usa Playwright)
 
 - **Fome** — `src/systems/hunger.ts`. Basta `fome.ativa = true`: a barra aparece no HUD
   e a regeneração de vida para quando o personagem está com fome.
-- **Missões pelo diário** — a tecla `J` já existe e o diário está no inventário; falta
-  a lista de missões e a entrega periódica.
 - **Cavernas e novos mapas** — um `Nivel` novo, ligado por um `Portal`, já entra sem
   mexer no núcleo; os nós de recurso funcionam igual lá dentro.
 - **Plantio** — a enxada já deixa a terra arada (`Tile.TerraArada`) e as sementes já
@@ -165,3 +204,10 @@ npm run smoke
 O script abre o jogo num navegador controlado, passa pelo menu, pela cinemática, luta
 com os dinossauros, entra na casa, morre, renasce, e ao final informa o FPS médio e
 qualquer erro de console. As capturas ficam em `tools/capturas/`.
+
+```bash
+npm run biomas
+```
+
+Faz o passeio pelos cinco biomas usando o painel de teste e salva uma captura de
+cada um, mais o diário e o bestiário, em `tools/capturas-biomas/`.

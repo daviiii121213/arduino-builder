@@ -3,7 +3,9 @@
  *
  * Compacta de propósito — ocupa o meio da tela e deixa o mundo à vista em
  * volta. A bolsa mostra todos os espaços liberados (10, 20 ou 30, conforme as
- * melhorias) e o espaço de armadura; o bestiário lista as dez criaturas.
+ * melhorias) e o espaço de armadura; o bestiário lista as vinte e cinco
+ * criaturas, agrupadas por bioma, com a dificuldade em bolinhas e o que ainda
+ * não foi encontrado marcado como desconhecido.
  */
 
 import { LARGURA, ALTURA } from '../core/screen';
@@ -16,7 +18,9 @@ import type { Progresso } from '../systems/progression';
 import type { Carteira } from '../systems/economy';
 import { ARMADURAS, TODAS_ARMADURAS } from '../systems/armor';
 import type { ArmaduraId } from '../gfx/sprites/armor';
-import { TODAS_FICHAS, NOME_CATEGORIA } from '../entities/dinoTypes';
+import { TODAS_FICHAS, NOME_CATEGORIA, estrelasDificuldade, type FichaDino } from '../entities/dinoTypes';
+import { BIOMAS, ORDEM_BIOMAS } from '../world/biomes';
+import { tingirCache } from '../gfx/pixel';
 import { iconeDoItem, nomeDoItem, descricaoDoItem } from './itens';
 import { cabecalho, moldura, rodape, saldo } from './painel';
 import { pointInRect } from '../core/math';
@@ -28,11 +32,21 @@ const COLUNAS = 10;
 
 type Aba = 'bolsa' | 'bestiario';
 
+/** O bestiário lista bioma por bioma, do bicho mais manso ao mais perigoso. */
+const BESTIARIO: FichaDino[] = ORDEM_BIOMAS.flatMap((b) =>
+  TODAS_FICHAS.filter((f) => f.bioma === b).sort((a, c) => a.dificuldade - c.dificuldade),
+);
+
+/** Linhas visíveis da lista de criaturas. */
+const LINHAS_LISTA = 10;
+const ALTURA_LINHA = 11;
+
 export class PainelMochila {
   aberta = false;
   private aba: Aba = 'bolsa';
   private indice = 0;
   private indiceDino = 0;
+  private topoDino = 0;
   private aviso = '';
   private tempoAviso = 0;
 
@@ -153,10 +167,27 @@ export class PainelMochila {
         this.mostrar('Item escolhido na barra.');
       }
     } else {
-      const total = TODAS_FICHAS.length;
+      const total = BESTIARIO.length;
       if (entrada.teclaAgora('KeyS', 'ArrowDown')) this.indiceDino = (this.indiceDino + 1) % total;
       if (entrada.teclaAgora('KeyW', 'ArrowUp'))
         this.indiceDino = (this.indiceDino - 1 + total) % total;
+      // clique e rolagem com o mouse na coluna da esquerda
+      for (let i = 0; i < LINHAS_LISTA; i++) {
+        const r = {
+          x: this.x + 8,
+          y: this.y + 38 + i * ALTURA_LINHA,
+          w: 132,
+          h: ALTURA_LINHA,
+        };
+        if (!pointInRect(entrada.mouseX, entrada.mouseY, r)) continue;
+        const alvo = this.topoDino + i;
+        if (alvo < total) this.indiceDino = alvo;
+      }
+      // mantém o escolhido sempre visível
+      if (this.indiceDino < this.topoDino) this.topoDino = this.indiceDino;
+      if (this.indiceDino > this.topoDino + LINHAS_LISTA - 1)
+        this.topoDino = this.indiceDino - LINHAS_LISTA + 1;
+      this.topoDino = Math.max(0, Math.min(this.topoDino, total - LINHAS_LISTA));
     }
   }
 
@@ -200,7 +231,7 @@ export class PainelMochila {
       g,
       this.aba === 'bolsa'
         ? 'WASD move · ENTER na barra · R armadura · Q abas · TAB fecha'
-        : 'W/S escolhe · Q abas · TAB fecha',
+        : 'W/S ou mouse escolhe · Q abas · TAB fecha',
       x,
       y,
       LARG,
@@ -311,41 +342,113 @@ export class PainelMochila {
   private desenharBestiario(g: CanvasRenderingContext2D): void {
     const x = this.x;
     const y = this.y;
-    const colunas = 2;
-    const largCol = 156;
-    TODAS_FICHAS.forEach((f, i) => {
-      const col = i % colunas;
-      const linha = Math.floor(i / colunas);
-      const cx = x + 10 + col * (largCol + 8);
-      const cy = y + 40 + linha * 20;
-      if (i === this.indiceDino) {
-        g.fillStyle = 'rgba(255,199,90,0.14)';
-        g.fillRect(cx - 2, cy - 2, largCol, 19);
+    const vistos = this.progresso.especiesVistas;
+    const conhecida = (f: FichaDino) => this.progresso.demo || vistos.has(f.id);
+
+    // ---- coluna da esquerda: a lista, bioma por bioma
+    const listaX = x + 8;
+    const listaY = y + 38;
+    g.fillStyle = '#141020';
+    g.fillRect(listaX, listaY - 2, 134, LINHAS_LISTA * ALTURA_LINHA + 4);
+    for (let i = 0; i < LINHAS_LISTA; i++) {
+      const idx = this.topoDino + i;
+      if (idx >= BESTIARIO.length) break;
+      const f = BESTIARIO[idx];
+      const ly = listaY + i * ALTURA_LINHA;
+      if (idx === this.indiceDino) {
+        g.fillStyle = 'rgba(255,199,90,0.16)';
+        g.fillRect(listaX, ly, 134, ALTURA_LINHA);
         g.fillStyle = P.ambar;
-        g.fillRect(cx - 2, cy - 2, 1, 19);
+        g.fillRect(listaX, ly, 1, ALTURA_LINHA);
       }
-      const q = this.assets.dinos[f.id].direita[0];
-      const escala = Math.min(1, 16 / q.height);
-      g.drawImage(
-        q,
-        Math.round(cx),
-        Math.round(cy + 16 - q.height * escala),
-        Math.round(q.width * escala),
-        Math.round(q.height * escala),
-      );
-      texto(g, f.nome, cx + 30, cy, { cor: P.osso, sombra: P.contorno });
-      texto(g, NOME_CATEGORIA[f.categoria], cx + 30, cy + 9, {
-        cor: P.ambar,
+      // tarja com a cor do bioma, para achar a região de relance
+      g.fillStyle = BIOMAS[f.bioma].cor;
+      g.fillRect(listaX + 3, ly + 3, 3, 5);
+      const achou = conhecida(f);
+      texto(g, achou ? f.nome : '? ? ?', listaX + 10, ly + 2, {
+        cor: achou ? P.osso : '#5b5470',
         sombra: P.contorno,
       });
-    });
+      texto(g, estrelasDificuldade(f.dificuldade), listaX + 132, ly + 2, {
+        cor: achou ? corDaDificuldade(f.dificuldade) : '#3a3450',
+        sombra: P.contorno,
+        alinhamento: 'direita',
+      });
+    }
+    // barrinha de rolagem
+    const total = BESTIARIO.length;
+    const alturaTrilho = LINHAS_LISTA * ALTURA_LINHA;
+    g.fillStyle = '#2a2338';
+    g.fillRect(listaX + 135, listaY, 2, alturaTrilho);
+    const tam = Math.max(8, Math.round((LINHAS_LISTA / total) * alturaTrilho));
+    const desl = Math.round((this.topoDino / Math.max(1, total - LINHAS_LISTA)) * (alturaTrilho - tam));
+    g.fillStyle = P.ambar;
+    g.fillRect(listaX + 135, listaY + desl, 2, tam);
 
+    // ---- coluna da direita: a ficha da criatura escolhida
+    const f = BESTIARIO[this.indiceDino];
+    const achou = conhecida(f);
+    const px = x + 152;
+    g.fillStyle = '#141020';
+    g.fillRect(px, listaY - 2, LARG - 162, alturaTrilho + 4);
+
+    const q = this.assets.dinos[f.id].direita[0];
+    const escala = Math.min(2, Math.max(1, Math.floor(34 / q.height)));
+    const larg = q.width * escala;
+    const alt = q.height * escala;
+    const qx = Math.round(px + (LARG - 162) / 2 - larg / 2);
+    const qy = Math.round(listaY + 40 - alt);
+    // enquanto não é descoberta, aparece só a silhueta
+    g.drawImage(achou ? q : tingirCache(q, '#2a2338', 1), qx, qy, larg, alt);
+
+    texto(g, achou ? f.nome : 'Criatura desconhecida', px + (LARG - 162) / 2, listaY + 44, {
+      cor: achou ? P.osso : '#7a7391',
+      sombra: P.contorno,
+      alinhamento: 'centro',
+    });
+    texto(g, BIOMAS[f.bioma].nome, px + (LARG - 162) / 2, listaY + 54, {
+      cor: BIOMAS[f.bioma].cor,
+      sombra: P.contorno,
+      alinhamento: 'centro',
+    });
+    texto(
+      g,
+      `${estrelasDificuldade(f.dificuldade)} ${f.dificuldade}/5 \u00b7 ${NOME_CATEGORIA[f.categoria]}`,
+      px + (LARG - 162) / 2,
+      listaY + 64,
+      { cor: corDaDificuldade(f.dificuldade), sombra: P.contorno, alinhamento: 'centro' },
+    );
+
+    // ---- rodapé de informação: descrição e contagem
     const infoY = y + ALT - 34;
     g.fillStyle = '#3a2f49';
     g.fillRect(x + 8, infoY - 4, LARG - 16, 1);
-    const f = TODAS_FICHAS[this.indiceDino];
-    const linhas = quebrarTexto(f.descricao, LARG - 24);
-    texto(g, f.nome, x + 12, infoY, { cor: P.osso, sombra: P.contorno });
-    texto(g, linhas[0] ?? '', x + 12, infoY + 9, { cor: '#a89fbe', sombra: P.contorno });
+    if (achou) {
+      const linhas = quebrarTexto(f.descricao, LARG - 62);
+      texto(g, linhas[0] ?? '', x + 12, infoY, { cor: '#a89fbe', sombra: P.contorno });
+      texto(g, linhas[1] ?? '', x + 12, infoY + 9, { cor: '#a89fbe', sombra: P.contorno });
+    } else {
+      texto(g, 'Você ainda não chegou perto dessa criatura.', x + 12, infoY, {
+        cor: '#7a7391',
+        sombra: P.contorno,
+      });
+      texto(g, `Procure no bioma: ${BIOMAS[f.bioma].nome}.`, x + 12, infoY + 9, {
+        cor: '#5b5470',
+        sombra: P.contorno,
+      });
+    }
+    const quantos = this.progresso.demo
+      ? BESTIARIO.length
+      : BESTIARIO.filter((d) => vistos.has(d.id)).length;
+    texto(g, `${quantos}/${BESTIARIO.length}`, x + LARG - 12, infoY, {
+      cor: P.ambar,
+      sombra: P.contorno,
+      alinhamento: 'direita',
+    });
   }
+}
+
+/** Verde para os mansos, vermelho para os que matam. */
+function corDaDificuldade(d: number): string {
+  return d <= 1 ? '#7fbf5a' : d === 2 ? '#c8d84a' : d === 3 ? P.ambar : d === 4 ? '#e88a3a' : P.coracao;
 }

@@ -9,15 +9,17 @@
 import { Rng, ValueNoise } from '../core/rng';
 import { TAM_TILE } from '../gfx/sprites/terrain';
 import { Nivel, type ObjetoCenario } from './level';
-import { Tile } from './tiles';
+import { PROPS, Tile } from './tiles';
 import { colocar } from './props';
 import type { Assets } from '../gfx/assets';
 import type { EspecieId } from '../gfx/sprites/dinos';
 import { CASA_W, CASA_H, CASA_COLISAO, CASA_PORTA } from '../gfx/sprites/house';
 import { CABANA_W, CABANA_H, CABANA_COLISAO, CABANA_PORTA } from '../gfx/sprites/cabin';
-import { dist } from '../core/math';
+import { clamp, dist } from '../core/math';
 import { NoRecurso } from '../systems/harvest';
 import { definicoesDeNo, type NomeNo } from './nodes';
+import { BIOMAS, CENTROS, indiceDoBioma, type BiomaId } from './biomes';
+import { TODAS_FICHAS } from '../entities/dinoTypes';
 
 export const ID_MUNDO = 'vale-dos-gigantes';
 export const ID_CASA = 'casa-do-jogador';
@@ -95,10 +97,43 @@ export function gerarMundo(assets: Assets): MundoGerado {
   const pedras = new ValueNoise(SEMENTE + 53);
   const floresta = new ValueNoise(SEMENTE + 91);
 
+  // -------------------------------------------------- biomas
+  // A fronteira entre biomas é um diagrama de Voronoi cujas coordenadas são
+  // deformadas por ruído: em vez de linhas retas saem bordas orgânicas. Perto
+  // da divisa os dois biomas se misturam tile a tile, então a passagem de um
+  // para o outro é gradual, sem emenda visível.
+  const deformaX = new ValueNoise(SEMENTE + 211);
+  const deformaY = new ValueNoise(SEMENTE + 307);
+
+  const biomaDoTile = (tx: number, ty: number) => {
+    const wx = tx + (deformaX.fbm(tx * 0.035, ty * 0.035, 3) - 0.5) * 24;
+    const wy = ty + (deformaY.fbm(tx * 0.035 + 90, ty * 0.035 + 90, 3) - 0.5) * 24;
+    let melhor = 0;
+    let melhorD = Infinity;
+    let segundo = 0;
+    let segundoD = Infinity;
+    for (let i = 0; i < CENTROS.length; i++) {
+      const c = CENTROS[i];
+      const d = Math.hypot(wx - c.tx, wy - c.ty) / c.peso;
+      if (d < melhorD) {
+        segundo = melhor;
+        segundoD = melhorD;
+        melhor = i;
+        melhorD = d;
+      } else if (d < segundoD) {
+        segundo = i;
+        segundoD = d;
+      }
+    }
+    // 1 na divisa, 0 no miolo do bioma
+    const mistura = clamp(1 - (segundoD - melhorD) / 15, 0, 1);
+    return { dono: CENTROS[melhor].id, vizinho: CENTROS[segundo].id, mistura };
+  };
+
   // -------------------------------------------------- terreno
   for (let ty = 0; ty < ALT_TILES; ty++) {
     for (let tx = 0; tx < LARG_TILES; tx++) {
-      // borda do vale: paredão de rocha intransponível
+      // borda do mundo: paredão intransponível
       const bordaX = Math.min(tx, LARG_TILES - 1 - tx);
       const bordaY = Math.min(ty, ALT_TILES - 1 - ty);
       if (Math.min(bordaX, bordaY) < 2) {
@@ -110,17 +145,27 @@ export function gerarMundo(assets: Assets): MundoGerado {
       const m = umidade.fbm(tx * 0.06 + 40, ty * 0.06 + 40, 3);
       const r = pedras.fbm(tx * 0.09 - 30, ty * 0.09 - 30, 3);
 
-      let t: Tile;
-      if (e < 0.3) t = Tile.AguaFunda;
-      else if (e < 0.365) t = Tile.AguaRasa;
-      else if (e < 0.4) t = Tile.Areia;
-      else if (r > 0.76) t = Tile.Rocha;
-      else if (e < 0.425 && m > 0.5) t = Tile.Lama;
-      else if (m > 0.63) t = Tile.GramaFlorida;
-      else if (m < 0.34) t = Tile.GramaSeca;
-      else t = Tile.Grama;
+      const { dono, vizinho, mistura } = biomaDoTile(tx, ty);
+      nivel.definirBioma(tx, ty, indiceDoBioma(dono));
+      // na faixa de transição o chão do vizinho aparece salpicado
+      // a chance cresce ao quadrado: no miolo quase nunca, na divisa quase metade
+      const escolhido = rng.chance(mistura * mistura * 0.55) ? vizinho : dono;
+      nivel.definirTile(tx, ty, BIOMAS[escolhido].terreno(e, m, r), rng.int(0, 3));
+    }
+  }
 
-      nivel.definirTile(tx, ty, t, rng.int(0, 3));
+  // O quintal é sempre vale: a casa, a cabana e a máquina de venda ficam num
+  // pedaço garantido de campo, independente de como o ruído desenhou a divisa.
+  for (let ty = 14; ty < 44; ty++) {
+    for (let tx = 14; tx < 56; tx++) {
+      if (!nivel.dentro(tx, ty)) continue;
+      const d = Math.hypot(tx - 33, ty - 28);
+      if (d > 20) continue;
+      nivel.definirBioma(tx, ty, indiceDoBioma('vale'));
+      const e = relevo.fbm(tx * 0.045, ty * 0.045, 4);
+      const m = umidade.fbm(tx * 0.06 + 40, ty * 0.06 + 40, 3);
+      const r = pedras.fbm(tx * 0.09 - 30, ty * 0.09 - 30, 3);
+      nivel.definirTile(tx, ty, BIOMAS.vale.terreno(e, m, r), rng.int(0, 3));
     }
   }
 
@@ -258,9 +303,186 @@ export function gerarMundo(assets: Assets): MundoGerado {
     nivel.nos.push(new NoRecurso(defs[nome], objeto, colisor));
   };
 
+  const b = assets.biomas;
+
+  /**
+   * Vegetação e formações de cada bioma. Cada região tem árvore, arbusto,
+   * detalhe de chão e nó de recurso próprios — nada é a mesma planta repintada.
+   */
+  const vegetacaoDeBioma = (
+    bioma: BiomaId,
+    t: Tile,
+    cx: number,
+    cy: number,
+    densidade: number,
+  ): void => {
+    switch (bioma) {
+      // ------------------------------------------------ clareira encantada
+      case 'magico': {
+        if (densidade > 0.58 && rng.chance(0.06 + (densidade - 0.58) * 0.4)) {
+          plantarNo('arvoreCristal', b.arvoreCristal, cx, cy, {
+            colisao: { w: 9, h: 5 },
+            sombra: assets.sombras.g,
+          });
+          return;
+        }
+        if (t === Tile.SoloCristal && rng.chance(0.09)) {
+          plantarNo('veioEssencia', b.cristalDuplo, cx, cy, {
+            colisao: { w: 12, h: 6 },
+            sombra: assets.sombras.m,
+          });
+          return;
+        }
+        if (rng.chance(0.05)) {
+          colocar(nivel, assets.cenario.cristal, cx, cy);
+          return;
+        }
+        if (rng.chance(0.04)) {
+          colocar(nivel, b.cogumeloMagico, cx, cy, { sombra: assets.sombras.p });
+          return;
+        }
+        if (rng.chance(0.06)) colocar(nivel, b.florEstrela, cx, cy, { balanca: true });
+        return;
+      }
+
+      // -------------------------------------------------- pântano das raízes
+      case 'pantano': {
+        if (densidade > 0.5 && rng.chance(0.1 + (densidade - 0.5) * 0.4)) {
+          plantarNo('cipreste', b.cipreste, cx, cy, {
+            colisao: { w: 9, h: 5 },
+            sombra: assets.sombras.g,
+          });
+          return;
+        }
+        if (rng.chance(0.035)) {
+          colocar(nivel, b.arvoreMorta, cx, cy, {
+            colisao: { w: 8, h: 4 },
+            sombra: assets.sombras.m,
+          });
+          return;
+        }
+        if ((t === Tile.Turfa || t === Tile.Lama || t === Tile.LamaFunda) && rng.chance(0.035)) {
+          plantarNo('turfeira', assets.colheita.montinho, cx, cy, { sombra: assets.sombras.p });
+          return;
+        }
+        if (rng.chance(0.05)) {
+          plantarNo('moitaPantano', b.moitaPantano, cx, cy, { balanca: true });
+          return;
+        }
+        if (t === Tile.LamaFunda && rng.chance(0.05)) {
+          colocar(nivel, b.bolhaLama, cx, cy);
+          return;
+        }
+        if (rng.chance(0.02)) colocar(nivel, assets.cenario.junco, cx, cy, { balanca: true });
+        return;
+      }
+
+      // ---------------------------------------------------- floresta fechada
+      case 'floresta': {
+        // a floresta é fechada de propósito: muita árvore, pouca visão
+        if (densidade > 0.42 && rng.chance(0.16 + (densidade - 0.42) * 0.7)) {
+          plantarNo('arvoreAlta', b.arvoreAlta, cx + rng.range(-3, 3), cy + rng.range(-2, 2), {
+            colisao: { w: 10, h: 6 },
+            sombra: assets.sombras.g,
+            balanca: true,
+          });
+          return;
+        }
+        if (rng.chance(0.05)) {
+          plantarNo('arbustoBaga', b.arbustoBaga, cx, cy, { balanca: true });
+          return;
+        }
+        if (rng.chance(0.09)) {
+          colocar(nivel, b.samambaiaGigante, cx, cy, { balanca: true });
+          return;
+        }
+        if (rng.chance(0.03)) {
+          colocar(nivel, b.cogumeloDuplo, cx, cy);
+          return;
+        }
+        if (rng.chance(0.012)) {
+          colocar(nivel, assets.cenario.troncoMusgo, cx, cy, {
+            colisao: { w: 22, h: 5 },
+            sombra: assets.sombras.g,
+          });
+        }
+        return;
+      }
+
+      // ------------------------------------------------------- campo de lava
+      case 'vulcanico': {
+        if (densidade > 0.6 && rng.chance(0.07)) {
+          plantarNo('arvoreCarbonizada', b.arvoreCarbonizada, cx, cy, {
+            colisao: { w: 8, h: 4 },
+            sombra: assets.sombras.m,
+          });
+          return;
+        }
+        if (t === Tile.RochaVulcanica && rng.chance(0.16)) {
+          plantarNo('veioObsidiana', b.rochaObsidiana, cx, cy, {
+            colisao: { w: 12, h: 6 },
+            sombra: assets.sombras.m,
+          });
+          return;
+        }
+        if (t === Tile.Cinzas && rng.chance(0.045)) {
+          plantarNo('fumarola', b.fumarola, cx, cy, { sombra: assets.sombras.p });
+          nivel.luzes.push({ x: cx, y: cy - 6 });
+          return;
+        }
+        if (rng.chance(0.035)) {
+          colocar(nivel, b.cristalEnxofre, cx, cy, { sombra: assets.sombras.p });
+          return;
+        }
+        if (rng.chance(0.02)) {
+          colocar(nivel, assets.cenario.pedraPequena, cx, cy, { sombra: assets.sombras.p });
+        }
+        return;
+      }
+
+      // ---------------------------------------------------- deserto de vidro
+      case 'deserto': {
+        if (rng.chance(0.035)) {
+          plantarNo('cacto', b.cacto, cx, cy, { colisao: { w: 6, h: 4 } });
+          return;
+        }
+        if (t === Tile.Rocha && rng.chance(0.2)) {
+          plantarNo('arenito', b.arenito, cx, cy, {
+            colisao: { w: 12, h: 6 },
+            sombra: assets.sombras.m,
+          });
+          return;
+        }
+        if (t === Tile.AreiaClara && rng.chance(0.04)) {
+          plantarNo('areiaVitrea', assets.colheita.montinho, cx, cy, {
+            sombra: assets.sombras.p,
+          });
+          return;
+        }
+        if (rng.chance(0.03)) {
+          colocar(nivel, b.cactoPequeno, cx, cy);
+          return;
+        }
+        if (rng.chance(0.045)) {
+          colocar(nivel, b.arbustoSeco, cx, cy, { balanca: true });
+          return;
+        }
+        if (rng.chance(0.008)) {
+          colocar(nivel, rng.chance(0.5) ? assets.cenario.caveira : assets.cenario.costelas, cx, cy, {
+            sombra: assets.sombras.p,
+          });
+        }
+        return;
+      }
+
+      default:
+        return;
+    }
+  };
+
   const ehLivre = (tx: number, ty: number) => {
-    const t = nivel.tile(tx, ty);
-    return t !== Tile.Vazio && t !== Tile.AguaFunda && t !== Tile.AguaRasa;
+    const p = PROPS[nivel.tile(tx, ty)];
+    return !p.solido && !p.agua;
   };
   const ehCaminho = (tx: number, ty: number) => nivel.tile(tx, ty) === Tile.Terra;
 
@@ -273,6 +495,13 @@ export function gerarMundo(assets: Assets): MundoGerado {
 
       const densidade = floresta.fbm(tx * 0.05, ty * 0.05, 3);
       const t = nivel.tile(tx, ty);
+
+      // cada bioma planta a sua própria vegetação; o vale segue abaixo
+      const bioma = nivel.bioma(tx, ty);
+      if (bioma !== 'vale') {
+        vegetacaoDeBioma(bioma, t, cx, cy, densidade);
+        continue;
+      }
 
       // árvores grandes: cada uma é um nó de madeira para o machado
       if (densidade > 0.56 && rng.chance(0.1 + (densidade - 0.56) * 0.55)) {
@@ -381,14 +610,64 @@ export function gerarMundo(assets: Assets): MundoGerado {
   // vitórias-régias na água rasa
   for (let ty = 3; ty < ALT_TILES - 3; ty++) {
     for (let tx = 3; tx < LARG_TILES - 3; tx++) {
-      if (nivel.tile(tx, ty) === Tile.AguaRasa && rng.chance(0.03)) {
+      const t = nivel.tile(tx, ty);
+      const bioma = nivel.bioma(tx, ty);
+      if (t === Tile.AguaRasa && bioma === 'deserto') {
+        // oásis: palmeiras na beira da poça
+        if (rng.chance(0.25)) {
+          colocar(nivel, b.palmeira, tx * TAM_TILE + 8, ty * TAM_TILE + 20, {
+            sombra: assets.sombras.m,
+          });
+        }
+        continue;
+      }
+      if ((t === Tile.AguaRasa || t === Tile.AguaPantano) && rng.chance(0.03)) {
         colocar(nivel, assets.cenario.nenufar, tx * TAM_TILE + 8, ty * TAM_TILE + 14);
       }
     }
   }
 
   // -------------------------------------------------- pontos de nascimento
-  const acharTerra = (minDist: number): { x: number; y: number } => {
+  // Cada criatura nasce no bioma dela e volta para lá quando desiste da caça.
+  const livreParaBicho = (x: number, y: number) =>
+    !nivel.colisores.some(
+      (c) => x > c.x - 16 && x < c.x + c.w + 16 && y > c.y - 16 && y < c.y + c.h + 16,
+    );
+
+  const acharNoBioma = (
+    bioma: BiomaId,
+    aquatico: boolean,
+    minDist: number,
+  ): { x: number; y: number } | null => {
+    for (let tent = 0; tent < 5000; tent++) {
+      const tx = rng.int(5, LARG_TILES - 6);
+      const ty = rng.int(5, ALT_TILES - 6);
+      if (nivel.bioma(tx, ty) !== bioma) continue;
+      if (aquatico) {
+        // precisa de uma poça com folga em volta
+        let ok = true;
+        for (let dy = -1; dy <= 1 && ok; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            if (!PROPS[nivel.tile(tx + dx, ty + dy)].agua) {
+              ok = false;
+              break;
+            }
+          }
+        if (!ok) continue;
+      } else if (!ehLivre(tx, ty)) {
+        continue;
+      }
+      const x = tx * TAM_TILE + 8;
+      const y = ty * TAM_TILE + 8;
+      if (!longeDaCasa(x, y, minDist)) continue;
+      if (!livreParaBicho(x, y)) continue;
+      return { x, y };
+    }
+    return null;
+  };
+
+  /** Último recurso: qualquer chão livre longe de casa. */
+  const acharQualquer = (minDist: number): { x: number; y: number } => {
     for (let tent = 0; tent < 4000; tent++) {
       const tx = rng.int(6, LARG_TILES - 7);
       const ty = rng.int(6, ALT_TILES - 7);
@@ -396,63 +675,24 @@ export function gerarMundo(assets: Assets): MundoGerado {
       const x = tx * TAM_TILE + 8;
       const y = ty * TAM_TILE + 8;
       if (!longeDaCasa(x, y, minDist)) continue;
-      if (nivel.colisores.some((c) => x > c.x - 16 && x < c.x + c.w + 16 && y > c.y - 16 && y < c.y + c.h + 16))
-        continue;
+      if (!livreParaBicho(x, y)) continue;
       return { x, y };
     }
     return { x: casaX + 220, y: casaY + 220 };
   };
 
-  const acharAgua = (): { x: number; y: number } => {
-    for (let tent = 0; tent < 6000; tent++) {
-      const tx = rng.int(6, LARG_TILES - 7);
-      const ty = rng.int(6, ALT_TILES - 7);
-      if (nivel.tile(tx, ty) !== Tile.AguaFunda) continue;
-      // precisa de espaço: os vizinhos também devem ser água
-      let ok = true;
-      for (let j = -1; j <= 1 && ok; j++)
-        for (let i = -1; i <= 1; i++) {
-          const t = nivel.tile(tx + i, ty + j);
-          if (t !== Tile.AguaFunda && t !== Tile.AguaRasa) {
-            ok = false;
-            break;
-          }
-        }
-      if (ok) return { x: tx * TAM_TILE + 8, y: ty * TAM_TILE + 8 };
-    }
-    return { x: casaX - 200, y: casaY + 300 };
-  };
-
   const spawns: SpawnDino[] = [];
-  const distanciaPorEspecie: Record<string, number> = {
-    raptornoz: 200,
-    dentesangue: 300,
-    folhalonga: 150,
-    tricornis: 170,
-    casconte: 190,
-    pedrapata: 210,
-    luminassauro: 260,
-    etherodonte: 280,
-  };
-
-  for (const especie of DEZ_DINOS) {
-    if (especie === 'nadalonga' || especie === 'escamarela') {
-      const p = acharAgua();
-      spawns.push({ especie, x: p.x, y: p.y });
-    } else {
-      const p = acharTerra(distanciaPorEspecie[especie] ?? 200);
-      spawns.push({ especie, x: p.x, y: p.y });
-      // cristais mágicos marcam o território dos dinossauros mágicos
-      if (especie === 'luminassauro' || especie === 'etherodonte') {
-        for (let i = 0; i < 4; i++) {
-          colocar(
-            nivel,
-            assets.cenario.cristal,
-            p.x + rng.range(-40, 40),
-            p.y + rng.range(-30, 30),
-          );
-        }
-      }
+  for (const ficha of TODAS_FICHAS) {
+    // quanto mais perigoso, mais longe de casa ele começa
+    const minDist = 120 + ficha.dificuldade * 45;
+    // os bichos mansos aparecem em dupla; os perigosos, sozinhos
+    const quantos = ficha.dificuldade <= 2 ? 2 : 1;
+    for (let n = 0; n < quantos; n++) {
+      const p =
+        acharNoBioma(ficha.bioma, ficha.aquatico, minDist) ??
+        acharNoBioma(ficha.bioma, ficha.aquatico, 90) ??
+        acharQualquer(minDist);
+      spawns.push({ especie: ficha.id, x: p.x, y: p.y });
     }
   }
 
@@ -628,4 +868,26 @@ export function criarInteriorCabana(assets: Assets): Nivel {
 
   nivel.ordenarObjetos();
   return nivel;
+}
+
+/**
+ * Um ponto de chão livre no miolo de um bioma — usado pelos atalhos do modo de
+ * teste (e por qualquer sistema que precise levar o jogador até lá).
+ */
+export function pontoDoBioma(nivel: Nivel, bioma: BiomaId): { x: number; y: number } {
+  const c = CENTROS.find((k) => k.id === bioma) ?? CENTROS[0];
+  for (let raio = 0; raio < 46; raio++) {
+    for (let dy = -raio; dy <= raio; dy++) {
+      for (let dx = -raio; dx <= raio; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== raio) continue;
+        const tx = c.tx + dx;
+        const ty = c.ty + dy;
+        if (!nivel.dentro(tx, ty) || nivel.bioma(tx, ty) !== bioma) continue;
+        const prop = PROPS[nivel.tile(tx, ty)];
+        if (prop.solido || prop.agua) continue;
+        return { x: tx * TAM_TILE + 8, y: ty * TAM_TILE + 12 };
+      }
+    }
+  }
+  return { x: c.tx * TAM_TILE, y: c.ty * TAM_TILE };
 }

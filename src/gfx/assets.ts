@@ -8,6 +8,7 @@ import { criarDinos, type ArteDino, type EspecieId } from './sprites/dinos';
 import { criarTerreno, type TexturasTerreno } from './sprites/terrain';
 import { criarCenario, type ArteCenario } from './sprites/props';
 import { criarCasa, type ArteCasa } from './sprites/house';
+import { criarBiomas, type ArteBiomas } from './sprites/biomeProps';
 import { criarUI, desenharVinheta, type ArteUI } from './sprites/ui';
 import { criarEfeitos, type ArteEfeitos } from './sprites/effects';
 import { criarGalpao, type ArteGalpao } from './sprites/warehouse';
@@ -31,6 +32,7 @@ export interface Assets {
   ferramentas: ArteFerramentas;
   colheita: ArteColheita;
   cabana: ArteCabana;
+  biomas: ArteBiomas;
   armaduras: Record<ArmaduraId, ArteArmadura>;
   /** Sombras elípticas em alguns tamanhos padrão. */
   sombras: Record<'p' | 'm' | 'g' | 'gg', Sprite>;
@@ -55,6 +57,7 @@ export function carregarAssets(aviso?: EtapaCarregamento): Assets {
   etapas.push(['Forjando as ferramentas', () => (parcial.ferramentas = criarFerramentas())]);
   etapas.push(['Semeando os recursos', () => (parcial.colheita = criarColheita())]);
   etapas.push(['Levantando a cabana', () => (parcial.cabana = criarCabana())]);
+  etapas.push(['Abrindo os cinco biomas', () => (parcial.biomas = criarBiomas())]);
   etapas.push(['Batendo as armaduras', () => (parcial.armaduras = criarArmaduras())]);
   etapas.push([
     'Ajustando as sombras',

@@ -8,6 +8,7 @@ import { Tile, PROPS } from './tiles';
 import type { Rect } from '../core/math';
 import type { Sprite } from '../gfx/pixel';
 import type { NoRecurso } from '../systems/harvest';
+import { biomaPorIndice, type BiomaId } from './biomes';
 
 /** Objeto decorativo desenhado no mundo (ordenado pelo eixo Y). */
 export interface ObjetoCenario {
@@ -59,6 +60,8 @@ export interface Interativo {
 export class Nivel {
   readonly tiles: Uint8Array;
   readonly variacoes: Uint8Array;
+  /** Bioma de cada tile (índice em ORDEM_BIOMAS). Só o mundo aberto usa. */
+  readonly biomas: Uint8Array;
   readonly colisores: Colisor[] = [];
   readonly objetos: ObjetoCenario[] = [];
   readonly portais: Portal[] = [];
@@ -89,6 +92,23 @@ export class Nivel {
   ) {
     this.tiles = new Uint8Array(larguraTiles * alturaTiles).fill(preenchimento);
     this.variacoes = new Uint8Array(larguraTiles * alturaTiles);
+    this.biomas = new Uint8Array(larguraTiles * alturaTiles);
+  }
+
+  /** Bioma do tile (fora do mapa, ou dentro de casa, é sempre o vale). */
+  bioma(tx: number, ty: number): BiomaId {
+    if (!this.dentro(tx, ty)) return 'vale';
+    return biomaPorIndice(this.biomas[ty * this.larguraTiles + tx]);
+  }
+
+  definirBioma(tx: number, ty: number, indice: number): void {
+    if (!this.dentro(tx, ty)) return;
+    this.biomas[ty * this.larguraTiles + tx] = indice;
+  }
+
+  /** Bioma no ponto em pixels. */
+  biomaEm(x: number, y: number): BiomaId {
+    return this.bioma(Math.floor(x / TAM_TILE), Math.floor(y / TAM_TILE));
   }
 
   get larguraPx(): number {

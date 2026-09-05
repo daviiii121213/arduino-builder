@@ -16,6 +16,23 @@ export enum Tile {
   Tapete,
   Concreto,
   TerraArada,
+  // ---- bioma mágico
+  GramaMagica,
+  SoloCristal,
+  // ---- pântano
+  Turfa,
+  LamaFunda,
+  AguaPantano,
+  // ---- floresta
+  GramaFloresta,
+  Folhagem,
+  // ---- vulcânico
+  Cinzas,
+  RochaVulcanica,
+  Lava,
+  // ---- deserto
+  AreiaClara,
+  SoloRachado,
 }
 
 export interface PropTile {
@@ -47,6 +64,18 @@ export const PROPS: Record<Tile, PropTile> = {
   [Tile.Tapete]: { ...PADRAO },
   [Tile.Concreto]: { ...PADRAO },
   [Tile.TerraArada]: { ...PADRAO, atrito: 0.95 },
+  [Tile.GramaMagica]: { ...PADRAO },
+  [Tile.SoloCristal]: { ...PADRAO, atrito: 1.05 },
+  [Tile.Turfa]: { ...PADRAO, atrito: 0.82 },
+  [Tile.LamaFunda]: { ...PADRAO, atrito: 0.55 },
+  [Tile.AguaPantano]: { ...PADRAO, agua: true, atrito: 0.6 },
+  [Tile.GramaFloresta]: { ...PADRAO },
+  [Tile.Folhagem]: { ...PADRAO, atrito: 0.94 },
+  [Tile.Cinzas]: { ...PADRAO, atrito: 0.9 },
+  [Tile.RochaVulcanica]: { ...PADRAO },
+  [Tile.Lava]: { ...PADRAO, solido: true },
+  [Tile.AreiaClara]: { ...PADRAO, atrito: 0.9 },
+  [Tile.SoloRachado]: { ...PADRAO },
 };
 
 export function ehAgua(t: Tile): boolean {

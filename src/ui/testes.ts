@@ -21,24 +21,32 @@ export interface AcaoTeste {
 
 const LARG = 300;
 const ALTURA_LINHA = 14;
+/** Linhas visíveis de uma vez: o painel rola em vez de estourar a tela. */
+const LINHAS = 14;
 
 export class PainelTestes {
   aberta = false;
   private indice = 0;
+  private topo = 0;
 
   constructor(private acoes: AcaoTeste[]) {}
 
   abrir(): void {
     this.aberta = true;
     this.indice = 0;
+    this.topo = 0;
   }
 
   fechar(): void {
     this.aberta = false;
   }
 
+  private get visiveis(): number {
+    return Math.min(LINHAS, this.acoes.length);
+  }
+
   private get altura(): number {
-    return 34 + this.acoes.length * ALTURA_LINHA + 24;
+    return 34 + this.visiveis * ALTURA_LINHA + 24;
   }
 
   atualizar(_dt: number, entrada: Entrada): void {
@@ -51,11 +59,15 @@ export class PainelTestes {
     this.indice = navegar(entrada, this.indice, total);
     const x = Math.round((LARGURA - LARG) / 2);
     const y = Math.round((ALTURA - this.altura) / 2);
-    const sobre = linhaDoMouse(entrada, x + 8, y + 26, LARG - 16, ALTURA_LINHA, total);
-    if (sobre >= 0) this.indice = sobre;
+    const sobre = linhaDoMouse(entrada, x + 8, y + 26, LARG - 16, ALTURA_LINHA, this.visiveis);
+    if (sobre >= 0 && this.topo + sobre < total) this.indice = this.topo + sobre;
+    // mantém o escolhido dentro da janela visível
+    if (this.indice < this.topo) this.topo = this.indice;
+    if (this.indice > this.topo + this.visiveis - 1) this.topo = this.indice - this.visiveis + 1;
+    this.topo = Math.max(0, Math.min(this.topo, total - this.visiveis));
     if (
       entrada.teclaAgora('Enter', 'NumpadEnter', 'Space') ||
-      (entrada.botaoAgora(0) && sobre === this.indice)
+      (entrada.botaoAgora(0) && sobre >= 0 && this.topo + sobre === this.indice)
     ) {
       const acao = this.acoes[this.indice];
       this.fechar();
@@ -75,8 +87,11 @@ export class PainelTestes {
     g.drawImage(moldura(LARG, alt), x, y);
     cabecalho(g, 'MODO TESTE — ATALHOS', x, y, LARG);
 
-    this.acoes.forEach((a, i) => {
-      const ly = y + 26 + i * ALTURA_LINHA;
+    for (let linha = 0; linha < this.visiveis; linha++) {
+      const i = this.topo + linha;
+      const a = this.acoes[i];
+      if (!a) break;
+      const ly = y + 26 + linha * ALTURA_LINHA;
       if (i === this.indice) destaque(g, x + 8, ly, LARG - 16, ALTURA_LINHA);
       texto(g, a.rotulo, x + 14, ly + 3, {
         cor: i === this.indice ? P.brilho : P.osso,
@@ -87,8 +102,27 @@ export class PainelTestes {
         sombra: P.contorno,
         alinhamento: 'direita',
       });
-    });
+    }
+    // barrinha de rolagem, quando há mais atalhos do que cabe
+    if (this.acoes.length > this.visiveis) {
+      const trilho = this.visiveis * ALTURA_LINHA;
+      g.fillStyle = '#2a2338';
+      g.fillRect(x + LARG - 6, y + 26, 2, trilho);
+      const tam = Math.max(8, Math.round((this.visiveis / this.acoes.length) * trilho));
+      const desl = Math.round(
+        (this.topo / Math.max(1, this.acoes.length - this.visiveis)) * (trilho - tam),
+      );
+      g.fillStyle = P.ambar;
+      g.fillRect(x + LARG - 6, y + 26 + desl, 2, tam);
+    }
 
-    rodape(g, 'W/S escolher · ENTER usar · F1 fechar', x, y, LARG, alt);
+    rodape(
+      g,
+      `W/S escolher · ENTER usar · F1 fechar   (${this.indice + 1}/${this.acoes.length})`,
+      x,
+      y,
+      LARG,
+      alt,
+    );
   }
 }

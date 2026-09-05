@@ -121,6 +121,9 @@ export class Jogador {
   private piscar = 0;
   /** Tempo desde a morte (para a tela de fim de jogo). */
   tempoMorto = 0;
+  /** Segundos restantes de veneno (só o Venomossauro aplica). */
+  veneno = 0;
+  private pulsoVeneno = 0;
 
   constructor(x: number, y: number) {
     this.reposicionar(x, y);
@@ -323,6 +326,44 @@ export class Jogador {
       }
     }
     if (this.piscar > 0) this.piscar -= dt;
+
+    // ---- veneno: tira meio coração de tempos em tempos, sem sangue nem gore
+    if (this.veneno > 0) {
+      this.veneno -= dt;
+      this.pulsoVeneno -= dt;
+      if (Math.random() < dt * 10) {
+        mundo.particulas.pixel(this.centroX + (Math.random() - 0.5) * 10, this.centroY, '#8fe05a', {
+          vy: -18,
+          vida: 0.7,
+        });
+      }
+      if (this.pulsoVeneno <= 0) {
+        this.pulsoVeneno = 1.6;
+        if (this.vida.receberDano(1)) {
+          mundo.particulas.texto('veneno', this.x, this.y - JOGADOR_H, '#8fe05a');
+          mundo.audio.dano();
+          if (!this.vida.vivo) {
+            mundo.audio.morte();
+            this.tempoMorto = 0;
+          }
+        }
+      }
+      if (this.veneno <= 0) {
+        this.veneno = 0;
+        mundo.particulas.texto('o veneno passou', this.x, this.y - JOGADOR_H, P.folhaClara);
+      }
+    }
+  }
+
+  /** Aplica (ou renova) o veneno. Nunca acumula além do maior tempo. */
+  envenenar(segundos: number, mundo: Mundo): void {
+    if (segundos <= 0) return;
+    const novo = this.veneno <= 0;
+    this.veneno = Math.max(this.veneno, segundos);
+    if (novo) {
+      this.pulsoVeneno = 1.2;
+      mundo.avisar('Você foi envenenado: a vida cai sozinha por alguns segundos.', 3);
+    }
   }
 
   private iniciarAtaque(mundo: Mundo): void {

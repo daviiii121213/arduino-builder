@@ -23,6 +23,14 @@ export const RECURSOS: Record<RecursoId, FichaRecurso> = {
   ferro: { id: 'ferro', nome: 'Minério de ferro', valor: 16, descricao: 'Veios metálicos dentro da rocha.' },
   fossil: { id: 'fossil', nome: 'Fóssil', valor: 30, descricao: 'Uma peça que ninguém mais vai encontrar.' },
   cristal: { id: 'cristal', nome: 'Cristal do vale', valor: 48, descricao: 'Brilha sozinho. Vale uma fortuna.' },
+
+  // ---------------------------------------------------- nativos dos biomas
+  turfa: { id: 'turfa', nome: 'Turfa', valor: 6, descricao: 'Torrão escuro do pântano. Queima devagar e por muito tempo.' },
+  resina: { id: 'resina', nome: 'Resina', valor: 12, descricao: 'Seiva endurecida das árvores altas da floresta fechada.' },
+  vidro: { id: 'vidro', nome: 'Vidro do deserto', valor: 22, descricao: 'A areia virou vidro onde o céu bateu no chão.' },
+  enxofre: { id: 'enxofre', nome: 'Enxofre', valor: 26, descricao: 'Crosta amarela das fumarolas. Cheira a ovo velho.' },
+  obsidiana: { id: 'obsidiana', nome: 'Obsidiana', valor: 38, descricao: 'Lava que esfriou de uma vez. Corta como navalha.' },
+  essencia: { id: 'essencia', nome: 'Essência arcana', valor: 60, descricao: 'Luz presa numa gota. Só existe na clareira encantada.' },
 };
 
 export function valorDe(id: RecursoId): number {

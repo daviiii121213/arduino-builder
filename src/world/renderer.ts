@@ -46,6 +46,34 @@ function texturaDe(assets: Assets, t: Tile, variacao: number, quadroAgua: number
       return esc(tex.concreto);
     case Tile.TerraArada:
       return esc(tex.terraArada);
+    case Tile.GramaMagica:
+      return esc(tex.gramaMagica);
+    case Tile.SoloCristal:
+      return esc(tex.soloCristal);
+    case Tile.Turfa:
+      return esc(tex.turfa);
+    case Tile.LamaFunda:
+      return esc(tex.lamaFunda);
+    case Tile.AguaPantano: {
+      const v = tex.aguaPantano[variacao % tex.aguaPantano.length];
+      return v[quadroAgua % v.length];
+    }
+    case Tile.GramaFloresta:
+      return esc(tex.gramaFloresta);
+    case Tile.Folhagem:
+      return esc(tex.folhagem);
+    case Tile.Cinzas:
+      return esc(tex.cinzas);
+    case Tile.RochaVulcanica:
+      return esc(tex.rochaVulcanica);
+    case Tile.Lava: {
+      const v = tex.lava[variacao % tex.lava.length];
+      return v[quadroAgua % v.length];
+    }
+    case Tile.AreiaClara:
+      return esc(tex.areiaClara);
+    case Tile.SoloRachado:
+      return esc(tex.soloRachado);
     default:
       return esc(tex.rocha);
   }
