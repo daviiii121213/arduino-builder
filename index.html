@@ -63,7 +63,7 @@
   .tecla { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .tecla b {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 42px; height: 42px; border-radius: 8px; font-size: 18px;
+    min-width: 42px; padding: 0 12px; height: 42px; border-radius: 8px; font-size: 18px;
     background: #16202c; border: 1px solid rgba(255,255,255,.22);
     box-shadow: 0 3px 0 rgba(0,0,0,.5);
   }
@@ -109,12 +109,12 @@
      encare curvas e desvios e vá o mais longe que conseguir. Você aguenta duas batidas — na terceira, a corrida acaba.</p>
   <div class="teclas">
     <div class="tecla"><b>W</b><span>Acelerar</span></div>
-    <div class="tecla"><b>S</b><span>Frear</span></div>
+    <div class="tecla"><b>ESPAÇO</b><span>Frear</span></div>
     <div class="tecla"><b>A</b><span>Ir para a esquerda</span></div>
     <div class="tecla"><b>D</b><span>Ir para a direita</span></div>
   </div>
   <p class="dica">A moto nunca anda de ré. Mantenha-se na pista e não bata!</p>
-  <p class="piscar"><b>Pressione ENTER ou ESPAÇO para começar</b></p>
+  <p class="piscar"><b>Pressione ENTER para começar</b></p>
 </div>
 
 <div class="tela oculta" id="telaFim">
@@ -155,9 +155,10 @@
   const ACEL         = 11.5;   // m/s²
   const FREIO        = 26.0;   // m/s²
   const ATRITO       = 2.2;    // desaceleração natural (m/s²)
-  const VEL_LATERAL  = 6.2;    // m/s de deslocamento lateral máximo
+  const VEL_LATERAL  = 10.5;   // m/s de deslocamento lateral máximo
 
-  const ALTURA_OLHOS = 1.50;   // altura dos olhos do piloto (m)
+  const PITCH_BASE   = 0.10;   // o piloto olha um pouco para baixo
+  const ALTURA_OLHOS = 1.62;   // altura dos olhos do piloto (m)
   const MAX_BATIDAS  = 3;
   const T_INVULN     = 1.8;    // segundos de invulnerabilidade após bater
 
@@ -268,7 +269,8 @@
   // posição no mundo a partir de (distância ao longo da pista, deslocamento lateral)
   function posMundo(s, lat, alvo) {
     const a = amostra(s);
-    const dirX = Math.cos(a.h), dirZ = -Math.sin(a.h); // vetor "direita" da pista
+    // vetor lateral: positivo = direita DA TELA (a visão aponta para +Z)
+    const dirX = -Math.cos(a.h), dirZ = Math.sin(a.h);
     alvo.x = a.x + dirX * lat;
     alvo.z = a.z + dirZ * lat;
     alvo.h = a.h;
@@ -360,8 +362,9 @@
     const s0 = Math.floor((sJogador - 60) / PASSO) * PASSO;
     for (let i = 0; i < N_AMOSTRAS; i++) {
       const s = s0 + i * PASSO;
-      posMundo(s, -LARG_TOTAL / 2, _p1);
-      posMundo(s, LARG_TOTAL / 2, _p2);
+      // ordem das bordas mantém os triângulos virados para cima
+      posMundo(s, LARG_TOTAL / 2, _p1);
+      posMundo(s, -LARG_TOTAL / 2, _p2);
       const o = i * 6;
       posPista[o]     = _p1.x; posPista[o + 1] = 0.02; posPista[o + 2] = _p1.z;
       posPista[o + 3] = _p2.x; posPista[o + 4] = 0.02; posPista[o + 5] = _p2.z;
@@ -432,76 +435,119 @@
   cena.add(grupoMoto);
 
   (function montaMoto() {
-    const preto  = new THREE.MeshLambertMaterial({ color: 0x1a1c20 });
-    const metal  = new THREE.MeshLambertMaterial({ color: 0xb8c0c8 });
-    const pintura = new THREE.MeshLambertMaterial({ color: 0xc02a2a });
-    const vidro  = new THREE.MeshLambertMaterial({ color: 0x2c3a4a });
+    const azul    = new THREE.MeshLambertMaterial({ color: 0x1f3fd0 });
+    const azulEsc = new THREE.MeshLambertMaterial({ color: 0x15267a });
+    const branco  = new THREE.MeshLambertMaterial({ color: 0xeef2f7 });
+    const preto   = new THREE.MeshLambertMaterial({ color: 0x14161a });
+    const borracha= new THREE.MeshLambertMaterial({ color: 0x0e1013 });
+    const metal   = new THREE.MeshLambertMaterial({ color: 0xa9b2bb });
+    const pele    = new THREE.MeshLambertMaterial({ color: 0xc0865c });
+    const visor   = new THREE.MeshLambertMaterial({ color: 0x0b2233 });
 
     const m = new THREE.Group();
+    const Y_BAR = 1.02, Z_BAR = 1.06, X_PUNHO = 0.34;
 
-    // guidão
-    const guidao = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.5, 8), metal);
-    guidao.rotation.z = Math.PI / 2;
-    guidao.position.set(0, 0.98, 0.80);
-    m.add(guidao);
-    [-0.62, 0.62].forEach(function (x) {
-      const punho = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.26, 8), preto);
-      punho.rotation.z = Math.PI / 2;
-      punho.position.set(x, 0.98, 0.80);
-      m.add(punho);
-      // retrovisor
-      const haste = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.34, 6), preto);
-      haste.position.set(x * 0.86, 1.14, 0.82);
-      haste.rotation.z = -x * 0.28;
-      m.add(haste);
-      const espelho = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.04), vidro);
-      espelho.position.set(x * 1.06, 1.32, 0.84);
-      espelho.rotation.y = -x * 0.5;
-      m.add(espelho);
+    // ---- tanque azul com as faixas brancas ----
+    const tanque = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.26, 0.72), azul);
+    tanque.position.set(0, 0.86, 0.56);
+    m.add(tanque);
+    const bico = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.20, 0.26), azul);
+    bico.position.set(0, 0.88, 0.98);
+    m.add(bico);
+    const tampa = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.035, 12), metal);
+    tampa.position.set(0, 1.00, 0.62);
+    m.add(tampa);
+    [-0.135, 0.135].forEach(function (x) {
+      for (let i = 0; i < 3; i++) {
+        const faixa = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.02, 0.16), branco);
+        faixa.position.set(x, 0.985, 0.36 + i * 0.10);
+        faixa.rotation.y = x > 0 ? -0.12 : 0.12;
+        m.add(faixa);
+      }
+    });
+    // laterais do tanque em azul escuro, dando volume
+    [-0.21, 0.21].forEach(function (x) {
+      const lat = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.20, 0.62), azulEsc);
+      lat.position.set(x, 0.80, 0.56);
+      m.add(lat);
     });
 
-    // painel / carenagem
-    const painel = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.14), preto);
-    painel.position.set(0, 1.04, 1.00);
-    painel.rotation.x = -0.4;
-    m.add(painel);
-    const carenagem = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.5, 0.5), pintura);
-    carenagem.position.set(0, 0.80, 1.16);
-    m.add(carenagem);
-    const parabrisa = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.34, 0.04), vidro);
-    parabrisa.position.set(0, 1.18, 1.10);
-    parabrisa.rotation.x = -0.35;
-    m.add(parabrisa);
+    // ---- guidão preto ----
+    const barra = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.80, 10), preto);
+    barra.rotation.z = Math.PI / 2;
+    barra.position.set(0, Y_BAR, Z_BAR);
+    m.add(barra);
+    const mesa = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.07, 0.16), preto);
+    mesa.position.set(0, Y_BAR - 0.01, Z_BAR);
+    m.add(mesa);
 
-    // tanque (visível embaixo, dá a sensação de estar em cima da moto)
-    const tanque = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.28, 0.72), pintura);
-    tanque.position.set(0, 0.80, 0.58);
-    m.add(tanque);
+    [-1, 1].forEach(function (lado) {
+      const x = lado * X_PUNHO;
+      // punho + luva preta do piloto
+      const punho = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.13, 10), borracha);
+      punho.rotation.z = Math.PI / 2;
+      punho.position.set(x + lado * 0.05, Y_BAR, Z_BAR);
+      m.add(punho);
+      const luva = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.13, 0.20), preto);
+      luva.position.set(x - lado * 0.03, Y_BAR - 0.005, Z_BAR - 0.01);
+      m.add(luva);
+      const dedos = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.06, 0.10), preto);
+      dedos.position.set(x - lado * 0.03, Y_BAR - 0.05, Z_BAR + 0.05);
+      m.add(dedos);
+      // manete de freio / embreagem
+      const manete = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, 0.04), metal);
+      manete.position.set(x - lado * 0.02, Y_BAR - 0.06, Z_BAR + 0.12);
+      manete.rotation.y = lado * 0.18;
+      m.add(manete);
+      // braço do piloto (indo do ombro até a luva)
+      const braco = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.075, 0.86, 10), pele);
+      braco.position.set(x - lado * 0.02, Y_BAR - 0.10, Z_BAR - 0.50);
+      braco.rotation.x = Math.PI / 2 - 0.12;
+      braco.rotation.z = lado * 0.05;
+      m.add(braco);
+      // retrovisor na ponta do guidão
+      const haste = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.22, 6), preto);
+      haste.position.set(x + lado * 0.12, Y_BAR + 0.10, Z_BAR);
+      haste.rotation.z = -lado * 0.30;
+      m.add(haste);
+      const espelho = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.09, 0.03), preto);
+      espelho.position.set(x + lado * 0.19, Y_BAR + 0.21, Z_BAR);
+      espelho.rotation.y = -lado * 0.42;
+      m.add(espelho);
+      const vidroEsp = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.07, 0.01), visor);
+      vidroEsp.position.set(x + lado * 0.19, Y_BAR + 0.21, Z_BAR - 0.02);
+      vidroEsp.rotation.y = -lado * 0.42;
+      m.add(vidroEsp);
+    });
 
-    // garfo e roda dianteira
-    [-0.2, 0.2].forEach(function (x) {
-      const garfo = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 8), metal);
-      garfo.position.set(x, 0.60, 1.28);
-      garfo.rotation.x = 0.22;
+    // ---- painel redondo ----
+    const aro = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.07, 16), preto);
+    aro.rotation.x = Math.PI / 2 - 0.35;
+    aro.position.set(0, Y_BAR + 0.10, Z_BAR + 0.06);
+    m.add(aro);
+    const mostrador = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.078, 0.02, 16), visor);
+    mostrador.rotation.x = Math.PI / 2 - 0.35;
+    mostrador.position.set(0, Y_BAR + 0.11, Z_BAR + 0.03);
+    m.add(mostrador);
+
+    // ---- garfo, roda e paralama dianteiros ----
+    [-0.13, 0.13].forEach(function (x) {
+      const garfo = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.85, 8), metal);
+      garfo.position.set(x, Y_BAR - 0.46, Z_BAR + 0.16);
+      garfo.rotation.x = 0.30;
       m.add(garfo);
     });
-    const roda = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.1, 8, 18), preto);
-    roda.position.set(0, 0.34, 1.42);
+    const roda = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.09, 8, 20), borracha);
     roda.rotation.y = Math.PI / 2;
+    roda.position.set(0, 0.31, Z_BAR + 0.42);
     m.add(roda);
-    const paralama = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.1, 0.7), pintura);
-    paralama.position.set(0, 0.62, 1.42);
+    const paralama = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.09, 0.62), azul);
+    paralama.position.set(0, 0.60, Z_BAR + 0.36);
     m.add(paralama);
+    const farol = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.10), preto);
+    farol.position.set(0, Y_BAR - 0.10, Z_BAR + 0.20);
+    m.add(farol);
 
-    // braços do piloto
-    [-0.5, 0.5].forEach(function (x) {
-      const braco = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.10, 0.58), new THREE.MeshLambertMaterial({ color: 0x24303c }));
-      braco.position.set(x * 0.86, 0.97, 0.58);
-      braco.rotation.y = -x * 0.13;
-      m.add(braco);
-    });
-
-    m.position.y = 0;
     grupoInclina.add(m);
   })();
 
@@ -682,30 +728,30 @@
   const ESTADO = { INICIO: 0, JOGANDO: 1, FIM: 2 };
   let estado = ESTADO.INICIO;
 
-  const teclas = { w: false, s: false, a: false, d: false };
+  const teclas = { w: false, freio: false, a: false, d: false };
   const jogo = {
-    s: 0, lat: 0, vel: 0, direcao: 0, inclinacao: 0,
+    s: 0, dist: 0, lat: 0, vel: 0, direcao: 0, inclinacao: 0,
     tempo: 0, batidas: 0, invuln: 0, velMax: 0, balanco: 0
   };
 
   window.addEventListener("keydown", function (e) {
     const k = e.key.toLowerCase();
     if (k === "w" || k === "arrowup") teclas.w = true;
-    if (k === "s" || k === "arrowdown") teclas.s = true;
+    if (k === " " || k === "arrowdown") teclas.freio = true;   // o freio é o ESPAÇO
     if (k === "a" || k === "arrowleft") teclas.a = true;
     if (k === "d" || k === "arrowright") teclas.d = true;
-    if (estado === ESTADO.INICIO && (k === "enter" || k === " ")) iniciaPartida();
+    if (estado === ESTADO.INICIO && k === "enter") iniciaPartida();
     if (estado === ESTADO.FIM && k === "r") iniciaPartida();
-    if (["w","a","s","d"," ","arrowup","arrowdown","arrowleft","arrowright"].indexOf(k) >= 0) e.preventDefault();
+    if (["w","a","d"," ","arrowup","arrowdown","arrowleft","arrowright"].indexOf(k) >= 0) e.preventDefault();
   });
   window.addEventListener("keyup", function (e) {
     const k = e.key.toLowerCase();
     if (k === "w" || k === "arrowup") teclas.w = false;
-    if (k === "s" || k === "arrowdown") teclas.s = false;
+    if (k === " " || k === "arrowdown") teclas.freio = false;
     if (k === "a" || k === "arrowleft") teclas.a = false;
     if (k === "d" || k === "arrowright") teclas.d = false;
   });
-  window.addEventListener("blur", function () { teclas.w = teclas.s = teclas.a = teclas.d = false; });
+  window.addEventListener("blur", function () { teclas.w = teclas.freio = teclas.a = teclas.d = false; });
 
   // =====================================================================
   //  HUD
@@ -721,7 +767,7 @@
   const telaFim = document.getElementById("telaFim");
 
   function atualizaHUD() {
-    elDist.textContent = (jogo.s / 1000).toFixed(2);
+    elDist.textContent = (jogo.dist / 1000).toFixed(2);
     elTempo.textContent = formataTempo(jogo.tempo);
     elVel.textContent = Math.round(jogo.vel * 3.6);
     elBatidas.textContent = jogo.batidas;
@@ -762,6 +808,30 @@
     }
   }
 
+  // impede que a moto atravesse os veículos (inclusive durante a invulnerabilidade)
+  function resolveSolidos() {
+    for (const v of transito) {
+      if (!v.ativo) continue;
+      const t = TIPOS[v.tipo];
+      const limS = t.comp / 2 + MEIA_COMP_MOTO;
+      const limL = t.larg / 2 + MEIA_LARG_MOTO;
+      const ds = jogo.s - v.s, dl = jogo.lat - v.lat;
+      if (Math.abs(ds) >= limS || Math.abs(dl) >= limL) continue;
+      if (limL - Math.abs(dl) < limS - Math.abs(ds)) {
+        // raspão: a moto escorrega para o lado do veículo
+        jogo.lat = clamp(v.lat + (dl < 0 ? -limL : limL), -LIM_LATERAL, LIM_LATERAL);
+        jogo.vel *= 0.99;
+      } else if (ds < 0) {
+        // bateu na traseira: fica atrás e não passa por dentro
+        jogo.s = v.s - limS;
+        if (jogo.vel > v.vel) jogo.vel = v.vel * 0.8;
+      } else {
+        jogo.s = v.s + limS;
+        if (jogo.vel < v.vel) jogo.vel = v.vel;
+      }
+    }
+  }
+
   function registraBatida(texto) {
     jogo.batidas++;
     jogo.invuln = T_INVULN;
@@ -781,7 +851,7 @@
   // =====================================================================
   function iniciaPartida() {
     reiniciaEstrada();
-    jogo.s = 0; jogo.lat = 0; jogo.vel = 0; jogo.direcao = 0; jogo.inclinacao = 0;
+    jogo.s = 0; jogo.dist = 0; jogo.lat = 0; jogo.vel = 0; jogo.direcao = 0; jogo.inclinacao = 0;
     jogo.tempo = 0; jogo.batidas = 0; jogo.invuln = 0; jogo.velMax = 0; jogo.balanco = 0;
     proxObra = 900;
     for (const v of transito) { v.ativo = false; if (v.obj) v.obj.visible = false; }
@@ -796,7 +866,7 @@
 
   function terminaPartida() {
     estado = ESTADO.FIM;
-    document.getElementById("fimDist").textContent = (jogo.s / 1000).toFixed(2);
+    document.getElementById("fimDist").textContent = (jogo.dist / 1000).toFixed(2);
     document.getElementById("fimTempo").textContent = formataTempo(jogo.tempo);
     document.getElementById("fimVel").textContent = Math.round(jogo.velMax * 3.6);
     telaFim.classList.remove("oculta");
@@ -812,14 +882,14 @@
       const perdaTopo = 1 - (jogo.vel / VEL_MAX) * 0.65;
       jogo.vel += ACEL * perdaTopo * dt;
     }
-    if (teclas.s) jogo.vel -= FREIO * dt;
-    if (!teclas.w && !teclas.s) jogo.vel -= ATRITO * dt;
+    if (teclas.freio) jogo.vel -= FREIO * dt;
+    if (!teclas.w && !teclas.freio) jogo.vel -= ATRITO * dt;
     jogo.vel = clamp(jogo.vel, 0, VEL_MAX);   // mínimo zero: sem marcha à ré
 
     // ---- direção lateral ----
     const alvoDir = (teclas.d ? 1 : 0) - (teclas.a ? 1 : 0);
-    jogo.direcao += (alvoDir - jogo.direcao) * Math.min(1, dt * 5.5);
-    const fator = 0.35 + 0.65 * (jogo.vel / VEL_MAX);
+    jogo.direcao += (alvoDir - jogo.direcao) * Math.min(1, dt * 11);
+    const fator = 0.55 + 0.45 * (jogo.vel / VEL_MAX);
     jogo.lat += jogo.direcao * VEL_LATERAL * fator * dt;
 
     // fora da pista: perde aderência e velocidade
@@ -829,6 +899,7 @@
 
     // ---- avanço na pista ----
     jogo.s += jogo.vel * dt;
+    jogo.dist += jogo.vel * dt;
     jogo.tempo += dt;
     if (jogo.vel > jogo.velMax) jogo.velMax = jogo.vel;
     if (jogo.invuln > 0) jogo.invuln -= dt;
@@ -840,16 +911,16 @@
 
     // ---- inclinação (lean) da moto e da câmera ----
     const curv = curvaturaEm(jogo.s);
-    const leanDirecao = jogo.direcao * 0.26 * (0.35 + 0.65 * jogo.vel / VEL_MAX);
-    const leanCurva   = clamp(curv * jogo.vel * 1.4, -0.18, 0.18);
-    const alvoLean = clamp(leanDirecao + leanCurva, -0.32, 0.32);
+    const leanDirecao = jogo.direcao * 0.30 * (0.45 + 0.55 * jogo.vel / VEL_MAX);
+    const leanCurva   = clamp(-curv * jogo.vel * 0.5, -0.07, 0.07);
+    const alvoLean = clamp(leanDirecao + leanCurva, -0.34, 0.34);
     jogo.inclinacao += (alvoLean - jogo.inclinacao) * Math.min(1, dt * 6);
 
     // ---- posicionamento da moto no mundo ----
     posMundo(jogo.s, jogo.lat, _p1);
     grupoMoto.position.set(_p1.x, 0, _p1.z);
-    grupoMoto.rotation.y = _p1.h + jogo.direcao * 0.10; // leve guinada ao trocar de faixa
-    grupoInclina.rotation.z = -jogo.inclinacao;
+    grupoMoto.rotation.y = _p1.h - jogo.direcao * 0.06; // leve guinada ao trocar de faixa
+    grupoInclina.rotation.z = jogo.inclinacao;
 
     // ---- câmera: chacoalho, altura e FOV variando com a velocidade ----
     jogo.balanco += dt * (4 + jogo.vel * 0.32);
@@ -858,12 +929,12 @@
     camera.position.set(
       Math.sin(jogo.balanco * 0.9) * intensidade,
       ALTURA_OLHOS + Math.sin(jogo.balanco * 1.7) * intensidade,
-      0.32
+      0.46
     );
     camera.rotation.set(
-      -Math.sin(jogo.balanco * 1.3) * intensidade * 0.6 + jogo.vel / VEL_MAX * 0.02,
-      jogo.direcao * 0.11 + curv * 9,        // olha um pouco para dentro da curva
-      jogo.inclinacao * 0.22                 // a cabeça acompanha a inclinação
+      PITCH_BASE - Math.sin(jogo.balanco * 1.3) * intensidade * 0.6 + jogo.vel / VEL_MAX * 0.02,
+      -jogo.direcao * 0.07,                  // olha um pouco para dentro da curva
+      -jogo.inclinacao * 0.20                // a cabeça acompanha a inclinação
     );
     const fovAlvo = 74 + (jogo.vel / VEL_MAX) * 16;
     camera.fov += (fovAlvo - camera.fov) * Math.min(1, dt * 3);
@@ -873,6 +944,8 @@
   // =====================================================================
   //  Laço principal
   // =====================================================================
+  window.__depuracao = { jogo: jogo, transito: transito, TIPOS: TIPOS };  // estado exposto para testes
+
   let ultimo = performance.now();
   function laco(agora) {
     requestAnimationFrame(laco);
@@ -885,6 +958,7 @@
       atualizaTransito(dt, jogo.s);
       atualizaCones(jogo.s);
       verificaColisoes();
+      resolveSolidos();
       atualizaHUD();
       if (avisoTimer > 0) {
         avisoTimer -= dt;
@@ -911,7 +985,7 @@
   for (const v of transito) nasceVeiculo(v, 0);
   posMundo(0, 0, _p1);
   grupoMoto.position.set(_p1.x, 0, _p1.z);
-  camera.position.set(0, ALTURA_OLHOS, 0.32);
+  camera.position.set(0, ALTURA_OLHOS, 0.46);
   atualizaPista(0);
   atualizaCenario(0);
   document.getElementById("carregando").style.display = "none";

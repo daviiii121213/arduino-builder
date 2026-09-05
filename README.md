@@ -7,12 +7,12 @@ Jogo 3D de moto em **primeira pessoa**, jogado direto no navegador. Todo o jogo
 
 Abra o arquivo `index.html` no navegador (basta clicar duas vezes — a biblioteca
 three.js está incluída na pasta `vendor/`, então funciona sem internet) e
-pressione **ENTER** ou **ESPAÇO** para começar.
+pressione **ENTER** para começar.
 
 | Tecla | Ação |
 | ----- | ---- |
 | `W` | Acelera a moto |
-| `S` | Freia / desacelera (**nunca dá ré**) |
+| `ESPAÇO` | Freia / desacelera (**nunca dá ré**) |
 | `A` | Move a moto para a esquerda |
 | `D` | Move a moto para a direita |
 | `R` | Reinicia a corrida após o fim de jogo |
@@ -32,6 +32,7 @@ pressione **ENTER** ou **ESPAÇO** para começar.
 - **HUD no topo da tela** com distância percorrida (km), tempo da corrida,
   velocidade atual em km/h e o contador de batidas.
 - Sair do asfalto faz a moto perder velocidade (não conta como batida).
+- Os veículos são sólidos: a moto é bloqueada por eles em vez de atravessá-los.
 
 ## Estrutura
 
