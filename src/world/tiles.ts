@@ -33,6 +33,13 @@ export enum Tile {
   // ---- deserto
   AreiaClara,
   SoloRachado,
+  // ---- cavernas
+  PisoGruta,
+  ParedeGruta,
+  PisoMina,
+  ParedeMina,
+  Cascalho,
+  PocaCaverna,
 }
 
 export interface PropTile {
@@ -76,6 +83,12 @@ export const PROPS: Record<Tile, PropTile> = {
   [Tile.Lava]: { ...PADRAO, solido: true },
   [Tile.AreiaClara]: { ...PADRAO, atrito: 0.9 },
   [Tile.SoloRachado]: { ...PADRAO },
+  [Tile.PisoGruta]: { ...PADRAO },
+  [Tile.ParedeGruta]: { ...PADRAO, solido: true },
+  [Tile.PisoMina]: { ...PADRAO },
+  [Tile.ParedeMina]: { ...PADRAO, solido: true },
+  [Tile.Cascalho]: { ...PADRAO, atrito: 0.94 },
+  [Tile.PocaCaverna]: { ...PADRAO, agua: true, atrito: 0.72 },
 };
 
 export function ehAgua(t: Tile): boolean {

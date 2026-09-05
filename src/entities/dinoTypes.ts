@@ -9,6 +9,7 @@
 
 import type { EspecieId } from '../gfx/sprites/dinos';
 import type { BiomaId } from '../world/biomes';
+import type { CavernaId } from '../world/caveDefs';
 
 export type Categoria = 'magico' | 'carnivoro' | 'herbivoro' | 'terrestre' | 'aquatico';
 
@@ -43,12 +44,35 @@ export const REFERENCIA_DIFICULDADE: Record<
 /** Como a criatura se mexe — muda a animação de andar, correr e flutuar. */
 export type EstiloAnim = 'passos' | 'salta' | 'rasteja' | 'ondula' | 'flutua';
 
+/**
+ * Ficha de chefe. Um chefe é um dinossauro com três coisas a mais: fases (fica
+ * mais rápido e mais agressivo conforme perde vida), um ataque especial próprio
+ * e uma barra de vida com nome no alto da tela.
+ */
+export interface FichaChefe {
+  /** Aparece embaixo do nome, na barra: "Guardião da Gruta". */
+  titulo: string;
+  /** Quantas fases (a vida é dividida por igual entre elas). */
+  fases: number;
+  /** O ataque especial que ele solta de tempos em tempos. */
+  especial: 'anelDeCristal' | 'chuvaDeBrasa';
+  /** Segundos entre dois especiais (encurta a cada fase). */
+  intervalo: number;
+  /** Criatura que ele chama para ajudar a partir da segunda fase. */
+  invoca?: EspecieId;
+  quantosInvoca?: number;
+}
+
 export interface FichaDino {
   id: EspecieId;
   nome: string;
   categoria: Categoria;
   /** Bioma onde nasce e para onde volta. */
   bioma: BiomaId;
+  /** Preenchido só nas criaturas de caverna: elas não nascem na superfície. */
+  caverna?: CavernaId;
+  /** Preenchido só nos chefes do décimo andar. */
+  chefe?: FichaChefe;
   /** 1 (inofensivo) a 5 (mortal). */
   dificuldade: Dificuldade;
   /** Jeito de andar: muda o balanço e a cadência da animação. */
@@ -870,14 +894,290 @@ export const FICHAS: Record<EspecieId, FichaDino> = {
     sombra: 'g',
     descricao: 'Vem junto com a areia levantada. Quando você enxerga, ele já está perto.',
   },
+
+  // ============================================================ CAVERNAS
+  pedrolito: {
+    id: 'pedrolito',
+    nome: 'Pedrolito',
+    categoria: 'herbivoro',
+    bioma: 'vale',
+    caverna: 'gruta',
+    dificuldade: 1,
+    estilo: 'salta',
+    vidaMax: 10,
+    dano: 1,
+    velocidade: 36,
+    velocidadeCorrida: 64,
+    percepcao: 72,
+    alcance: 16,
+    recarga: 2,
+    raioTerritorio: 120,
+    paciencia: 4,
+    preparo: 0.5,
+    pegada: { w: 8, h: 4 },
+    raioCorpo: 9,
+    agressivo: false,
+    territorial: false,
+    medroso: true,
+    aquatico: false,
+    flutua: false,
+    distancia: false,
+    teleporta: false,
+    corSangue: '#8f8880',
+    sombra: 'm',
+    descricao: 'Rói pedra o dia inteiro e sai correndo de qualquer barulho.',
+  },
+  cavernossauro: {
+    id: 'cavernossauro',
+    nome: 'Cavernossauro',
+    categoria: 'terrestre',
+    bioma: 'vale',
+    caverna: 'gruta',
+    dificuldade: 2,
+    estilo: 'rasteja',
+    vidaMax: 18,
+    dano: 2,
+    velocidade: 26,
+    velocidadeCorrida: 76,
+    percepcao: 96,
+    alcance: 22,
+    recarga: 1.7,
+    raioTerritorio: 150,
+    paciencia: 6,
+    preparo: 0.5,
+    pegada: { w: 12, h: 4 },
+    raioCorpo: 12,
+    agressivo: false,
+    territorial: true,
+    medroso: false,
+    aquatico: false,
+    flutua: false,
+    distancia: false,
+    teleporta: false,
+    corSangue: '#d8d2c2',
+    sombra: 'g',
+    descricao: 'Nasceu no escuro e nunca viu o sol. Cava galeria atrás de galeria.',
+  },
+  geodonte: {
+    id: 'geodonte',
+    nome: 'Geodonte',
+    categoria: 'terrestre',
+    bioma: 'vale',
+    caverna: 'gruta',
+    dificuldade: 3,
+    estilo: 'passos',
+    vidaMax: 26,
+    dano: 3,
+    velocidade: 24,
+    velocidadeCorrida: 70,
+    percepcao: 122,
+    alcance: 24,
+    recarga: 1.6,
+    raioTerritorio: 160,
+    paciencia: 7,
+    preparo: 0.55,
+    pegada: { w: 14, h: 5 },
+    raioCorpo: 14,
+    agressivo: false,
+    territorial: true,
+    medroso: false,
+    aquatico: false,
+    flutua: false,
+    distancia: false,
+    teleporta: false,
+    corSangue: '#c07fff',
+    sombra: 'gg',
+    descricao: 'As costas dele são um geodo aberto. Defende o veio como se fosse ninho.',
+  },
+  espectrossauro: {
+    id: 'espectrossauro',
+    nome: 'Espectrossauro',
+    categoria: 'magico',
+    bioma: 'vale',
+    caverna: 'gruta',
+    dificuldade: 4,
+    estilo: 'flutua',
+    vidaMax: 30,
+    dano: 4,
+    velocidade: 44,
+    velocidadeCorrida: 86,
+    percepcao: 165,
+    alcance: 118,
+    recarga: 1.5,
+    raioTerritorio: 230,
+    paciencia: 10,
+    preparo: 0.45,
+    pegada: { w: 9, h: 4 },
+    raioCorpo: 11,
+    agressivo: true,
+    territorial: false,
+    medroso: false,
+    aquatico: false,
+    flutua: true,
+    distancia: true,
+    teleporta: true,
+    corSangue: '#c4d0e4',
+    sombra: 'm',
+    descricao: 'Some na escuridão entre um disparo e outro. Você ouve antes de ver.',
+  },
+  escaldossauro: {
+    id: 'escaldossauro',
+    nome: 'Escaldossauro',
+    categoria: 'terrestre',
+    bioma: 'vulcanico',
+    caverna: 'mina',
+    dificuldade: 3,
+    estilo: 'passos',
+    vidaMax: 28,
+    dano: 3,
+    velocidade: 26,
+    velocidadeCorrida: 74,
+    percepcao: 128,
+    alcance: 24,
+    recarga: 1.5,
+    raioTerritorio: 165,
+    paciencia: 7,
+    preparo: 0.5,
+    pegada: { w: 14, h: 5 },
+    raioCorpo: 14,
+    agressivo: true,
+    territorial: false,
+    medroso: false,
+    aquatico: false,
+    flutua: false,
+    distancia: false,
+    teleporta: false,
+    corSangue: '#ff7a2a',
+    sombra: 'gg',
+    descricao: 'A crosta racha quando ele corre e mostra o vermelho de dentro.',
+  },
+  brasadonte: {
+    id: 'brasadonte',
+    nome: 'Brasadonte',
+    categoria: 'magico',
+    bioma: 'vulcanico',
+    caverna: 'mina',
+    dificuldade: 4,
+    estilo: 'salta',
+    vidaMax: 32,
+    dano: 4,
+    velocidade: 46,
+    velocidadeCorrida: 100,
+    percepcao: 158,
+    alcance: 108,
+    recarga: 1.5,
+    raioTerritorio: 235,
+    paciencia: 10,
+    preparo: 0.45,
+    pegada: { w: 10, h: 4 },
+    raioCorpo: 11,
+    agressivo: true,
+    territorial: false,
+    medroso: false,
+    aquatico: false,
+    flutua: false,
+    distancia: true,
+    teleporta: false,
+    corSangue: '#ffb14a',
+    sombra: 'g',
+    descricao: 'Cospe brasa e recua dois passos. Faz isso a noite inteira.',
+  },
+
+  // ============================================================ CHEFES
+  cristalodonte: {
+    id: 'cristalodonte',
+    nome: 'Cristalodonte',
+    categoria: 'magico',
+    bioma: 'vale',
+    caverna: 'gruta',
+    dificuldade: 5,
+    estilo: 'passos',
+    chefe: {
+      titulo: 'Guardião da Gruta',
+      fases: 3,
+      especial: 'anelDeCristal',
+      intervalo: 6,
+      invoca: 'geodonte',
+      quantosInvoca: 2,
+    },
+    vidaMax: 110,
+    dano: 4,
+    velocidade: 30,
+    velocidadeCorrida: 78,
+    percepcao: 340,
+    alcance: 30,
+    recarga: 1.5,
+    raioTerritorio: 400,
+    paciencia: 999,
+    preparo: 0.6,
+    pegada: { w: 22, h: 7 },
+    raioCorpo: 22,
+    agressivo: true,
+    territorial: false,
+    medroso: false,
+    aquatico: false,
+    flutua: false,
+    distancia: false,
+    teleporta: false,
+    corSangue: '#8fe8ff',
+    sombra: 'gg',
+    descricao: 'A montanha de cristal que anda. Guarda o coração da gruta há muito tempo.',
+  },
+  ignivoro: {
+    id: 'ignivoro',
+    nome: 'Ignívoro',
+    categoria: 'carnivoro',
+    bioma: 'vulcanico',
+    caverna: 'mina',
+    dificuldade: 5,
+    estilo: 'passos',
+    chefe: {
+      titulo: 'Coração do Abismo',
+      fases: 3,
+      especial: 'chuvaDeBrasa',
+      intervalo: 5.5,
+      invoca: 'escaldossauro',
+      quantosInvoca: 2,
+    },
+    vidaMax: 120,
+    dano: 5,
+    velocidade: 36,
+    velocidadeCorrida: 96,
+    percepcao: 340,
+    alcance: 32,
+    recarga: 1.3,
+    raioTerritorio: 400,
+    paciencia: 999,
+    preparo: 0.5,
+    pegada: { w: 22, h: 7 },
+    raioCorpo: 22,
+    agressivo: true,
+    territorial: false,
+    medroso: false,
+    aquatico: false,
+    flutua: false,
+    distancia: false,
+    teleporta: false,
+    corSangue: '#ff4a12',
+    sombra: 'gg',
+    descricao: 'Não é lava e não é bicho: é o Abismo levantando e vindo para cima de você.',
+  },
 };
 
 export const TODAS_FICHAS: FichaDino[] = Object.values(FICHAS);
 
-/** Fichas de um bioma, na ordem em que aparecem no bestiário. */
+/** Fichas de um bioma da superfície, na ordem em que aparecem no bestiário. */
 export function fichasDoBioma(bioma: BiomaId): FichaDino[] {
-  return TODAS_FICHAS.filter((f) => f.bioma === bioma);
+  return TODAS_FICHAS.filter((f) => !f.caverna && f.bioma === bioma);
 }
+
+/** Fichas de uma caverna, dos bichos rasos ao chefe. */
+export function fichasDaCaverna(caverna: CavernaId): FichaDino[] {
+  return TODAS_FICHAS.filter((f) => f.caverna === caverna);
+}
+
+/** As criaturas que nascem ao ar livre (as de caverna ficam de fora). */
+export const FICHAS_SUPERFICIE: FichaDino[] = TODAS_FICHAS.filter((f) => !f.caverna);
 
 /** Marcadores cheios/vazios da dificuldade, para a interface. */
 export function estrelasDificuldade(d: Dificuldade): string {

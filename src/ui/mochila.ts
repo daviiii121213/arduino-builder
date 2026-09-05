@@ -20,6 +20,8 @@ import { ARMADURAS, TODAS_ARMADURAS } from '../systems/armor';
 import type { ArmaduraId } from '../gfx/sprites/armor';
 import { TODAS_FICHAS, NOME_CATEGORIA, estrelasDificuldade, type FichaDino } from '../entities/dinoTypes';
 import { BIOMAS, ORDEM_BIOMAS } from '../world/biomes';
+import { CAVERNAS, ORDEM_CAVERNAS } from '../world/caveDefs';
+import { TODOS_FOSSEIS, NOME_RARIDADE, COR_RARIDADE } from '../systems/fossils';
 import { tingirCache } from '../gfx/pixel';
 import { iconeDoItem, nomeDoItem, descricaoDoItem } from './itens';
 import { cabecalho, moldura, rodape, saldo } from './painel';
@@ -30,16 +32,38 @@ const ALT = 196;
 const SLOT = 19;
 const COLUNAS = 10;
 
-type Aba = 'bolsa' | 'bestiario';
+type Aba = 'bolsa' | 'bestiario' | 'colecao';
 
-/** O bestiário lista bioma por bioma, do bicho mais manso ao mais perigoso. */
-const BESTIARIO: FichaDino[] = ORDEM_BIOMAS.flatMap((b) =>
-  TODAS_FICHAS.filter((f) => f.bioma === b).sort((a, c) => a.dificuldade - c.dificuldade),
-);
+/**
+ * O bestiário lista região por região — os cinco biomas da superfície e depois
+ * as duas cavernas —, do bicho mais manso ao mais perigoso.
+ */
+const BESTIARIO: FichaDino[] = [
+  ...ORDEM_BIOMAS.flatMap((b) =>
+    TODAS_FICHAS.filter((f) => !f.caverna && f.bioma === b).sort(
+      (a, c) => a.dificuldade - c.dificuldade,
+    ),
+  ),
+  ...ORDEM_CAVERNAS.flatMap((c) =>
+    TODAS_FICHAS.filter((f) => f.caverna === c).sort((a, b) => a.dificuldade - b.dificuldade),
+  ),
+];
+
+/** Nome e cor da região de origem de uma criatura. */
+function regiaoDe(f: FichaDino): { nome: string; cor: string } {
+  if (f.caverna) return { nome: CAVERNAS[f.caverna].nome, cor: CAVERNAS[f.caverna].cor };
+  return { nome: BIOMAS[f.bioma].nome, cor: BIOMAS[f.bioma].cor };
+}
 
 /** Linhas visíveis da lista de criaturas. */
 const LINHAS_LISTA = 10;
 const ALTURA_LINHA = 11;
+
+const ABAS: [Aba, string][] = [
+  ['bolsa', 'BOLSA'],
+  ['bestiario', 'BESTIÁRIO'],
+  ['colecao', 'COLEÇÃO'],
+];
 
 export class PainelMochila {
   aberta = false;
@@ -47,6 +71,7 @@ export class PainelMochila {
   private indice = 0;
   private indiceDino = 0;
   private topoDino = 0;
+  private indiceFossil = 0;
   private aviso = '';
   private tempoAviso = 0;
 
@@ -122,15 +147,13 @@ export class PainelMochila {
       this.fechar();
       return;
     }
-    if (entrada.teclaAgora('KeyQ')) this.aba = this.aba === 'bolsa' ? 'bestiario' : 'bolsa';
+    if (entrada.teclaAgora('KeyQ')) {
+      this.aba = ABAS[(ABAS.findIndex(([id]) => id === this.aba) + 1) % ABAS.length][0];
+    }
 
     // cliques nas abas
-    const abas: [Aba, string][] = [
-      ['bolsa', 'BOLSA'],
-      ['bestiario', 'BESTIÁRIO'],
-    ];
     let ax = this.x + 10;
-    for (const [id, rotulo] of abas) {
+    for (const [id, rotulo] of ABAS) {
       const larg = larguraTexto(rotulo) + 10;
       const r = { x: ax, y: this.y + 20, w: larg, h: 13 };
       if (pointInRect(entrada.mouseX, entrada.mouseY, r) && entrada.botaoAgora(0)) this.aba = id;
@@ -166,6 +189,17 @@ export class PainelMochila {
         this.inventario.selecionar(this.indice);
         this.mostrar('Item escolhido na barra.');
       }
+    } else if (this.aba === 'colecao') {
+      const total = TODOS_FOSSEIS.length;
+      if (entrada.teclaAgora('KeyD', 'ArrowRight')) this.indiceFossil = (this.indiceFossil + 1) % total;
+      if (entrada.teclaAgora('KeyA', 'ArrowLeft'))
+        this.indiceFossil = (this.indiceFossil - 1 + total) % total;
+      if (entrada.teclaAgora('KeyS', 'ArrowDown')) this.indiceFossil = (this.indiceFossil + 6) % total;
+      if (entrada.teclaAgora('KeyW', 'ArrowUp'))
+        this.indiceFossil = (this.indiceFossil - 6 + total) % total;
+      this.caixasFossil().forEach((r, i) => {
+        if (pointInRect(entrada.mouseX, entrada.mouseY, r)) this.indiceFossil = i;
+      });
     } else {
       const total = BESTIARIO.length;
       if (entrada.teclaAgora('KeyS', 'ArrowDown')) this.indiceDino = (this.indiceDino + 1) % total;
@@ -201,16 +235,17 @@ export class PainelMochila {
     const x = this.x;
     const y = this.y;
     g.drawImage(moldura(LARG, ALT), x, y);
-    cabecalho(g, this.aba === 'bolsa' ? 'MOCHILA' : 'BESTIÁRIO', x, y, LARG);
+    const titulos: Record<Aba, string> = {
+      bolsa: 'MOCHILA',
+      bestiario: 'BESTIÁRIO',
+      colecao: 'COLEÇÃO DE ARQUEOLOGIA',
+    };
+    cabecalho(g, titulos[this.aba], x, y, LARG);
     saldo(g, this.assets, this.carteira.moedas, x + LARG - 10, y + 9, 'direita', this.carteira.infinita);
 
     // abas
-    const abas: [Aba, string][] = [
-      ['bolsa', 'BOLSA'],
-      ['bestiario', 'BESTIÁRIO'],
-    ];
     let ax = x + 10;
-    for (const [id, rotulo] of abas) {
+    for (const [id, rotulo] of ABAS) {
       const larg = larguraTexto(rotulo) + 10;
       const ativa = this.aba === id;
       g.fillStyle = ativa ? '#3a2f49' : '#1d1828';
@@ -225,13 +260,14 @@ export class PainelMochila {
     }
 
     if (this.aba === 'bolsa') this.desenharBolsa(g);
+    else if (this.aba === 'colecao') this.desenharColecao(g);
     else this.desenharBestiario(g);
 
     rodape(
       g,
       this.aba === 'bolsa'
         ? 'WASD move · ENTER na barra · R armadura · Q abas · TAB fecha'
-        : 'W/S ou mouse escolhe · Q abas · TAB fecha',
+        : 'WASD ou mouse escolhe · Q abas · TAB fecha',
       x,
       y,
       LARG,
@@ -339,6 +375,96 @@ export class PainelMochila {
     }
   }
 
+  /** Caixas da grade de peças. */
+  private caixasFossil(): { x: number; y: number; w: number; h: number }[] {
+    const gx = this.x + 12;
+    const gy = this.y + 42;
+    return TODOS_FOSSEIS.map((_, i) => ({
+      x: gx + (i % COLUNAS_FOSSIL) * SLOT_FOSSIL,
+      y: gy + Math.floor(i / COLUNAS_FOSSIL) * SLOT_FOSSIL,
+      w: SLOT_FOSSIL - 2,
+      h: SLOT_FOSSIL - 2,
+    }));
+  }
+
+  /**
+   * Coleção de arqueologia: uma vitrine com as onze peças. O que ainda não foi
+   * desenterrado aparece como silhueta, com a raridade e o lugar de procurar.
+   */
+  private desenharColecao(g: CanvasRenderingContext2D): void {
+    const x = this.x;
+    const y = this.y;
+    const achados = this.progresso.fosseisAchados;
+    const caixas = this.caixasFossil();
+
+    TODOS_FOSSEIS.forEach((f, i) => {
+      const r = caixas[i];
+      const tem = this.progresso.demo || achados.has(f.id);
+      const sel = i === this.indiceFossil;
+      g.fillStyle = sel ? '#2a2338' : '#1c1727';
+      g.fillRect(r.x, r.y, r.w, r.h);
+      // moldura na cor da raridade
+      g.fillStyle = tem ? COR_RARIDADE[f.raridade] : '#3a3450';
+      g.fillRect(r.x, r.y, r.w, 1);
+      g.fillRect(r.x, r.y + r.h - 1, r.w, 1);
+      g.fillRect(r.x, r.y, 1, r.h);
+      g.fillRect(r.x + r.w - 1, r.y, 1, r.h);
+      if (sel) {
+        g.fillStyle = P.ambar;
+        g.fillRect(r.x, r.y, r.w, 1);
+        g.fillRect(r.x, r.y + r.h - 1, r.w, 1);
+      }
+      const icone = this.assets.ferramentas.recursos[f.id];
+      const ix = Math.round(r.x + r.w / 2 - icone.width / 2);
+      const iy = Math.round(r.y + r.h / 2 - icone.height / 2);
+      g.drawImage(tem ? icone : tingirCache(icone, '#3a3450', 1), ix, iy);
+      if (!tem) {
+        texto(g, '?', r.x + r.w / 2, r.y + r.h / 2 - 3, {
+          cor: '#5b5470',
+          sombra: P.contorno,
+          alinhamento: 'centro',
+        });
+      }
+    });
+
+    const f = TODOS_FOSSEIS[this.indiceFossil];
+    const tem = this.progresso.demo || achados.has(f.id);
+    const infoY = y + ALT - 44;
+    g.fillStyle = '#3a2f49';
+    g.fillRect(x + 8, infoY - 4, LARG - 16, 1);
+    texto(g, tem ? f.nome : 'Peça desconhecida', x + 12, infoY, {
+      cor: tem ? P.osso : '#7a7391',
+      sombra: P.contorno,
+    });
+    texto(g, NOME_RARIDADE[f.raridade], x + LARG - 12, infoY, {
+      cor: COR_RARIDADE[f.raridade],
+      sombra: P.contorno,
+      alinhamento: 'direita',
+    });
+    const onde =
+      f.origem === 'qualquer'
+        ? 'Sai de qualquer escavação.'
+        : f.origem === 'caverna'
+          ? 'Só nas cavernas, bem no fundo.'
+          : `Só em: ${BIOMAS[f.origem].nome}.`;
+    texto(g, tem ? quebrarTexto(f.descricao, LARG - 24)[0] ?? '' : onde, x + 12, infoY + 10, {
+      cor: '#a89fbe',
+      sombra: P.contorno,
+    });
+    const quantos = this.progresso.demo
+      ? TODOS_FOSSEIS.length
+      : TODOS_FOSSEIS.filter((p) => achados.has(p.id)).length;
+    texto(g, `Cave com a pá · vale ${f.valor} moedas`, x + 12, infoY + 20, {
+      cor: '#5b5470',
+      sombra: P.contorno,
+    });
+    texto(g, `${quantos}/${TODOS_FOSSEIS.length}`, x + LARG - 12, infoY + 20, {
+      cor: P.ambar,
+      sombra: P.contorno,
+      alinhamento: 'direita',
+    });
+  }
+
   private desenharBestiario(g: CanvasRenderingContext2D): void {
     const x = this.x;
     const y = this.y;
@@ -361,8 +487,8 @@ export class PainelMochila {
         g.fillStyle = P.ambar;
         g.fillRect(listaX, ly, 1, ALTURA_LINHA);
       }
-      // tarja com a cor do bioma, para achar a região de relance
-      g.fillStyle = BIOMAS[f.bioma].cor;
+      // tarja com a cor da região, para achar o lugar de relance
+      g.fillStyle = regiaoDe(f).cor;
       g.fillRect(listaX + 3, ly + 3, 3, 5);
       const achou = conhecida(f);
       texto(g, achou ? f.nome : '? ? ?', listaX + 10, ly + 2, {
@@ -406,8 +532,8 @@ export class PainelMochila {
       sombra: P.contorno,
       alinhamento: 'centro',
     });
-    texto(g, BIOMAS[f.bioma].nome, px + (LARG - 162) / 2, listaY + 54, {
-      cor: BIOMAS[f.bioma].cor,
+    texto(g, regiaoDe(f).nome, px + (LARG - 162) / 2, listaY + 54, {
+      cor: regiaoDe(f).cor,
       sombra: P.contorno,
       alinhamento: 'centro',
     });
@@ -432,7 +558,7 @@ export class PainelMochila {
         cor: '#7a7391',
         sombra: P.contorno,
       });
-      texto(g, `Procure no bioma: ${BIOMAS[f.bioma].nome}.`, x + 12, infoY + 9, {
+      texto(g, `Procure em: ${regiaoDe(f).nome}.`, x + 12, infoY + 9, {
         cor: '#5b5470',
         sombra: P.contorno,
       });
@@ -447,6 +573,10 @@ export class PainelMochila {
     });
   }
 }
+
+/** Grade da coleção de arqueologia. */
+const COLUNAS_FOSSIL = 6;
+const SLOT_FOSSIL = 27;
 
 /** Verde para os mansos, vermelho para os que matam. */
 function corDaDificuldade(d: number): string {

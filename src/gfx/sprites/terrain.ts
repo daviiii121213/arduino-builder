@@ -538,6 +538,88 @@ function soloRachado(semente: number): Sprite {
   return p.finalizar();
 }
 
+
+// ------------------------------------------------------------ cavernas
+/** Piso de galeria: rocha lisa com cascalho solto e um brilho de veio. */
+function pisoCaverna(semente: number, cor: string, escuro: string, claro: string, faisca: string): Sprite {
+  const rng = new Rng(semente);
+  const p = base(cor);
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.16)) p.ponto(x, y, escuro);
+      else if (rng.chance(0.12)) p.ponto(x, y, claro);
+    }
+  }
+  // pedrinhas soltas
+  for (let i = 0; i < 4; i++) {
+    const x = rng.int(1, TAM_TILE - 3);
+    const y = rng.int(1, TAM_TILE - 3);
+    p.ponto(x, y, claro);
+    p.ponto(x + 1, y, cor);
+    p.ponto(x, y + 1, escuro);
+  }
+  if (rng.chance(0.5)) {
+    const x = rng.int(1, TAM_TILE - 2);
+    const y = rng.int(1, TAM_TILE - 2);
+    p.ponto(x, y, faisca);
+  }
+  return p.finalizar();
+}
+
+/** Parede: bloco maciço com as marcas da picareta. */
+function paredeCaverna(semente: number, cor: string, escuro: string, claro: string): Sprite {
+  const rng = new Rng(semente);
+  const p = base(escuro);
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      const d = Math.max(0, 3 - Math.min(x, y, TAM_TILE - 1 - x, TAM_TILE - 1 - y));
+      p.ponto(x, y, d > 0 ? escuro : cor);
+      if (rng.chance(0.1)) p.ponto(x, y, claro);
+      else if (rng.chance(0.12)) p.ponto(x, y, escuro);
+    }
+  }
+  for (let i = 0; i < 3; i++) {
+    const y = rng.int(2, TAM_TILE - 3);
+    const x = rng.int(1, TAM_TILE - 6);
+    p.linha(x, y, x + rng.int(2, 4), y, escuro);
+  }
+  return p.finalizar();
+}
+
+/** Trilha de cascalho pisado: neutra de propósito, serve nas duas cavernas. */
+function cascalho(semente: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#585361');
+  for (let i = 0; i < 26; i++) {
+    const x = rng.int(0, TAM_TILE - 2);
+    const y = rng.int(0, TAM_TILE - 2);
+    const c = rng.pick(['#7a7385', '#403a44', '#8d8698']);
+    p.ponto(x, y, c);
+    p.ponto(x + 1, y, c);
+    p.ponto(x, y + 1, '#3a3946');
+  }
+  return p.finalizar();
+}
+
+function pocaCaverna(semente: number, quadro: number): Sprite {
+  const rng = new Rng(semente);
+  const p = base('#2a4a66');
+  for (let y = 0; y < TAM_TILE; y++) {
+    for (let x = 0; x < TAM_TILE; x++) {
+      if (rng.chance(0.1)) p.ponto(x, y, '#1e3852');
+      else if (rng.chance(0.08)) p.ponto(x, y, '#3f6b8a');
+    }
+  }
+  const d = quadro * 3;
+  for (let i = 0; i < 5; i++) {
+    const y = (rng.int(0, TAM_TILE - 1) + d) % TAM_TILE;
+    const x = (rng.int(0, TAM_TILE - 1) + d * 2) % TAM_TILE;
+    p.ponto(x, y, '#6fa8c4');
+    p.ponto((x + 1) % TAM_TILE, y, '#8fd0dc');
+  }
+  return p.finalizar();
+}
+
 export interface TexturasTerreno {
   grama: Sprite[];
   gramaSeca: Sprite[];
@@ -565,6 +647,12 @@ export interface TexturasTerreno {
   lava: Sprite[][];
   areiaClara: Sprite[];
   soloRachado: Sprite[];
+  pisoGruta: Sprite[];
+  paredeGruta: Sprite[];
+  pisoMina: Sprite[];
+  paredeMina: Sprite[];
+  cascalho: Sprite[];
+  pocaCaverna: Sprite[][];
 }
 
 export const QUADROS_AGUA = 4;
@@ -593,6 +681,14 @@ export function criarTerreno(): TexturasTerreno {
     tapete: varias(tapete, 2, 7001),
     concreto: varias(concreto, 3, 8001),
     terraArada: varias(terraArada, 2, 9001),
+    pisoGruta: varias((n) => pisoCaverna(n, '#5e5e78', '#4a4a60', '#7a7a96', '#8fd8e8'), 4, 21001),
+    paredeGruta: varias((n) => paredeCaverna(n, '#26263c', '#151424', '#3a3a56'), 3, 22001),
+    pisoMina: varias((n) => pisoCaverna(n, '#635145', '#4c3c33', '#836b5a', '#ff8a3c'), 4, 23001),
+    paredeMina: varias((n) => paredeCaverna(n, '#2a201c', '#170f0d', '#3f322c'), 3, 24001),
+    cascalho: varias(cascalho, 3, 25001),
+    pocaCaverna: Array.from({ length: 2 }, (_, v) =>
+      Array.from({ length: QUADROS_AGUA }, (_, q) => pocaCaverna(26001 + v * 331, q)),
+    ),
     gramaMagica: varias(gramaMagica, 4, 10001),
     soloCristal: varias(soloCristal, 3, 11001),
     turfa: varias(turfa, 4, 12001),

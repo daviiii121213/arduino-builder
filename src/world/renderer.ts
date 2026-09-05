@@ -74,6 +74,20 @@ function texturaDe(assets: Assets, t: Tile, variacao: number, quadroAgua: number
       return esc(tex.areiaClara);
     case Tile.SoloRachado:
       return esc(tex.soloRachado);
+    case Tile.PisoGruta:
+      return esc(tex.pisoGruta);
+    case Tile.ParedeGruta:
+      return esc(tex.paredeGruta);
+    case Tile.PisoMina:
+      return esc(tex.pisoMina);
+    case Tile.ParedeMina:
+      return esc(tex.paredeMina);
+    case Tile.Cascalho:
+      return esc(tex.cascalho);
+    case Tile.PocaCaverna: {
+      const v = tex.pocaCaverna[variacao % tex.pocaCaverna.length];
+      return v[quadroAgua % v.length];
+    }
     default:
       return esc(tex.rocha);
   }

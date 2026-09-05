@@ -5,10 +5,12 @@
  * muda no estado. Acrescentar uma melhoria nova não exige tocar na interface.
  */
 
-import type { FerramentaId } from '../gfx/sprites/tools';
+import type { FerramentaId, RecursoId } from '../gfx/sprites/tools';
 import type { ArmaduraId } from '../gfx/sprites/armor';
 import type { EspecieId } from '../gfx/sprites/dinos';
 import { ORDEM_BIOMAS, type BiomaId } from '../world/biomes';
+import { TODAS_CAVERNAS, type CavernaId } from '../world/caveDefs';
+import { TODOS_FOSSEIS, type FossilId } from './fossils';
 import { TODAS_FICHAS } from '../entities/dinoTypes';
 import { FERRAMENTAS, nomeFerramenta } from './tools';
 import { ARMADURAS, TODAS_ARMADURAS } from './armor';
@@ -52,6 +54,37 @@ export class Progresso {
   biomasVisitados = new Set<BiomaId>(['vale']);
   /** Criaturas já vistas de perto — é o que preenche o bestiário. */
   especiesVistas = new Set<EspecieId>();
+  /** Peças de arqueologia já encontradas (a coleção do TAB). */
+  fosseisAchados = new Set<FossilId>();
+  /** Minérios e gemas raras já extraídos pelo menos uma vez. */
+  mineraisAchados = new Set<RecursoId>();
+
+  /** Registra um recurso raro. Devolve true na primeira vez. */
+  encontrarMineral(id: RecursoId): boolean {
+    if (this.mineraisAchados.has(id)) return false;
+    this.mineraisAchados.add(id);
+    return true;
+  }
+  /** Andar mais fundo alcançado em cada caverna — libera o guincho. */
+  andarMax: Record<CavernaId, number> = { gruta: 0, mina: 0 };
+  /** Chefes já derrubados. */
+  chefesDerrotados = new Set<CavernaId>();
+  /** Lanterna de Cristal: dobra o alcance da luz nas cavernas. */
+  lanterna = false;
+
+  /** Registra uma peça de arqueologia. Devolve true se ela é novidade. */
+  encontrarFossil(id: FossilId): boolean {
+    if (this.fosseisAchados.has(id)) return false;
+    this.fosseisAchados.add(id);
+    return true;
+  }
+
+  /** Marca o andar alcançado. Devolve true quando é um andar inédito. */
+  alcancarAndar(caverna: CavernaId, andar: number): boolean {
+    if (andar <= this.andarMax[caverna]) return false;
+    this.andarMax[caverna] = andar;
+    return true;
+  }
 
   visitarBioma(id: BiomaId): boolean {
     if (this.biomasVisitados.has(id)) return false;
@@ -85,6 +118,9 @@ export class Progresso {
     // no modo de teste o bestiário e o mapa já vêm preenchidos
     for (const b of ORDEM_BIOMAS) this.biomasVisitados.add(b);
     for (const f of TODAS_FICHAS) this.especiesVistas.add(f.id);
+    for (const f of TODOS_FOSSEIS) this.fosseisAchados.add(f.id);
+    for (const c of TODAS_CAVERNAS) this.andarMax[c.id] = 10;
+    this.lanterna = true;
   }
 }
 
@@ -146,7 +182,8 @@ export const CATALOGO: Melhoria[] = [
     melhoriaFerramenta(id, 2),
   ]),
   // ---------------------------------------------------- ferreira: armaduras
-  ...TODAS_ARMADURAS.map((a) => melhoriaArmadura(a.id)),
+  // as armaduras de custo zero não estão à venda: são prêmio de chefe
+  ...TODAS_ARMADURAS.filter((a) => a.custo > 0).map((a) => melhoriaArmadura(a.id)),
 
   // -------------------------------------------- marceneiro: inventário e casa
   {

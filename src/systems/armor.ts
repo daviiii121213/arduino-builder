@@ -44,6 +44,15 @@ export const ARMADURAS: Record<ArmaduraId, FichaArmadura> = {
     custo: 1400,
     descricao: 'Cristal do vale lapidado: absorve um coração e meio e ainda é leve.',
   },
+  ignea: {
+    id: 'ignea',
+    nome: 'Escamas ígneas',
+    reducao: 4,
+    velocidade: 1,
+    // não está à venda: é o prêmio de quem derruba o chefe do Abismo Ígneo
+    custo: 0,
+    descricao: 'Escamas do Abismo, com as juntas ainda quentes. Absorve dois corações.',
+  },
 };
 
 export const TODAS_ARMADURAS: FichaArmadura[] = Object.values(ARMADURAS);

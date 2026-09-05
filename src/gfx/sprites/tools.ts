@@ -27,7 +27,28 @@ export type RecursoId =
   | 'resina'
   | 'obsidiana'
   | 'enxofre'
-  | 'vidro';
+  | 'vidro'
+  // ---- minerios e gemas das cavernas
+  | 'carvao'
+  | 'cobre'
+  | 'prata'
+  | 'ouro'
+  | 'ametista'
+  | 'rubi'
+  | 'diamante'
+  | 'astralita'
+  | 'nucleoIgneo'
+  | 'fossilDente'
+  | 'fossilPegada'
+  | 'fossilConcha'
+  | 'fossilGarra'
+  | 'fossilOvo'
+  | 'fossilCranio'
+  | 'fossilAmbar'
+  | 'fossilVertebra'
+  | 'fossilPluma'
+  | 'fossilRunico'
+  | 'fossilEsqueleto';
 
 /** Paletas das cabeças, por nível de melhoria. */
 const MATERIAIS = [
@@ -362,6 +383,170 @@ const R_VIDRO = [
   '...kkkk...',
 ];
 
+
+// ---- minerais das cavernas (o molde e comum; a paleta muda por minerio)
+const M_GEMA = [
+  '....kk....',
+  '...k11k...',
+  '..k1221k..',
+  '.k122221k.',
+  'k12222221k',
+  'k12222223k',
+  '.k1222233k',
+  '..k12233k.',
+  '...kk33k..',
+  '....kkk...',
+];
+const M_PEPITA = [
+  '..kkk.kk..',
+  '.k112k122k',
+  'k1122k1223',
+  'k12223k123',
+  '.k122223k.',
+  '..k12223k.',
+  '...kk33k..',
+  '....kkk...',
+];
+const M_TORRAO = [
+  '..kkkkkk..',
+  '.k122221k.',
+  'k12222223k',
+  'k12232223k',
+  'k12222233k',
+  '.k3222233k',
+  '..kkkkkk..',
+];
+
+// ---- pecas de arqueologia
+const R_FOSSIL_DENTE = [
+  '...kk...',
+  '..kook..',
+  '..kook..',
+  '.kooOk..',
+  '.kooOk..',
+  '..kOOk..',
+  '..kOk...',
+  '..kk....',
+];
+const R_FOSSIL_PEGADA = [
+  '..kkkkkkkk..',
+  '.kPppkkpppk.',
+  'kPpkOOkkOOpk',
+  'kppkOOkkOOpk',
+  'kpkOOOOOOkpk',
+  'kpkOOOOOOkpk',
+  'kppkOOOOkppk',
+  '.kPppkkpppk.',
+  '..kkkkkkkk..',
+];
+const R_FOSSIL_CONCHA = [
+  '...kkkk...',
+  '..koooOk..',
+  '.kooOooOk.',
+  'kooOooOoOk',
+  'kOoOooOook',
+  'kOooOooOok',
+  '.kOooOook.',
+  '..kkOOkk..',
+  '...kkkk...',
+];
+const R_FOSSIL_GARRA = [
+  '.....kkk',
+  '....kook',
+  '...kooOk',
+  '..kooOk.',
+  '.kooOk..',
+  'kooOk...',
+  'kOOk....',
+  'kkk.....',
+];
+const R_FOSSIL_OVO = [
+  '...kkk...',
+  '..koook..',
+  '.kooOook.',
+  'kooOoooOk',
+  'kooooOook',
+  'kOooOoook',
+  'kOoooOOok',
+  '.kOoooOk.',
+  '..kkkkk..',
+];
+const R_FOSSIL_CRANIO = [
+  '..kkkkkkk..',
+  '.kooooooOk.',
+  'kooooooooOk',
+  'kokkoookkOk',
+  'kokkoookkOk',
+  'kooooooooOk',
+  '.kokokokoOk',
+  '..kkkkkkk..',
+];
+const R_FOSSIL_AMBAR = [
+  '...kkkk...',
+  '..kAAAAk..',
+  '.kAAWAAAk.',
+  'kAAAkAAAAk',
+  'kAAkkkAAAk',
+  'kAAAkkAAak',
+  '.kAAAkAaak',
+  '..kAaaaak.',
+  '...kkkkk..',
+];
+const R_FOSSIL_VERTEBRA = [
+  '...kkk....',
+  '..koOok...',
+  '.kooooOk..',
+  'kPoooooOk.',
+  'kPPooooOk.',
+  '.kPoooOk..',
+  '..kPOOk...',
+  '...kkk....',
+];
+const R_FOSSIL_PLUMA = [
+  '.......kk',
+  '......koS',
+  '..k..kooS',
+  '.kSkkooSS',
+  'kSSooooSS',
+  '.kSSooSSk',
+  '..kSSoSk.',
+  '...kSSk..',
+  '....kk...',
+];
+const R_FOSSIL_RUNICO = [
+  '..kkkkkk..',
+  '.kmMmmMmk.',
+  'kmMmWmMmMk',
+  'kmmWmmmWmk',
+  'kmMmmWmMmk',
+  'kmmWmmmWmk',
+  '.kmMmmMmk.',
+  '..kkkkkk..',
+];
+const R_FOSSIL_ESQUELETO = [
+  '.kkkkkkkkkk.',
+  'kSPoookoooPk',
+  'kSPokkOkkoPk',
+  'kSPoookoooPk',
+  'kSoOoOkOoOok',
+  'kSoOoOkOoOok',
+  'kSPoookoooPk',
+  'kSPPPoooPPPk',
+  '.kkkkkkkkkk.',
+];
+
+const PALETAS_RECURSO: Partial<Record<RecursoId, Paleta>> = {
+  carvao: { '1': '#4a4650', '2': '#2a262e', '3': '#151318' },
+  cobre: { '1': '#e08a4a', '2': '#b4602a', '3': '#6f3616' },
+  prata: { '1': '#eef2f7', '2': '#b8c0cc', '3': '#79828f' },
+  ouro: { '1': '#fff0a0', '2': '#f0c040', '3': '#a87a18' },
+  ametista: { '1': '#e0b4ff', '2': '#a56bff', '3': '#5a2f9e' },
+  rubi: { '1': '#ffb0a8', '2': '#e0403f', '3': '#7a1a1c' },
+  diamante: { '1': '#ffffff', '2': '#bfeaf7', '3': '#5f9ec0' },
+  astralita: { '1': '#e6fbff', '2': '#5ad8ff', '3': '#1f6fb0' },
+  nucleoIgneo: { '1': '#ffe08a', '2': '#ff6a2a', '3': '#8a2410' },
+};
+
 const DESENHOS_RECURSO: Record<RecursoId, string[]> = {
   madeira: R_MADEIRA,
   pedra: R_PEDRA,
@@ -378,6 +563,26 @@ const DESENHOS_RECURSO: Record<RecursoId, string[]> = {
   obsidiana: R_OBSIDIANA,
   enxofre: R_ENXOFRE,
   vidro: R_VIDRO,
+  carvao: M_TORRAO,
+  cobre: M_PEPITA,
+  prata: M_PEPITA,
+  ouro: M_PEPITA,
+  ametista: M_GEMA,
+  rubi: M_GEMA,
+  diamante: M_GEMA,
+  astralita: M_GEMA,
+  nucleoIgneo: M_GEMA,
+  fossilDente: R_FOSSIL_DENTE,
+  fossilPegada: R_FOSSIL_PEGADA,
+  fossilConcha: R_FOSSIL_CONCHA,
+  fossilGarra: R_FOSSIL_GARRA,
+  fossilOvo: R_FOSSIL_OVO,
+  fossilCranio: R_FOSSIL_CRANIO,
+  fossilAmbar: R_FOSSIL_AMBAR,
+  fossilVertebra: R_FOSSIL_VERTEBRA,
+  fossilPluma: R_FOSSIL_PLUMA,
+  fossilRunico: R_FOSSIL_RUNICO,
+  fossilEsqueleto: R_FOSSIL_ESQUELETO,
 };
 
 export interface ArteFerramentas {
@@ -395,7 +600,7 @@ export function criarFerramentas(): ArteFerramentas {
   }
   const recursos = {} as Record<RecursoId, Sprite>;
   for (const id of Object.keys(DESENHOS_RECURSO) as RecursoId[]) {
-    recursos[id] = pintar(DESENHOS_RECURSO[id], PAL_RECURSO);
+    recursos[id] = pintar(DESENHOS_RECURSO[id], { ...PAL_RECURSO, ...PALETAS_RECURSO[id] });
   }
   return {
     ferramentas,

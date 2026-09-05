@@ -29,11 +29,26 @@ import {
   CASA_Y,
   CABANA_X,
   CABANA_Y,
+  BOCA_GRUTA_X,
+  BOCA_GRUTA_Y,
+  BOCA_MINA_X,
+  BOCA_MINA_Y,
   pontoDoBioma,
 } from '../world/worldgen';
 import { BIOMAS, TODOS_BIOMAS, type BiomaId } from '../world/biomes';
+import { gerarAndar, type AndarGerado } from '../world/caves';
+import {
+  ANDARES,
+  CAVERNAS,
+  TODAS_CAVERNAS,
+  idDoAndar,
+  type CavernaId,
+} from '../world/caveDefs';
+import { chanceDeFossil, sortearFossil, FOSSEIS, COR_RARIDADE } from '../systems/fossils';
+import { criarCanvas, ctx2d } from '../gfx/pixel';
 import { criarNpcsDaCabana } from '../world/npcs';
 import { desenharTerreno, objetosVisiveis, desenharObjeto } from '../world/renderer';
+import { colocar } from '../world/props';
 import { HUD } from '../ui/hud';
 import { Inventario, Recipiente, criarItem } from '../systems/items';
 import { Carteira, formatarMoedas } from '../systems/economy';
@@ -131,6 +146,19 @@ export class CenaJogo implements Cena {
   private biomaAtual: BiomaId = 'vale';
   /** Acumulador fracionário das partículas de ambiente. */
   private restoAmbiente = 0;
+  /** Andares de caverna já gerados nesta partida (são criados sob demanda). */
+  private andares = new Map<string, AndarGerado>();
+  /** Caverna e andar atuais (null na superfície). */
+  private caverna: CavernaId | null = null;
+  private andar = 0;
+  /** Por onde o jogador entrou na caverna, para voltar no lugar certo. */
+  private bocaDeSaida: CavernaId = 'gruta';
+  /** Camada de escuridão das cavernas, redesenhada a cada quadro. */
+  private camadaEscura = criarCanvas(LARGURA, ALTURA);
+  /** Chefe vivo no andar atual (barra de vida no alto da tela). */
+  private chefeAtual: Dino | null = null;
+  /** Baú de recompensa do décimo andar, quando o chefe já caiu. */
+  private tesouroAberto = new Set<string>();
 
   constructor(
     private jogo: Jogo,
@@ -188,11 +216,20 @@ export class CenaJogo implements Cena {
       dinos: this.dinos,
       projeteis: this.projeteis,
       tempo: 0,
-      criarOrbe: (x, y, ang, dano, vel) => {
-        this.projeteis.push(new Orbe(x, y, ang, dano, vel));
+      criarOrbe: (x, y, ang, dano, vel, estilo) => {
+        this.projeteis.push(new Orbe(x, y, ang, dano, vel, estilo));
+      },
+      invocar: (especie, x, y) => {
+        const d = new Dino(especie, x, y);
+        this.dinos.push(d);
+        this.particulas.animacao(this.jogo.assets.efeitos.ondaBranca, x, y - 8, 0.4);
       },
       avisar: (txt, seg) => this.hud.avisar(txt, seg),
-      aoAbater: () => this.diario.abateu(),
+      aoAbater: (especie) => {
+        this.diario.abateu();
+        const caverna = TODAS_CAVERNAS.find((c) => c.chefe === especie);
+        if (caverna) this.aoDerrubarChefe(caverna.id);
+      },
     };
 
     this.painelVenda = new PainelVenda(
@@ -313,6 +350,40 @@ export class CenaJogo implements Cena {
         grupo: 'biomas',
         executar: () => this.teleportarBioma(f.id),
       })),
+      ...TODAS_CAVERNAS.flatMap((c) => [
+        {
+          rotulo: `${c.nome}: entrar no 1º andar`,
+          grupo: 'cavernas',
+          executar: () => this.irParaAndar(c.id, 1),
+        },
+        {
+          rotulo: `${c.nome}: ir ao 10º andar (chefe)`,
+          grupo: 'cavernas',
+          executar: () => this.irParaAndar(c.id, ANDARES),
+        },
+      ]),
+      {
+        rotulo: 'Ir até o minério mais próximo',
+        grupo: 'cavernas',
+        executar: () => this.irAteONo('rocha'),
+      },
+      {
+        rotulo: 'Ir até a escavação mais próxima',
+        grupo: 'cavernas',
+        executar: () => this.irAteONo('escavacao'),
+      },
+      {
+        rotulo: 'Achar uma peça de arqueologia',
+        grupo: 'cavernas',
+        executar: () => {
+          const id = sortearFossil(this.rng, {
+            bioma: this.biomaAtual,
+            caverna: !!this.caverna,
+            profundidade: this.andar,
+          });
+          if (id) this.receberFossil(id, this.jogador.centroX, this.jogador.y);
+        },
+      },
       { rotulo: 'Vender recursos', grupo: 'dinheiro', executar: () => this.painelVenda.abrir() },
       {
         rotulo: 'Melhorar ferramentas (Bruna)',
@@ -435,9 +506,33 @@ export class CenaJogo implements Cena {
     this.hud.avisar('Progresso zerado: as melhorias voltaram a ficar à venda.', 3);
   }
 
+  /** Atalho de teste: leva o jogador para o lado do nó de recurso mais perto. */
+  private irAteONo(tipo: 'rocha' | 'escavacao' | 'arvore' | 'solo'): void {
+    let melhor: NoRecurso | null = null;
+    let melhorD = Infinity;
+    for (const no of this.nivel.nos) {
+      if (!no.cheio || no.def.tipo !== tipo) continue;
+      const d = dist(no.x, no.y, this.jogador.centroX, this.jogador.y);
+      if (d >= melhorD) continue;
+      melhor = no;
+      melhorD = d;
+    }
+    if (!melhor) {
+      this.hud.avisar(`Nenhum nó de ${tipo} neste mapa.`, 2);
+      return;
+    }
+    this.jogador.reposicionar(melhor.x, melhor.y + 18);
+    this.camera.focar(this.jogador.centroX, this.jogador.centroY);
+    this.hud.avisar(`${melhor.def.nome} logo à frente.`, 2.5);
+  }
+
   /** Traz o dinossauro vivo mais próximo para o lado do jogador. */
   private trazerDino(): void {
-    if (this.nivel.id !== ID_MUNDO) this.teleportar('casa');
+    // dentro de casa ou da cabana não há bicho nenhum: sai para o vale antes.
+    // Nas cavernas o teste roda ali mesmo, com a população do andar.
+    if (this.nivel.ambiente === 'interior' || this.nivel.ambiente === 'cabana') {
+      this.teleportar('casa');
+    }
     const vivos = this.dinos.filter((d) => d.vivo);
     if (vivos.length === 0) {
       this.hud.avisar('Nenhum dinossauro vivo agora.', 2);
@@ -684,10 +779,209 @@ export class CenaJogo implements Cena {
     this.camera.atualizar(dt);
   }
 
+  // -------------------------------------------------------------- cavernas
+
+  /** Gera (uma vez) e devolve o andar pedido. */
+  private andarDe(caverna: CavernaId, andar: number): AndarGerado {
+    const id = idDoAndar(caverna, andar);
+    let a = this.andares.get(id);
+    if (!a) {
+      a = gerarAndar(this.jogo.assets, caverna, andar);
+      this.andares.set(id, a);
+      this.niveis.set(id, a.nivel);
+      const bichos = a.nascimentos.map((n) => new Dino(n.especie, n.x, n.y));
+      if (a.chefe && !this.progresso.chefesDerrotados.has(caverna)) {
+        bichos.push(new Dino(CAVERNAS[caverna].chefe, a.chefe.x, a.chefe.y));
+      }
+      this.dinosPorNivel.set(id, bichos);
+      this.npcsPorNivel.set(id, []);
+      // o baú só aparece depois que o chefe cai
+      if (a.tesouro && this.progresso.chefesDerrotados.has(caverna)) this.abrirSalaDoTesouro(a);
+    }
+    return a;
+  }
+
+  /** Coloca o baú de recompensa na arena do chefe. */
+  private abrirSalaDoTesouro(a: AndarGerado): void {
+    if (!a.tesouro) return;
+    const marca = `${a.caverna}:tesouro`;
+    if (a.nivel.nomeados.has(marca)) return;
+    const { objeto } = colocar(a.nivel, this.jogo.assets.casa.bau, a.tesouro.x, a.tesouro.y, {
+      colisao: { w: 16, h: 6 },
+      sombra: this.jogo.assets.sombras.m,
+    });
+    a.nivel.nomeados.set(marca, objeto);
+    a.nivel.luzes.push({ x: a.tesouro.x, y: a.tesouro.y - 10 });
+    a.nivel.interativos.push({
+      area: { x: a.tesouro.x - 16, y: a.tesouro.y - 20, w: 32, h: 26 },
+      rotulo: 'Abrir o baú do chefe',
+      acao: 'tesouro',
+    });
+    a.nivel.ordenarObjetos();
+  }
+
+  /** Leva o jogador a um andar, com a transição escura de sempre. */
+  private irParaAndar(caverna: CavernaId, andar: number, vindoDeCima = true): void {
+    const a = this.andarDe(caverna, andar);
+    this.caverna = caverna;
+    this.andar = andar;
+    this.bocaDeSaida = caverna;
+    this.nivel = a.nivel;
+    this.mundo.nivel = a.nivel;
+    this.mundo.dinos = this.dinos;
+    this.projeteis.length = 0;
+    this.camera.definirLimites(a.nivel.larguraPx, a.nivel.alturaPx);
+    const p = vindoDeCima ? a.chegadaDeCima : a.chegadaDeBaixo;
+    this.jogador.reposicionar(p.x, p.y);
+    this.camera.focar(this.jogador.centroX, this.jogador.centroY);
+    this.chefeAtual = this.dinos.find((d) => d.ficha.chefe) ?? null;
+    this.hud.mostrarLocal(a.nivel.nome);
+    this.jogo.audio.ambiente(CAVERNAS[caverna].som);
+
+    // chegar num andar inédito rende uma bolada e um registro no diário
+    if (this.progresso.alcancarAndar(caverna, andar)) {
+      const bonus = 30 + andar * 20;
+      this.carteira.ganhar(bonus);
+      this.jogo.audio.confirmar();
+      this.hud.avisar(
+        `Andar ${andar} de ${ANDARES} alcançado! +${formatarMoedas(bonus)} pelo mapeamento.`,
+        4,
+      );
+      this.particulas.texto(
+        `+${formatarMoedas(bonus)}`,
+        this.jogador.centroX,
+        this.jogador.y - 30,
+        P.ambar,
+      );
+      this.diario.desceu(caverna, andar);
+    }
+    if (andar === ANDARES && this.chefeAtual) {
+      this.hud.avisar(`${this.chefeAtual.ficha.nome} — ${this.chefeAtual.ficha.chefe!.titulo}.`, 4);
+      this.jogo.audio.rugido(true);
+      this.camera.tremer(5, 0.7);
+    }
+  }
+
+  /** Entra na caverna pela boca do vale, no andar mais fundo já alcançado. */
+  private entrarNaCaverna(caverna: CavernaId): void {
+    const fundo = Math.max(1, this.progresso.andarMax[caverna]);
+    this.transicao = {
+      t: 0,
+      fase: 'saindo',
+      acao: () => {
+        this.irParaAndar(caverna, 1);
+        if (fundo > 1) {
+          this.hud.avisar(
+            `O guincho já desce até o andar ${fundo}: procure a plataforma na entrada.`,
+            4,
+          );
+        }
+      },
+    };
+    this.jogo.audio.portal();
+  }
+
+  /** Sai da caverna e volta para a boca correspondente, no vale. */
+  private sairParaOVale(): void {
+    const mundoNivel = this.niveis.get(ID_MUNDO)!;
+    this.caverna = null;
+    this.andar = 0;
+    this.chefeAtual = null;
+    this.nivel = mundoNivel;
+    this.mundo.nivel = mundoNivel;
+    this.mundo.dinos = this.dinos;
+    this.projeteis.length = 0;
+    this.camera.definirLimites(mundoNivel.larguraPx, mundoNivel.alturaPx);
+    const boca =
+      this.bocaDeSaida === 'gruta'
+        ? { x: BOCA_GRUTA_X + 24, y: BOCA_GRUTA_Y + 66 }
+        : { x: BOCA_MINA_X + 24, y: BOCA_MINA_Y + 66 };
+    this.jogador.reposicionar(boca.x, boca.y);
+    this.camera.focar(this.jogador.centroX, this.jogador.centroY);
+    this.biomaAtual = 'vale';
+    this.hud.mostrarLocal(mundoNivel.nome);
+    this.jogo.audio.ambiente(null);
+  }
+
+  /**
+   * O guincho: sobe direto para o vale de qualquer andar, e da boca da caverna
+   * desce direto para o andar mais fundo já alcançado. É o que evita refazer
+   * os dez andares toda vez.
+   */
+  private usarGuincho(): void {
+    if (!this.caverna) return;
+    const caverna = this.caverna;
+    const fundo = this.progresso.andarMax[caverna];
+    this.jogo.audio.maquina();
+    if (this.andar > 1) {
+      this.transicao = { t: 0, fase: 'saindo', acao: () => this.sairParaOVale() };
+      this.hud.avisar('O guincho range e sobe com você até a boca da caverna.', 3);
+      return;
+    }
+    // no primeiro andar o guincho serve para descer de volta ao fundo
+    if (fundo > 1) {
+      this.transicao = { t: 0, fase: 'saindo', acao: () => this.irParaAndar(caverna, fundo) };
+      this.hud.avisar(`Descendo direto para o andar ${fundo}.`, 3);
+    } else {
+      this.transicao = { t: 0, fase: 'saindo', acao: () => this.sairParaOVale() };
+    }
+  }
+
+  /** Recompensa do décimo andar: dinheiro, minérios raros e o prêmio único. */
+  private abrirTesouro(): void {
+    if (!this.caverna) return;
+    const caverna = this.caverna;
+    const marca = idDoAndar(caverna, ANDARES);
+    if (this.tesouroAberto.has(marca)) {
+      this.hud.avisar('O baú já está vazio.', 2);
+      return;
+    }
+    this.tesouroAberto.add(marca);
+    const r = CAVERNAS[caverna].recompensa;
+    this.carteira.ganhar(r.moedas);
+    for (const item of r.itens) {
+      const sobrou = this.inventario.guardar(criarItem('recurso', item.id, item.quantidade));
+      if (sobrou > 0) this.hud.avisar(`Bolsa cheia: sobraram ${sobrou} de ${RECURSOS[item.id].nome}.`, 3);
+      if (item.id in FOSSEIS) this.progresso.encontrarFossil(item.id as keyof typeof FOSSEIS);
+    }
+    if (r.premio === 'lanterna') {
+      this.progresso.lanterna = true;
+    } else {
+      this.progresso.armaduras.add(r.premio);
+      this.progresso.armaduraVestida = r.premio;
+      this.jogador.armadura = r.premio;
+    }
+    this.jogo.audio.confirmar();
+    this.camera.tremer(3, 0.4);
+    this.particulas.jato(this.jogador.centroX, this.jogador.centroY, [P.ambar, P.brilho, '#ffffff'], 30, 120, {
+      vida: 1.1,
+      gravidade: 60,
+    });
+    this.hud.avisar(`${r.nomePremio}: ${r.texto}`, 6);
+    this.hud.avisar(`+${formatarMoedas(r.moedas)} e minérios raros do baú.`, 5);
+  }
+
+  /** Efeito de derrubar um chefe: libera o baú e marca o feito. */
+  private aoDerrubarChefe(caverna: CavernaId): void {
+    if (this.progresso.chefesDerrotados.has(caverna)) return;
+    this.progresso.chefesDerrotados.add(caverna);
+    this.chefeAtual = null;
+    const a = this.andares.get(idDoAndar(caverna, ANDARES));
+    if (a) this.abrirSalaDoTesouro(a);
+    this.camera.tremer(8, 1.2);
+    this.jogo.audio.trovao();
+    this.hud.avisar(`${CAVERNAS[caverna].nome}: o guardião caiu. Um baú apareceu na arena.`, 6);
+    this.diario.derrotouChefe(caverna);
+  }
+
   // ---------------------------------------------------------------- biomas
 
   /** Descobre em que bioma o jogador está e liga a atmosfera dele. */
   private atualizarBioma(dt: number): void {
+    if (this.caverna) {
+      this.emitirPoeiraDeCaverna(dt);
+      return;
+    }
     if (this.nivel.id !== ID_MUNDO) {
       this.jogo.audio.ambiente(null);
       return;
@@ -702,6 +996,31 @@ export class CenaJogo implements Cena {
       if (this.progresso.visitarBioma(b)) this.diario.visitou(b);
     }
     this.emitirAmbiente(dt);
+  }
+
+  /** Pó em suspensão (e brasa, no Abismo) descendo devagar dentro da caverna. */
+  private emitirPoeiraDeCaverna(dt: number): void {
+    if (!this.caverna) return;
+    const f = CAVERNAS[this.caverna];
+    this.restoAmbiente += (10 + this.andar) * dt;
+    const quantas = Math.floor(this.restoAmbiente);
+    this.restoAmbiente -= quantas;
+    const camX = this.camera.desenhoX;
+    const camY = this.camera.desenhoY;
+    const sobe = this.caverna === 'mina';
+    for (let i = 0; i < quantas; i++) {
+      this.particulas.pixel(
+        camX + this.rng.range(0, LARGURA),
+        camY + this.rng.range(0, ALTURA),
+        this.rng.pick(f.poeira),
+        {
+          vx: this.rng.range(-6, 6),
+          vy: sobe ? this.rng.range(-26, -10) : this.rng.range(4, 14),
+          vida: this.rng.range(1.2, 2.6),
+          gravidade: sobe ? -8 : 6,
+        },
+      );
+    }
   }
 
   /**
@@ -854,12 +1173,42 @@ export class CenaJogo implements Cena {
         70,
       );
       this.particulas.animacao(this.jogo.assets.efeitos.faisca, alvo.x, alvo.y - 10, 0.2);
-      this.camera.tremer(1.2, 0.12);
-      if (alvo.def.som === 'madeira') this.jogo.audio.passo(false);
-      else if (alvo.def.som === 'pedra') this.jogo.audio.acerto();
-      else this.jogo.audio.passo(true);
+      // a batida muda com o que está sendo golpeado: madeira abafa, rocha
+      // estala, minério canta e terra chia
+      if (alvo.def.som === 'madeira') {
+        this.camera.tremer(1.2, 0.12);
+        this.jogo.audio.passo(false);
+      } else if (alvo.def.som === 'pedra') {
+        const minerio = alvo.def.nome.startsWith('Veio') || alvo.def.nome.startsWith('Geodo');
+        this.camera.tremer(minerio ? 2 : 1.4, 0.14);
+        this.jogo.audio.acerto();
+        if (minerio) {
+          // faísca de metal e um tinido agudo por cima da batida
+          this.jogo.audio.magia();
+          this.particulas.leque(alvo.x, alvo.y - 12, angulo + Math.PI, 0.9, [
+            alvo.def.corLasca,
+            '#ffffff',
+          ], 6, 96);
+        }
+      } else {
+        this.camera.tremer(0.8, 0.1);
+        this.jogo.audio.passo(true);
+      }
 
       if (resultado.derrubou) {
+        // escavação pode render uma peça de coleção além dos cacos de sempre
+        if (alvo.def.tipo === 'escavacao') {
+          const ctx = {
+            bioma: this.biomaAtual,
+            caverna: !!this.caverna,
+            profundidade: this.andar,
+            sorte: 1 + nivel * 0.25,
+          };
+          if (this.rng.chance(chanceDeFossil(ctx))) {
+            const achado = sortearFossil(this.rng, ctx);
+            if (achado) this.receberFossil(achado, alvo.x, alvo.y);
+          }
+        }
         this.jogo.audio.morte();
         this.camera.tremer(2.4, 0.2);
         this.particulas.jato(
@@ -907,6 +1256,51 @@ export class CenaJogo implements Cena {
     this.particulas.animacao(this.jogo.assets.efeitos.poeira, px, py, 0.25);
   }
 
+  /**
+   * Uma peça de arqueologia saiu do chão.
+   *
+   * Guarda no inventário, registra na coleção e faz a animação de descoberta:
+   * o clarão, a chuva de pó com a cor da raridade e a etiqueta com o nome.
+   */
+  private receberFossil(id: keyof typeof FOSSEIS, x: number, y: number): void {
+    const ficha = FOSSEIS[id];
+    const cor = COR_RARIDADE[ficha.raridade];
+    const sobrou = this.inventario.guardar(criarItem('recurso', id, 1));
+    const novidade = this.progresso.encontrarFossil(id);
+
+    // clarão e leque de pó na cor da raridade
+    this.particulas.animacao(this.jogo.assets.efeitos.ondaBranca, x, y - 10, 0.5);
+    this.particulas.jato(x, y - 8, [cor, P.osso, '#ffffff'], novidade ? 26 : 14, 100, {
+      vida: 0.9,
+      gravidade: 120,
+    });
+    for (let i = 0; i < 10; i++) {
+      const a = this.rng.range(0, TAU);
+      this.particulas.pixel(x, y - 8, cor, {
+        vx: Math.cos(a) * 26,
+        vy: Math.sin(a) * 20 - 30,
+        vida: 1,
+        gravidade: 60,
+      });
+    }
+    this.particulas.texto(ficha.nome, x, y - 26, cor, '#161320', 1.8);
+    this.camera.tremer(novidade ? 2.5 : 1.2, 0.25);
+    this.jogo.audio.confirmar();
+
+    if (sobrou > 0) {
+      this.hud.avisar(`Bolsa cheia: a peça ${ficha.nome} ficou para trás.`, 3);
+      return;
+    }
+    this.diario.coletou(id, 1);
+    if (novidade) {
+      this.hud.avisar(`Arqueologia: ${ficha.nome} (${ficha.raridade}) entrou na coleção!`, 4.5);
+      this.jogo.audio.magia();
+      this.diario.colecionou(this.progresso.fosseisAchados.size);
+    } else {
+      this.hud.avisar(`${ficha.nome} — mais uma para vender.`, 2.5);
+    }
+  }
+
   /** Guarda o que caiu e avisa o jogador. */
   private receberQuedas(
     quedas: { id: import('../gfx/sprites/tools').RecursoId; quantidade: number }[],
@@ -917,7 +1311,20 @@ export class CenaJogo implements Cena {
     for (const q of quedas) {
       const sobrou = this.inventario.guardar(criarItem('recurso', q.id, q.quantidade));
       const entrou = q.quantidade - sobrou;
-      if (entrou > 0) this.diario.coletou(q.id, entrou);
+      if (entrou > 0) {
+        this.diario.coletou(q.id, entrou);
+        // primeira vez que um minério valioso sai da picareta: comemora
+        const ficha = RECURSOS[q.id];
+        if (ficha.valor >= 80 && this.progresso.encontrarMineral(q.id)) {
+          this.hud.avisar(`Achado raro: ${ficha.nome}! Vale ${ficha.valor} moedas por unidade.`, 5);
+          this.jogo.audio.magia();
+          this.particulas.jato(x, y - 10, [P.ambar, P.brilho, '#ffffff'], 22, 110, {
+            vida: 1,
+            gravidade: 70,
+          });
+          this.camera.tremer(2, 0.25);
+        }
+      }
       const nome = RECURSOS[q.id].nome;
       if (entrou > 0) {
         this.particulas.texto(`+${entrou} ${nome}`, x, y - 18 - alturaTexto, P.osso);
@@ -1031,6 +1438,45 @@ export class CenaJogo implements Cena {
       case 'bancada':
         this.hud.avisar('Peças, limalha e um cheiro forte de ferro quente.', 3);
         break;
+
+      // ------------------------------------------------------------ cavernas
+      case 'entrar-gruta':
+        this.entrarNaCaverna('gruta');
+        break;
+      case 'entrar-mina':
+        this.entrarNaCaverna('mina');
+        break;
+      case 'descer': {
+        if (!this.caverna) break;
+        const caverna = this.caverna;
+        const proximo = Math.min(ANDARES, this.andar + 1);
+        this.jogo.audio.portal();
+        this.transicao = {
+          t: 0,
+          fase: 'saindo',
+          acao: () => this.irParaAndar(caverna, proximo, true),
+        };
+        break;
+      }
+      case 'subir': {
+        if (!this.caverna) break;
+        const caverna = this.caverna;
+        const anterior = this.andar - 1;
+        this.jogo.audio.portal();
+        this.transicao = {
+          t: 0,
+          fase: 'saindo',
+          acao: () =>
+            anterior < 1 ? this.sairParaOVale() : this.irParaAndar(caverna, anterior, false),
+        };
+        break;
+      }
+      case 'guincho':
+        this.usarGuincho();
+        break;
+      case 'tesouro':
+        this.abrirTesouro();
+        break;
     }
   }
 
@@ -1061,6 +1507,9 @@ export class CenaJogo implements Cena {
   /** Atalho do modo de teste: leva o jogador ao miolo de um bioma. */
   private teleportarBioma(bioma: BiomaId): void {
     const mundoNivel = this.niveis.get(ID_MUNDO)!;
+    this.caverna = null;
+    this.andar = 0;
+    this.chefeAtual = null;
     if (this.nivel.id !== ID_MUNDO) {
       this.nivel = mundoNivel;
       this.mundo.nivel = this.nivel;
@@ -1076,6 +1525,9 @@ export class CenaJogo implements Cena {
 
   /** Atalho do modo de teste: leva o jogador direto a cada sistema. */
   private teleportar(destino: 'casa' | 'cabana' | 'maquina'): void {
+    this.caverna = null;
+    this.andar = 0;
+    this.chefeAtual = null;
     if (this.nivel.id !== ID_MUNDO) {
       this.nivel = this.niveis.get(ID_MUNDO)!;
       this.mundo.nivel = this.nivel;
@@ -1125,6 +1577,9 @@ export class CenaJogo implements Cena {
   private irPara(destino: string): void {
     const alvo = this.niveis.get(destino);
     if (!alvo) return;
+    this.caverna = null;
+    this.andar = 0;
+    this.chefeAtual = null;
     this.nivel = alvo;
     this.mundo.nivel = alvo;
     this.mundo.dinos = this.dinos;
@@ -1156,6 +1611,10 @@ export class CenaJogo implements Cena {
 
   private ressuscitar(): void {
     const mundoNivel = this.niveis.get(ID_MUNDO)!;
+    this.caverna = null;
+    this.andar = 0;
+    this.chefeAtual = null;
+    this.jogador.veneno = 0;
     this.nivel = mundoNivel;
     this.mundo.nivel = mundoNivel;
     this.mundo.dinos = this.dinos;
@@ -1234,6 +1693,16 @@ export class CenaJogo implements Cena {
     this.desenharBarraDoNo(g, camX, camY);
     this.desenharLuzes(g, camX, camY);
 
+    // tinta e escuridão da caverna
+    if (this.caverna) {
+      const f = CAVERNAS[this.caverna];
+      g.globalAlpha = f.tinta.alpha;
+      g.fillStyle = f.tinta.cor;
+      g.fillRect(0, 0, LARGURA, ALTURA);
+      g.globalAlpha = 1;
+      this.desenharEscuridao(g, camX, camY);
+    }
+
     // tinta atmosférica do bioma (só no mundo aberto)
     if (this.nivel.id === ID_MUNDO) {
       const tinta = BIOMAS[this.biomaAtual].tinta;
@@ -1272,6 +1741,7 @@ export class CenaJogo implements Cena {
       alvo: this.dicaFerramenta?.rotulo ?? null,
       diarioNovo: this.diario.naoLidas,
     });
+    this.desenharBarraDoChefe(g);
     if (this.dica) {
       this.hud.desenharDicaInteracao(g, this.dica.rotulo, this.dica.x, this.dica.y);
     }
@@ -1308,6 +1778,87 @@ export class CenaJogo implements Cena {
         this.jogador.podeAtacar,
       );
     }
+  }
+
+  /**
+   * Escuridão da caverna.
+   *
+   * Uma camada escura por cima da cena com furos onde há luz: um halo grande no
+   * jogador (maior com a Lanterna de Cristal) e um menor em cada tocha, guincho
+   * ou fogo do andar. Nada de interface — a leitura vem só da luz.
+   */
+  private desenharEscuridao(g: CanvasRenderingContext2D, camX: number, camY: number): void {
+    if (!this.caverna) return;
+    const f = CAVERNAS[this.caverna];
+    // fica mais escuro conforme desce, mas nunca a ponto de esconder o jogo
+    const forca = Math.min(0.86, f.escuridao + this.andar * 0.02);
+    const gc = ctx2d(this.camadaEscura);
+    gc.globalCompositeOperation = 'source-over';
+    gc.fillStyle = '#05040a';
+    gc.globalAlpha = 1;
+    gc.fillRect(0, 0, LARGURA, ALTURA);
+
+    gc.globalCompositeOperation = 'destination-out';
+    const furo = (x: number, y: number, raio: number, forcaFuro: number) => {
+      if (x < -raio || y < -raio || x > LARGURA + raio || y > ALTURA + raio) return;
+      const grad = gc.createRadialGradient(x, y, 0, x, y, raio);
+      grad.addColorStop(0, `rgba(0,0,0,${forcaFuro})`);
+      grad.addColorStop(0.55, `rgba(0,0,0,${forcaFuro * 0.8})`);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      gc.fillStyle = grad;
+      gc.beginPath();
+      gc.arc(x, y, raio, 0, TAU);
+      gc.fill();
+    };
+
+    // a lanterna do jogador
+    const tremor = 1 + Math.sin(this.tempoJogo * 6) * 0.03;
+    const raioJogador = (this.progresso.lanterna ? 108 : 66) * tremor;
+    furo(this.jogador.centroX - camX, this.jogador.centroY - camY, raioJogador, 1);
+    // tochas, guincho e fogos do andar
+    for (const l of this.nivel.luzes) furo(l.x - camX, l.y - camY, 54, 0.95);
+    for (const fg of this.nivel.fogos) furo(fg.x - camX, fg.y - camY, 40, 0.9);
+    // os veios de minério e os cristais brilham de leve
+    for (const no of this.nivel.nos) {
+      if (!no.cheio || no.def.som !== 'pedra') continue;
+      furo(no.x - camX, no.y - 10 - camY, 22, 0.55);
+    }
+    gc.globalCompositeOperation = 'source-over';
+
+    g.globalAlpha = forca;
+    g.drawImage(this.camadaEscura, 0, 0);
+    g.globalAlpha = 1;
+  }
+
+  /** Barra de vida do chefe, no alto da tela, com nome e fase. */
+  private desenharBarraDoChefe(g: CanvasRenderingContext2D): void {
+    const c = this.chefeAtual;
+    if (!c || !c.vivo || !c.ficha.chefe) return;
+    const larg = 200;
+    const x = Math.round((LARGURA - larg) / 2);
+    const y = 6;
+    const prop = clamp(c.vida / c.ficha.vidaMax, 0, 1);
+    g.fillStyle = 'rgba(16,14,26,0.75)';
+    g.fillRect(x - 3, y - 3, larg + 6, 18);
+    g.fillStyle = P.contorno;
+    g.fillRect(x, y + 8, larg, 6);
+    g.fillStyle = '#3a2b33';
+    g.fillRect(x + 1, y + 9, larg - 2, 4);
+    g.fillStyle = prop > 0.6 ? P.coracao : prop > 0.3 ? P.fogo : P.ambar;
+    g.fillRect(x + 1, y + 9, Math.round((larg - 2) * prop), 4);
+    g.fillStyle = P.brilho;
+    g.fillRect(x + 1, y + 9, Math.round((larg - 2) * prop), 1);
+    // divisórias das fases
+    const fases = c.ficha.chefe.fases;
+    g.fillStyle = P.contorno;
+    for (let i = 1; i < fases; i++) {
+      g.fillRect(x + Math.round(((larg - 2) * i) / fases), y + 8, 1, 6);
+    }
+    texto(g, `${c.ficha.nome} · ${c.ficha.chefe.titulo}`, LARGURA / 2, y, {
+      cor: P.osso,
+      sombra: P.contorno,
+      alinhamento: 'centro',
+    });
   }
 
   /** Barrinha de vida do nó que está sendo colhido. */

@@ -15,12 +15,14 @@ import type { Diario } from '../systems/missions';
 import { descreverObjetivo } from '../systems/missions';
 import type { Progresso } from '../systems/progression';
 import { BIOMAS, ORDEM_BIOMAS } from '../world/biomes';
+import { CAVERNAS, ORDEM_CAVERNAS, ANDARES } from '../world/caveDefs';
+import { TODOS_FOSSEIS } from '../systems/fossils';
 import { cabecalho, moldura, rodape, saldo } from './painel';
 import type { Carteira } from '../systems/economy';
 import { clamp } from '../core/math';
 
 const LARG = 300;
-const ALT = 222;
+const ALT = 244;
 
 export class PainelDiario {
   aberta = false;
@@ -154,6 +156,39 @@ export class PainelDiario {
       });
       cy += 9;
     }
+
+    // ---- cavernas e coleção
+    cy += 3;
+    for (const id of ORDEM_CAVERNAS) {
+      const c = CAVERNAS[id];
+      const fundo = this.progresso.andarMax[id];
+      g.fillStyle = fundo > 0 ? c.cor : '#2a2338';
+      g.fillRect(x + 12, cy + 1, 4, 5);
+      texto(g, c.nome, x + 19, cy, {
+        cor: fundo > 0 ? P.osso : '#5b5470',
+        sombra: P.contorno,
+      });
+      const marca = this.progresso.chefesDerrotados.has(id)
+        ? 'guardião derrotado'
+        : fundo > 0
+          ? `andar ${fundo}/${ANDARES}`
+          : 'não visitada';
+      texto(g, marca, x + LARG - 12, cy, {
+        cor: this.progresso.chefesDerrotados.has(id) ? P.ambar : '#7a7391',
+        sombra: P.contorno,
+        alinhamento: 'direita',
+      });
+      cy += 9;
+    }
+    const pecas = this.progresso.demo
+      ? TODOS_FOSSEIS.length
+      : TODOS_FOSSEIS.filter((f) => this.progresso.fosseisAchados.has(f.id)).length;
+    texto(g, 'Coleção de arqueologia', x + 12, cy, { cor: '#7a7391', sombra: P.contorno });
+    texto(g, `${pecas}/${TODOS_FOSSEIS.length} peças`, x + LARG - 12, cy, {
+      cor: P.ambar,
+      sombra: P.contorno,
+      alinhamento: 'direita',
+    });
 
     rodape(g, 'W/S escolhe · J ou ESC fecha', x, y, LARG, ALT);
   }

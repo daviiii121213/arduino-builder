@@ -50,6 +50,13 @@ export class HUD {
   private moedasAnterior = -1;
 
   avisar(txt: string, duracao = 2.6): void {
+    // o mesmo aviso repetido só renova o tempo: nada de duas linhas iguais
+    const igual = this.avisos.find((a) => a.txt === txt);
+    if (igual) {
+      igual.tempo = 0;
+      igual.duracao = Math.max(igual.duracao, duracao);
+      return;
+    }
     this.avisos.push({ txt, tempo: 0, duracao });
     if (this.avisos.length > 2) this.avisos.shift();
   }
@@ -157,7 +164,8 @@ export class HUD {
     if (dados.diarioNovo) {
       const rotulo = `J: ${dados.diarioNovo} no diário`;
       const lb = larguraTexto(rotulo) + 6;
-      const py = y + 15;
+      // no modo teste o selo ocupa esta faixa: o marcador desce uma linha
+      const py = y + (dados.progresso.demo ? 27 : 15);
       g.globalAlpha = 0.6 + Math.sin(this.tempo * 5) * 0.4;
       g.fillStyle = 'rgba(16,14,26,0.7)';
       g.fillRect(LARGURA - lb - 4, py, lb, 11);

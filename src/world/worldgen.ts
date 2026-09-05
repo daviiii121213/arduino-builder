@@ -19,7 +19,7 @@ import { clamp, dist } from '../core/math';
 import { NoRecurso } from '../systems/harvest';
 import { definicoesDeNo, type NomeNo } from './nodes';
 import { BIOMAS, CENTROS, indiceDoBioma, type BiomaId } from './biomes';
-import { TODAS_FICHAS } from '../entities/dinoTypes';
+import { FICHAS_SUPERFICIE } from '../entities/dinoTypes';
 
 export const ID_MUNDO = 'vale-dos-gigantes';
 export const ID_CASA = 'casa-do-jogador';
@@ -30,6 +30,15 @@ export const CASA_X = 26 * TAM_TILE;
 export const CASA_Y = 24 * TAM_TILE;
 export const CABANA_X = 33 * TAM_TILE;
 export const CABANA_Y = 24 * TAM_TILE;
+
+/**
+ * As duas bocas de caverna ficam à vista da porta de casa, uma de cada lado do
+ * quintal: é para o jogador enxergar as duas no primeiro minuto de jogo.
+ */
+export const BOCA_GRUTA_X = 18 * TAM_TILE;
+export const BOCA_GRUTA_Y = 31 * TAM_TILE;
+export const BOCA_MINA_X = 41 * TAM_TILE;
+export const BOCA_MINA_Y = 31 * TAM_TILE;
 
 const LARG_TILES = 120;
 const ALT_TILES = 92;
@@ -284,6 +293,78 @@ export function gerarMundo(assets: Assets): MundoGerado {
     rotulo: 'Vender recursos',
     acao: 'venda',
   });
+
+  // ------------------------------------------------- bocas das duas cavernas
+  // Cada uma abre num paredão de rocha, com trilha de terra saindo do caminho
+  // principal e uma placa: dá para chegar nas duas em poucos passos.
+  const abrirBoca = (
+    sprite: typeof assets.caverna.bocaGruta,
+    bx: number,
+    by: number,
+    acao: 'entrar-gruta' | 'entrar-mina',
+    rotulo: string,
+  ) => {
+    const btx = Math.floor(bx / TAM_TILE);
+    const bty = Math.floor(by / TAM_TILE);
+    // paredão de rocha em volta da boca
+    for (let ty = bty - 3; ty <= bty + 3; ty++) {
+      for (let tx = btx - 4; tx <= btx + 4; tx++) {
+        if (nivel.tile(tx, ty) === Tile.Vazio) continue;
+        const d = Math.hypot((tx - btx) / 4, (ty - bty) / 3);
+        if (d > 1) continue;
+        nivel.definirTile(tx, ty, d > 0.7 ? Tile.Terra : Tile.Rocha, rng.int(0, 2));
+      }
+    }
+    // trilha até o caminho da frente da casa
+    const alvoTX = portaTX + 1;
+    let tx = btx;
+    for (let i = 0; i < 40 && tx !== alvoTX; i++) {
+      nivel.definirTile(tx, bty + 3, Tile.Terra, rng.int(0, 2));
+      nivel.definirTile(tx, bty + 4, Tile.Terra, rng.int(0, 2));
+      tx += Math.sign(alvoTX - tx);
+    }
+    for (let ty = portaTY + 6; ty <= bty + 4; ty++) {
+      nivel.definirTile(alvoTX, ty, Tile.Terra, rng.int(0, 2));
+    }
+
+    const { objeto } = colocar(nivel, sprite, bx + sprite.width / 2, by + sprite.height, {
+      ajusteBase: -4,
+    });
+    void objeto;
+    // as laterais do arco batem; o vão do meio fica livre para entrar
+    nivel.adicionarColisor({ x: bx, y: by + 8, w: 8, h: sprite.height - 8 });
+    nivel.adicionarColisor({
+      x: bx + sprite.width - 8,
+      y: by + 8,
+      w: 8,
+      h: sprite.height - 8,
+    });
+    nivel.adicionarColisor({ x: bx, y: by, w: sprite.width, h: 10 });
+    nivel.interativos.push({
+      area: { x: bx + 8, y: by + sprite.height - 14, w: sprite.width - 16, h: 18 },
+      rotulo,
+      acao,
+    });
+    colocar(nivel, assets.caverna.placaCaverna, bx - 10, by + sprite.height + 2, {
+      colisao: { w: 6, h: 4 },
+    });
+    nivel.luzes.push({ x: bx + sprite.width / 2, y: by + sprite.height - 6 });
+  };
+
+  abrirBoca(
+    assets.caverna.bocaGruta,
+    BOCA_GRUTA_X,
+    BOCA_GRUTA_Y,
+    'entrar-gruta',
+    'Entrar na Gruta de Cristal',
+  );
+  abrirBoca(
+    assets.caverna.bocaMina,
+    BOCA_MINA_X,
+    BOCA_MINA_Y,
+    'entrar-mina',
+    'Entrar no Abismo Ígneo',
+  );
 
   const longeDaCasa = (px: number, py: number, raio: number) =>
     dist(px, py, casaX + CASA_W / 2, casaY + CASA_H / 2) > raio &&
@@ -682,7 +763,7 @@ export function gerarMundo(assets: Assets): MundoGerado {
   };
 
   const spawns: SpawnDino[] = [];
-  for (const ficha of TODAS_FICHAS) {
+  for (const ficha of FICHAS_SUPERFICIE) {
     // quanto mais perigoso, mais longe de casa ele começa
     const minDist = 120 + ficha.dificuldade * 45;
     // os bichos mansos aparecem em dupla; os perigosos, sozinhos

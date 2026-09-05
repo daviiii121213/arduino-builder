@@ -33,7 +33,7 @@ export interface Portal {
   rotulo: string;
 }
 
-export type Ambiente = 'exterior' | 'interior' | 'galpao' | 'cabana';
+export type Ambiente = 'exterior' | 'interior' | 'galpao' | 'cabana' | 'caverna';
 
 /** Caixa de colisão que pode ser desligada (árvore derrubada, pedra quebrada). */
 export interface Colisor extends Rect {
@@ -54,7 +54,14 @@ export interface Interativo {
     | 'lareira'
     | 'estante'
     | 'janela'
-    | 'bancada';
+    | 'bancada'
+    // ---- cavernas
+    | 'descer'
+    | 'subir'
+    | 'guincho'
+    | 'entrar-gruta'
+    | 'entrar-mina'
+    | 'tesouro';
 }
 
 export class Nivel {

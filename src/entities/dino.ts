@@ -71,6 +71,11 @@ export class Dino {
   private tempoPerseguindo = 0;
   private empurraoX = 0;
   private empurraoY = 0;
+  /** Fase atual do chefe (1..fases). Só usado quando a ficha tem `chefe`. */
+  fase = 1;
+  private tempoEspecial = 0;
+  /** Brilho branco da troca de fase. */
+  private rugindo = 0;
 
   constructor(
     especie: EspecieId,
@@ -143,7 +148,7 @@ export class Dino {
     // ---- morto: espera para reaparecer
     if (!this.vivo) {
       this.tempoMorte += dt;
-      if (this.tempoMorte >= TEMPO_RESSURGIR) this.renascer(mundo);
+      if (!this.ficha.chefe && this.tempoMorte >= TEMPO_RESSURGIR) this.renascer(mundo);
       return;
     }
 
@@ -221,7 +226,7 @@ export class Dino {
           );
           break;
         }
-        this.irPara(j.centroX, j.y, f.velocidadeCorrida, dt, mundo);
+        this.irPara(j.centroX, j.y, f.velocidadeCorrida * (f.chefe ? 1 + (this.fase - 1) * 0.12 : 1), dt, mundo);
         break;
       }
 
@@ -232,7 +237,7 @@ export class Dino {
         this.deslocar(dt, mundo);
         if (this.preparo <= 0) {
           this.executarAtaque(mundo);
-          this.recarga = f.recarga;
+          this.recarga = f.chefe ? f.recarga / (1 + (this.fase - 1) * 0.2) : f.recarga;
           this.trocarEstado('recuar');
         }
         break;
@@ -280,6 +285,9 @@ export class Dino {
       }
     }
 
+    // ---- chefe: fases, rugido e ataque especial
+    if (f.chefe) this.atualizarChefe(dt, mundo);
+
     // ---- rastro de quem corre: cada estilo levanta uma coisa diferente
     if (this.estado === 'perseguir' && this.rng.chance(dt * 9)) {
       const cor =
@@ -322,6 +330,81 @@ export class Dino {
         this.vy += ((this.y - outro.y) / d) * empurra;
       }
     }
+  }
+
+  /**
+   * Comportamento de chefe.
+   *
+   * A vida é dividida em fases: a cada fase ele ruge, fica mais rápido, encurta
+   * a recarga, solta o ataque especial e chama ajuda. Nada aqui infla a vida —
+   * o que aumenta é a pressão.
+   */
+  private atualizarChefe(dt: number, mundo: Mundo): void {
+    const c = this.ficha.chefe!;
+    if (this.rugindo > 0) this.rugindo -= dt;
+
+    const proporcao = Math.max(0, this.vida / this.ficha.vidaMax);
+    const faseAgora = Math.min(c.fases, 1 + Math.floor((1 - proporcao) * c.fases));
+    if (faseAgora > this.fase) {
+      this.fase = faseAgora;
+      this.rugindo = 1;
+      this.tempoEspecial = 0.6;
+      mundo.audio.rugido(true);
+      mundo.camera.tremer(6, 0.6);
+      mundo.particulas.animacao(mundo.assets.efeitos.ondaBranca, this.x, this.centroY, 0.5);
+      mundo.avisar(`${this.ficha.nome} — fase ${this.fase} de ${c.fases}!`, 2.5);
+      // a partir da segunda fase ele não vem mais sozinho
+      if (c.invoca && this.fase >= 2 && mundo.invocar) {
+        for (let i = 0; i < (c.quantosInvoca ?? 2); i++) {
+          const a = this.rng.range(0, TAU);
+          mundo.invocar(c.invoca, this.x + Math.cos(a) * 46, this.y + Math.sin(a) * 34);
+        }
+      }
+    }
+
+    // só ataca de verdade depois de ver o jogador
+    if (this.estado === 'vagar' || this.estado === 'pastar') return;
+    this.tempoEspecial -= dt;
+    if (this.tempoEspecial > 0) return;
+    this.tempoEspecial = c.intervalo / this.fase;
+    this.executarEspecial(mundo, c.especial);
+  }
+
+  private executarEspecial(mundo: Mundo, especial: 'anelDeCristal' | 'chuvaDeBrasa'): void {
+    const j = mundo.jogador;
+    mundo.camera.tremer(3, 0.3);
+    if (especial === 'anelDeCristal') {
+      // anel de lascas: dá para passar entre elas se você se mexer
+      const quantas = 8 + this.fase * 2;
+      const giro = this.rng.range(0, TAU);
+      for (let i = 0; i < quantas; i++) {
+        const a = giro + (i / quantas) * TAU;
+        mundo.criarOrbe(
+          this.x + Math.cos(a) * 16,
+          this.centroY + Math.sin(a) * 12,
+          a,
+          this.ficha.dano,
+          96,
+          'cristal',
+        );
+      }
+      mundo.particulas.animacao(mundo.assets.efeitos.ondaMagica, this.x, this.centroY, 0.4);
+      mundo.audio.magia();
+      return;
+    }
+    // chuva de brasa: cai em volta do jogador, mirando o ponto onde ele está
+    const quantas = 4 + this.fase * 2;
+    for (let i = 0; i < quantas; i++) {
+      const a = (i / quantas) * TAU + this.rng.range(-0.2, 0.2);
+      const raio = 78;
+      const ox = j.centroX + Math.cos(a) * raio;
+      const oy = j.centroY + Math.sin(a) * raio;
+      mundo.criarOrbe(ox, oy, a + Math.PI, this.ficha.dano, 104, 'brasa');
+    }
+    mundo.particulas.jato(this.x, this.centroY, ['#ff4a12', '#ffb14a', P.brilho], 16, 90, {
+      gravidade: 30,
+    });
+    mundo.audio.trovao();
   }
 
   /** Vai na direção de um ponto, com aceleração e colisão. */
@@ -367,7 +450,20 @@ export class Dino {
     const ang = Math.atan2(j.centroY - this.centroY, j.centroX - this.x);
 
     if (f.distancia) {
-      mundo.criarOrbe(this.x + Math.cos(ang) * 10, this.centroY + Math.sin(ang) * 10, ang, f.dano, 118);
+      const estilo =
+        f.caverna === 'mina' || f.bioma === 'vulcanico'
+          ? 'brasa'
+          : f.caverna === 'gruta'
+            ? 'cristal'
+            : 'magia';
+      mundo.criarOrbe(
+        this.x + Math.cos(ang) * 10,
+        this.centroY + Math.sin(ang) * 10,
+        ang,
+        f.dano,
+        118,
+        estilo,
+      );
       mundo.audio.magia();
       mundo.particulas.animacao(mundo.assets.efeitos.ondaMagica, this.x, this.centroY, 0.3);
       return;
@@ -546,6 +642,8 @@ export class Dino {
       const pulso = 0.35 + Math.sin(this.tempoEstado * 26) * 0.25;
       // o aviso do golpe usa a cor da própria criatura: dá para reconhecer de longe
       sprite = tingirCache(sprite, this.ficha.veneno ? '#8fe05a' : this.ficha.corSangue, pulso);
+    } else if (this.rugindo > 0) {
+      sprite = tingirCache(sprite, '#ffffff', 0.3 + Math.sin(this.rugindo * 30) * 0.25);
     } else if (this.piscar > 0 && Math.floor(this.piscar * 20) % 2 === 0) {
       sprite = tingirCache(sprite, '#ffffff', 0.85);
     }
@@ -578,8 +676,8 @@ export class Dino {
       g.globalAlpha = 1;
     }
 
-    // barra de vida flutuante e nome
-    if (this.mostrarVida > 0) {
+    // barra de vida flutuante e nome (o chefe já tem a barra do alto da tela)
+    if (this.mostrarVida > 0 && !this.ficha.chefe) {
       const larg = Math.max(20, this.ficha.pegada.w + 14);
       const bx = Math.round(this.x - larg / 2 - camX);
       const by = Math.round(py - 7);

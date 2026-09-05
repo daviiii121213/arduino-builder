@@ -40,7 +40,17 @@ export type EspecieId =
   // ---- deserto de vidro
   | 'arenossauro'
   | 'dunassauro'
-  | 'tempestossauro';
+  | 'tempestossauro'
+  // ---- criaturas das cavernas
+  | 'pedrolito'
+  | 'cavernossauro'
+  | 'geodonte'
+  | 'espectrossauro'
+  | 'escaldossauro'
+  | 'brasadonte'
+  // ---- chefes do decimo andar
+  | 'cristalodonte'
+  | 'ignivoro';
 
 interface Desenho {
   corpo: string[];
@@ -676,6 +686,198 @@ const DESENHOS: Record<EspecieId, Desenho> = {
     pernas: [
       ['.....kaakkaaak.....', '.....kaak.kaak.....', '....kggak.kaggk....', '....kkkk...kkkk....'],
       ['.....kaakkaaak.....', '....kaak...kaak....', '...kggak...kaggk...', '...kkkk.....kkkk...'],
+    ],
+  },
+
+  // ------------------------------------------------- CAVERNA roedor de pedra
+  pedrolito: {
+    cores: {
+      k: '#22201f', a: '#6b6560', b: '#8f8880', c: '#4a4540', d: '#b8b0a4', e: '#3a3632', f: '#a89a7a',
+      g: '#d8d0bc',
+    },
+    corpo: [
+      '.......kfk..',
+      '.....kkfffk.',
+      '...kkkbbbk..',
+      '..kbaaoaak..',
+      '.kbaaaaakttk',
+      'kkaaaaaaaak.',
+      'kbaaaeaaaadk',
+      'kkkaaddddddk',
+      '..kaaaaaaak.',
+    ],
+    pernas: [
+      ['..kaakkaak..', '.kaak..kaak.', '.kggk..kggk.', '.kkk....kkk.'],
+      ['..kaakkaak..', 'kaak....kaak', 'kggk....kggk', 'kkk......kkk'],
+    ],
+  },
+
+  // ------------------------------------------------- CAVERNA escavador palido
+  cavernossauro: {
+    cores: {
+      k: '#1c1a22', a: '#b8b0a0', b: '#d8d2c2', c: '#8a8272', d: '#efe8d4', e: '#9a9282', f: '#c8bfa8',
+      g: '#fff6e0',
+    },
+    corpo: [
+      '.....kfk.kfk.kfk..',
+      'kkkkkbbbkbbbkbbk..',
+      'kbookaaaaaaaaaaak.',
+      'kattaaaaaeaaaaaak.',
+      'kkkkkaaaaaaaaaaak.',
+      '....kadddddddddk..',
+      '....kaaaaaaaaak...',
+    ],
+    pernas: [
+      ['....kaak.....kaak.', '....kggk.....kggk.', '....kkk.......kkk.'],
+      ['...kaak.......kaak', '...kggk.......kggk', '...kkk.........kkk'],
+    ],
+  },
+
+  // ------------------------------------------------- GRUTA couracado de geodo
+  geodonte: {
+    cores: {
+      k: '#1a1428', a: '#5a5170', b: '#7d7396', c: '#3a3350', d: '#c0b8d8', e: '#463f60', f: '#c07fff',
+      g: '#e6d7ff', m: '#c07fff',
+    },
+    corpo: [
+      '.....kfk..kfk..kfk.',
+      '....kfffkkfffkkfffk',
+      'kkk..kfk.kaaak.kfk.',
+      'kbbkaaaaaaaaaaaaaak',
+      'kaoaaaaaeaaaaeaaaak',
+      'kattkaaaaaaaaaaaak.',
+      '.kkk.kaddddddddk...',
+      '.....kaaaaaaaak....',
+    ],
+    pernas: [
+      ['....kaak.....kaak..', '....kaak.....kaak..', '....kggk.....kggk..', '....kkk.......kkk..'],
+      ['....kaak.....kaak..', '...kaak.......kaak.', '...kggk.......kggk.', '...kkk.........kkk.'],
+    ],
+  },
+
+  // ------------------------------------------------- GRUTA palido que some no escuro
+  espectrossauro: {
+    cores: {
+      k: '#252235', a: '#9aa8c0', b: '#c4d0e4', c: '#6a7590', d: '#eaf2ff', e: '#7f8ca8', f: '#dff0ff',
+      g: '#ffffff', m: '#dff0ff',
+    },
+    corpo: [
+      '........kkkk...',
+      '.......kbbbamk.',
+      '......kbaaoaak.',
+      '.....kbaaaaaak.',
+      '..kkkbaaeaaaekk',
+      'kmkaaaaaaaaaak.',
+      'kkkaaaeaaaeadk.',
+      '.kkkkaaaaaddk..',
+      '...kaaddddk....',
+      '....kaaaak.....',
+    ],
+    pernas: [
+      ['....kmmk.kmmk..', '.....km...mk...'],
+      ['...km.mk.km.mk.', '.....m.....m...'],
+    ],
+  },
+
+  // ------------------------------------------------- MINA crosta de magma
+  escaldossauro: {
+    cores: {
+      k: '#150c08', a: '#4a352c', b: '#6b4c3c', c: '#2a1c16', d: '#8a6a54', e: '#ff7a2a', f: '#ffc060',
+      g: '#ffe0a0', m: '#ff7a2a',
+    },
+    corpo: [
+      '....kek.kek..kek..',
+      '...kfffkfffkkfffk.',
+      'kkk.kaaaaaaaaaaak.',
+      'kbbkaaaaeaaaaeaaak',
+      'kaoaaaaaaaaaaaaaak',
+      'kattkaaaeaaaaaaak.',
+      '.kkk.kaddddddddk..',
+      '.....kaaaaaaaak...',
+    ],
+    pernas: [
+      ['....kaak.....kaak.', '....kaak.....kaak.', '....kggk.....kggk.', '....kkk.......kkk.'],
+      ['....kaak.....kaak.', '...kaak.......kaak', '...kggk.......kggk', '...kkk.........kkk'],
+    ],
+  },
+
+  // ------------------------------------------------- MINA cuspidor de brasa
+  brasadonte: {
+    cores: {
+      k: '#1a0a06', a: '#8a3418', b: '#b85228', c: '#521c0e', d: '#f0b070', e: '#ff7a2a', f: '#ffc060',
+      g: '#fff0b0', m: '#ffc060',
+    },
+    corpo: [
+      '..........kek.kfk',
+      '.......kkkefeffk.',
+      '......kbbbbeffk..',
+      '.....kaaoaaak....',
+      '....kaaaaakttk...',
+      '..kkkaaaaakkk....',
+      'kkkbaaaaaaaak....',
+      'kbaaaeaaaeaaadk..',
+      'kkkbaaaaaaadddk..',
+      '.kaddddddddk.....',
+      '..kaaaaaaak......',
+    ],
+    pernas: [
+      ['..kaakkaak.......', '.kaak..kaak......', '.kggk..kggk......', '.kkk....kkk......'],
+      ['..kaakkaak.......', 'kaak....kaak.....', 'kggk....kggk.....', 'kkk......kkk.....'],
+    ],
+  },
+
+  // ------------------------------------------------- CHEFE da Gruta de Cristal
+  cristalodonte: {
+    cores: {
+      k: '#140f26', a: '#4a5f9e', b: '#6f88cc', c: '#2f3d68', d: '#cfe0ff', e: '#3a4a80', f: '#8fe8ff',
+      g: '#ffffff', C: '#dffbff', m: '#8fe8ff',
+    },
+    corpo: [
+      '..............kfk......kfk......kfk..........',
+      '.............kfffk....kfffk....kfffk.........',
+      '............kfCCCfk..kfCCCfk..kfCCCfk........',
+      '...kfk......kfCCCfk..kfCCCfk..kfCCCfk........',
+      '..kfffk.....kkfCfkk..kkfCfkk..kkfCfkk........',
+      '.kfCCCfkkkkkkkkfkkkkkkkfkkkkkkkfkkkkkkkkk....',
+      'kkfCCCfkbbbbbaaaaaaaaaaaaaaaaaaaaaaaaaaabkk..',
+      'kbbbkkkkbaaaaaaaaeaaaaaaaaaaeaaaaaaaaaaaaabk.',
+      'kbaoabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab.',
+      'kbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaak',
+      'kattttkaaaaaaaaeaaaaaaaaaaaaeaaaaaaaaaaaaaaak',
+      'kkkkkkkaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaak.',
+      '.......kadddddddddddddddddddddddddddddddddk..',
+      '........kaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaak...',
+    ],
+    pernas: [
+      ['..........kaaaak......kaaaak......kaaaak.....', '..........kaaaak......kaaaak......kaaaak.....', '.........kgaaaagk....kgaaaagk....kgaaaagk....', '.........kkkkkkkk....kkkkkkkk....kkkkkkkk....'],
+      ['..........kaaaak......kaaaak......kaaaak.....', '.........kaaaak........kaaaak......kaaaak....', '........kgaaaagk......kgaaaagk....kgaaaagk...', '........kkkkkkkk......kkkkkkkk....kkkkkkkk...'],
+    ],
+  },
+
+  // ------------------------------------------------- CHEFE do Abismo Igneo
+  ignivoro: {
+    cores: {
+      k: '#0d0503', a: '#5a1c10', b: '#8a3018', c: '#2f0d06', d: '#e08a40', e: '#ff4a12', f: '#ffa030',
+      g: '#ffe08a', m: '#ff4a12',
+    },
+    corpo: [
+      '.....................................kkkkkkk.',
+      '....................................kfffbbbk.',
+      '...................................kbaaaaaok.',
+      '...................................kbaaaaaak.',
+      '...................................kbaatttttk',
+      '.......kek....kek....kek....kek.kkkkkaakkkkkk',
+      '......kfffk..kfffk..kfffk..kfffkbaaaaaaaak...',
+      '.....kkfkkk.kkfkkk.kkfkkk.kkfkkkbaaaaaaak....',
+      'kkkkkkbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaak.....',
+      'kbaaaaaaaeaaaaeaaaaaeaaaaeaaaaaeaaaaaaaadk...',
+      'kkkkbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaddddk..',
+      '....kkaaeddddddddddddddddddddddddddddddddk...',
+      '......kaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaak.....',
+    ],
+    pernas: [
+      ['.................kaaaaakkkaaaaak.............', '.................kaaaaak.kaaaaak.............', '................kgaaaaak.kaaaaagk............', '................kkkkkkkk.kkkkkkkk............'],
+      ['.................kaaaaakkkaaaaak.............', '................kaaaaak...kaaaaak............', '...............kgaaaaak...kaaaaagk...........', '...............kkkkkkkk...kkkkkkkk...........'],
     ],
   },
 };

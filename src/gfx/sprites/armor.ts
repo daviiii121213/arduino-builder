@@ -10,7 +10,7 @@
 import { pintar, espelharH, type Paleta, type Sprite } from '../pixel';
 import { P } from '../palette';
 
-export type ArmaduraId = 'couro' | 'osso' | 'cristal';
+export type ArmaduraId = 'couro' | 'osso' | 'cristal' | 'ignea';
 
 /** Recorte comum: capacete cobre o cabelo, peitoral cobre o tronco. */
 const FRENTE = [
@@ -71,6 +71,11 @@ const EXTRA_FRENTE: Record<ArmaduraId, string[]> = {
     '.......kdddk......',
     '........kdk.......',
   ],
+  ignea: [
+    '.....kd..dk.......',
+    '....kddkkddk......',
+    '.....kd..dk.......',
+  ],
 };
 
 const PALETAS: Record<ArmaduraId, Paleta> = {
@@ -96,6 +101,15 @@ const PALETAS: Record<ArmaduraId, Paleta> = {
     a: '#4a90ad',
     b: '#8fd0e2',
     d: '#cfeff8',
+    p: P.pele,
+  },
+  // batida no Abismo Ígneo: escamas escuras com as juntas ainda em brasa
+  ignea: {
+    '.': null,
+    k: P.contorno,
+    a: '#3a231c',
+    b: '#6b3520',
+    d: '#ff7a2a',
     p: P.pele,
   },
 };

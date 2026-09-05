@@ -12,14 +12,24 @@
 import type { RecursoId } from '../gfx/sprites/tools';
 import type { BiomaId } from '../world/biomes';
 import { BIOMAS } from '../world/biomes';
+import { CAVERNAS, type CavernaId } from '../world/caveDefs';
 import { RECURSOS } from './resources';
 
-export type TipoObjetivo = 'coletar' | 'visitar' | 'descobrir' | 'cacar' | 'vender';
+export type TipoObjetivo =
+  | 'coletar'
+  | 'visitar'
+  | 'descobrir'
+  | 'cacar'
+  | 'vender'
+  // ---- cavernas e arqueologia
+  | 'descer'
+  | 'chefe'
+  | 'colecionar';
 
 export interface Objetivo {
   tipo: TipoObjetivo;
-  /** Recurso ou bioma exigido (quando o tipo pede um alvo). */
-  alvo?: RecursoId | BiomaId;
+  /** Recurso, bioma ou caverna exigido (quando o tipo pede um alvo). */
+  alvo?: RecursoId | BiomaId | CavernaId;
   quantidade: number;
 }
 
@@ -168,6 +178,80 @@ export const CATALOGO_MISSOES: Missao[] = [
     recompensa: 600,
     requer: ['essencia', 'cacador'],
   },
+
+  // ---------------------------------------------------- cavernas e fósseis
+  {
+    id: 'boca-fria',
+    titulo: 'A boca fria',
+    texto: '"Tem duas cavernas à vista da porta. A da esquerda é gelada. Entre e olhe."',
+    objetivo: { tipo: 'descer', alvo: 'gruta', quantidade: 1 },
+    recompensa: 80,
+    requer: ['pedra'],
+  },
+  {
+    id: 'boca-quente',
+    titulo: 'A boca quente',
+    texto: '"A da direita bufa ar quente. Não é lugar de ficar, mas é lugar de ver."',
+    objetivo: { tipo: 'descer', alvo: 'mina', quantidade: 1 },
+    recompensa: 80,
+    requer: ['boca-fria'],
+  },
+  {
+    id: 'mineiro',
+    titulo: 'Aprender a minerar',
+    texto: '"Carvão é o começo de tudo. Traga dez pedaços e a picareta já paga o dia."',
+    objetivo: { tipo: 'coletar', alvo: 'carvao', quantidade: 10 },
+    recompensa: 130,
+    requer: ['boca-fria'],
+  },
+  {
+    id: 'arqueologo',
+    titulo: 'Caderno de arqueologia',
+    texto: '"Osso solto não vale nada. Peça inteira vale muito. Ache cinco peças diferentes."',
+    objetivo: { tipo: 'colecionar', quantidade: 5 },
+    recompensa: 200,
+    requer: ['boca-fria'],
+  },
+  {
+    id: 'fundo-gruta',
+    titulo: 'Fundo da Gruta',
+    texto: '"Dizem que passando do quinto andar a gruta vira catedral. Vá ver."',
+    objetivo: { tipo: 'descer', alvo: 'gruta', quantidade: 5 },
+    recompensa: 260,
+    requer: ['mineiro'],
+  },
+  {
+    id: 'fundo-mina',
+    titulo: 'Fundo do Abismo',
+    texto: '"O Abismo tem o mesmo tanto de andares e o dobro de mau humor. Desça cinco."',
+    objetivo: { tipo: 'descer', alvo: 'mina', quantidade: 5 },
+    recompensa: 260,
+    requer: ['boca-quente'],
+  },
+  {
+    id: 'guardiao-gruta',
+    titulo: 'O Guardião da Gruta',
+    texto: '"No décimo andar tem uma coisa de cristal que anda. Se ela cair, o baú é seu."',
+    objetivo: { tipo: 'chefe', alvo: 'gruta', quantidade: 1 },
+    recompensa: 500,
+    requer: ['fundo-gruta'],
+  },
+  {
+    id: 'coracao-abismo',
+    titulo: 'O Coração do Abismo',
+    texto: '"E no fundo do Abismo tem outra. Essa é feita de fogo. Boa sorte."',
+    objetivo: { tipo: 'chefe', alvo: 'mina', quantidade: 1 },
+    recompensa: 500,
+    requer: ['fundo-mina'],
+  },
+  {
+    id: 'colecao',
+    titulo: 'A coleção do avô',
+    texto: '"Onze peças. Se você juntar todas, o galpão vira museu."',
+    objetivo: { tipo: 'colecionar', quantidade: 11 },
+    recompensa: 800,
+    requer: ['arqueologo', 'guardiao-gruta'],
+  },
 ];
 
 /** Texto curto do que a missão pede ("Madeira 3/5"). */
@@ -184,6 +268,12 @@ export function descreverObjetivo(m: Missao, feito: number): string {
       return `Criaturas derrotadas ${Math.min(feito, o.quantidade)}/${o.quantidade}`;
     case 'vender':
       return `Moedas ganhas ${Math.min(feito, o.quantidade)}/${o.quantidade}`;
+    case 'descer':
+      return `${CAVERNAS[o.alvo as CavernaId].curto}: andar ${Math.min(feito, o.quantidade)}/${o.quantidade}`;
+    case 'chefe':
+      return `Guardião do ${CAVERNAS[o.alvo as CavernaId].curto} derrotado`;
+    case 'colecionar':
+      return `Peças na coleção ${Math.min(feito, o.quantidade)}/${o.quantidade}`;
   }
 }
 
@@ -278,6 +368,20 @@ export class Diario {
   /** O bestiário conta o total, então o progresso é absoluto. */
   anotou(totalDescobertas: number): void {
     this.definir((m) => m.objetivo.tipo === 'descobrir', totalDescobertas);
+  }
+
+  /** Chegou a um andar de caverna (o progresso é a profundidade alcançada). */
+  desceu(caverna: CavernaId, andar: number): void {
+    this.definir((m) => m.objetivo.tipo === 'descer' && m.objetivo.alvo === caverna, andar);
+  }
+
+  derrotouChefe(caverna: CavernaId): void {
+    this.somar((m) => m.objetivo.tipo === 'chefe' && m.objetivo.alvo === caverna, 1);
+  }
+
+  /** Total de peças diferentes na coleção de arqueologia. */
+  colecionou(total: number): void {
+    this.definir((m) => m.objetivo.tipo === 'colecionar', total);
   }
 
   ler(): void {

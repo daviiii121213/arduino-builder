@@ -20,7 +20,16 @@ export interface Mundo {
   projeteis: Orbe[];
   /** Tempo acumulado de jogo, em segundos. */
   tempo: number;
-  criarOrbe(x: number, y: number, angulo: number, dano: number, velocidade: number): void;
+  criarOrbe(
+    x: number,
+    y: number,
+    angulo: number,
+    dano: number,
+    velocidade: number,
+    estilo?: import('./projectile').EstiloOrbe,
+  ): void;
+  /** Um chefe chamando ajuda: nasce uma criatura ali mesmo. */
+  invocar?(especie: import('../gfx/sprites/dinos').EspecieId, x: number, y: number): void;
   /** Mensagem curta no rodapé (avisos e dicas). */
   avisar(texto: string, segundos?: number): void;
   /** Avisa que uma criatura caiu (missões do diário). */

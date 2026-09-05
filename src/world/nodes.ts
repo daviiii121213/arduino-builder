@@ -34,10 +34,25 @@ export type NomeNo =
   // ---- deserto de vidro
   | 'arenito'
   | 'areiaVitrea'
-  | 'cacto';
+  | 'cacto'
+  // ---- cavernas (as duas)
+  | 'rochaCaverna'
+  | 'veioCarvao'
+  | 'veioCobre'
+  | 'sitioFossil'
+  // ---- Gruta de Cristal
+  | 'veioPrata'
+  | 'geodoAmetista'
+  | 'veioDiamante'
+  | 'veioAstralita'
+  // ---- Abismo Ígneo
+  | 'veioOuro'
+  | 'veioRubi'
+  | 'veioNucleo';
 
 export function definicoesDeNo(assets: Assets): Record<NomeNo, DefNo> {
   const c = assets.colheita;
+  const v = assets.caverna;
   return {
     araucaria: {
       tipo: 'arvore',
@@ -318,6 +333,152 @@ export function definicoesDeNo(assets: Assets): Record<NomeNo, DefNo> {
       quedas: [
         { id: 'fibra', min: 2, max: 4, chance: 1 },
         { id: 'semente', min: 1, max: 1, chance: 0.35 },
+      ],
+    },
+
+    // ------------------------------------------------------------ cavernas
+    rochaCaverna: {
+      tipo: 'rocha',
+      nome: 'Rocha da galeria',
+      vidaMax: 10,
+      renascer: 45,
+      corLasca: '#8f8ea2',
+      som: 'pedra',
+      spriteEsgotado: v.entulhoCaverna,
+      quedas: [
+        { id: 'pedra', min: 2, max: 4, chance: 1 },
+        { id: 'carvao', min: 1, max: 1, chance: 0.25 },
+      ],
+    },
+    veioCarvao: {
+      tipo: 'rocha',
+      nome: 'Veio de carvão',
+      vidaMax: 12,
+      renascer: 50,
+      corLasca: '#4a4650',
+      som: 'pedra',
+      spriteEsgotado: v.entulhoCaverna,
+      quedas: [
+        { id: 'carvao', min: 2, max: 4, chance: 1 },
+        { id: 'pedra', min: 1, max: 2, chance: 0.6 },
+      ],
+    },
+    veioCobre: {
+      tipo: 'rocha',
+      nome: 'Veio de cobre',
+      vidaMax: 15,
+      renascer: 60,
+      corLasca: '#e08a4a',
+      som: 'pedra',
+      spriteEsgotado: v.entulhoCaverna,
+      quedas: [
+        { id: 'cobre', min: 1, max: 3, chance: 1 },
+        { id: 'pedra', min: 1, max: 2, chance: 0.7 },
+      ],
+    },
+    sitioFossil: {
+      tipo: 'escavacao',
+      nome: 'Sítio de escavação',
+      vidaMax: 6,
+      renascer: 90,
+      corLasca: '#6b5436',
+      som: 'terra',
+      spriteEsgotado: v.sitioCavado,
+      quedas: [{ id: 'fossil', min: 1, max: 2, chance: 1 }],
+    },
+
+    // --------------------------------------------------- Gruta de Cristal
+    veioPrata: {
+      tipo: 'rocha',
+      nome: 'Veio de prata',
+      vidaMax: 18,
+      renascer: 75,
+      corLasca: '#eef2f7',
+      som: 'pedra',
+      spriteEsgotado: v.entulhoCaverna,
+      quedas: [
+        { id: 'prata', min: 1, max: 2, chance: 1 },
+        { id: 'pedra', min: 1, max: 2, chance: 0.6 },
+      ],
+    },
+    geodoAmetista: {
+      tipo: 'rocha',
+      nome: 'Geodo de ametista',
+      vidaMax: 22,
+      renascer: 95,
+      corLasca: '#a56bff',
+      som: 'pedra',
+      spriteEsgotado: v.entulhoCaverna,
+      quedas: [
+        { id: 'ametista', min: 1, max: 2, chance: 0.9 },
+        { id: 'cristal', min: 1, max: 1, chance: 0.35 },
+      ],
+    },
+    veioDiamante: {
+      tipo: 'rocha',
+      nome: 'Veio de diamante',
+      vidaMax: 28,
+      renascer: 120,
+      corLasca: '#bfeaf7',
+      som: 'pedra',
+      spriteEsgotado: v.entulhoCaverna,
+      quedas: [
+        { id: 'diamante', min: 1, max: 1, chance: 0.8 },
+        { id: 'prata', min: 1, max: 2, chance: 0.5 },
+      ],
+    },
+    veioAstralita: {
+      tipo: 'rocha',
+      nome: 'Veio de astralita',
+      vidaMax: 34,
+      renascer: 150,
+      corLasca: '#5ad8ff',
+      som: 'pedra',
+      spriteEsgotado: v.entulhoCaverna,
+      quedas: [
+        { id: 'astralita', min: 1, max: 1, chance: 0.75 },
+        { id: 'diamante', min: 1, max: 1, chance: 0.4 },
+      ],
+    },
+
+    // ----------------------------------------------------- Abismo Ígneo
+    veioOuro: {
+      tipo: 'rocha',
+      nome: 'Veio de ouro',
+      vidaMax: 20,
+      renascer: 85,
+      corLasca: '#f0c040',
+      som: 'pedra',
+      spriteEsgotado: v.entulhoCaverna,
+      quedas: [
+        { id: 'ouro', min: 1, max: 2, chance: 1 },
+        { id: 'pedra', min: 1, max: 2, chance: 0.5 },
+      ],
+    },
+    veioRubi: {
+      tipo: 'rocha',
+      nome: 'Geodo de rubi',
+      vidaMax: 26,
+      renascer: 110,
+      corLasca: '#e0403f',
+      som: 'pedra',
+      spriteEsgotado: v.entulhoCaverna,
+      quedas: [
+        { id: 'rubi', min: 1, max: 2, chance: 0.85 },
+        { id: 'obsidiana', min: 1, max: 1, chance: 0.35 },
+      ],
+    },
+    veioNucleo: {
+      tipo: 'rocha',
+      nome: 'Veio de núcleo ígneo',
+      vidaMax: 34,
+      renascer: 150,
+      corLasca: '#ff6a2a',
+      som: 'pedra',
+      spriteEsgotado: v.entulhoCaverna,
+      quedas: [
+        { id: 'nucleoIgneo', min: 1, max: 1, chance: 0.75 },
+        { id: 'rubi', min: 1, max: 1, chance: 0.4 },
       ],
     },
   };
