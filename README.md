@@ -20,6 +20,29 @@ pressione **ENTER** para começar.
 | `Q` | Reduz a marcha (no manual) |
 | `R` | Reinicia a corrida após o fim de jogo |
 
+## Visual
+
+Renderização em three.js com materiais PBR, tone mapping ACES, sombras do sol,
+mapa de ambiente para os reflexos dos metais e névoa atmosférica no horizonte.
+
+- **Cockpit detalhado**: tanque azul com faixas e tampa de combustível parafusada,
+  guidão tubular com mesa e presilhas, manetes de freio e embreagem, punhos com
+  nervuras, comandos com botões, cabos, ignição com chave, garfo cromado, disco de
+  freio com pinça, paralama, farol — além dos braços do piloto com luvas nos punhos.
+- **Retrovisores de verdade**: cada espelho tem uma câmera própria e mostra ao vivo
+  a pista e o cenário atrás da moto.
+- **Painel digital** desenhado a cada quadro: velocímetro em km/h, barra de giro com
+  zona vermelha, marcha e modo do câmbio, nível de combustível, hodômetro e
+  temperatura do motor.
+- **Asfalto** com agregado, remendos, trincas, marcas de pneu nas trilhas de rodagem,
+  faixas contínuas nas bordas e tracejadas entre as três faixas, mais acostamento e
+  talude de terra.
+- **Cenário** com defensas metálicas de perfil W e postes, árvores variadas, moitas,
+  tufos de capim com flores, colinas, postes de iluminação, céu com nuvens e a
+  silhueta de uma cidade no horizonte.
+- **Trânsito** com sedãs, SUVs, vans, caminhões e motos — carrocerias arredondadas,
+  vidros, faróis, lanternas e rodas com aro desenhado.
+
 ## O que o jogo tem
 
 - **Visão em primeira pessoa** com câmera dinâmica: ela acompanha o movimento da
