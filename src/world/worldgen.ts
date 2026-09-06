@@ -15,7 +15,7 @@ import type { Assets } from '../gfx/assets';
 import type { EspecieId } from '../gfx/sprites/dinos';
 import { CASA_W, CASA_H, CASA_COLISAO, CASA_PORTA } from '../gfx/sprites/house';
 import { CABANA_W, CABANA_H, CABANA_COLISAO, CABANA_PORTA } from '../gfx/sprites/cabin';
-import { clamp, dist } from '../core/math';
+import { clamp, dist, TAU } from '../core/math';
 import { NoRecurso } from '../systems/harvest';
 import { definicoesDeNo, type NomeNo } from './nodes';
 import { BIOMAS, CENTROS, indiceDoBioma, type BiomaId } from './biomes';
@@ -24,24 +24,34 @@ import { FICHAS_SUPERFICIE } from '../entities/dinoTypes';
 export const ID_MUNDO = 'vale-dos-gigantes';
 export const ID_CASA = 'casa-do-jogador';
 export const ID_CABANA = 'cabana-de-melhorias';
+export const ID_ANCIAO = 'casa-do-anciao';
 
 /** Canto superior esquerdo da casa e da cabana, em pixels do mundo. */
-export const CASA_X = 26 * TAM_TILE;
-export const CASA_Y = 24 * TAM_TILE;
-export const CABANA_X = 33 * TAM_TILE;
-export const CABANA_Y = 24 * TAM_TILE;
+/** Casa e cabana ficam no vale de origem, no quadrante noroeste do mapa. */
+export const CASA_TX = 44;
+export const CASA_TY = 42;
+export const CASA_X = CASA_TX * TAM_TILE;
+export const CASA_Y = CASA_TY * TAM_TILE;
+export const CABANA_X = (CASA_TX + 7) * TAM_TILE;
+export const CABANA_Y = CASA_TY * TAM_TILE;
 
 /**
- * As duas bocas de caverna ficam à vista da porta de casa, uma de cada lado do
- * quintal: é para o jogador enxergar as duas no primeiro minuto de jogo.
+ * As duas cavernas ficam longe uma da outra e longe de casa: a Gruta a leste,
+ * depois da floresta, e o Abismo ao sul, depois do pântano. Estradas de terra
+ * saem do quintal até cada uma, então a viagem é longa mas nunca é adivinhação.
  */
-export const BOCA_GRUTA_X = 18 * TAM_TILE;
-export const BOCA_GRUTA_Y = 31 * TAM_TILE;
-export const BOCA_MINA_X = 41 * TAM_TILE;
-export const BOCA_MINA_Y = 31 * TAM_TILE;
+export const BOCA_GRUTA_X = 132 * TAM_TILE;
+export const BOCA_GRUTA_Y = 40 * TAM_TILE;
+export const BOCA_MINA_X = 52 * TAM_TILE;
+export const BOCA_MINA_Y = 124 * TAM_TILE;
 
-const LARG_TILES = 120;
-const ALT_TILES = 92;
+/** A casa do Ancião fica ao lado da Gruta de Cristal. */
+export const CASA_ANCIAO_X = (132 + 7) * TAM_TILE;
+export const CASA_ANCIAO_Y = 46 * TAM_TILE;
+
+// Mapa três vezes maior que o original (era 120x92 = 11.040 tiles).
+const LARG_TILES = 208;
+const ALT_TILES = 160;
 const SEMENTE = 20260904;
 
 export interface SpawnDino {
@@ -165,10 +175,10 @@ export function gerarMundo(assets: Assets): MundoGerado {
 
   // O quintal é sempre vale: a casa, a cabana e a máquina de venda ficam num
   // pedaço garantido de campo, independente de como o ruído desenhou a divisa.
-  for (let ty = 14; ty < 44; ty++) {
-    for (let tx = 14; tx < 56; tx++) {
+  for (let ty = CASA_TY - 24; ty < CASA_TY + 24; ty++) {
+    for (let tx = CASA_TX - 24; tx < CASA_TX + 32; tx++) {
       if (!nivel.dentro(tx, ty)) continue;
-      const d = Math.hypot(tx - 33, ty - 28);
+      const d = Math.hypot(tx - (CASA_TX + 7), ty - (CASA_TY + 4));
       if (d > 20) continue;
       nivel.definirBioma(tx, ty, indiceDoBioma('vale'));
       const e = relevo.fbm(tx * 0.045, ty * 0.045, 4);
@@ -179,8 +189,8 @@ export function gerarMundo(assets: Assets): MundoGerado {
   }
 
   // -------------------------------------------------- clareira e casa
-  const casaTX = 26;
-  const casaTY = 24;
+  const casaTX = CASA_TX;
+  const casaTY = CASA_TY;
   const casaX = casaTX * TAM_TILE;
   const casaY = casaTY * TAM_TILE;
   // a clareira cobre a casa, o quintal e a cabana de melhorias ao lado
@@ -218,12 +228,12 @@ export function gerarMundo(assets: Assets): MundoGerado {
     { colisao: { w: CASA_COLISAO.w, h: CASA_COLISAO.h }, ajusteBase: -6 },
   );
   // a colisão acima cobre as paredes; a porta precisa ficar livre
-  nivel.colisores[nivel.colisores.length - 1] = {
+  nivel.substituirUltimoColisor({
     x: casaX + CASA_COLISAO.x,
     y: casaY + CASA_COLISAO.y,
     w: CASA_COLISAO.w,
     h: CASA_COLISAO.h - 14,
-  };
+  });
   // o lampião ao lado da porta ilumina a noite do vale
   nivel.luzes.push({ x: casaX + 44, y: casaY + 39 });
   nivel.portais.push({
@@ -256,12 +266,12 @@ export function gerarMundo(assets: Assets): MundoGerado {
   colocar(nivel, assets.cabana.exterior, CABANA_X + CABANA_W / 2, CABANA_Y + CABANA_H, {
     ajusteBase: -6,
   });
-  nivel.colisores[nivel.colisores.length - 1] = {
+  nivel.substituirUltimoColisor({
     x: CABANA_X + CABANA_COLISAO.x,
     y: CABANA_Y + CABANA_COLISAO.y,
     w: CABANA_COLISAO.w,
     h: CABANA_COLISAO.h,
-  };
+  });
   nivel.adicionarColisor({
     x: CABANA_X + CABANA_COLISAO.x,
     y: CABANA_Y + CABANA_COLISAO.y,
@@ -294,9 +304,35 @@ export function gerarMundo(assets: Assets): MundoGerado {
     acao: 'venda',
   });
 
+  // ------------------------------------------------------------- estradas
+  /**
+   * Estrada de terra entre dois pontos. Serpenteia de leve (nunca sai reta),
+   * atravessa água e lava virando chão firme — é ela que torna as pontas do
+   * mapa alcançáveis a pé sem tirar o trabalho da viagem.
+   */
+  const estrada = (ax: number, ay: number, bx: number, by: number, larguraR = 1) => {
+    let x = ax;
+    let y = ay;
+    for (let passo = 0; passo < 4000 && (x !== bx || y !== by); passo++) {
+      const dx = Math.sign(bx - x);
+      const dy = Math.sign(by - y);
+      const onda = Math.sin(passo * 0.07);
+      const preferirX =
+        Math.abs(bx - x) > Math.abs(by - y) ? onda > -0.6 : onda > 0.6;
+      if (preferirX && dx !== 0) x += dx;
+      else if (dy !== 0) y += dy;
+      else if (dx !== 0) x += dx;
+      for (let oy = -larguraR; oy <= larguraR; oy++) {
+        for (let ox = -larguraR; ox <= larguraR; ox++) {
+          if (Math.abs(ox) + Math.abs(oy) > larguraR + 1) continue;
+          if (nivel.tile(x + ox, y + oy) === Tile.Vazio) continue;
+          nivel.definirTile(x + ox, y + oy, Tile.Terra, rng.int(0, 2));
+        }
+      }
+    }
+  };
+
   // ------------------------------------------------- bocas das duas cavernas
-  // Cada uma abre num paredão de rocha, com trilha de terra saindo do caminho
-  // principal e uma placa: dá para chegar nas duas em poucos passos.
   const abrirBoca = (
     sprite: typeof assets.caverna.bocaGruta,
     bx: number,
@@ -307,38 +343,18 @@ export function gerarMundo(assets: Assets): MundoGerado {
     const btx = Math.floor(bx / TAM_TILE);
     const bty = Math.floor(by / TAM_TILE);
     // paredão de rocha em volta da boca
-    for (let ty = bty - 3; ty <= bty + 3; ty++) {
-      for (let tx = btx - 4; tx <= btx + 4; tx++) {
+    for (let ty = bty - 4; ty <= bty + 4; ty++) {
+      for (let tx = btx - 6; tx <= btx + 6; tx++) {
         if (nivel.tile(tx, ty) === Tile.Vazio) continue;
-        const d = Math.hypot((tx - btx) / 4, (ty - bty) / 3);
+        const d = Math.hypot((tx - btx) / 6, (ty - bty) / 4);
         if (d > 1) continue;
         nivel.definirTile(tx, ty, d > 0.7 ? Tile.Terra : Tile.Rocha, rng.int(0, 2));
       }
     }
-    // trilha até o caminho da frente da casa
-    const alvoTX = portaTX + 1;
-    let tx = btx;
-    for (let i = 0; i < 40 && tx !== alvoTX; i++) {
-      nivel.definirTile(tx, bty + 3, Tile.Terra, rng.int(0, 2));
-      nivel.definirTile(tx, bty + 4, Tile.Terra, rng.int(0, 2));
-      tx += Math.sign(alvoTX - tx);
-    }
-    for (let ty = portaTY + 6; ty <= bty + 4; ty++) {
-      nivel.definirTile(alvoTX, ty, Tile.Terra, rng.int(0, 2));
-    }
-
-    const { objeto } = colocar(nivel, sprite, bx + sprite.width / 2, by + sprite.height, {
-      ajusteBase: -4,
-    });
-    void objeto;
+    colocar(nivel, sprite, bx + sprite.width / 2, by + sprite.height, { ajusteBase: -4 });
     // as laterais do arco batem; o vão do meio fica livre para entrar
     nivel.adicionarColisor({ x: bx, y: by + 8, w: 8, h: sprite.height - 8 });
-    nivel.adicionarColisor({
-      x: bx + sprite.width - 8,
-      y: by + 8,
-      w: 8,
-      h: sprite.height - 8,
-    });
+    nivel.adicionarColisor({ x: bx + sprite.width - 8, y: by + 8, w: 8, h: sprite.height - 8 });
     nivel.adicionarColisor({ x: bx, y: by, w: sprite.width, h: 10 });
     nivel.interativos.push({
       area: { x: bx + 8, y: by + sprite.height - 14, w: sprite.width - 16, h: 18 },
@@ -350,6 +366,20 @@ export function gerarMundo(assets: Assets): MundoGerado {
     });
     nivel.luzes.push({ x: bx + sprite.width / 2, y: by + sprite.height - 6 });
   };
+
+  const gTX = Math.floor(BOCA_GRUTA_X / TAM_TILE);
+  const gTY = Math.floor(BOCA_GRUTA_Y / TAM_TILE);
+  const mTX = Math.floor(BOCA_MINA_X / TAM_TILE);
+  const mTY = Math.floor(BOCA_MINA_Y / TAM_TILE);
+
+  // a estrada do leste passa pela floresta até a Gruta; a do sul cruza o
+  // pântano até o Abismo. As duas saem do mesmo cruzamento, na frente de casa.
+  const cruzamentoTX = portaTX + 1;
+  const cruzamentoTY = portaTY + 6;
+  estrada(cruzamentoTX, cruzamentoTY, gTX, gTY + 4, 1);
+  estrada(cruzamentoTX, cruzamentoTY, mTX, mTY + 4, 1);
+  // e um ramal norte-sul cortando o mapa, para dar rumo a quem sai explorando
+  estrada(cruzamentoTX, cruzamentoTY, 150, 120, 1);
 
   abrirBoca(
     assets.caverna.bocaGruta,
@@ -365,6 +395,43 @@ export function gerarMundo(assets: Assets): MundoGerado {
     'entrar-mina',
     'Entrar no Abismo Ígneo',
   );
+
+  // ---------------------------------------------------- a casa do Ancião
+  // Fica encostada na Gruta de Cristal: pequena, de pedra e madeira, com uma
+  // fogueira acesa na porta. É lá dentro que está a máquina do tempo quebrada.
+  {
+    const atx = Math.floor(CASA_ANCIAO_X / TAM_TILE);
+    const aty = Math.floor(CASA_ANCIAO_Y / TAM_TILE);
+    for (let ty = aty - 3; ty <= aty + 4; ty++) {
+      for (let tx = atx - 4; tx <= atx + 5; tx++) {
+        if (nivel.tile(tx, ty) === Tile.Vazio) continue;
+        nivel.definirTile(tx, ty, rng.chance(0.3) ? Tile.Terra : Tile.Grama, rng.int(0, 2));
+      }
+    }
+    estrada(gTX + 2, gTY + 4, atx, aty + 3, 1);
+    const casaA = assets.historia.casaAnciao;
+    colocar(nivel, casaA, CASA_ANCIAO_X + casaA.width / 2, CASA_ANCIAO_Y + casaA.height, {
+      ajusteBase: -4,
+    });
+    nivel.substituirUltimoColisor({
+      x: CASA_ANCIAO_X + 2,
+      y: CASA_ANCIAO_Y + 12,
+      w: casaA.width - 4,
+      h: casaA.height - 22,
+    });
+    nivel.luzes.push({ x: CASA_ANCIAO_X + 6, y: CASA_ANCIAO_Y + casaA.height - 6 });
+    nivel.fogos.push({ x: CASA_ANCIAO_X - 8, y: CASA_ANCIAO_Y + casaA.height - 4 });
+    nivel.interativos.push({
+      area: {
+        x: CASA_ANCIAO_X + casaA.width / 2 - 12,
+        y: CASA_ANCIAO_Y + casaA.height - 12,
+        w: 24,
+        h: 18,
+      },
+      rotulo: 'Entrar na casa do Ancião',
+      acao: 'entrar-anciao',
+    });
+  }
 
   const longeDaCasa = (px: number, py: number, raio: number) =>
     dist(px, py, casaX + CASA_W / 2, casaY + CASA_H / 2) > raio &&
@@ -708,6 +775,86 @@ export function gerarMundo(assets: Assets): MundoGerado {
     }
   }
 
+  // ------------------------------------------------------- esconderijos
+  /**
+   * Clareiras escondidas: um anel de pedras com uma única brecha, um baú
+   * dentro e nós de recurso bons em volta. Ficam longe de casa e fora das
+   * estradas — é o prêmio de quem sai do caminho.
+   */
+  const plantarEsconderijo = (ctx: number, cty: number): boolean => {
+    if (!nivel.dentro(ctx - 8, cty - 8) || !nivel.dentro(ctx + 8, cty + 8)) return false;
+    // só em chão firme e com espaço
+    for (let ty = cty - 5; ty <= cty + 5; ty++) {
+      for (let tx = ctx - 5; tx <= ctx + 5; tx++) {
+        if (!ehLivre(tx, ty)) return false;
+      }
+    }
+    const cx = ctx * TAM_TILE + 8;
+    const cy = cty * TAM_TILE + 8;
+    if (!longeDaCasa(cx, cy, 260)) return false;
+
+    // anel de pedras com uma brecha ao sul
+    const raio = 4;
+    for (let a = 0; a < 26; a++) {
+      const ang = (a / 26) * TAU;
+      // a brecha fica embaixo, apontando para quem chega
+      if (Math.sin(ang) > 0.72) continue;
+      const px = cx + Math.cos(ang) * raio * TAM_TILE;
+      const py = cy + Math.sin(ang) * raio * TAM_TILE;
+      colocar(nivel, assets.cenario.pedraGrande, px, py, {
+        colisao: { w: 14, h: 8 },
+        sombra: assets.sombras.m,
+      });
+    }
+    // grama florida por dentro, para o lugar parecer cuidado
+    for (let ty = cty - 3; ty <= cty + 3; ty++) {
+      for (let tx = ctx - 3; tx <= ctx + 3; tx++) {
+        if (Math.hypot(tx - ctx, ty - cty) > 3.2) continue;
+        nivel.definirTile(tx, ty, rng.chance(0.4) ? Tile.GramaFlorida : Tile.Grama, rng.int(0, 3));
+      }
+    }
+    // recursos bons dentro do anel
+    const ricos: NomeNo[] = ['rochaCristal', 'araucaria', 'montinho', 'rochaFerro'];
+    for (let i = 0; i < 4; i++) {
+      const ang = (i / 4) * TAU + 0.6;
+      plantarNo(
+        ricos[i],
+        i === 1
+          ? assets.cenario.araucaria
+          : i === 2
+            ? assets.colheita.montinho
+            : i === 0
+              ? assets.colheita.rochaCristal
+              : assets.colheita.rochaFerro,
+        cx + Math.cos(ang) * 26,
+        cy + Math.sin(ang) * 20,
+        { colisao: { w: 12, h: 6 }, sombra: assets.sombras.m },
+      );
+    }
+    // o baú, no meio
+    const bau = colocar(nivel, assets.casa.bau, cx, cy + 6, {
+      colisao: { w: 16, h: 6 },
+      sombra: assets.sombras.m,
+    });
+    nivel.nomeados.set(`esconderijo:${ctx},${cty}`, bau.objeto);
+    nivel.luzes.push({ x: cx, y: cy - 4 });
+    nivel.interativos.push({
+      area: { x: cx - 16, y: cy - 16, w: 32, h: 26 },
+      rotulo: 'Abrir o baú escondido',
+      acao: 'esconderijo',
+    });
+    return true;
+  };
+
+  {
+    let feitos = 0;
+    for (let tentativa = 0; tentativa < 4000 && feitos < 8; tentativa++) {
+      const tx = rng.int(10, LARG_TILES - 11);
+      const ty = rng.int(10, ALT_TILES - 11);
+      if (plantarEsconderijo(tx, ty)) feitos++;
+    }
+  }
+
   // -------------------------------------------------- pontos de nascimento
   // Cada criatura nasce no bioma dela e volta para lá quando desiste da caça.
   const livreParaBicho = (x: number, y: number) =>
@@ -971,4 +1118,76 @@ export function pontoDoBioma(nivel: Nivel, bioma: BiomaId): { x: number; y: numb
     }
   }
   return { x: c.tx * TAM_TILE, y: c.ty * TAM_TILE };
+}
+
+/**
+ * Dentro da casa do Ancião: um cômodo só, com a máquina do tempo quebrada
+ * encostada na parede do fundo e o pedestal onde a Cronolita ficou guardada
+ * a vida inteira.
+ */
+export function criarInteriorAnciao(assets: Assets): Nivel {
+  const LT = 30;
+  const AT = 17;
+  const nivel = new Nivel(ID_ANCIAO, 'Casa do Ancião', LT, AT, 'interior', Tile.Vazio);
+  const rng = new Rng(9091);
+
+  const x0 = 11;
+  const x1 = 19;
+  const y0 = 5;
+  const y1 = 11;
+  for (let ty = y0 - 2; ty <= y1 + 1; ty++) {
+    for (let tx = x0 - 2; tx <= x1 + 2; tx++) {
+      nivel.definirTile(tx, ty, Tile.ParedeInterna, rng.int(0, 1));
+    }
+  }
+  for (let ty = y0; ty <= y1; ty++) {
+    for (let tx = x0; tx <= x1; tx++) {
+      nivel.definirTile(tx, ty, Tile.PisoMadeira, rng.int(0, 2));
+    }
+  }
+
+  const portaTX = 14;
+  nivel.portais.push({
+    area: { x: portaTX * TAM_TILE, y: y1 * TAM_TILE, w: TAM_TILE * 2, h: TAM_TILE },
+    destino: ID_MUNDO,
+    entradaX: 0,
+    entradaY: 0,
+    rotulo: 'Sair',
+  });
+  nivel.entradaX = (portaTX + 1) * TAM_TILE;
+  nivel.entradaY = y1 * TAM_TILE + 12;
+
+  const c = assets.casa;
+  const h = assets.historia;
+
+  // ---- a máquina do tempo, no fundo
+  const maquina = colocar(nivel, h.maquinaQuebrada, 248, 108, { colisao: { w: 22, h: 8 } });
+  nivel.nomeados.set('maquina', maquina.objeto);
+  nivel.luzes.push({ x: 248, y: 96 });
+  nivel.interativos.push({
+    area: { x: 228, y: 82, w: 40, h: 32 },
+    rotulo: 'Olhar a máquina do tempo',
+    acao: 'maquina-tempo',
+  });
+
+  // ---- o pedestal da Cronolita
+  colocar(nivel, h.pedestal, 300, 116, { colisao: { w: 12, h: 5 } });
+  nivel.luzes.push({ x: 300, y: 104 });
+
+  // ---- o resto do cômodo, apertado como a cabana de um velho
+  colocar(nivel, c.cama, 196, 116, { colisao: { w: 15, h: 12 } });
+  colocar(nivel, c.estante, 200, 92, { colisao: { w: 26, h: 6 } });
+  colocar(nivel, c.lareira, 300, 94, { colisao: { w: 24, h: 8 } });
+  nivel.fogos.push({ x: 300, y: 84 });
+  nivel.luzes.push({ x: 300, y: 82 });
+  colocar(nivel, c.tapete, 248, 158, { ajusteBase: -34 });
+  colocar(nivel, c.mesa, 248, 152, { colisao: { w: 28, h: 8 } });
+  colocar(nivel, c.lampiao, 248, 144, { ajusteBase: 14 });
+  nivel.luzes.push({ x: 248, y: 140 });
+  colocar(nivel, c.cadeira, 224, 156, { colisao: { w: 8, h: 4 } });
+  colocar(nivel, c.barril, 202, 166, { colisao: { w: 10, h: 5 } });
+  colocar(nivel, c.caixa, 300, 160, { colisao: { w: 14, h: 5 } });
+
+  nivel.ordenarObjetos();
+  return nivel;
 }

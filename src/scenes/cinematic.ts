@@ -27,6 +27,13 @@ const CHAO_Y = 80;
 const MAQUINA_X = 150;
 const MAQUINA_BASE = 98;
 
+export interface OpcoesCinematica {
+  /** Personagem escolhido na tela de seleção. */
+  personagem?: import('../gfx/sprites/player').PersonagemId;
+  /** Modo teste, repassado ao jogo. */
+  demo?: boolean;
+}
+
 interface Fala {
   quem: string;
   txt: string;
@@ -62,7 +69,10 @@ export class CenaCinematica implements Cena {
   private feixe: Sprite;
   private silhuetas: Sprite[] = [];
 
-  constructor(private jogo: Jogo) {
+  constructor(
+    private jogo: Jogo,
+    private opcoes: OpcoesCinematica = {},
+  ) {
     this.cena = criarCanvas(CW, CH);
     this.cg = ctx2d(this.cena);
     this.luz = this.criarLuz(54, 60);
@@ -188,7 +198,14 @@ export class CenaCinematica implements Cena {
   }
 
   private irParaOJogo(): void {
-    this.jogo.trocarCena(new CenaJogo(this.jogo, { chegada: true }), 1.2);
+    this.jogo.trocarCena(
+      new CenaJogo(this.jogo, {
+        chegada: true,
+        demo: this.opcoes.demo,
+        personagem: this.opcoes.personagem,
+      }),
+      1.2,
+    );
     this.etapa = 99;
   }
 

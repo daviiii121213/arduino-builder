@@ -36,6 +36,30 @@ export class TempoDoDia {
     return 'noite';
   }
 
+  /** Hora do relógio em número (13.5 = 13:30). */
+  get hora(): number {
+    return this.fase * 24;
+  }
+
+  /**
+   * Perigo noturno: das 23:00 às 05:30 os dinossauros ficam mais perigosos.
+   *
+   * Aqui só se responde "está valendo ou não" — quem aplica os multiplicadores
+   * é o próprio dinossauro, na hora de agir, sem tocar na ficha da espécie.
+   */
+  get perigoNoturno(): boolean {
+    if (!this.ativo) return false;
+    const h = this.hora;
+    return h >= 23 || h < 5.5;
+  }
+
+  /** Quanto falta (em horas de jogo) para o perigo começar ou acabar. */
+  get horasAteVirar(): number {
+    const h = this.hora;
+    if (this.perigoNoturno) return h >= 23 ? 24 - h + 5.5 : 5.5 - h;
+    return h < 23 ? 23 - h : 0;
+  }
+
   /** Salta para um ponto do dia (usado ao dormir). */
   avancarPara(fase: number): void {
     this.fase = ((fase % 1) + 1) % 1;

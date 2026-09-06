@@ -61,7 +61,12 @@ export interface Interativo {
     | 'guincho'
     | 'entrar-gruta'
     | 'entrar-mina'
-    | 'tesouro';
+    | 'tesouro'
+    // ---- esconderijos e desfecho da história
+    | 'esconderijo'
+    | 'entrar-anciao'
+    | 'anciao'
+    | 'maquina-tempo';
 }
 
 export class Nivel {
@@ -166,9 +171,80 @@ export class Nivel {
     return p.solido;
   }
 
+  /**
+   * Índice espacial dos colisores.
+   *
+   * Com o mapa grande são milhares de caixas; testar todas a cada passo de cada
+   * criatura não fecha o quadro. Os colisores nunca se movem depois de criados
+   * (só ligam e desligam), então uma grade fixa resolve: cada caixa entra nas
+   * células que cobre e a colisão só olha as células em volta da pegada.
+   */
+  private static readonly CELULA = 64;
+  private readonly grade = new Map<number, Colisor[]>();
+
+  private chave(cx: number, cy: number): number {
+    return cy * 8192 + cx;
+  }
+
+  private indexar(r: Colisor): void {
+    const c = Nivel.CELULA;
+    const x0 = Math.floor(r.x / c);
+    const x1 = Math.floor((r.x + r.w) / c);
+    const y0 = Math.floor(r.y / c);
+    const y1 = Math.floor((r.y + r.h) / c);
+    for (let cy = y0; cy <= y1; cy++) {
+      for (let cx = x0; cx <= x1; cx++) {
+        const k = this.chave(cx, cy);
+        const lista = this.grade.get(k);
+        if (lista) lista.push(r);
+        else this.grade.set(k, [r]);
+      }
+    }
+  }
+
   adicionarColisor(r: Colisor): Colisor {
     this.colisores.push(r);
+    this.indexar(r);
     return r;
+  }
+
+  /**
+   * Troca a última caixa adicionada por outra (usado quando o objeto precisa de
+   * um recorte diferente do automático — a porta de uma casa, por exemplo).
+   */
+  substituirUltimoColisor(r: Colisor): Colisor {
+    const antigo = this.colisores[this.colisores.length - 1];
+    if (antigo) antigo.ativo = false;
+    this.colisores[this.colisores.length - 1] = r;
+    this.indexar(r);
+    return r;
+  }
+
+  /** Verdadeiro se alguma caixa ativa cruza o retângulo. */
+  algumColisor(r: Rect): boolean {
+    const c = Nivel.CELULA;
+    const x0 = Math.floor(r.x / c);
+    const x1 = Math.floor((r.x + r.w) / c);
+    const y0 = Math.floor(r.y / c);
+    const y1 = Math.floor((r.y + r.h) / c);
+    for (let cy = y0; cy <= y1; cy++) {
+      for (let cx = x0; cx <= x1; cx++) {
+        const lista = this.grade.get(this.chave(cx, cy));
+        if (!lista) continue;
+        for (const box of lista) {
+          if (box.ativo === false) continue;
+          if (
+            r.x < box.x + box.w &&
+            r.x + r.w > box.x &&
+            r.y < box.y + box.h &&
+            r.y + r.h > box.y
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   adicionarObjeto(o: ObjetoCenario): void {

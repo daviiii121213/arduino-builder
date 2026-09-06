@@ -6,7 +6,7 @@
 
 import { TAM_TILE } from '../gfx/sprites/terrain';
 import type { Nivel } from '../world/level';
-import { rectsOverlap, type Rect } from '../core/math';
+import type { Rect } from '../core/math';
 
 export interface Pegada {
   /** Centro da pegada (ponto de contato com o chão). */
@@ -41,12 +41,8 @@ export function livre(nivel: Nivel, p: Pegada, x: number, y: number): boolean {
     }
   }
 
-  if (!p.ignoraObjetos) {
-    for (const c of nivel.colisores) {
-      if (c.ativo === false) continue;
-      if (rectsOverlap(r, c)) return false;
-    }
-  }
+  // só as caixas das células em volta da pegada, e não o mapa inteiro
+  if (!p.ignoraObjetos && nivel.algumColisor(r)) return false;
   return true;
 }
 

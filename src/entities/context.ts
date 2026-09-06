@@ -20,6 +20,12 @@ export interface Mundo {
   projeteis: Orbe[];
   /** Tempo acumulado de jogo, em segundos. */
   tempo: number;
+  /**
+   * Verdadeiro entre 23:00 e 05:30. Enquanto vale, todo dinossauro bate o
+   * dobro, corre mais e desiste menos — sem que nada disso encoste na ficha
+   * da espécie.
+   */
+  noitePerigosa: boolean;
   criarOrbe(
     x: number,
     y: number,

@@ -12,6 +12,10 @@ import { Pincel, tingir, type Sprite } from '../gfx/pixel';
 import { Rng } from '../core/rng';
 import { CenaCinematica } from './cinematic';
 import { CenaJogo } from './play';
+import { CenaEscolha } from './select';
+import { carregar, type EstadoSalvo } from '../systems/save';
+import type { PersonagemId } from '../gfx/sprites/player';
+import { usarPersonagem } from '../gfx/assets';
 import type { EspecieId } from '../gfx/sprites/dinos';
 
 type Painel = 'nenhum' | 'comoJogar' | 'creditos';
@@ -37,6 +41,8 @@ export class CenaMenu implements Cena {
   private painelAtivo: Painel = 'nenhum';
   private tempo = 0;
   private desfilando: { s: Sprite; x: number; y: number; v: number }[] = [];
+  /** Partida salva, se houver — vira o botão de continuar. */
+  private salvo: EstadoSalvo | null = null;
 
   constructor(private jogo: Jogo) {
     this.fundo = this.criarCeu();
@@ -47,13 +53,21 @@ export class CenaMenu implements Cena {
 
     const larg = 150;
     const x = Math.round((LARGURA - larg) / 2);
-    this.menu = new ListaBotoes([
-      new Botao(x, 142, larg, 19, 'Nova expedição', () => this.comecar(true)),
-      new Botao(x, 164, larg, 19, 'Pular a cinemática', () => this.comecar(false)),
-      new Botao(x, 186, larg, 19, 'Modo teste', () => this.comecar(false, true)),
-      new Botao(x, 208, larg, 19, 'Como jogar', () => (this.painelAtivo = 'comoJogar')),
-      new Botao(x, 230, larg, 19, 'Créditos', () => (this.painelAtivo = 'creditos')),
-    ]);
+    this.salvo = carregar();
+    const botoes: Botao[] = [];
+    let y = this.salvo ? 130 : 142;
+    if (this.salvo) {
+      botoes.push(new Botao(x, y, larg, 19, 'Continuar expedição', () => this.continuar()));
+      y += 22;
+    }
+    botoes.push(
+      new Botao(x, y, larg, 19, 'Nova expedição', () => this.comecar(true)),
+      new Botao(x, y + 22, larg, 19, 'Pular a cinemática', () => this.comecar(false)),
+      new Botao(x, y + 44, larg, 19, 'Modo teste', () => this.comecar(false, true)),
+      new Botao(x, y + 66, larg, 19, 'Como jogar', () => (this.painelAtivo = 'comoJogar')),
+      new Botao(x, y + 88, larg, 19, 'Créditos', () => (this.painelAtivo = 'creditos')),
+    );
+    this.menu = new ListaBotoes(botoes);
 
     // silhuetas de dinossauros atravessando o horizonte
     const especies: EspecieId[] = ['folhalonga', 'tricornis', 'pedrapata', 'raptornoz'];
@@ -180,10 +194,45 @@ export class CenaMenu implements Cena {
 
   // ---------------------------------------------------------- atualização
 
+  /**
+   * Todo modo passa antes pela escolha de personagem — expedição nova, sem
+   * cinemática e modo teste. Sem escolher ninguém, nada começa.
+   */
   private comecar(comCinematica: boolean, demo = false): void {
     this.jogo.audio.iniciar();
-    if (comCinematica) this.jogo.trocarCena(new CenaCinematica(this.jogo), 0.9);
-    else this.jogo.trocarCena(new CenaJogo(this.jogo, { chegada: true, demo }), 0.9);
+    const modo = demo
+      ? 'Modo teste'
+      : comCinematica
+        ? 'Nova expedição'
+        : 'Nova expedição (sem cinemática)';
+    this.jogo.trocarCena(
+      new CenaEscolha(this.jogo, {
+        modo,
+        aoVoltar: () => this.jogo.trocarCena(new CenaMenu(this.jogo), 0.5),
+        aoConfirmar: (personagem: PersonagemId) => {
+          if (comCinematica) {
+            this.jogo.trocarCena(new CenaCinematica(this.jogo, { personagem, demo }), 0.9);
+          } else {
+            this.jogo.trocarCena(
+              new CenaJogo(this.jogo, { chegada: true, demo, personagem }),
+              0.9,
+            );
+          }
+        },
+      }),
+      0.6,
+    );
+  }
+
+  /** Retoma a partida salva com o personagem que já tinha sido escolhido. */
+  private continuar(): void {
+    if (!this.salvo) return;
+    this.jogo.audio.iniciar();
+    usarPersonagem(this.jogo.assets, this.salvo.personagem);
+    this.jogo.trocarCena(
+      new CenaJogo(this.jogo, { personagem: this.salvo.personagem, salvo: this.salvo }),
+      0.9,
+    );
   }
 
   atualizar(dt: number): void {

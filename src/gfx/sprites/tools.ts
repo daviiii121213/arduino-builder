@@ -38,6 +38,7 @@ export type RecursoId =
   | 'diamante'
   | 'astralita'
   | 'nucleoIgneo'
+  | 'cronolita'
   | 'fossilDente'
   | 'fossilPegada'
   | 'fossilConcha'
@@ -547,7 +548,22 @@ const PALETAS_RECURSO: Partial<Record<RecursoId, Paleta>> = {
   nucleoIgneo: { '1': '#ffe08a', '2': '#ff6a2a', '3': '#8a2410' },
 };
 
+/** A Cronolita: o mineral que faz a máquina do tempo voltar a andar. */
+const R_CRONOLITA = [
+  '....kkkk....',
+  '..kkWaaWkk..',
+  '.kWaAAAAaWk.',
+  'kWaAAWWAAaWk',
+  'kaAAWmmWAAak',
+  'kaAAWmmWAAak',
+  'kWaAAWWAAaWk',
+  '.kWaAAAAaWk.',
+  '..kkWaaWkk..',
+  '....kkkk....',
+];
+
 const DESENHOS_RECURSO: Record<RecursoId, string[]> = {
+  cronolita: R_CRONOLITA,
   madeira: R_MADEIRA,
   pedra: R_PEDRA,
   ferro: R_FERRO,

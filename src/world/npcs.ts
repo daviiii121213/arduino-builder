@@ -1,4 +1,4 @@
-/** Quem trabalha na cabana de melhorias. */
+/** Quem trabalha na cabana de melhorias — e o Ancião, lá no leste do mapa. */
 
 import { Npc } from '../entities/npc';
 import type { Assets } from '../gfx/assets';
@@ -30,4 +30,13 @@ export function criarNpcsDaCabana(assets: Assets): Npc[] {
       ],
     ),
   ];
+}
+
+/** O Ancião Belmiro, na frente da cabana dele, ao lado da Gruta de Cristal. */
+export function criarAnciao(assets: Assets, x: number, y: number): Npc {
+  return new Npc('Ancião Belmiro', 'Guardião da Cronolita', 'anciao', x, y, assets.historia.anciao, [
+    'Eu moro aqui desde antes da sua avó nascer, menino.',
+    'Essa gruta guarda coisa que é melhor não acordar.',
+    'Você tem cara de quem está atrás de uma pedra específica.',
+  ]);
 }

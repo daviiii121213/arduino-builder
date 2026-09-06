@@ -33,8 +33,17 @@ import {
   BOCA_GRUTA_Y,
   BOCA_MINA_X,
   BOCA_MINA_Y,
+  CASA_ANCIAO_X,
+  CASA_ANCIAO_Y,
+  ID_ANCIAO,
+  criarInteriorAnciao,
   pontoDoBioma,
 } from '../world/worldgen';
+import { CenaFinal } from './final';
+import { PERSONAGENS } from '../systems/personagens';
+import type { PersonagemId } from '../gfx/sprites/player';
+import { usarPersonagem } from '../gfx/assets';
+import { salvar, type EstadoSalvo } from '../systems/save';
 import { BIOMAS, TODOS_BIOMAS, type BiomaId } from '../world/biomes';
 import { gerarAndar, type AndarGerado } from '../world/caves';
 import {
@@ -46,7 +55,7 @@ import {
 } from '../world/caveDefs';
 import { chanceDeFossil, sortearFossil, FOSSEIS, COR_RARIDADE } from '../systems/fossils';
 import { criarCanvas, ctx2d } from '../gfx/pixel';
-import { criarNpcsDaCabana } from '../world/npcs';
+import { criarNpcsDaCabana, criarAnciao } from '../world/npcs';
 import { desenharTerreno, objetosVisiveis, desenharObjeto } from '../world/renderer';
 import { colocar } from '../world/props';
 import { HUD } from '../ui/hud';
@@ -86,6 +95,10 @@ export interface OpcoesJogo {
   chegada?: boolean;
   /** Modo de teste: tudo liberado, dinheiro e recursos infinitos. */
   demo?: boolean;
+  /** Personagem escolhido na tela de seleção. */
+  personagem?: PersonagemId;
+  /** Partida salva a recuperar. */
+  salvo?: EstadoSalvo | null;
 }
 
 export class CenaJogo implements Cena {
@@ -159,6 +172,14 @@ export class CenaJogo implements Cena {
   private chefeAtual: Dino | null = null;
   /** Baú de recompensa do décimo andar, quando o chefe já caiu. */
   private tesouroAberto = new Set<string>();
+  /** Personagem escolhido: vale para o jogo inteiro. */
+  private personagem: PersonagemId = 'teo';
+  /** Esconderijos já saqueados, por posição. */
+  private esconderijosAbertos = new Set<string>();
+  /** Estava valendo o perigo noturno no quadro anterior? */
+  private noiteAnterior = false;
+  /** Tempo desde o último salvamento automático. */
+  private tempoSalvo = 0;
 
   constructor(
     private jogo: Jogo,
@@ -183,6 +204,31 @@ export class CenaJogo implements Cena {
     this.npcsPorNivel.set(ID_MUNDO, []);
     this.npcsPorNivel.set(ID_CASA, []);
     this.npcsPorNivel.set(ID_CABANA, criarNpcsDaCabana(jogo.assets));
+    // o Ancião mora lá no leste, na frente da própria cabana
+    this.npcsPorNivel.get(ID_MUNDO)!.push(
+      criarAnciao(
+        jogo.assets,
+        CASA_ANCIAO_X + jogo.assets.historia.casaAnciao.width / 2 - 16,
+        CASA_ANCIAO_Y + jogo.assets.historia.casaAnciao.height + 12,
+      ),
+    );
+    gerado.nivel.interativos.push({
+      area: {
+        x: CASA_ANCIAO_X + jogo.assets.historia.casaAnciao.width / 2 - 34,
+        y: CASA_ANCIAO_Y + jogo.assets.historia.casaAnciao.height,
+        w: 40,
+        h: 26,
+      },
+      rotulo: 'Falar com o Ancião Belmiro',
+      acao: 'anciao',
+    });
+    this.niveis.set(ID_ANCIAO, criarInteriorAnciao(jogo.assets));
+    this.dinosPorNivel.set(ID_ANCIAO, []);
+    this.npcsPorNivel.set(ID_ANCIAO, []);
+
+    // ---- personagem escolhido
+    this.personagem = opcoes.personagem ?? opcoes.salvo?.personagem ?? 'teo';
+    usarPersonagem(jogo.assets, this.personagem);
 
     // ---- modo de teste
     this.progresso.demo = !!opcoes.demo;
@@ -216,6 +262,7 @@ export class CenaJogo implements Cena {
       dinos: this.dinos,
       projeteis: this.projeteis,
       tempo: 0,
+      noitePerigosa: false,
       criarOrbe: (x, y, ang, dano, vel, estilo) => {
         this.projeteis.push(new Orbe(x, y, ang, dano, vel, estilo));
       },
@@ -301,6 +348,7 @@ export class CenaJogo implements Cena {
 
     this.painelTestes = new PainelTestes(this.acoesDeTeste());
     this.montarMenus();
+    if (opcoes.salvo) this.restaurar(opcoes.salvo);
     if (opcoes.chegada) this.chegadaDramatica = true;
   }
 
@@ -467,6 +515,32 @@ export class CenaJogo implements Cena {
         rotulo: 'Adiantar 2 horas',
         grupo: 'ciclo',
         executar: () => this.tempoDoDia.avancarHoras(2),
+      },
+      {
+        rotulo: 'Pular para 23:00 (perigo noturno)',
+        grupo: 'ciclo',
+        executar: () => {
+          this.tempoDoDia.avancarPara(23 / 24 + 0.0005);
+          this.hud.avisar(`Agora são ${this.tempoDoDia.horaDoDia}.`, 3);
+        },
+      },
+      {
+        rotulo: 'Pular para 05:30 (fim do perigo)',
+        grupo: 'ciclo',
+        executar: () => {
+          this.tempoDoDia.avancarPara(5.51 / 24);
+          this.hud.avisar(`Agora são ${this.tempoDoDia.horaDoDia}.`, 3);
+        },
+      },
+      {
+        rotulo: 'Ir até a casa do Ancião',
+        grupo: 'história',
+        executar: () => this.teleportar('anciao'),
+      },
+      {
+        rotulo: 'Falar com o Ancião (final completo)',
+        grupo: 'história',
+        executar: () => this.falarComAnciao(),
       },
       {
         rotulo: 'Trazer um dinossauro',
@@ -739,6 +813,9 @@ export class CenaJogo implements Cena {
     this.mundo.tempo = this.tempoJogo;
     this.mundo.dinos = this.dinos;
 
+    // ---- perigo noturno: vale antes de qualquer criatura agir neste quadro
+    this.atualizarPerigoNoturno(dt);
+
     // ---- entidades
     this.jogador.atualizar(dt, entrada, this.mundo);
     for (const d of this.dinos) {
@@ -777,6 +854,149 @@ export class CenaJogo implements Cena {
     // ---- câmera
     this.camera.seguir(this.jogador.centroX, this.jogador.centroY, dt, 7);
     this.camera.atualizar(dt);
+  }
+
+  // ------------------------------------------------------------ salvamento
+
+  /** Fotografia da partida, para o localStorage. */
+  private serializar(): EstadoSalvo {
+    const p = this.progresso;
+    return {
+      versao: 1,
+      quando: Date.now(),
+      personagem: this.personagem,
+      moedas: this.carteira.moedas,
+      faseDoDia: this.tempoDoDia.fase,
+      progresso: {
+        ferramentas: { ...p.ferramentas },
+        slotsInventario: p.slotsInventario,
+        pilhaMax: p.pilhaMax,
+        slotsBau: p.slotsBau,
+        armaduras: [...p.armaduras],
+        armaduraVestida: p.armaduraVestida,
+        casa: { ...p.casa },
+        compradas: [...p.compradas],
+        biomasVisitados: [...p.biomasVisitados],
+        especiesVistas: [...p.especiesVistas],
+        fosseisAchados: [...p.fosseisAchados],
+        mineraisAchados: [...p.mineraisAchados],
+        andarMax: { ...p.andarMax },
+        chefesDerrotados: [...p.chefesDerrotados],
+        lanterna: p.lanterna,
+        cronolita: p.cronolita,
+        historiaConcluida: p.historiaConcluida,
+      },
+      inventario: this.inventario.slots.map((i) => (i ? { ...i } : null)),
+      selecionado: this.inventario.selecionado,
+      bau: this.bau.slots.map((i) => (i ? { ...i } : null)),
+      diario: {
+        feito: this.diario.exportarProgresso(),
+        concluidas: [...this.diario.concluidas],
+        ativas: this.diario.ativas.map((m) => m.id),
+        historico: [...this.diario.historico],
+      },
+      posicao: { x: this.jogador.x, y: this.jogador.y },
+    };
+  }
+
+  /** Grava a partida. Chamado nos momentos que importam e de minuto em minuto. */
+  private salvarPartida(): void {
+    // o modo teste nunca escreve por cima da partida do jogador
+    if (this.progresso.demo) return;
+    salvar(this.serializar());
+    this.tempoSalvo = 0;
+  }
+
+  /** Devolve a partida salva ao estado de jogo. */
+  private restaurar(e: EstadoSalvo): void {
+    const p = this.progresso;
+    const sp = e.progresso;
+    p.ferramentas = { ...p.ferramentas, ...sp.ferramentas };
+    p.slotsInventario = sp.slotsInventario;
+    p.pilhaMax = sp.pilhaMax;
+    p.slotsBau = sp.slotsBau;
+    p.armaduras = new Set(sp.armaduras);
+    p.armaduraVestida = sp.armaduraVestida;
+    p.casa = { ...sp.casa };
+    p.compradas = new Set(sp.compradas);
+    p.biomasVisitados = new Set(sp.biomasVisitados);
+    p.especiesVistas = new Set(sp.especiesVistas);
+    p.fosseisAchados = new Set(sp.fosseisAchados);
+    p.mineraisAchados = new Set(sp.mineraisAchados);
+    p.andarMax = { ...p.andarMax, ...sp.andarMax };
+    p.chefesDerrotados = new Set(sp.chefesDerrotados);
+    p.lanterna = sp.lanterna;
+    p.cronolita = sp.cronolita;
+    p.historiaConcluida = sp.historiaConcluida;
+
+    this.carteira.definir(e.moedas);
+    this.tempoDoDia.fase = e.faseDoDia;
+    this.inventario.liberados = p.slotsInventario;
+    this.inventario.pilhaMax = p.pilhaMax;
+    this.inventario.slots = e.inventario.map((i) => (i ? { ...i } : null));
+    this.inventario.selecionar(e.selecionado);
+    this.bau.redimensionar(24, p.slotsBau);
+    this.bau.slots = e.bau.map((i) => (i ? { ...i } : null));
+    this.diario.importar(e.diario.feito, e.diario.concluidas, e.diario.ativas, e.diario.historico);
+    this.jogador.armadura = p.armaduraVestida;
+    this.jogador.reposicionar(e.posicao.x, e.posicao.y);
+    if (p.casa.telhadoNovo) this.objetoCasa.sprite = this.jogo.assets.casa.exteriorNovo;
+    this.hud.avisar('Expedição retomada de onde você parou.', 4);
+  }
+
+  // ------------------------------------------------------------ o desfecho
+
+  /** O que ainda falta para o Ancião entregar a Cronolita. */
+  private requisitosDoFinal(): { texto: string; ok: boolean }[] {
+    const p = this.progresso;
+    return [
+      {
+        texto: `Conhecer as 6 regiões do mapa (${p.biomasVisitados.size}/6)`,
+        ok: p.biomasVisitados.size >= 6,
+      },
+      {
+        texto: `Derrubar os dois guardiões das cavernas (${p.chefesDerrotados.size}/2)`,
+        ok: p.chefesDerrotados.size >= 2,
+      },
+      {
+        texto: `Juntar 5 peças de arqueologia (${p.fosseisAchados.size}/5)`,
+        ok: p.fosseisAchados.size >= 5,
+      },
+    ];
+  }
+
+  /** Conversa com o Ancião: entrega a Cronolita ou diz o que falta. */
+  private falarComAnciao(): void {
+    const req = this.requisitosDoFinal();
+    const faltando = req.filter((r) => !r.ok);
+    // no modo teste ele entrega na hora, para dar para testar o final inteiro
+    if (!this.progresso.demo && faltando.length > 0) {
+      this.jogo.audio.menu();
+      this.hud.avisar('Ancião: "Ainda não, menino. Volte quando puder me dizer que:"', 5);
+      this.hud.avisar(faltando[0].texto, 6);
+      return;
+    }
+    this.progresso.cronolita = true;
+    this.inventario.guardar(criarItem('recurso', 'cronolita', 1));
+    this.salvarPartida();
+    this.jogo.audio.confirmar();
+    this.jogo.trocarCena(
+      new CenaFinal(this.jogo, {
+        personagem: this.personagem,
+        aoContinuar: () => this.voltarDoFinal(),
+        aoZerar: () => this.voltarAoMenu(),
+      }),
+      1.1,
+    );
+  }
+
+  /** Depois do final: o jogo continua exatamente onde estava. */
+  private voltarDoFinal(): void {
+    this.progresso.historiaConcluida = true;
+    this.salvarPartida();
+    this.jogo.trocarCena(this, 0.8);
+    this.hud.avisar('Pós-jogo: o vale continua todo seu.', 5);
+    this.hud.avisar(`${PERSONAGENS[this.personagem].nome} já voltou para casa — e voltou aqui.`, 6);
   }
 
   // -------------------------------------------------------------- cavernas
@@ -854,6 +1074,7 @@ export class CenaJogo implements Cena {
         P.ambar,
       );
       this.diario.desceu(caverna, andar);
+      this.salvarPartida();
     }
     if (andar === ANDARES && this.chefeAtual) {
       this.hud.avisar(`${this.chefeAtual.ficha.nome} — ${this.chefeAtual.ficha.chefe!.titulo}.`, 4);
@@ -959,6 +1180,7 @@ export class CenaJogo implements Cena {
     });
     this.hud.avisar(`${r.nomePremio}: ${r.texto}`, 6);
     this.hud.avisar(`+${formatarMoedas(r.moedas)} e minérios raros do baú.`, 5);
+    this.salvarPartida();
   }
 
   /** Efeito de derrubar um chefe: libera o baú e marca o feito. */
@@ -972,6 +1194,36 @@ export class CenaJogo implements Cena {
     this.jogo.audio.trovao();
     this.hud.avisar(`${CAVERNAS[caverna].nome}: o guardião caiu. Um baú apareceu na arena.`, 6);
     this.diario.derrotouChefe(caverna);
+    this.salvarPartida();
+  }
+
+  // ------------------------------------------------------- perigo noturno
+
+  /**
+   * Liga e desliga o perigo noturno.
+   *
+   * O sistema é só uma bandeira: `mundo.noitePerigosa` vale das 23:00 às 05:30
+   * e cada dinossauro lê essa bandeira na hora de agir. Nenhuma ficha de
+   * espécie é alterada, então às 05:30 tudo volta ao normal sozinho — inclusive
+   * os bichos das cavernas, que também obedecem ao relógio lá de fora.
+   */
+  private atualizarPerigoNoturno(dt: number): void {
+    const perigo = this.tempoDoDia.perigoNoturno;
+    this.mundo.noitePerigosa = perigo;
+    if (perigo !== this.noiteAnterior) {
+      this.noiteAnterior = perigo;
+      if (perigo) {
+        this.hud.avisar('23:00 — a noite virou. Todo bicho ficou mais perigoso.', 6);
+        this.jogo.audio.rugido(true);
+        this.camera.tremer(2, 0.5);
+      } else {
+        this.hud.avisar('05:30 — o dia raiou. Os bichos voltaram ao normal.', 5);
+        this.jogo.audio.confirmar();
+      }
+    }
+    // salvamento automático de minuto em minuto
+    this.tempoSalvo += dt;
+    if (this.tempoSalvo > 60) this.salvarPartida();
   }
 
   // ---------------------------------------------------------------- biomas
@@ -1477,6 +1729,46 @@ export class CenaJogo implements Cena {
       case 'tesouro':
         this.abrirTesouro();
         break;
+
+      // -------------------------------------------- esconderijos e história
+      case 'esconderijo': {
+        const chave = `${Math.round(i.area.x)},${Math.round(i.area.y)}`;
+        if (this.esconderijosAbertos.has(chave)) {
+          this.hud.avisar('Este baú já foi esvaziado.', 2);
+          break;
+        }
+        this.esconderijosAbertos.add(chave);
+        const moedas = 120 + this.rng.int(0, 180);
+        this.carteira.ganhar(moedas);
+        const achado = sortearFossil(this.rng, { bioma: this.biomaAtual, sorte: 2 });
+        this.jogo.audio.confirmar();
+        this.particulas.jato(
+          i.area.x + i.area.w / 2,
+          i.area.y + i.area.h / 2,
+          [P.ambar, P.brilho, '#ffffff'],
+          24,
+          110,
+          { vida: 1, gravidade: 70 },
+        );
+        this.hud.avisar(`Esconderijo: +${formatarMoedas(moedas)}!`, 4);
+        if (achado) this.receberFossil(achado, i.area.x + i.area.w / 2, i.area.y + i.area.h);
+        this.salvarPartida();
+        break;
+      }
+      case 'entrar-anciao':
+        this.jogo.audio.portal();
+        this.transicao = { t: 0, fase: 'saindo', acao: () => this.irPara(ID_ANCIAO) };
+        break;
+      case 'anciao':
+        this.falarComAnciao();
+        break;
+      case 'maquina-tempo':
+        if (this.progresso.cronolita) {
+          this.hud.avisar('A máquina está pronta. O Ancião espera lá fora.', 4);
+        } else {
+          this.hud.avisar('A máquina do tempo do seu avô. Falta uma pedra no berço dela.', 5);
+        }
+        break;
     }
   }
 
@@ -1500,6 +1792,7 @@ export class CenaJogo implements Cena {
           4,
         );
         this.hud.avisar(`Amanheceu: ${this.tempoDoDia.horaDoDia}.`, 4);
+        this.salvarPartida();
       },
     };
   }
@@ -1524,7 +1817,7 @@ export class CenaJogo implements Cena {
   }
 
   /** Atalho do modo de teste: leva o jogador direto a cada sistema. */
-  private teleportar(destino: 'casa' | 'cabana' | 'maquina'): void {
+  private teleportar(destino: 'casa' | 'cabana' | 'maquina' | 'anciao'): void {
     this.caverna = null;
     this.andar = 0;
     this.chefeAtual = null;
@@ -1535,6 +1828,10 @@ export class CenaJogo implements Cena {
       this.camera.definirLimites(this.nivel.larguraPx, this.nivel.alturaPx);
     }
     const pontos = {
+      anciao: {
+        x: CASA_ANCIAO_X + this.jogo.assets.historia.casaAnciao.width / 2,
+        y: CASA_ANCIAO_Y + this.jogo.assets.historia.casaAnciao.height + 22,
+      },
       casa: { x: CASA_X + CASA_PORTA.x + CASA_PORTA.w / 2, y: CASA_Y + CASA_H + 6 },
       cabana: {
         x: CABANA_X + CABANA_PORTA.x + CABANA_PORTA.w / 2,
@@ -1562,6 +1859,7 @@ export class CenaJogo implements Cena {
       }
     }
     this.jogo.audio.confirmar();
+    this.salvarPartida();
     this.hud.avisar(`${nome} instalado!`, 3);
     for (let i = 0; i < 14; i++) {
       const a = this.rng.range(0, TAU);
@@ -1586,19 +1884,28 @@ export class CenaJogo implements Cena {
     this.projeteis.length = 0;
     this.camera.definirLimites(alvo.larguraPx, alvo.alturaPx);
 
-    if (destino === ID_CASA || destino === ID_CABANA) {
+    if (destino === ID_CASA || destino === ID_CABANA || destino === ID_ANCIAO) {
       this.jogador.reposicionar(alvo.entradaX, alvo.entradaY);
+      this.ultimoPredio = destino;
     } else {
       // sai pela porta do prédio de onde veio
-      const dePorta = this.ultimoPredio === ID_CABANA;
-      this.jogador.reposicionar(
-        dePorta
-          ? CABANA_X + CABANA_PORTA.x + CABANA_PORTA.w / 2
-          : CASA_X + CASA_PORTA.x + CASA_PORTA.w / 2,
-        dePorta ? CABANA_Y + CABANA_H + 10 : CASA_Y + CASA_H + 8,
-      );
+      const saidas: Record<string, { x: number; y: number }> = {
+        [ID_CABANA]: {
+          x: CABANA_X + CABANA_PORTA.x + CABANA_PORTA.w / 2,
+          y: CABANA_Y + CABANA_H + 10,
+        },
+        [ID_ANCIAO]: {
+          x: CASA_ANCIAO_X + this.jogo.assets.historia.casaAnciao.width / 2,
+          y: CASA_ANCIAO_Y + this.jogo.assets.historia.casaAnciao.height + 16,
+        },
+        [ID_CASA]: {
+          x: CASA_X + CASA_PORTA.x + CASA_PORTA.w / 2,
+          y: CASA_Y + CASA_H + 8,
+        },
+      };
+      const p = saidas[this.ultimoPredio] ?? saidas[ID_CASA];
+      this.jogador.reposicionar(p.x, p.y);
     }
-    if (destino === ID_CASA || destino === ID_CABANA) this.ultimoPredio = destino;
     this.camera.focar(this.jogador.centroX, this.jogador.centroY);
     this.hud.mostrarLocal(alvo.nome);
   }
@@ -1714,6 +2021,20 @@ export class CenaJogo implements Cena {
       }
     }
 
+    // ---- perigo noturno: a cena escurece mais e ganha uma borda avermelhada
+    if (this.tempoDoDia.perigoNoturno) {
+      g.globalAlpha = 0.16;
+      g.fillStyle = '#12030a';
+      g.fillRect(0, 0, LARGURA, ALTURA);
+      g.globalAlpha = 0.1 + Math.sin(this.tempoJogo * 1.6) * 0.03;
+      g.fillStyle = '#5a0f14';
+      g.fillRect(0, 0, LARGURA, 6);
+      g.fillRect(0, ALTURA - 6, LARGURA, 6);
+      g.fillRect(0, 0, 6, ALTURA);
+      g.fillRect(LARGURA - 6, 0, 6, ALTURA);
+      g.globalAlpha = 1;
+    }
+
     // tinta do ciclo de dia e noite
     const amb = this.tempoDoDia.ambiente();
     if (amb) {
@@ -1740,6 +2061,7 @@ export class CenaJogo implements Cena {
       periodo: this.tempoDoDia.periodo,
       alvo: this.dicaFerramenta?.rotulo ?? null,
       diarioNovo: this.diario.naoLidas,
+      noitePerigosa: this.tempoDoDia.perigoNoturno,
     });
     this.desenharBarraDoChefe(g);
     if (this.dica) {

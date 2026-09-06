@@ -12,6 +12,9 @@ import { P } from '../gfx/palette';
 import type { Assets } from '../gfx/assets';
 import type { Vendedor } from '../systems/progression';
 
+/** Quem o NPC atende. O Ancião não vende nada: ele encerra a história. */
+export type PapelNpc = Vendedor | 'anciao';
+
 export class Npc {
   private tempo = 0;
   private balaoSalto = 0;
@@ -19,7 +22,7 @@ export class Npc {
   constructor(
     readonly nome: string,
     readonly oficio: string,
-    readonly vendedor: Vendedor,
+    readonly vendedor: PapelNpc,
     readonly x: number,
     readonly y: number,
     private quadros: Sprite[],

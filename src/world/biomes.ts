@@ -251,11 +251,31 @@ export interface CentroBioma {
   peso: number;
 }
 
+/**
+ * Centros dos biomas no mapa de 208x160.
+ *
+ * Cada bioma tem duas manchas separadas, em pontos diferentes do mapa: assim a
+ * mesma região reaparece com outro desenho de relevo do outro lado do mundo, e
+ * atravessar o mapa vale a pena. O vale de origem tem peso maior para segurar
+ * a área de casa.
+ */
 export const CENTROS: CentroBioma[] = [
-  { id: 'vale', tx: 30, ty: 28, peso: 1.35 },
-  { id: 'floresta', tx: 70, ty: 20, peso: 1 },
-  { id: 'deserto', tx: 105, ty: 30, peso: 1 },
-  { id: 'pantano', tx: 24, ty: 70, peso: 1 },
-  { id: 'vulcanico', tx: 68, ty: 74, peso: 1 },
-  { id: 'magico', tx: 106, ty: 66, peso: 1 },
+  // ---- vale de origem (casa, cabana) e um segundo vale a leste
+  { id: 'vale', tx: 48, ty: 46, peso: 1.55 },
+  { id: 'vale', tx: 128, ty: 100, peso: 0.95 },
+  // ---- floresta fechada: uma no caminho da Gruta, outra a oeste
+  { id: 'floresta', tx: 104, ty: 30, peso: 1.1 },
+  { id: 'floresta', tx: 26, ty: 82, peso: 0.95 },
+  // ---- deserto de vidro: nordeste e sudeste
+  { id: 'deserto', tx: 186, ty: 30, peso: 1.1 },
+  { id: 'deserto', tx: 174, ty: 132, peso: 1 },
+  // ---- pântano das raízes: sudoeste (caminho do Abismo) e sul
+  { id: 'pantano', tx: 40, ty: 108, peso: 1.1 },
+  { id: 'pantano', tx: 108, ty: 148, peso: 0.95 },
+  // ---- campo de lava: centro do mapa e leste
+  { id: 'vulcanico', tx: 96, ty: 92, peso: 1 },
+  { id: 'vulcanico', tx: 190, ty: 84, peso: 0.9 },
+  // ---- clareira encantada: leste (perto da Gruta) e sul
+  { id: 'magico', tx: 158, ty: 52, peso: 1 },
+  { id: 'magico', tx: 62, ty: 150, peso: 0.85 },
 ];

@@ -38,6 +38,8 @@ export interface DadosHUD {
   alvo?: string | null;
   /** Páginas do diário ainda não lidas (marcador discreto no canto). */
   diarioNovo?: number;
+  /** Das 23:00 às 05:30: o relógio fica vermelho e ganha a marca de perigo. */
+  noitePerigosa?: boolean;
 }
 
 export class HUD {
@@ -148,15 +150,28 @@ export class HUD {
     if (this.moedasAnterior >= 0 && moedas !== this.moedasAnterior) this.destaqueMoeda = 0.8;
     this.moedasAnterior = moedas;
 
-    const txt = `${dados.carteira.infinita ? '∞' : formatarMoedas(moedas)}  ${dados.hora}`;
+    const perigo = !!dados.noitePerigosa;
+    // durante o perigo noturno o relógio ganha um "!" e fica vermelho
+    const txt = `${dados.carteira.infinita ? '∞' : formatarMoedas(moedas)}  ${dados.hora}${perigo ? ' !' : ''}`;
     const larg = larguraTexto(txt) + 20;
     const x = LARGURA - larg - 4;
     const y = 4;
-    g.fillStyle = 'rgba(16,14,26,0.7)';
+    g.fillStyle = perigo ? 'rgba(58,10,16,0.8)' : 'rgba(16,14,26,0.7)';
     g.fillRect(x, y, larg, 13);
+    if (perigo) {
+      g.fillStyle = P.coracao;
+      g.fillRect(x, y, larg, 1);
+      g.fillRect(x, y + 12, larg, 1);
+    }
     g.drawImage(assets.ferramentas.moeda, x + 3, y + 2);
     texto(g, txt, x + 14, y + 3, {
-      cor: this.destaqueMoeda > 0 ? P.brilho : P.ambar,
+      cor: perigo
+        ? Math.floor(this.tempo * 3) % 2 === 0
+          ? P.coracaoLuz
+          : P.coracao
+        : this.destaqueMoeda > 0
+          ? P.brilho
+          : P.ambar,
       sombra: P.contorno,
     });
 

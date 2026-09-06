@@ -282,7 +282,7 @@ const MAX_ATIVAS = 3;
 
 export class Diario {
   /** Progresso de cada missão, por id. */
-  private feito = new Map<string, number>();
+  private feito: Map<string, number> = new Map<string, number>();
   readonly concluidas = new Set<string>();
   /** Missões abertas agora, na ordem em que chegaram. */
   ativas: Missao[] = [];
@@ -385,6 +385,29 @@ export class Diario {
   }
 
   ler(): void {
+    this.naoLidas = 0;
+  }
+
+  /** Progresso de cada missão, para o salvamento. */
+  exportarProgresso(): [string, number][] {
+    return [...this.feito.entries()];
+  }
+
+  /** Recoloca o diário no estado salvo. */
+  importar(
+    feito: [string, number][],
+    concluidas: string[],
+    ativas: string[],
+    historico: string[],
+  ): void {
+    this.feito = new Map(feito);
+    this.concluidas.clear();
+    for (const id of concluidas) this.concluidas.add(id);
+    this.ativas = ativas
+      .map((id) => CATALOGO_MISSOES.find((m) => m.id === id))
+      .filter((m): m is Missao => !!m);
+    this.historico.length = 0;
+    this.historico.push(...historico);
     this.naoLidas = 0;
   }
 }

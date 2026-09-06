@@ -130,7 +130,50 @@ export class Dino {
     }
   }
 
+  /**
+   * Multiplicadores do perigo noturno (23:00 às 05:30).
+   *
+   * São aplicados na hora de agir, em cima dos valores da ficha — a ficha da
+   * espécie nunca é alterada, então às 05:30 tudo volta sozinho ao normal.
+   * Cada criatura mantém a própria dificuldade: o que muda é a escala.
+   */
+  private get noite(): boolean {
+    return this.mundoNoturno;
+  }
+  private mundoNoturno = false;
+
+  /** Dano do golpe agora (o dobro durante o perigo noturno). */
+  private get danoAgora(): number {
+    return this.noite ? this.ficha.dano * 2 : this.ficha.dano;
+  }
+
+  /** Velocidade de passeio agora. */
+  private get velocidadeAgora(): number {
+    return this.noite ? this.ficha.velocidade * 1.22 : this.ficha.velocidade;
+  }
+
+  /** Velocidade de corrida agora. */
+  private get corridaAgora(): number {
+    return this.noite ? this.ficha.velocidadeCorrida * 1.3 : this.ficha.velocidadeCorrida;
+  }
+
+  /** Alcance de percepção agora (sobe um pouco à noite). */
+  private get percepcaoAgora(): number {
+    return this.noite ? this.ficha.percepcao * 1.18 : this.ficha.percepcao;
+  }
+
+  /** Paciência na caçada agora (à noite ele desiste bem mais tarde). */
+  private get pacienciaAgora(): number {
+    return this.noite ? this.ficha.paciencia * 1.8 : this.ficha.paciencia;
+  }
+
+  /** Território agora (à noite ele se afasta mais de casa atrás da presa). */
+  private get territorioAgora(): number {
+    return this.noite ? this.ficha.raioTerritorio * 1.35 : this.ficha.raioTerritorio;
+  }
+
   atualizar(dt: number, mundo: Mundo): void {
+    this.mundoNoturno = mundo.noitePerigosa;
     const f = this.ficha;
     this.animTempo += dt;
     this.tempoEstado += dt;
@@ -162,13 +205,12 @@ export class Dino {
     if (j.vivo && this.desinteresse <= 0) {
       if (f.aquatico) {
         // só se interessa por quem entra na água (ou chega bem na beira)
-        percebe = distJogador < f.percepcao && (jogadorNaAgua || distJogador < 46);
-      } else if (f.territorial) {
-        percebe = distJogador < f.percepcao;
-      } else if (f.agressivo) {
-        percebe = distJogador < f.percepcao;
+        percebe = distJogador < this.percepcaoAgora && (jogadorNaAgua || distJogador < 46);
+      } else if (f.territorial || f.agressivo) {
+        percebe = distJogador < this.percepcaoAgora;
       } else {
-        percebe = false;
+        // os mansos também acordam durante o perigo noturno
+        percebe = this.noite && distJogador < this.percepcaoAgora * 0.7;
       }
     }
 
@@ -193,15 +235,21 @@ export class Dino {
         }
         // herbívoros param para comer de vez em quando
         const parado = f.categoria === 'herbivoro' && this.calma > 0.8;
-        this.irPara(parado ? this.x : this.alvoX, parado ? this.y : this.alvoY, f.velocidade * 0.6, dt, mundo);
+        this.irPara(
+          parado ? this.x : this.alvoX,
+          parado ? this.y : this.alvoY,
+          this.velocidadeAgora * 0.6,
+          dt,
+          mundo,
+        );
         break;
       }
 
       case 'perseguir': {
         // desiste se o jogador escapou, se saiu do território ou se cansou
-        const escapou = !j.vivo || distJogador > f.percepcao * 1.6;
-        const longeDeCasa = distDeCasa > f.raioTerritorio;
-        const cansou = this.tempoPerseguindo > f.paciencia;
+        const escapou = !j.vivo || distJogador > this.percepcaoAgora * 1.6;
+        const longeDeCasa = distDeCasa > this.territorioAgora;
+        const cansou = this.tempoPerseguindo > this.pacienciaAgora;
         if (escapou || longeDeCasa || cansou) {
           this.desinteresse = escapou ? 2.5 : 6;
           this.trocarEstado('voltando');
@@ -220,13 +268,19 @@ export class Dino {
           this.irPara(
             this.x - (j.centroX - this.x),
             this.y - (j.centroY - this.y),
-            f.velocidade,
+            this.velocidadeAgora,
             dt,
             mundo,
           );
           break;
         }
-        this.irPara(j.centroX, j.y, f.velocidadeCorrida * (f.chefe ? 1 + (this.fase - 1) * 0.12 : 1), dt, mundo);
+        this.irPara(
+          j.centroX,
+          j.y,
+          this.corridaAgora * (f.chefe ? 1 + (this.fase - 1) * 0.12 : 1),
+          dt,
+          mundo,
+        );
         break;
       }
 
@@ -254,7 +308,7 @@ export class Dino {
 
       case 'voltando': {
         // volta caminhando para o próprio território e retoma a rotina
-        this.irPara(this.nascimentoX, this.nascimentoY, f.velocidade * 0.9, dt, mundo);
+        this.irPara(this.nascimentoX, this.nascimentoY, this.velocidadeAgora * 0.9, dt, mundo);
         if (distDeCasa < 24 || this.tempoEstado > 12) {
           this.escolherDestino();
           this.trocarEstado(f.categoria === 'herbivoro' ? 'pastar' : 'vagar');
@@ -265,8 +319,8 @@ export class Dino {
       case 'fugir': {
         const ax = this.x - (j.centroX - this.x);
         const ay = this.y - (j.centroY - this.y);
-        this.irPara(ax, ay, f.velocidadeCorrida, dt, mundo);
-        if (this.tempoEstado > 4 || distJogador > f.percepcao * 1.6) {
+        this.irPara(ax, ay, this.corridaAgora, dt, mundo);
+        if (this.tempoEstado > 4 || distJogador > this.percepcaoAgora * 1.6) {
           this.desinteresse = 3;
           this.trocarEstado(distDeCasa > f.raioTerritorio ? 'voltando' : 'vagar');
           this.escolherDestino();
@@ -383,7 +437,7 @@ export class Dino {
           this.x + Math.cos(a) * 16,
           this.centroY + Math.sin(a) * 12,
           a,
-          this.ficha.dano,
+          this.danoAgora,
           96,
           'cristal',
         );
@@ -399,7 +453,7 @@ export class Dino {
       const raio = 78;
       const ox = j.centroX + Math.cos(a) * raio;
       const oy = j.centroY + Math.sin(a) * raio;
-      mundo.criarOrbe(ox, oy, a + Math.PI, this.ficha.dano, 104, 'brasa');
+      mundo.criarOrbe(ox, oy, a + Math.PI, this.danoAgora, 104, 'brasa');
     }
     mundo.particulas.jato(this.x, this.centroY, ['#ff4a12', '#ffb14a', P.brilho], 16, 90, {
       gravidade: 30,
@@ -460,7 +514,7 @@ export class Dino {
         this.x + Math.cos(ang) * 10,
         this.centroY + Math.sin(ang) * 10,
         ang,
-        f.dano,
+        this.danoAgora,
         118,
         estilo,
       );
@@ -474,7 +528,7 @@ export class Dino {
     this.vy += Math.sin(ang) * 150;
     const distanciaAtual = dist(this.x, this.centroY, j.centroX, j.centroY);
     if (distanciaAtual <= f.alcance + f.pegada.w / 2 + 6) {
-      j.receberDano(f.dano, this.x, this.centroY, mundo);
+      j.receberDano(this.danoAgora, this.x, this.centroY, mundo);
       if (f.veneno) j.envenenar(f.veneno, mundo);
       mundo.particulas.animacao(mundo.assets.efeitos.faisca, j.centroX, j.centroY, 0.25);
     } else {
@@ -659,6 +713,16 @@ export class Dino {
     }
 
     if (!this.vivo) return;
+
+    // durante o perigo noturno os olhos acendem: dá para ver o bicho no escuro
+    if (this.noite) {
+      const pulso = 0.55 + Math.sin(mundo.tempo * 5 + this.id) * 0.25;
+      g.globalAlpha = pulso;
+      g.fillStyle = '#ff4a3a';
+      const ox = this.olhandoDireita ? sprite.width * 0.34 : -sprite.width * 0.34;
+      g.fillRect(Math.round(this.x + ox - camX), Math.round(py + sprite.height * 0.22), 2, 1);
+      g.globalAlpha = 1;
+    }
 
     // ícones de estado
     if (this.alerta > 0) {

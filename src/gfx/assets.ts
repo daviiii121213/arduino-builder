@@ -3,13 +3,14 @@
  * e reaproveitado pelo jogo inteiro.
  */
 
-import { criarJogador, type QuadrosJogador } from './sprites/player';
+import { criarPersonagens, type PersonagemId, type QuadrosJogador } from './sprites/player';
 import { criarDinos, type ArteDino, type EspecieId } from './sprites/dinos';
 import { criarTerreno, type TexturasTerreno } from './sprites/terrain';
 import { criarCenario, type ArteCenario } from './sprites/props';
 import { criarCasa, type ArteCasa } from './sprites/house';
 import { criarBiomas, type ArteBiomas } from './sprites/biomeProps';
 import { criarCaverna, type ArteCaverna } from './sprites/cave';
+import { criarHistoria, type ArteHistoria } from './sprites/story';
 import { criarUI, desenharVinheta, type ArteUI } from './sprites/ui';
 import { criarEfeitos, type ArteEfeitos } from './sprites/effects';
 import { criarGalpao, type ArteGalpao } from './sprites/warehouse';
@@ -22,7 +23,14 @@ import { sombra, type Sprite } from './pixel';
 import { LARGURA, ALTURA } from '../core/screen';
 
 export interface Assets {
+  /**
+   * Quadros do personagem escolhido. Trocado por `usarPersonagem` na tela de
+   * escolha — todo o resto do jogo (mundo, combate, HUD, cinemáticas) lê daqui
+   * e passa a desenhar o personagem certo sem saber que existe escolha.
+   */
   jogador: QuadrosJogador;
+  /** Os quatro personagens prontos, para a tela de escolha. */
+  personagens: Record<PersonagemId, QuadrosJogador>;
   dinos: Record<EspecieId, ArteDino>;
   terreno: TexturasTerreno;
   cenario: ArteCenario;
@@ -35,6 +43,7 @@ export interface Assets {
   cabana: ArteCabana;
   biomas: ArteBiomas;
   caverna: ArteCaverna;
+  historia: ArteHistoria;
   armaduras: Record<ArmaduraId, ArteArmadura>;
   /** Sombras elípticas em alguns tamanhos padrão. */
   sombras: Record<'p' | 'm' | 'g' | 'gg', Sprite>;
@@ -48,7 +57,13 @@ export function carregarAssets(aviso?: EtapaCarregamento): Assets {
   const etapas: [string, () => void][] = [];
   const parcial: Partial<Assets> = {};
 
-  etapas.push(['Desenhando o herói', () => (parcial.jogador = criarJogador())]);
+  etapas.push([
+    'Desenhando os quatro heróis',
+    () => {
+      parcial.personagens = criarPersonagens();
+      parcial.jogador = parcial.personagens.teo;
+    },
+  ]);
   etapas.push(['Chocando os dinossauros', () => (parcial.dinos = criarDinos())]);
   etapas.push(['Plantando o terreno', () => (parcial.terreno = criarTerreno())]);
   etapas.push(['Fazendo crescer a selva', () => (parcial.cenario = criarCenario())]);
@@ -61,6 +76,7 @@ export function carregarAssets(aviso?: EtapaCarregamento): Assets {
   etapas.push(['Levantando a cabana', () => (parcial.cabana = criarCabana())]);
   etapas.push(['Abrindo os cinco biomas', () => (parcial.biomas = criarBiomas())]);
   etapas.push(['Escavando as cavernas', () => (parcial.caverna = criarCaverna())]);
+  etapas.push(['Acendendo o fim da história', () => (parcial.historia = criarHistoria())]);
   etapas.push(['Batendo as armaduras', () => (parcial.armaduras = criarArmaduras())]);
   etapas.push([
     'Ajustando as sombras',
@@ -82,4 +98,9 @@ export function carregarAssets(aviso?: EtapaCarregamento): Assets {
   aviso?.('Pronto', 1);
 
   return parcial as Assets;
+}
+
+/** Troca o personagem jogável. Vale da tela de escolha em diante. */
+export function usarPersonagem(assets: Assets, id: PersonagemId): void {
+  assets.jogador = assets.personagens[id];
 }

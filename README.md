@@ -55,6 +55,44 @@ círculo aparece na tela no momento do golpe.
 
 ## O que já existe nesta versão
 
+- **Escolha de personagem** antes de qualquer modo (expedição nova, sem
+  cinemática e modo teste): quatro protagonistas desenhados à mão — **Téo** e
+  **Rui** (meninos), **Bia** e **Nina** (meninas) —, cada um com cabelo, roupa,
+  cores e detalhes próprios, nas mesmas proporções baixas e largas do jogo. A
+  tela mostra os quatro andando, ampliados em pixel inteiro, mais as vistas de
+  costas e de lado; sem escolher ninguém o jogo não começa. O escolhido vale
+  para a partida inteira: exploração, combate, ferramentas, armadura,
+  cinemáticas, o final e o reencontro com os pais.
+- **Mapa três vezes maior**: 208x160 tiles (eram 120x92). Cada bioma tem duas
+  manchas separadas em pontos diferentes do mundo, ligadas por estradas de
+  terra que saem do quintal, atravessam água e lava e chegam às duas cavernas.
+  Espalhados pelo mapa há **oito clareiras escondidas**: um anel de pedras com
+  uma única brecha, quatro nós de recurso bons e um baú com moedas e uma peça
+  de arqueologia.
+- **Perigo noturno das 23:00 às 05:30**: todo dinossauro do jogo — dos seis
+  biomas e das duas cavernas — passa a bater **o dobro**, correr mais (+30% na
+  perseguição), enxergar mais longe (+18%) e desistir bem mais tarde (+80% de
+  paciência, +35% de território); até os mansos acordam. Nada disso encosta na
+  ficha da espécie: é um multiplicador lido na hora de agir, então às 05:30
+  tudo volta sozinho ao normal. Na tela: a cena escurece um pouco mais, a borda
+  ganha um vermelho fraco, os olhos das criaturas acendem e o relógio do HUD
+  fica vermelho com um "!".
+- **Fim da história**: o **Ancião Belmiro** mora numa cabana pequena ao lado da
+  Gruta de Cristal e guarda a **Cronolita**. Ele só entrega depois das metas
+  principais (conhecer as 6 regiões, derrubar os dois guardiões e juntar 5
+  peças de arqueologia) — e aí começa a sequência final: a entrega, a entrada
+  na cabana, o conserto da máquina do tempo em quatro etapas feito a dois, a
+  ativação, o túnel do tempo contando de 100 milhões de anos até 2026 e o
+  reencontro com os pais no galpão. No fim vem a tela de conclusão com
+  **CONTINUAR JOGANDO** (o pós-jogo mantém bolsa, dinheiro, coleção, bestiário
+  e conquistas) e **ZERAR** (créditos, e só então a pergunta "Você realmente
+  não quer jogar mais?", com o que exatamente será apagado — apagar exige essa
+  confirmação explícita, nunca um clique só).
+- **Partida salva** em `localStorage`: gravada ao escolher o personagem, ao
+  dormir, ao comprar melhoria, ao descer um andar, ao derrubar um chefe, ao
+  abrir um esconderijo e de minuto em minuto. O menu ganha **Continuar
+  expedição** quando existe uma partida. O modo teste nunca escreve por cima
+  dela.
 - **Cinemática de abertura** em cinco atos: o galpão, a máquina sob o pano, a
   ativação, a falha do estabilizador e o túnel do tempo. Pode ser pulada.
 - **Traço compacto**: gente e dinossauros têm proporções baixas e largas (o
@@ -189,9 +227,10 @@ src/
   world/      terreno, biomas, cavernas, nível, geração do mundo, interiores e nós
   entities/   jogador, dinossauros (IA), fichas das espécies, projéteis, NPCs
   systems/    vida, fome, colisão, partículas, dia/noite, itens, recursos,
-              ferramentas, colheita, dinheiro, progresso, missões e arqueologia
+              ferramentas, colheita, dinheiro, progresso, missões, arqueologia,
+              personagens e salvamento
   ui/         HUD, janelas (venda, melhorias, baú, testes, mochila, diário) e widgets
-  scenes/     menu, cinemática e jogo
+  scenes/     menu, escolha de personagem, cinemática, jogo e desfecho
   audio/      síntese dos efeitos sonoros
 tools/        teste de fumaça automatizado (opcional, usa Playwright)
 ```
@@ -222,6 +261,10 @@ tools/        teste de fumaça automatizado (opcional, usa Playwright)
   sorteio, a coleção, a venda e as missões já o consideram.
 - **Novo minério**: uma linha em `resources.ts`, o veio em `world/nodes.ts`, a
   cor do bloco em `gfx/sprites/cave.ts` e o peso na tabela da caverna.
+- **Novo personagem jogável**: um desenho em `DESENHOS`, em
+  `src/gfx/sprites/player.ts` (três vistas de tronco mais a paleta), e uma ficha
+  em `src/systems/personagens.ts`. A tela de escolha, a armadura, as animações
+  de ferramenta e as cinemáticas passam a atendê-lo sem mudança.
 - **Nova missão**: uma linha em `CATALOGO_MISSOES`, em `src/systems/missions.ts`, com
   o objetivo, a recompensa e as missões que ela exige antes.
 - **Novo mapa**: crie um `Nivel`, preencha os tiles, adicione objetos com `colocar()` e
@@ -279,3 +322,12 @@ npm run cavernas
 
 Entra nas duas cavernas, desce até a arena do chefe, abre o bestiário, a coleção
 de arqueologia e o diário, e salva tudo em `tools/capturas-cavernas/`.
+
+```bash
+npm run final
+```
+
+Escolhe um personagem, liga e desliga o perigo noturno pelo relógio, viaja até
+a casa do Ancião e roda o desfecho inteiro — entrega da Cronolita, conserto da
+máquina, túnel do tempo, reencontro, tela de conclusão, créditos e a
+confirmação de apagar a partida. As capturas ficam em `tools/capturas-final/`.

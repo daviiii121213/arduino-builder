@@ -71,6 +71,10 @@ export class Progresso {
   chefesDerrotados = new Set<CavernaId>();
   /** Lanterna de Cristal: dobra o alcance da luz nas cavernas. */
   lanterna = false;
+  /** O Ancião já entregou a Cronolita. */
+  cronolita = false;
+  /** A história principal já foi até o fim (o jogo segue no pós-jogo). */
+  historiaConcluida = false;
 
   /** Registra uma peça de arqueologia. Devolve true se ela é novidade. */
   encontrarFossil(id: FossilId): boolean {

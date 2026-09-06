@@ -49,6 +49,15 @@ export const RECURSOS: Record<RecursoId, FichaRecurso> = {
   diamante: { id: 'diamante', nome: 'Diamante', valor: 240, descricao: 'Risca tudo, inclusive a picareta de cristal.' },
   astralita: { id: 'astralita', nome: 'Astralita', valor: 340, descricao: 'Só o fundo da Gruta de Cristal tem. Fria e viva ao mesmo tempo.' },
   nucleoIgneo: { id: 'nucleoIgneo', nome: 'Núcleo ígneo', valor: 360, descricao: 'Uma gota do fogo do Abismo, esfriada por fora e acesa por dentro.' },
+
+  // ------------------------------------------------------------ a história
+  cronolita: {
+    id: 'cronolita',
+    nome: 'Cronolita',
+    // não tem preço: a máquina do tempo precisa dela inteira
+    valor: 0,
+    descricao: 'O mineral que o Ancião guardava. É o coração que falta na máquina do tempo.',
+  },
 };
 
 export function valorDe(id: RecursoId): number {
