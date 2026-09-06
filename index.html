@@ -860,19 +860,23 @@
     return geo;
   }
   function criaRoda(raio, larg) {
-    // uma única malha: lateral = pneu, tampas = aro com os raios desenhados
+    // uma única malha: lateral = pneu, tampas = aro com os raios desenhados.
+    // o eixo já vem deitado na geometria, então rotation.x gira a roda de verdade
     const geo = new THREE.CylinderGeometry(raio, raio, larg, 26);
+    geo.rotateZ(Math.PI / 2);
     const m = new THREE.Mesh(geo, [MAT_PNEU, MAT_FACE_ARO, MAT_FACE_ARO]);
-    m.rotation.z = Math.PI / 2;
     m.castShadow = true;
+    m.userData.raio = raio;
     return m;
   }
   function poeRodas(g, meiaLarg, zs, raio, larg) {
+    if (!g.userData.rodas) g.userData.rodas = [];
     zs.forEach(function (z) {
       [-meiaLarg, meiaLarg].forEach(function (x) {
         const r = criaRoda(raio, larg);
         r.position.set(x, raio, z);
         g.add(r);
+        g.userData.rodas.push(r);
       });
     });
   }
@@ -975,9 +979,11 @@
     viseira.position.copy(capacete.position); viseira.rotation.y = -Math.PI / 2; g.add(viseira);
     const t = new THREE.Mesh(geoCorpo(0.1, 0.14, 0.26, 0.04), MAT_LANTERNA);
     t.position.set(0, 1.0, -0.95); g.add(t);
+    g.userData.rodas = [];
     [0.72, -0.72].forEach(function (z) {
       const r = criaRoda(0.32, 0.14);
       r.position.set(0, 0.32, z); g.add(r);
+      g.userData.rodas.push(r);
     });
     return g;
   }
@@ -1013,22 +1019,81 @@
       const s = sJogador + rand(140, 620);
       if (!livre(s, faixa, t.comp, v)) continue;
       v.faixa = faixa; v.s = s; v.lat = FAIXAS_X[faixa];
-      v.vel = rand(t.velMin, t.velMax);
+      v.velDesejada = rand(t.velMin, t.velMax);
+      v.vel = v.velDesejada;
+      v.esperaFaixa = rand(0, 3);
       v.obj.visible = true; v.ativo = true;
       return;
+    }
+  }
+
+  // ---- ultrapassagem: o trânsito troca de faixa para passar quem está mais lento ----
+  function faixaLivre(v, faixa) {
+    const meu = TIPOS[v.tipo].comp / 2;
+    for (const o of transito) {
+      if (o === v || !o.ativo || o.faixa !== faixa) continue;
+      const d = o.s - v.s, folga = meu + TIPOS[o.tipo].comp / 2;
+      if (d > -folga - 20 && d < folga + 32) return false;      // janela na faixa vizinha
+    }
+    // não corta o jogador
+    const dj = jogo.s - v.s;
+    if (Math.abs(FAIXAS_X[faixa] - jogo.lat) < 2.4 && dj > -45 && dj < 28) return false;
+    return true;
+  }
+  function conduz(v, dt) {
+    if (v.esperaFaixa > 0) v.esperaFaixa -= dt;
+    let alvo = null, dist = Infinity;
+    const meu = TIPOS[v.tipo].comp / 2;
+    for (const o of transito) {
+      if (o === v || !o.ativo || o.faixa !== v.faixa) continue;
+      const d = o.s - v.s;
+      if (d > 0 && d < dist) { dist = d; alvo = o; }
+    }
+    const folga = alvo ? dist - meu - TIPOS[alvo.tipo].comp / 2 : Infinity;
+    const maisLento = alvo && alvo.vel < v.velDesejada - 0.8;
+
+    if (maisLento && folga < 45) {
+      // tenta a faixa da esquerda primeiro, depois a da direita
+      let trocou = false;
+      if (v.esperaFaixa <= 0) {
+        for (const f of [v.faixa - 1, v.faixa + 1]) {
+          if (f < 0 || f >= N_FAIXAS) continue;
+          if (faixaLivre(v, f)) { v.faixa = f; v.esperaFaixa = 4; trocou = true; break; }
+        }
+      }
+      if (!trocou) {                                   // sem espaço: acompanha o da frente
+        const limite = folga < 14 ? alvo.vel * 0.92 : alvo.vel;
+        v.vel += (limite - v.vel) * Math.min(1, dt * 1.6);
+      }
+    } else {
+      v.vel += (v.velDesejada - v.vel) * Math.min(1, dt * 0.7);
+      // volta para a direita quando a faixa está livre (rodovia organizada)
+      if (v.esperaFaixa <= 0 && v.faixa < N_FAIXAS - 1 && Math.random() < dt * 0.25 &&
+          faixaLivre(v, v.faixa + 1)) {
+        v.faixa++; v.esperaFaixa = 6;
+      }
     }
   }
   function atualizaTransito(dt, sJogador) {
     for (const v of transito) {
       if (!v.ativo) { nasceVeiculo(v, sJogador); continue; }
+      conduz(v, dt);
       v.s += v.vel * dt;
       if (v.s < sJogador - 110 || v.s > sJogador + 900) {
         v.ativo = false; v.obj.visible = false; nasceVeiculo(v, sJogador); continue;
       }
-      v.lat += (FAIXAS_X[v.faixa] - v.lat) * Math.min(1, dt * 2);
+      const latAlvo = FAIXAS_X[v.faixa];
+      const passo = (latAlvo - v.lat) * Math.min(1, dt * 1.1);   // troca de faixa suave
+      v.lat += passo;
       posMundo(v.s, v.lat, _p1);
       v.obj.position.set(_p1.x, 0, _p1.z);
-      v.obj.rotation.y = _p1.h;
+      // aponta um pouco para onde está indo enquanto muda de faixa
+      v.obj.rotation.y = _p1.h - Math.atan2(passo, Math.max(0.001, v.vel * dt)) * 0.35;
+      // rodas girando conforme a velocidade
+      const rodas = v.obj.userData.rodas;
+      if (rodas) {
+        for (const r of rodas) r.rotation.x -= (v.vel / r.userData.raio) * dt;
+      }
     }
   }
 
@@ -1166,6 +1231,7 @@
     return rt;
   });
   const camsEspelho = [];
+  let rodaJogador = null;
 
   (function montaMoto() {
     // textura do tanque: o topo do tanque cai em u = 0.75 (esfera girada 90° em X)
@@ -1311,15 +1377,23 @@
       m.add(corpoEsp);
 
       const idx = lado < 0 ? 0 : 1;
-      const vidro = new THREE.Mesh(new THREE.PlaneGeometry(0.19, 0.112),
+      // vidro elíptico, encaixado na carcaça do retrovisor
+      const geoVidro = new THREE.CircleGeometry(1, 30);
+      const vidro = new THREE.Mesh(geoVidro,
         new THREE.MeshBasicMaterial({ map: alvosEspelho[idx].texture, toneMapped: false }));
-      vidro.position.set(cEsp.x, cEsp.y, cEsp.z - 0.026);
+      vidro.scale.set(0.100, 0.061, 1);
+      vidro.position.set(cEsp.x, cEsp.y, cEsp.z - 0.023);
       vidro.rotation.set(0, Math.PI - lado * 0.40, -lado * 0.10);
       m.add(vidro);
+      const aroVidro = new THREE.Mesh(new THREE.TorusGeometry(1, 0.055, 8, 30), matPlastico);
+      aroVidro.scale.set(0.104, 0.065, 0.16);
+      aroVidro.position.set(cEsp.x, cEsp.y, cEsp.z - 0.020);
+      aroVidro.rotation.copy(vidro.rotation);
+      m.add(aroVidro);
 
       const cam = new THREE.PerspectiveCamera(56, 320 / 184, 0.4, 700);
       cam.position.set(cEsp.x, cEsp.y, cEsp.z);
-      cam.rotation.y = lado * 0.40;
+      cam.rotation.y = lado * 0.22;   // pega o piloto e a pista atrás
       grupoInclina.add(cam);
       camsEspelho.push(cam);
 
@@ -1352,6 +1426,37 @@
       const pulseira = new THREE.Mesh(new THREE.TorusGeometry(0.042, 0.009, 8, 16), matLuvaDet);
       pulseira.rotation.y = Math.PI / 2; pulseira.rotation.z = 0.35;
       pulseira.position.set(x - lado * 0.094, yP + 0.004, zP - 0.050); m.add(pulseira);
+    });
+
+    // ---------------- piloto (atrás da câmera: aparece nos retrovisores) ----------------
+    const quadril = V(0, 0.99, -0.46);
+    const peito   = V(0, 1.40, -0.42);
+    const tronco = entre(quadril, peito, 0.215, 0.205, matJaqueta, 16);
+    tronco.castShadow = true; m.add(tronco);
+    const ombros = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), matJaqueta);
+    ombros.scale.set(0.275, 0.135, 0.185);
+    ombros.position.set(0, 1.405, -0.42); m.add(ombros);
+    const gola = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.115, 0.09, 16), matLuvaDet);
+    gola.position.set(0, 1.475, -0.44); m.add(gola);
+    const capacete = new THREE.Mesh(new THREE.SphereGeometry(0.165, 26, 20),
+      new THREE.MeshStandardMaterial({ color: 0xe9edf1, roughness: 0.16, metalness: 0.25,
+        envMap: AMBIENTE, envMapIntensity: 1.2 }));
+    capacete.position.set(0, 1.605, -0.52); capacete.castShadow = true; m.add(capacete);
+    const viseira = new THREE.Mesh(new THREE.SphereGeometry(0.168, 22, 16, Math.PI * 0.62, Math.PI * 0.76, Math.PI * 0.24, Math.PI * 0.42),
+      new THREE.MeshStandardMaterial({ color: 0x101a24, roughness: 0.06, metalness: 0.7,
+        envMap: AMBIENTE, envMapIntensity: 1.5 }));
+    viseira.position.copy(capacete.position); m.add(viseira);
+    const spoiler = new THREE.Mesh(geoCorpo(0.10, 0.03, 0.14, 0.012), matPlastico);
+    spoiler.position.set(0, 1.60, -0.66); spoiler.rotation.x = 0.3; m.add(spoiler);
+    // pernas dobradas no tanque
+    [-1, 1].forEach(function (lado) {
+      const joelho = V(lado * 0.235, 0.86, 0.12);
+      const coxa = entre(V(lado * 0.16, 0.95, -0.42), joelho, 0.115, 0.10, matJaqueta, 12);
+      coxa.castShadow = true; m.add(coxa);
+      const canela = entre(joelho, V(lado * 0.255, 0.52, 0.02), 0.09, 0.075, matJaqueta, 12);
+      m.add(canela);
+      const bota = new THREE.Mesh(geoCorpo(0.20, 0.10, 0.10, 0.03), matLuva);
+      bota.position.set(lado * 0.26, 0.46, 0.05); m.add(bota);
     });
 
     // ---------------- painel digital e ignição ----------------
@@ -1394,9 +1499,11 @@
     const pneuFrente = new THREE.Mesh(new THREE.TorusGeometry(0.262, 0.070, 16, 36), matBorracha);
     pneuFrente.rotation.y = Math.PI / 2; pneuFrente.position.set(0, cy, cz);
     pneuFrente.castShadow = true; m.add(pneuFrente);
-    const aroFrente = new THREE.Mesh(new THREE.CylinderGeometry(0.198, 0.198, 0.09, 24),
-      [matAluminio, MAT_FACE_ARO, MAT_FACE_ARO]);
-    aroFrente.rotation.z = Math.PI / 2; aroFrente.position.set(0, cy, cz); m.add(aroFrente);
+    const geoAro = new THREE.CylinderGeometry(0.198, 0.198, 0.09, 24);
+    geoAro.rotateZ(Math.PI / 2);
+    const aroFrente = new THREE.Mesh(geoAro, [matAluminio, MAT_FACE_ARO, MAT_FACE_ARO]);
+    aroFrente.position.set(0, cy, cz); m.add(aroFrente);
+    rodaJogador = aroFrente;
     [-1, 1].forEach(function (lado) {
       const disco = new THREE.Mesh(new THREE.CylinderGeometry(0.152, 0.152, 0.007, 24), matCromo);
       disco.rotation.z = Math.PI / 2; disco.position.set(lado * 0.082, cy, cz); m.add(disco);
@@ -1606,10 +1713,12 @@
     // ---- motor: acelera, freia, nunca dá ré ----
     const semLimite = !jogo.auto;      // no manual não existe limitador
     if (teclas.w) {
-      const torque = clamp(1.30 - Math.pow(Math.abs(jogo.giro - 0.70), 1.3) * 2.0, 0.10, 1);
+      const torque = clamp(1.30 - Math.pow(Math.abs(jogo.giro - 0.70), 1.3) * 2.0, 0.28, 1);
       const forcaMarcha = 2.2 - jogo.marcha * 0.28;
       if (jogo.giro < 1) jogo.vel += ACEL * torque * forcaMarcha * dt;
       else if (semLimite) jogo.vel += ACEL * 0.30 * forcaMarcha * dt;
+      // saída de moto parada: embreagem ajuda a arrancar em 1ª
+      if (jogo.vel < 5 && jogo.marcha === 0) jogo.vel += 6.5 * dt;
       jogo.combustivel = Math.max(0.04, jogo.combustivel - dt * 0.00042);
     }
     if (teclas.freio) jogo.vel -= FREIO * dt;
@@ -1668,6 +1777,7 @@
       -jogo.direcao * 0.05,
       -jogo.inclinacao * 0.20
     );
+    if (rodaJogador) rodaJogador.rotation.x -= (jogo.vel / 0.265) * dt;
     const fovAlvo = 72 + rel * 15;
     camera.fov += (fovAlvo - camera.fov) * Math.min(1, dt * 3);
     camera.updateProjectionMatrix();

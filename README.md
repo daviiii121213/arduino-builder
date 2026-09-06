@@ -29,8 +29,8 @@ mapa de ambiente para os reflexos dos metais e névoa atmosférica no horizonte.
   guidão tubular com mesa e presilhas, manetes de freio e embreagem, punhos com
   nervuras, comandos com botões, cabos, ignição com chave, garfo cromado, disco de
   freio com pinça, paralama, farol — além dos braços do piloto com luvas nos punhos.
-- **Retrovisores de verdade**: cada espelho tem uma câmera própria e mostra ao vivo
-  a pista e o cenário atrás da moto.
+- **Retrovisores de verdade**: cada espelho tem vidro elíptico encaixado na carcaça,
+  câmera própria e mostra ao vivo o piloto (capacete, ombros e jaqueta) e a pista atrás.
 - **Painel digital** desenhado a cada quadro: velocímetro em km/h, barra de giro com
   zona vermelha, marcha e modo do câmbio, nível de combustível, hodômetro e
   temperatura do motor.
@@ -41,7 +41,10 @@ mapa de ambiente para os reflexos dos metais e névoa atmosférica no horizonte.
   tufos de capim com flores, colinas, postes de iluminação, céu com nuvens e a
   silhueta de uma cidade no horizonte.
 - **Trânsito** com sedãs, SUVs, vans, caminhões e motos — carrocerias arredondadas,
-  vidros, faróis, lanternas e rodas com aro desenhado.
+  vidros, faróis, lanternas e rodas que giram conforme a velocidade.
+- **Trânsito que ultrapassa**: cada veículo tem uma velocidade desejada, acompanha
+  quem está à frente, troca de faixa para ultrapassar quando há espaço (sem cortar
+  o jogador) e volta para a direita quando a faixa libera.
 
 ## O que o jogo tem
 
@@ -66,6 +69,8 @@ mapa de ambiente para os reflexos dos metais e névoa atmosférica no horizonte.
   velocidade atual em km/h e o contador de batidas.
 - **Cenário de rodovia**: defensas metálicas dos dois lados, campo com árvores e
   moitas, postes de iluminação, céu com nuvens e a silhueta de uma cidade no horizonte.
+- Parado, basta apertar **W** para a moto arrancar de novo (a 1ª marcha tem ajuda
+  de embreagem na saída).
 - Sair do asfalto faz a moto perder velocidade (não conta como batida).
 - Os veículos são sólidos: a moto é bloqueada por eles em vez de atravessá-los.
 
