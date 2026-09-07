@@ -994,9 +994,9 @@
       g.strokeStyle = "#8e979e"; g.lineWidth = 12;
       g.beginPath(); g.arc(128, 128, 116, 0, 7); g.stroke();
       return c;
-    })()), roughness: 0.32, metalness: 0.9, envMap: AMBIENTE
+    })()), roughness: 0.42, metalness: 0.45, envMap: AMBIENTE, envMapIntensity: 0.5
   });
-  const MAT_ARO   = new THREE.MeshStandardMaterial({ color: 0xb9c2c9, roughness: 0.28, metalness: 0.92, envMap: AMBIENTE });
+  const MAT_ARO   = new THREE.MeshStandardMaterial({ color: 0xb9c2c9, roughness: 0.36, metalness: 0.55, envMap: AMBIENTE, envMapIntensity: 0.6 });
   const MAT_VIDRO = new THREE.MeshStandardMaterial({ color: 0x172533, roughness: 0.08, metalness: 0.35,
                       transparent: true, opacity: 0.78, envMap: AMBIENTE, envMapIntensity: 1.3 });
   const MAT_ESCURO= new THREE.MeshStandardMaterial({ color: 0x1c2026, roughness: 0.7, metalness: 0.25 });
@@ -1137,26 +1137,81 @@
   }
   function criaMotoTransito(cor) {
     const g = new THREE.Group(), p = pintura(cor);
-    const carenagem = new THREE.Mesh(geoCorpo(1.5, 0.52, 0.5, 0.22), p);
-    carenagem.position.set(0, 0.85, 0.1); carenagem.castShadow = true; g.add(carenagem);
-    const banco = new THREE.Mesh(geoCorpo(0.9, 0.2, 0.36, 0.09), MAT_ESCURO);
-    banco.position.set(0, 1.06, -0.45); g.add(banco);
     const matPiloto = new THREE.MeshStandardMaterial({ color: 0x22262c, roughness: 0.75 });
-    const corpo = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.72, 16), matPiloto);
-    corpo.position.set(0, 1.48, -0.32); corpo.rotation.x = -0.22; corpo.castShadow = true; g.add(corpo);
-    const ombros = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 12), matPiloto);
-    ombros.scale.set(1, 0.7, 0.8); ombros.position.set(0, 1.72, -0.30); g.add(ombros);
-    const capacete = new THREE.Mesh(new THREE.SphereGeometry(0.19, 18, 14),
-      new THREE.MeshStandardMaterial({ color: 0xf0f2f4, roughness: 0.22, metalness: 0.2, envMap: AMBIENTE }));
-    capacete.position.set(0, 1.92, -0.28); g.add(capacete);
-    const viseira = new THREE.Mesh(new THREE.SphereGeometry(0.192, 16, 12, 0, Math.PI, 0.9, 0.9), MAT_VIDRO);
-    viseira.position.copy(capacete.position); viseira.rotation.y = -Math.PI / 2; g.add(viseira);
-    const t = new THREE.Mesh(geoCorpo(0.1, 0.14, 0.26, 0.04), MAT_LANTERNA);
-    t.position.set(0, 1.0, -0.95); g.add(t);
+    const matEscuro = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.6, metalness: 0.3 });
+    const matCromoM = new THREE.MeshStandardMaterial({ color: 0xcfd6dc, roughness: 0.3, metalness: 0.6,
+      envMap: AMBIENTE, envMapIntensity: 0.6 });
+
+    // tanque e rabeta
+    const tanque = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), p);
+    tanque.scale.set(0.20, 0.16, 0.42);
+    tanque.position.set(0, 0.86, 0.18); tanque.castShadow = true; g.add(tanque);
+    const carenagem = new THREE.Mesh(geoCorpo(0.9, 0.42, 0.42, 0.16), p);
+    carenagem.position.set(0, 0.80, 0.62); g.add(carenagem);
+    const banco = new THREE.Mesh(geoCorpo(0.72, 0.16, 0.32, 0.06), matEscuro);
+    banco.position.set(0, 0.94, -0.36); g.add(banco);
+    const rabeta = new THREE.Mesh(geoCorpo(0.5, 0.22, 0.28, 0.08), p);
+    rabeta.position.set(0, 1.02, -0.75); g.add(rabeta);
+    const motor = new THREE.Mesh(geoCorpo(0.5, 0.34, 0.4, 0.08), matEscuro);
+    motor.position.set(0, 0.6, 0.05); g.add(motor);
+    const escape = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 0.9, 12), matCromoM);
+    escape.rotation.x = Math.PI / 2 + 0.06;
+    escape.position.set(0.16, 0.5, -0.5); g.add(escape);
+
+    // garfo, guidão e farol
+    [-0.11, 0.11].forEach(function (x) {
+      const garfo = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.72, 10), matCromoM);
+      garfo.position.set(x, 0.62, 0.86); garfo.rotation.x = 0.34; g.add(garfo);
+    });
+    const guidao = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.62, 10), matEscuro);
+    guidao.rotation.z = Math.PI / 2;
+    guidao.position.set(0, 1.02, 0.74); g.add(guidao);
+    const farolM = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), matEscuro);
+    farolM.scale.set(1, 0.85, 0.6);
+    farolM.position.set(0, 0.98, 0.90); g.add(farolM);
+    const lenteM = new THREE.Mesh(new THREE.CircleGeometry(0.10, 16), MAT_FAROL);
+    lenteM.position.set(0, 0.98, 0.98); g.add(lenteM);
+    const bfM = criaBrilho(1.6, 0xfff0cc); bfM.position.set(0, 0.98, 1.05);
+    g.add(bfM); brilhosNoturnos.push(bfM);
+    const lantM = new THREE.Mesh(geoCorpo(0.1, 0.1, 0.22, 0.03), MAT_LANTERNA);
+    lantM.position.set(0, 1.02, -0.92); g.add(lantM);
+    const btM = criaBrilho(1.2, 0xff5a3c); btM.position.set(0, 1.02, -1.0);
+    g.add(btM); brilhosNoturnos.push(btM);
+    const paralamaM = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.05, 8, 16, 1.4), p);
+    paralamaM.rotation.y = Math.PI / 2; paralamaM.rotation.z = 0.6;
+    paralamaM.scale.set(1, 1, 0.5);
+    paralamaM.position.set(0, 0.34, 0.98); g.add(paralamaM);
+
+    // piloto
+    const pernas = new THREE.Mesh(geoCorpo(0.66, 0.3, 0.5, 0.12), matPiloto);
+    pernas.position.set(0, 0.72, -0.16); g.add(pernas);
+    const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.25, 0.62, 14), matPiloto);
+    tronco.position.set(0, 1.36, -0.30); tronco.rotation.x = -0.30;
+    tronco.castShadow = true; g.add(tronco);
+    const ombrosM = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), matPiloto);
+    ombrosM.scale.set(0.26, 0.13, 0.18);
+    ombrosM.position.set(0, 1.60, -0.22); g.add(ombrosM);
+    [-1, 1].forEach(function (l) {
+      const braco = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.66, 10), matPiloto);
+      braco.position.set(l * 0.20, 1.34, 0.22);
+      braco.rotation.x = Math.PI / 2 - 0.55; braco.rotation.z = -l * 0.16;
+      g.add(braco);
+      const mao = new THREE.Mesh(new THREE.SphereGeometry(0.062, 10, 8), matEscuro);
+      mao.position.set(l * 0.27, 1.04, 0.72); g.add(mao);
+    });
+    const capaceteM = new THREE.Mesh(new THREE.SphereGeometry(0.185, 18, 14),
+      new THREE.MeshStandardMaterial({ color: 0xeef1f4, roughness: 0.2, metalness: 0.2,
+        envMap: AMBIENTE, envMapIntensity: 0.8 }));
+    capaceteM.position.set(0, 1.76, -0.16); capaceteM.castShadow = true; g.add(capaceteM);
+    const viseiraM = new THREE.Mesh(new THREE.SphereGeometry(0.188, 16, 12, Math.PI * 0.62, Math.PI * 0.76, Math.PI * 0.26, Math.PI * 0.4),
+      new THREE.MeshStandardMaterial({ color: 0x141c26, roughness: 0.08, metalness: 0.6, envMap: AMBIENTE }));
+    viseiraM.position.copy(capaceteM.position);
+    viseiraM.rotation.y = Math.PI; g.add(viseiraM);
+
     g.userData.rodas = [];
-    [0.72, -0.72].forEach(function (z) {
-      const r = criaRoda(0.32, 0.14);
-      r.position.set(0, 0.32, z); g.add(r);
+    [[0.98, 0.34], [-0.72, 0.34]].forEach(function (par) {
+      const r = criaRoda(par[1], 0.13);
+      r.position.set(0, par[1], par[0]); g.add(r);
       g.userData.rodas.push(r);
     });
     return g;
@@ -2777,6 +2832,10 @@
   // =====================================================================
   //  Laço principal
   // =====================================================================
+  const camFoto = new THREE.PerspectiveCamera(38, 1, 0.1, 4000);
+  cena.add(camFoto);
+  window.__camFoto = camFoto;
+
   let ultimo = performance.now(), quadro = 0, tCubo = 0;
   const _solPos = new THREE.Vector3();
 
@@ -2838,7 +2897,7 @@
       renderer.shadowMap.autoUpdate = true;
     }
     som.atualiza(dt, estado === ESTADO.JOGANDO);
-    renderer.render(cena, camera);
+    renderer.render(cena, window.__foto ? camFoto : camera);
   }
 
   window.addEventListener("resize", function () {
@@ -2860,7 +2919,7 @@
   grupoMoto.visible = false; camCubo.update(renderer, cena); grupoMoto.visible = true;
   document.getElementById("carregando").style.display = "none";
 
-  window.__depuracao = { jogo: jogo, transito: transito, cones: cones, TIPOS: TIPOS, ambiente: ambiente, som: som, renderer: renderer, cena: cena };
+  window.__depuracao = { jogo: jogo, transito: transito, cones: cones, TIPOS: TIPOS, ambiente: ambiente, som: som, renderer: renderer, cena: cena, grupoMoto: grupoMoto };
   requestAnimationFrame(laco);
 })();
 </script>
