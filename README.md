@@ -3,6 +3,19 @@
 Jogo 3D de moto em **primeira pessoa**, jogado direto no navegador. Todo o jogo
 (HUD, mensagens e instruções) está em **português do Brasil**.
 
+## Idioma e dificuldade
+
+Ao abrir, o jogo pergunta o idioma — **Selecione o idioma / Select the language** —
+com Português (BR) e English (clique ou teclas 1 e 2). Toda a interface, o painel da
+moto e as mensagens seguem a escolha.
+
+Na tela seguinte escolhe-se a dificuldade:
+
+| Nível | Como fica |
+| ----- | --------- |
+| **Fácil** | O jogo como era: trânsito tranquilo e pista com curvas moderadas. |
+| **Médio** | ~47% mais veículos por trecho, frota maior (26 no lugar de 20), muito mais trocas de faixa e ultrapassagens, freadas imprevisíveis do trânsito e pista com ~40% mais curvatura. |
+
 ## Como jogar
 
 Abra o arquivo `index.html` no navegador (basta clicar duas vezes — a biblioteca
@@ -28,8 +41,7 @@ pressione **ENTER** para começar.
   direção das sombras; à noite acendem o farol da moto (luz real projetada na
   pista), os faróis e lanternas do trânsito, os postes, as tachas refletivas e
   aparecem as estrelas.
-- **Clima dinâmico**: céu limpo, nublado, chuva e neblina, alternando sozinhos.
-  A chuva molha o asfalto (que passa a refletir), aumenta a névoa e acende as luzes.
+- **Clima dinâmico**: céu limpo, nublado e neblina, alternando sozinhos.
 - **Relevo**: a rodovia sobe e desce em rampas longas; pista, defensas, terreno,
   trânsito e moto acompanham a inclinação.
 - **Infraestrutura**: placas de velocidade, direção e advertência, tachas refletivas,
@@ -39,9 +51,9 @@ pressione **ENTER** para começar.
 ## Som
 
 Tudo sintetizado na Web Audio API (sem arquivos): motor com giro e carga (o tom
-acompanha o RPM da marcha), vento pela velocidade, pneus na pista (mais forte no
-molhado), chuva, guincho de freio, estouro da batida, blip da troca de marcha e o
-"whoosh" de cada veículo que passa perto. A tecla **S** liga e desliga o som.
+acompanha o RPM da marcha), vento pela velocidade, pneus na pista, guincho de freio,
+estouro da batida, blip da troca de marcha e o "whoosh" de cada veículo que passa
+perto. A tecla **S** liga e desliga o som.
 
 ## Visual
 
@@ -94,6 +106,7 @@ frear e tremor na batida.
   reage à curvatura da pista, à velocidade (campo de visão) e ao balanço do motor.
 - **Pilotagem com curva de verdade**: a moto ganha ângulo em relação à pista e o
   deslocamento vem desse ângulo, em vez de andar de lado. Parada, a moto não vira.
+  A inclinação vem só do comando do jogador — não há inclinação automática nas curvas.
 - **Câmbio de 6 marchas, automático por padrão**: sobe e reduz sozinho conforme o
   giro (inclusive reduzindo até a 1ª ao frear). A tecla `M` passa para o manual,
   com `Q`/`E` — e no manual **não há limitador**: a moto continua ganhando
@@ -108,9 +121,8 @@ frear e tremor na batida.
   terceira, a corrida termina.
 - **HUD no topo da tela** com distância percorrida (km), tempo da corrida,
   velocidade em km/h (com transição suave), marcha e modo do câmbio, contador de
-  batidas, além da faixa com horário, fase do dia, clima e a próxima marca de 5 km.
-  Avisa quando você está fechando em cima de um veículo e quando alguém se aproxima
-  por trás.
+  batidas, além da faixa com horário, fase do dia e clima. Avisa quando você está
+  fechando em cima de um veículo e quando alguém se aproxima por trás.
 - **Cenário de rodovia**: defensas metálicas dos dois lados, campo com árvores e
   moitas, postes de iluminação, céu com nuvens e a silhueta de uma cidade no horizonte.
 - Parado, basta apertar **W** para a moto arrancar de novo (a 1ª marcha tem ajuda
