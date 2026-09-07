@@ -55,6 +55,27 @@ acompanha o RPM da marcha), vento pela velocidade, pneus na pista, guincho de fr
 estouro da batida, blip da troca de marcha e o "whoosh" de cada veículo que passa
 perto. A tecla **S** liga e desliga o som.
 
+## Polimento visual
+
+- **Rodas com volume real**: o pneu é torneado (perfil com flanco arredondado, ombro
+  e parede interna), o aro fica **dentro** do pneu, com cubo central e face de raios;
+  cada classe usa seu tamanho e as geometrias são compartilhadas entre veículos.
+- **Rodas dianteiras esterçam**: o eixo da frente do trânsito gira na troca de faixa e
+  a moto do jogador tem garfo, roda e paralama num conjunto de direção que acompanha
+  o comando — e mergulha na freada.
+- **Sombras de contato** sob cada veículo, o semirreboque e a moto, para nada parecer
+  flutuando.
+- **Regiões de paisagem**: campo aberto, floresta, fazenda, industrial, serra e
+  subúrbio se alternam a cada ~1,6 km, mudando quais elementos aparecem e a que
+  distância da pista; o espaçamento tem folga aleatória, sem fila perfeita.
+- **Vegetação balançando** de leve com o vento.
+- **Túnel** a cada 4,2 km: teto e paredes em fitas que acompanham a curva, lâmpadas
+  no teto, sol cortado e farol aceso lá dentro.
+- **Evento de pista**: veículo parado no acostamento com pisca-alerta ligado.
+- **Sensação de velocidade em faixas**: vento a partir de ~80 km/h, campo de visão
+  abrindo até 96°, e borrão periférico só acima de ~173 km/h — o centro da tela
+  continua limpo.
+
 ## Visual
 
 Renderização em three.js com materiais PBR, tone mapping ACES, sombras do sol,

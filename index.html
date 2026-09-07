@@ -960,6 +960,20 @@
     return m;
   }
 
+  // trechos com caras diferentes ao longo da estrada
+  const REGIOES = [
+    { nome: "campo",      arvores: 0.35, predios: 0.0, moitas: 1.0, dist: 1.5 },
+    { nome: "floresta",   arvores: 1.0,  predios: 0.0, moitas: 1.0, dist: 0.55 },
+    { nome: "fazenda",    arvores: 0.5,  predios: 0.6, moitas: 0.8, dist: 1.1 },
+    { nome: "industrial", arvores: 0.25, predios: 1.0, moitas: 0.4, dist: 1.3 },
+    { nome: "serra",      arvores: 0.8,  predios: 0.0, moitas: 0.9, dist: 0.8 },
+    { nome: "subúrbio",   arvores: 0.6,  predios: 0.8, moitas: 0.7, dist: 1.0 }
+  ];
+  function regiaoEm(s) {
+    const i = Math.floor(s / 1600);
+    return REGIOES[((i * 3 + 1) % REGIOES.length + REGIOES.length) % REGIOES.length];
+  }
+
   const cenario = [];
   (function montaCenario() {
     for (let i = 0; i < 68; i++) {
@@ -984,21 +998,42 @@
         if (Math.random() < 0.5) { const m = criaMoita(); m.position.set(rand(-4, 4), 0, rand(-3, 3)); g.add(m); }
         off = rand(5, 34);
       }
-      g.userData = { s: i * 22, lado: i % 2 === 0 ? -1 : 1, off: off };
+      const especie = tipo === 0 ? "poste" : tipo === 3 ? "moita" : tipo === 6 ? "colina"
+                    : (tipo === 4 && i % 14 === 4) ? "predio" : "arvore";
+      g.userData = { s: i * 22 + rand(-7, 7), lado: i % 2 === 0 ? -1 : 1, off: off,
+                     especie: especie, base: off, fase: Math.random() * 6.28 };
       cena.add(g);
       cenario.push(g);
     }
   })();
 
-  function atualizaCenario(sJogador) {
+  let tempoVento = 0;
+  function atualizaCenario(sJogador, dt) {
     const volta = cenario.length * 22;
+    tempoVento += dt || 0;
     for (const g of cenario) {
       const d = g.userData;
       while (d.s < sJogador - 60) d.s += volta;
       while (d.s > sJogador + volta - 60) d.s -= volta;
-      posMundo(d.s, d.lado * (LAT_DEFENSA + d.off), _p1);
+      // nada de morro ou árvore atravessando o túnel
+      const dTunel = d.s - (Math.round((d.s - 2100) / TUNEL_INTERVALO) * TUNEL_INTERVALO + 2100);
+      if (dTunel > -14 && dTunel < TUNEL_COMP + 14) { g.visible = false; continue; }
+      const reg = regiaoEm(d.s);
+      // cada região mostra um conjunto diferente de coisas, a distâncias diferentes
+      let mostra = true;
+      if (d.especie === "arvore") mostra = (d.s % 100) / 100 < reg.arvores;
+      else if (d.especie === "predio") mostra = reg.predios > 0.3;
+      else if (d.especie === "moita") mostra = (d.s % 70) / 70 < reg.moitas;
+      g.visible = mostra;
+      if (!mostra) continue;
+      const off = d.especie === "colina" ? d.base : d.base * reg.dist;
+      posMundo(d.s, d.lado * (LAT_DEFENSA + off), _p1);
       g.position.set(_p1.x, _p1.y - 0.25, _p1.z);
       g.rotation.y = _p1.h + (d.lado > 0 ? Math.PI : 0);
+      // vegetação balançando de leve com o vento
+      if (d.especie === "arvore" || d.especie === "moita") {
+        g.rotation.z = Math.sin(tempoVento * 0.9 + d.fase) * 0.017;
+      }
     }
   }
 
@@ -1121,30 +1156,80 @@
     })()), roughness: 0.55
   });
 
-  // roda: pneu com ombro arredondado + face de aro desenhada
+  // roda de verdade: pneu torneado (flanco arredondado e parede interna),
+  // aro embutido dentro do pneu e cubo central. Geometrias são compartilhadas.
+  const _geoPneus = {}, _geoAros = {}, _geoCubos = {};
+  function geoPneu(raio, larg) {
+    const ch = raio.toFixed(2) + "x" + larg.toFixed(2);
+    if (_geoPneus[ch]) return _geoPneus[ch];
+    const rAro = raio * 0.60, meia = larg / 2, ombro = larg * 0.22;
+    const perfil = [
+      new THREE.Vector2(rAro, -meia),
+      new THREE.Vector2(raio * 0.86, -meia),
+      new THREE.Vector2(raio * 0.965, -meia + ombro * 0.55),
+      new THREE.Vector2(raio, -meia + ombro),
+      new THREE.Vector2(raio, meia - ombro),
+      new THREE.Vector2(raio * 0.965, meia - ombro * 0.55),
+      new THREE.Vector2(raio * 0.86, meia),
+      new THREE.Vector2(rAro, meia)
+    ];
+    const g = new THREE.LatheGeometry(perfil, 22);
+    g.rotateZ(Math.PI / 2);               // eixo deitado no X
+    g.computeVertexNormals();
+    return (_geoPneus[ch] = g);
+  }
+  function geoAro(raio, larg) {
+    const ch = raio.toFixed(2) + "x" + larg.toFixed(2);
+    if (_geoAros[ch]) return _geoAros[ch];
+    const g = new THREE.CylinderGeometry(raio * 0.615, raio * 0.615, larg * 0.72, 20);
+    g.rotateZ(Math.PI / 2);
+    return (_geoAros[ch] = g);
+  }
+  function geoCubo(raio) {
+    const ch = raio.toFixed(2);
+    if (_geoCubos[ch]) return _geoCubos[ch];
+    const g = new THREE.CylinderGeometry(raio * 0.20, raio * 0.20, raio * 0.30, 12);
+    g.rotateZ(Math.PI / 2);
+    return (_geoCubos[ch] = g);
+  }
   function criaRoda(raio, larg) {
-    const geo = new THREE.CylinderGeometry(raio, raio, larg, 24);
-    geo.rotateZ(Math.PI / 2);
-    const m = new THREE.Mesh(geo, [MAT_PNEU, MAT_FACE_ARO, MAT_FACE_ARO]);
-    m.castShadow = true;
-    m.userData.raio = raio;
-    return m;
+    const g = new THREE.Group();
+    const pneu = new THREE.Mesh(geoPneu(raio, larg), MAT_PNEU);
+    pneu.castShadow = true;
+    g.add(pneu);
+    const aro = new THREE.Mesh(geoAro(raio, larg), [MAT_ARO, MAT_FACE_ARO, MAT_FACE_ARO]);
+    g.add(aro);
+    const cubo = new THREE.Mesh(geoCubo(raio), MAT_ESCURO);
+    g.add(cubo);
+    g.userData.raio = raio;
+    g.userData.giro = g;                  // o grupo inteiro gira no eixo
+    return g;
   }
   // paralama: arco por cima da roda, na cor da carroceria
   function arco(pai, x, z, raio, larg, mat) {
-    const a = new THREE.Mesh(new THREE.TorusGeometry(raio * 1.12, larg * 0.42, 8, 14, Math.PI), mat);
+    const a = new THREE.Mesh(new THREE.TorusGeometry(raio * 1.14, larg * 0.40, 8, 16, Math.PI), mat);
     a.rotation.y = Math.PI / 2;
-    a.scale.z = 0.55;
+    a.scale.z = 0.62;
     a.position.set(x, raio * 1.02, z);
     pai.add(a);
   }
-  function poeRodas(g, meiaLarg, zs, raio, larg, matArco) {
+  // eixo: as rodas da frente podem esterçar (pivô próprio, sem custo de desenho)
+  function poeRodas(g, meiaLarg, zs, raio, larg, matArco, dirigivel) {
     if (!g.userData.rodas) g.userData.rodas = [];
-    zs.forEach(function (z) {
+    if (!g.userData.pivos) g.userData.pivos = [];
+    zs.forEach(function (z, i) {
       [-meiaLarg, meiaLarg].forEach(function (x) {
         const r = criaRoda(raio, larg);
-        r.position.set(x, raio, z);
-        g.add(r);
+        if (dirigivel && i === 0) {
+          const pivo = new THREE.Group();
+          pivo.position.set(x, raio, z);
+          pivo.add(r);
+          g.add(pivo);
+          g.userData.pivos.push(pivo);
+        } else {
+          r.position.set(x, raio, z);
+          g.add(r);
+        }
         g.userData.rodas.push(r);
         if (matArco) arco(g, x, z, raio, larg, matArco);
       });
@@ -1164,6 +1249,26 @@
       });
     });
   }
+  // sombra de contato: mancha escura sob o veículo, para nada parecer flutuando
+  const TEX_SOMBRA = (function () {
+    const c = tela(128, 128), g = c.getContext("2d");
+    const gr = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+    gr.addColorStop(0, "rgba(0,0,0,.62)");
+    gr.addColorStop(0.55, "rgba(0,0,0,.32)");
+    gr.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    return textura(c);
+  })();
+  const MAT_SOMBRA = new THREE.MeshBasicMaterial({ map: TEX_SOMBRA, transparent: true,
+    depthWrite: false, opacity: 0.85, fog: true });
+  function poeSombra(g, comp, larg) {
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(larg * 1.5, comp * 1.12), MAT_SOMBRA);
+    s.rotation.x = -Math.PI / 2;
+    s.position.y = 0.03;
+    s.renderOrder = 1;
+    g.add(s);
+  }
+
   function vidro(comp, alt, larg, raio) { return new THREE.Mesh(geoCorpo(comp, alt, larg, raio), MAT_VIDRO); }
   // vinco de porta / linha de painel
   function vinco(pai, x, y, z, comp, larg) {
@@ -1277,7 +1382,7 @@
     espelho(c, -0.94, 1.24, 0.55, 0.9, p); espelho(c, 0.94, 1.24, 0.55, 0.9, p);
     conjuntoLuzes(g, 0.86, 1.90, -1.90, 0.92, 0.98, 1.30);
     poePlaca(c, 0.62, -1.93);
-    poeRodas(g, 0.80, [1.18, -1.16], 0.30, 0.21, p);
+    poeRodas(g, 0.80, [1.18, -1.16], 0.30, 0.21, p, true);
     return g;
   }
 
@@ -1313,7 +1418,7 @@
     espelho(c, -1.00, 1.20, 0.82, 1.0, p); espelho(c, 1.00, 1.20, 0.82, 1.0, p);
     conjuntoLuzes(g, 0.93, 2.28, -2.28, 0.88, 0.94, 1.45);
     poePlaca(c, 0.62, -2.31);
-    poeRodas(g, 0.86, [1.42, -1.40], 0.33, 0.23, p);
+    poeRodas(g, 0.86, [1.42, -1.40], 0.33, 0.23, p, true);
     return g;
   }
 
@@ -1355,7 +1460,7 @@
     espelho(c, -1.10, 1.76, 1.10, 1.15, p); espelho(c, 1.10, 1.76, 1.10, 1.15, p);
     conjuntoLuzes(g, 0.99, 2.42, -2.40, 1.22, 1.36, 1.55);
     poePlaca(c, 0.80, -2.44);
-    poeRodas(g, 0.92, [1.55, -1.52], 0.41, 0.28, p);
+    poeRodas(g, 0.92, [1.55, -1.52], 0.41, 0.28, p, true);
     return g;
   }
 
@@ -1400,7 +1505,7 @@
     espelho(c, -1.14, 1.62, 1.58, 1.25, MAT_ESCURO); espelho(c, 1.14, 1.62, 1.58, 1.25, MAT_ESCURO);
     conjuntoLuzes(g, 0.97, 2.68, -2.66, 1.24, 1.44, 1.55);
     poePlaca(c, 0.90, -2.70);
-    poeRodas(g, 0.90, [1.72, -1.58], 0.44, 0.30, p);
+    poeRodas(g, 0.90, [1.72, -1.58], 0.44, 0.30, p, true);
     return g;
   }
 
@@ -1437,7 +1542,7 @@
     espelho(c, -1.20, 1.86, 2.30, 1.5, MAT_ESCURO); espelho(c, 1.20, 1.86, 2.30, 1.5, MAT_ESCURO);
     conjuntoLuzes(g, 1.01, 2.86, -2.84, 1.02, 1.30, 1.60);
     poePlaca(c, 0.72, -2.88);
-    poeRodas(g, 0.92, [1.86, -1.76], 0.38, 0.26, p);
+    poeRodas(g, 0.92, [1.86, -1.76], 0.38, 0.26, p, true);
     return g;
   }
 
@@ -1476,7 +1581,7 @@
     conjuntoLuzes(g, 1.24, 5.76, -5.74, 1.30, 1.60, 1.95);
     poePlaca(c, 1.05, -5.78);
     rodasDuplas(g, 1.10, [-3.6], 0.52, 0.30);
-    poeRodas(g, 1.14, [4.0], 0.52, 0.32, null);
+    poeRodas(g, 1.14, [4.0], 0.52, 0.32, null, true);
     return g;
   }
 
@@ -1530,7 +1635,7 @@
     espelho(c, -1.58, 2.85, 4.40, 1.9, MAT_ESCURO); espelho(c, 1.58, 2.85, 4.40, 1.9, MAT_ESCURO);
     conjuntoLuzes(g, 1.24, 4.96, -4.78, 1.22, 1.30, 1.90);
     poePlaca(c, 0.95, -4.82);
-    poeRodas(g, 1.12, [3.4], 0.52, 0.32, null);
+    poeRodas(g, 1.12, [3.4], 0.52, 0.32, null, true);
     rodasDuplas(g, 1.10, [-1.7, -3.2], 0.52, 0.30);
     return g;
   }
@@ -1573,7 +1678,7 @@
     espelho(c, -1.60, 3.05, 2.10, 2.0, MAT_ESCURO); espelho(c, 1.60, 3.05, 2.10, 2.0, MAT_ESCURO);
     conjuntoLuzes(g, 1.24, 2.70, -2.6, 1.25, 1.4, 1.95);
     poePlaca(c, 0.95, 2.72, true);
-    poeRodas(g, 1.12, [1.4], 0.54, 0.32, null);
+    poeRodas(g, 1.12, [1.4], 0.54, 0.32, null, true);
     rodasDuplas(g, 1.10, [-1.7, -3.0], 0.54, 0.30);
     return g;
   }
@@ -1738,6 +1843,7 @@
 
   const transito = FROTA.map(function (tipo, i) {
     const obj = TIPOS[tipo].cria(CORES_VEIC[(i * 7 + 3) % CORES_VEIC.length]);
+    poeSombra(obj, TIPOS[tipo].reboque ? 6.5 : TIPOS[tipo].comp, TIPOS[tipo].larg);
     marcaDetalhes(obj);
     obj.visible = false;
     cena.add(obj);
@@ -1747,6 +1853,7 @@
                 latAnterior: 0, velAnterior: 0 };
     if (TIPOS[tipo].reboque) {
       v.reboque = criaReboque();
+      poeSombra(v.reboque, 12.5, 2.55);
       marcaDetalhes(v.reboque);
       v.reboque.visible = false;
       cena.add(v.reboque);
@@ -1767,6 +1874,18 @@
 
   function nasceVeiculo(v, sJogador) {
     const t = TIPOS[v.tipo];
+    // de vez em quando o veículo nasce parado no acostamento, de pisca-alerta
+    if (!t.reboque && Math.random() < 0.05) {
+      v.faixa = 2; v.parado = true;
+      v.lat = BORDA_PISTA + 1.1;
+      v.s = sJogador + rand(220, 520);
+      v.vel = 0; v.velDesejada = 0; v.esperaFaixa = 99999;
+      v.freando = false; v.sinal = 0; v.passou = false; v.freada = 0;
+      v.latAnterior = v.lat; v.velAnterior = 0;
+      v.obj.visible = true; v.ativo = true;
+      return;
+    }
+    v.parado = false;
     for (let tent = 0; tent < 26; tent++) {
       // pesados preferem a direita, motos e compactos usam mais a esquerda
       const faixa = Math.random() < 0.6 ? t.faixa : (Math.random() * N_FAIXAS) | 0;
@@ -1864,7 +1983,7 @@
         continue;
       }
       if (!v.ativo) { nasceVeiculo(v, sJogador); continue; }
-      conduz(v, dt);
+      if (!v.parado) conduz(v, dt);
       v.s += v.vel * dt;
       if (v.s < sJogador - 130 || v.s > sJogador + 900) {
         v.ativo = false; v.obj.visible = false;
@@ -1872,7 +1991,7 @@
         nasceVeiculo(v, sJogador); continue;
       }
       const t = TIPOS[v.tipo];
-      const latAlvo = FAIXAS_X[v.faixa];
+      const latAlvo = v.parado ? v.lat : FAIXAS_X[v.faixa];
       const passo = (latAlvo - v.lat) * Math.min(1, dt * t.agil);   // agilidade por classe
       v.lat += passo;
       posMundo(v.s, v.lat, _p1);
@@ -1883,6 +2002,12 @@
       // rodas girando conforme a velocidade
       const rodas = v.obj.userData.rodas;
       if (rodas) { for (const r of rodas) r.rotation.x -= (v.vel / r.userData.raio) * dt; }
+      // rodas dianteiras esterçando na troca de faixa
+      const pivos = v.obj.userData.pivos;
+      if (pivos && pivos.length) {
+        const ang = clamp(-Math.atan2(passo, Math.max(0.001, v.vel * dt)) * 1.6, -0.5, 0.5);
+        for (const pv of pivos) pv.rotation.y = lerp(pv.rotation.y, ang, Math.min(1, dt * 6));
+      }
 
       // LOD: detalhes miúdos só de perto
       const perto = (v.s - sJogador) < 140 && (v.s - sJogador) > -60;
@@ -1899,13 +2024,17 @@
       const luzF = v.obj.userData.luzFreio;
       if (luzF) luzF.visible = v.freando;
 
-      // pisca no sentido da troca de faixa
+      // pisca no sentido da troca de faixa (e pisca-alerta em quem está parado)
       const desvio = latAlvo - v.lat;
       v.sinal = Math.abs(desvio) > 0.25 ? Math.sign(desvio) : 0;
       const piscas = v.obj.userData.piscas;
       if (piscas) {
-        const ligado = v.sinal !== 0 && piscaLigado;
-        for (const pi of piscas) pi.mesh.visible = ligado && pi.lado === v.sinal;
+        if (v.parado) {
+          for (const pi of piscas) pi.mesh.visible = piscaLigado;
+        } else {
+          const ligado = v.sinal !== 0 && piscaLigado;
+          for (const pi of piscas) pi.mesh.visible = ligado && pi.lado === v.sinal;
+        }
       }
 
       // suspensão: mergulha ao frear, senta ao acelerar
@@ -2237,6 +2366,84 @@
     return g;
   }
 
+  // ---------------------------------------------------------------
+  //  Túnel: teto e paredes em fitas que acompanham a curva da pista
+  // ---------------------------------------------------------------
+  const TUNEL_INTERVALO = 4200, TUNEL_COMP = 170, TUNEL_N = 46, TUNEL_PASSO = TUNEL_COMP / (TUNEL_N - 1);
+  const LAT_TUNEL = LARG_TOTAL / 2 + 1.6, ALT_TUNEL = 6.6;
+  const MAT_TUNEL = new THREE.MeshStandardMaterial({ color: 0x9a9992, roughness: 0.95, side: THREE.DoubleSide });
+  const MAT_TUNEL_TETO = new THREE.MeshStandardMaterial({ color: 0x6f6e6a, roughness: 0.95, side: THREE.DoubleSide });
+
+  function fitaTunel(mat) {
+    const pos = new Float32Array(TUNEL_N * 2 * 3);
+    const nor = new Float32Array(TUNEL_N * 2 * 3);
+    for (let k = 1; k < nor.length; k += 3) nor[k] = 1;
+    const idx = [];
+    for (let i = 0; i < TUNEL_N - 1; i++) {
+      const a = i * 2;
+      idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+    geo.setIndex(idx);
+    const m = new THREE.Mesh(geo, mat);
+    m.frustumCulled = false;
+    m.visible = false;
+    cena.add(m);
+    return { malha: m, pos: pos, geo: geo };
+  }
+  const tunel = {
+    teto: fitaTunel(MAT_TUNEL_TETO),
+    paredes: [fitaTunel(MAT_TUNEL), fitaTunel(MAT_TUNEL)],
+    lampadas: [],
+    dentro: 0
+  };
+  for (let i = 0; i < 10; i++) {
+    const l = criaBrilho(4.2, 0xffe6b4);
+    l.material.opacity = 0;
+    cena.add(l);
+    tunel.lampadas.push(l);
+  }
+  function atualizaTunel(sJogador) {
+    // deslocado para o túnel nunca cair na largada
+    const inicio = Math.round((sJogador - 2100) / TUNEL_INTERVALO) * TUNEL_INTERVALO + 2100;
+    const fim = inicio + TUNEL_COMP;
+    const perto = sJogador > inicio - 420 && sJogador < fim + 260;
+    tunel.teto.malha.visible = perto;
+    tunel.paredes[0].malha.visible = perto;
+    tunel.paredes[1].malha.visible = perto;
+    // fator de "estar dentro" para escurecer a iluminação e acender o farol
+    tunel.dentro = (sJogador > inicio - 12 && sJogador < fim + 6) ? 1 : 0;
+    for (let i = 0; i < tunel.lampadas.length; i++) {
+      const l = tunel.lampadas[i];
+      if (!perto) { l.material.opacity = 0; continue; }
+      const sl = inicio + 8 + i * (TUNEL_COMP - 16) / (tunel.lampadas.length - 1);
+      posMundo(sl, 0, _p1);
+      l.position.set(_p1.x, _p1.y + ALT_TUNEL - 0.5, _p1.z);
+      l.material.opacity = 0.75;
+    }
+    if (!perto) return;
+    for (let i = 0; i < TUNEL_N; i++) {
+      const s = inicio + i * TUNEL_PASSO, o = i * 6;
+      posMundo(s, -LAT_TUNEL, _p1);
+      posMundo(s, LAT_TUNEL, _p2);
+      // teto
+      tunel.teto.pos[o]     = _p1.x; tunel.teto.pos[o + 1] = _p1.y + ALT_TUNEL; tunel.teto.pos[o + 2] = _p1.z;
+      tunel.teto.pos[o + 3] = _p2.x; tunel.teto.pos[o + 4] = _p2.y + ALT_TUNEL; tunel.teto.pos[o + 5] = _p2.z;
+      // paredes
+      const pd = [[_p1, tunel.paredes[0]], [_p2, tunel.paredes[1]]];
+      for (const par of pd) {
+        const pt = par[0], f = par[1];
+        f.pos[o]     = pt.x; f.pos[o + 1] = pt.y - 0.4;         f.pos[o + 2] = pt.z;
+        f.pos[o + 3] = pt.x; f.pos[o + 4] = pt.y + ALT_TUNEL;   f.pos[o + 5] = pt.z;
+      }
+    }
+    tunel.teto.geo.attributes.position.needsUpdate = true;
+    tunel.paredes[0].geo.attributes.position.needsUpdate = true;
+    tunel.paredes[1].geo.attributes.position.needsUpdate = true;
+  }
+
   // ---- montagem e posicionamento da infraestrutura ----
   const postos = [criaPosto(), criaPosto()];
   postos.forEach(function (o) { o.visible = false; cena.add(o); });
@@ -2279,6 +2486,7 @@
     atualizaPlacas(sJogador);
     atualizaTachas(sJogador);
     atualizaViadutos(sJogador);
+    atualizaTunel(sJogador);
 
     let s0 = Math.ceil((sJogador - 60) / ESPACO_POSTO) * ESPACO_POSTO;
     postos.forEach(function (o, i) {
@@ -2413,7 +2621,7 @@
   });
   const camsEspelho = [];
   let rodaJogador = null, rodaTraseira = null, farolMoto = null, brilhoFarol = null;
-  let luzFreioJogador = null, piscasJogador = [];
+  let luzFreioJogador = null, piscasJogador = [], grupoDirecao = null;
 
   (function montaMoto() {
     // textura do tanque: o topo do tanque cai em u = 0.75 (esfera girada 90° em X)
@@ -2671,36 +2879,39 @@
 
     // ---------------- frente ----------------
     const meiaTrip = 0.13;
+    const garfos = [];
     [-1, 1].forEach(function (lado) {
       const topo = V(lado * meiaTrip, Y_BAR - 0.03, Z_BAR + 0.045);
       const meio = V(lado * meiaTrip, 0.70, Z_BAR + 0.17);
-      const baixo = V(lado * meiaTrip, 0.44, Z_BAR + 0.245);
-      const tSup = entre(topo, meio, 0.030, 0.030, matCromo, 14);
-      tSup.castShadow = true; m.add(tSup);
-      m.add(entre(meio, baixo, 0.035, 0.035, matPlastico, 14));
+      const baixo = V(lado * meiaTrip, 0.42, Z_BAR + 0.30);
+      const tSup = entre(topo, meio, 0.032, 0.032, matCromo, 14);
+      tSup.castShadow = true; m.add(tSup); garfos.push(tSup);
+      const tInf = entre(meio, baixo, 0.038, 0.038, matPlastico, 14);
+      m.add(tInf); garfos.push(tInf);
     });
     const tripla = new THREE.Mesh(geoCorpo(0.09, 0.04, 0.34, 0.016), matAluminio);
     tripla.position.set(0, Y_BAR - 0.062, Z_BAR + 0.05); m.add(tripla);
 
+    // conjunto de direção: garfo, roda e paralama giram junto com o guidão
     const cy = 0.335, cz = Z_BAR + 0.36;
-    const pneuFrente = new THREE.Mesh(new THREE.TorusGeometry(0.262, 0.070, 16, 36), matBorracha);
-    pneuFrente.rotation.y = Math.PI / 2; pneuFrente.position.set(0, cy, cz);
-    pneuFrente.castShadow = true; m.add(pneuFrente);
-    const geoAro = new THREE.CylinderGeometry(0.198, 0.198, 0.09, 24);
-    geoAro.rotateZ(Math.PI / 2);
-    const aroFrente = new THREE.Mesh(geoAro, [matAluminio, MAT_FACE_ARO, MAT_FACE_ARO]);
-    aroFrente.position.set(0, cy, cz); m.add(aroFrente);
-    rodaJogador = aroFrente;
+    grupoDirecao = new THREE.Group();
+    grupoDirecao.position.set(0, cy, cz);
+    m.add(grupoDirecao);
+    const rodaF = criaRoda(0.30, 0.145);
+    grupoDirecao.add(rodaF);
+    rodaJogador = rodaF;
     [-1, 1].forEach(function (lado) {
-      const disco = new THREE.Mesh(new THREE.CylinderGeometry(0.152, 0.152, 0.007, 24), matCromo);
-      disco.rotation.z = Math.PI / 2; disco.position.set(lado * 0.082, cy, cz); m.add(disco);
-      const pinca = new THREE.Mesh(geoCorpo(0.09, 0.12, 0.045, 0.018), matAluminio);
-      pinca.position.set(lado * 0.10, cy + 0.155, cz - 0.05); m.add(pinca);
+      const disco = new THREE.Mesh(new THREE.CylinderGeometry(0.165, 0.165, 0.008, 26), matCromo);
+      disco.rotation.z = Math.PI / 2; disco.position.set(lado * 0.088, 0, 0);
+      grupoDirecao.add(disco);
+      const pinca = new THREE.Mesh(geoCorpo(0.10, 0.14, 0.05, 0.02), matAluminio);
+      pinca.position.set(lado * 0.105, 0.16, -0.05);
+      grupoDirecao.add(pinca);
     });
-    const paralama = new THREE.Mesh(new THREE.TorusGeometry(0.295, 0.052, 10, 22, 1.5), matTanque);
+    const paralama = new THREE.Mesh(new THREE.TorusGeometry(0.335, 0.055, 10, 20, 1.5), matTanque);
     paralama.rotation.y = Math.PI / 2; paralama.rotation.z = 0.6;
-    paralama.scale.set(1, 1, 0.5); paralama.position.set(0, cy, cz);
-    paralama.castShadow = true; m.add(paralama);
+    paralama.scale.set(1, 1, 0.5);
+    paralama.castShadow = true; grupoDirecao.add(paralama);
 
     const farol = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 18), matPlastico);
     farol.scale.set(0.11, 0.08, 0.065);
@@ -2752,14 +2963,9 @@
       new THREE.MeshStandardMaterial({ color: 0xc44b2c, roughness: 0.5, metalness: 0.4, envMap: AMBIENTE }));
     molaTras.position.set(0.095, 0.66, -0.50); molaTras.rotation.x = -0.55; m.add(molaTras);
 
-    const pneuTras = new THREE.Mesh(new THREE.TorusGeometry(0.245, 0.088, 14, 30), matBorracha);
-    pneuTras.rotation.y = Math.PI / 2;
-    pneuTras.position.copy(eixoTras); pneuTras.castShadow = true; m.add(pneuTras);
-    const geoAroT = new THREE.CylinderGeometry(0.17, 0.17, 0.11, 22);
-    geoAroT.rotateZ(Math.PI / 2);
-    const aroTras = new THREE.Mesh(geoAroT, [matAluminio, MAT_FACE_ARO, MAT_FACE_ARO]);
-    aroTras.position.copy(eixoTras); m.add(aroTras);
-    rodaTraseira = aroTras;
+    const rodaT = criaRoda(0.285, 0.185);
+    rodaT.position.copy(eixoTras); m.add(rodaT);
+    rodaTraseira = rodaT;
     const discoTras = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.115, 0.006, 20), matCromo);
     discoTras.rotation.z = Math.PI / 2;
     discoTras.position.set(-0.085, eixoTras.y, eixoTras.z); m.add(discoTras);
@@ -2795,6 +3001,11 @@
       pFrente.position.set(l * 0.30, Y_BAR - 0.13, Z_BAR + 0.10); pFrente.visible = false; m.add(pFrente);
       piscasJogador.push({ mesh: pTras, lado: l }, { mesh: pFrente, lado: l });
     });
+
+    const sombraMoto = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 2.6), MAT_SOMBRA);
+    sombraMoto.rotation.x = -Math.PI / 2;
+    sombraMoto.position.set(0, 0.03, 0.15);
+    m.add(sombraMoto);
 
     grupoInclina.add(m);
   })();
@@ -2932,7 +3143,7 @@
     chipClima.textContent = T().climas[ambiente.clima] || "";
     alertaTras.style.opacity = jogo.aproximando > 0 ? "1" : "0";
     elPerigo.style.opacity = (jogo.perigo * 0.5).toFixed(2);
-    elBorrado.style.opacity = (clamp((jogo.vel - 33) / 34, 0, 1) * 0.8).toFixed(2);
+    elBorrado.style.opacity = (clamp((jogo.vel - 48) / 13, 0, 1) * 0.75).toFixed(2);
   }
 
   // botões de idioma e de dificuldade (funcionais no clique e pelo teclado)
@@ -3214,8 +3425,14 @@
       (Math.random() - 0.5) * sacode,
       -jogo.inclinacao * 0.20 + (Math.random() - 0.5) * sacode * 0.5
     );
-    if (rodaJogador) rodaJogador.rotation.x -= (jogo.vel / 0.265) * dt;
-    if (rodaTraseira) rodaTraseira.rotation.x -= (jogo.vel / 0.245) * dt;
+    if (rodaJogador) rodaJogador.rotation.x -= (jogo.vel / 0.30) * dt;
+    if (rodaTraseira) rodaTraseira.rotation.x -= (jogo.vel / 0.285) * dt;
+    if (grupoDirecao) {
+      // a frente esterça com o comando e o garfo mergulha na freada
+      grupoDirecao.rotation.y = lerp(grupoDirecao.rotation.y, -jogo.direcao * 0.16, Math.min(1, dt * 8));
+      const mergulho = teclas.freio && jogo.vel > 2 ? 0.035 : 0;
+      grupoDirecao.position.y = lerp(grupoDirecao.position.y, 0.335 - mergulho, Math.min(1, dt * 6));
+    }
     if (luzFreioJogador) luzFreioJogador.visible = teclas.freio && jogo.vel > 0.5;
     for (const pi of piscasJogador) {
       const sinal = Math.abs(jogo.direcao) > 0.35 ? Math.sign(jogo.direcao) : 0;
@@ -3417,10 +3634,10 @@
 
   function atualizaVento(dt) {
     const rel = clamp((jogo.vel - 22) / (VEL_MAX - 22), 0, 1.4);
-    vento.mat.opacity = rel * 0.32 * (1 - ambiente.noite * 0.4);
+    vento.mat.opacity = Math.pow(rel, 1.25) * 0.40 * (1 - ambiente.noite * 0.4);
     if (rel <= 0.02) { vento.obj.visible = false; return; }
     vento.obj.visible = true;
-    const comp = 1.5 + rel * 7.5, passo = jogo.vel * dt * 1.15;
+    const comp = 1.5 + rel * 9.5, passo = jogo.vel * dt * 1.2;
     for (let i = 0; i < vento.N; i++) {
       const b = vento.base[i];
       b.z -= passo;
@@ -3461,9 +3678,10 @@
     _dirSol.set(Math.cos(ang) * 0.8, Math.max(0.08, Math.sin(ang)), 0.45).normalize();
     DIR_SOL.copy(_dirSol);
     sol.color.copy(fase.sol);
-    sol.intensity = fase.int * (1 - ambiente.nuvem * 0.62);
+    sol.intensity = fase.int * (1 - ambiente.nuvem * 0.62) * (1 - tunel.dentro * 0.92);
     luzPreenche.intensity = 0.10 + fase.amb * 0.28;
-    hemi.intensity = fase.amb * (1 - ambiente.nuvem * 0.25) + ambiente.nuvem * 0.16;
+    hemi.intensity = (fase.amb * (1 - ambiente.nuvem * 0.25) + ambiente.nuvem * 0.16) * (1 - tunel.dentro * 0.55)
+                     + tunel.dentro * 0.22;
     hemi.color.copy(fase.ceu);
 
     // céu e névoa
@@ -3477,7 +3695,7 @@
     estrelas.mat.opacity = ambiente.noite * (1 - ambiente.nuvem) * 0.9;
 
     // luzes acesas
-    const acende = clamp(ambiente.noite * 1.4 + (ambiente.nevoa > 3 ? 0.4 : 0), 0, 1);
+    const acende = clamp(ambiente.noite * 1.4 + tunel.dentro + (ambiente.nevoa > 3 ? 0.4 : 0), 0, 1);
     MAT_FAROL.emissiveIntensity = 0.25 + acende * 1.5;
     MAT_LANTERNA.emissiveIntensity = 0.5 + acende * 1.1;
     MAT_LAMPADA.emissiveIntensity = acende * 1.6;
@@ -3524,7 +3742,7 @@
     atualizaVento(dt);
     posicionaMoto(estado === ESTADO.JOGANDO ? dt : dt * 0.15);
     atualizaPista(jogo.s);
-    atualizaCenario(jogo.s);
+    atualizaCenario(jogo.s, dt);
     atualizaInfra(jogo.s);
     domo.position.copy(grupoMoto.position);
     skyline.position.set(grupoMoto.position.x - 2100, grupoMoto.position.y - 20, grupoMoto.position.z + 2600);
@@ -3574,7 +3792,7 @@
   grupoMoto.position.set(_p1.x, _p1.y, _p1.z);
   camera.position.set(0, ALTURA_OLHOS, 0.30);
   atualizaPista(0);
-  atualizaCenario(0);
+  atualizaCenario(0, 0);
   desenhaPainel(0, 0, 1, true, 0, 1);
   camCubo.position.set(0, alturaEm(0) + 3.2, 0);
   grupoMoto.visible = false; camCubo.update(renderer, cena); grupoMoto.visible = true;
@@ -3582,7 +3800,8 @@
 
   window.__depuracao = { jogo: jogo, transito: transito, cones: cones, TIPOS: TIPOS, ambiente: ambiente, som: som, renderer: renderer, cena: cena, grupoMoto: grupoMoto,
                          nivel: function () { return nivel; }, idioma: function () { return idioma; },
-                         curvatura: curvaturaEm };
+                         curvatura: curvaturaEm,
+                         direcaoMoto: function () { return grupoDirecao ? +grupoDirecao.rotation.y.toFixed(3) : null; } };
   requestAnimationFrame(laco);
 })();
 </script>
