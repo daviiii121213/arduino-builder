@@ -16,6 +16,19 @@ Na tela seguinte escolhe-se a dificuldade:
 | **Fácil** | O jogo como era: trânsito tranquilo e pista com curvas moderadas. |
 | **Médio** | ~47% mais veículos por trecho, frota maior (26 no lugar de 20), muito mais trocas de faixa e ultrapassagens, freadas imprevisíveis do trânsito e pista com ~40% mais curvatura. |
 
+## No celular
+
+O jogo é responsivo e ganha controles de toque automaticamente em telas sensíveis:
+
+- **Analógico** no canto inferior esquerdo: para os lados faz a curva, para cima
+  acelera e para baixo freia.
+- **NITRO** e **FREIO** em botões redondos à direita.
+- **Botão de som** no alto, à direita.
+- Nas telas de idioma, dificuldade e fim de jogo há botões (**Jogar**, **Pilotar
+  de novo**) — nada depende do teclado.
+- HUD, telas e textos se reorganizam em retrato e paisagem; no celular a
+  resolução, as sombras e os retrovisores rodam num modo mais leve.
+
 ## Como jogar
 
 Abra o arquivo `index.html` no navegador (basta clicar duas vezes — a biblioteca
@@ -28,10 +41,8 @@ pressione **ENTER** para começar.
 | `ESPAÇO` | Freia / desacelera (**nunca dá ré**) |
 | `A` | Faz a curva para a esquerda |
 | `D` | Faz a curva para a direita |
-| `M` | Alterna câmbio automático / manual |
+| `SHIFT` | Nitro |
 | `S` | Liga / desliga o som |
-| `E` | Sobe a marcha (no manual) |
-| `Q` | Reduz a marcha (no manual) |
 | `R` | Reinicia a corrida após o fim de jogo |
 
 ## Mundo vivo
@@ -128,11 +139,12 @@ frear e tremor na batida.
 - **Pilotagem com curva de verdade**: a moto ganha ângulo em relação à pista e o
   deslocamento vem desse ângulo, em vez de andar de lado. Parada, a moto não vira.
   A inclinação vem só do comando do jogador — não há inclinação automática nas curvas.
-- **Câmbio de 6 marchas, automático por padrão**: sobe e reduz sozinho conforme o
-  giro (inclusive reduzindo até a 1ª ao frear). A tecla `M` passa para o manual,
-  com `Q`/`E` — e no manual **não há limitador**: a moto continua ganhando
-  velocidade sem teto. O HUD mostra a marcha, o modo, a barra de giro e o aviso
-  "Reduza a marcha".
+- **Câmbio automático de 6 marchas**: sobe e reduz sozinho conforme o giro
+  (inclusive reduzindo até a 1ª ao frear).
+- **Nitro** (`SHIFT` ou o botão no celular): passa do limitador e chega a
+  270 km/h. O tanque gasta em ~3,5 s de uso e recarrega sozinho — mais devagar
+  se você continuar acelerando. Tem barra no HUD e no painel da moto, além de
+  som e empurrão na câmera.
 - **Rodovia infinita de três faixas**, gerada proceduralmente com trechos retos,
   curvas abertas, curvas fechadas e desvios em "S". Não existe linha de chegada.
 - **Trânsito** com carros, caminhões e outras motos ocupando as três faixas em

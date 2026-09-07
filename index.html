@@ -2,11 +2,13 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Infinyt Cycle</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #05080c; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #05080c;
+                touch-action: none; -webkit-user-select: none; user-select: none;
+                -webkit-tap-highlight-color: transparent; }
   body { font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #fff;
          -webkit-font-smoothing: antialiased; }
   #cena { position: fixed; inset: 0; display: block; }
@@ -44,12 +46,14 @@
   #painelVel .valor { font-size: 32px; }
   #painelBatidas .valor { color: #ffd166; }
   #painelBatidas.perigo .valor { color: #ff6b6b; }
-  #modoCambio { font-size: 9px; font-weight: 800; letter-spacing: 1.4px; color: #67e8b4; }
   .giro { height: 4px; margin-top: 7px; border-radius: 2px; overflow: hidden;
           background: rgba(255,255,255,.12); }
   .giro i { display: block; height: 100%; border-radius: 2px; width: 0;
             background: linear-gradient(90deg, #4ec8ff, #67e8b4 45%, #ffd166 78%, #ff5a5a); }
   #painelMarcha.limite .giro i { background: #ff5252; }
+  #painelNitro .valor { color: #7fd8ff; }
+  #painelNitro .giro i { background: linear-gradient(90deg, #2f7fd0, #9ff0ff); }
+  #painelNitro.ativo { border-color: rgba(127,216,255,.8); box-shadow: 0 0 18px rgba(80,190,255,.45); }
 
   #faixaInfo {
     position: fixed; top: 100px; left: 0; right: 0; z-index: 13; text-align: center;
@@ -149,6 +153,88 @@
   .piscar { animation: piscar 1.5s ease-in-out infinite; }
   @keyframes piscar { 0%,100% { opacity: 1 } 50% { opacity: .32 } }
   @media (prefers-reduced-motion: reduce) { .piscar { animation: none } }
+  /* ---------------- controles de toque ---------------- */
+  #btSom {
+    position: fixed; top: 12px; right: 12px; z-index: 16;
+    width: 46px; height: 46px; border-radius: 50%; font-size: 20px; cursor: pointer;
+    background: rgba(9,14,20,.72); color: #cfe0f0;
+    border: 1px solid rgba(148,178,208,.28); backdrop-filter: blur(4px);
+  }
+  #btSom.mudo { color: #6f8296; }
+  #toque { position: fixed; inset: 0; z-index: 14; pointer-events: none; }
+  #toque.oculto { display: none; }
+  #analogico {
+    position: absolute; left: 5vw; bottom: 6vh; width: 40vw; max-width: 168px; aspect-ratio: 1;
+    border-radius: 50%; pointer-events: auto; touch-action: none;
+    background: radial-gradient(circle at 50% 50%, rgba(20,30,42,.5), rgba(9,14,20,.34));
+    border: 2px solid rgba(148,178,208,.32);
+  }
+  #alavanca {
+    position: absolute; left: 50%; top: 50%; width: 42%; aspect-ratio: 1; border-radius: 50%;
+    transform: translate(-50%, -50%); pointer-events: none;
+    background: linear-gradient(180deg, rgba(103,232,180,.85), rgba(40,120,100,.85));
+    border: 1px solid rgba(255,255,255,.35);
+    box-shadow: 0 3px 10px rgba(0,0,0,.5);
+  }
+  .dicaAnalog {
+    position: absolute; left: 50%; top: -20px; transform: translateX(-50%);
+    font-size: 10.5px; letter-spacing: .8px; color: #cfe0f0; white-space: nowrap;
+    text-shadow: 0 1px 6px rgba(0,0,0,.9);
+  }
+  #botoes { position: absolute; right: 5vw; bottom: 6vh; display: flex; flex-direction: column;
+            gap: 12px; align-items: center; pointer-events: none; }
+  #botoes button {
+    pointer-events: auto; touch-action: none; cursor: pointer; font-family: inherit;
+    font-weight: 800; letter-spacing: 1px; color: #eaf4ff; border-radius: 50%;
+    border: 2px solid rgba(148,178,208,.3);
+  }
+  #btNitro {
+    width: 30vw; max-width: 116px; aspect-ratio: 1; font-size: 15px;
+    background: radial-gradient(circle at 40% 35%, rgba(60,150,220,.85), rgba(16,50,90,.9));
+    border-color: rgba(127,216,255,.55);
+  }
+  #btNitro.pressionado { background: radial-gradient(circle at 40% 35%, #8fe6ff, #2f7fd0); color: #06202e; }
+  #btFreio {
+    width: 22vw; max-width: 88px; aspect-ratio: 1; font-size: 13px;
+    background: radial-gradient(circle at 40% 35%, rgba(190,70,60,.8), rgba(70,20,18,.9));
+    border-color: rgba(255,140,120,.45);
+  }
+  #btFreio.pressionado { background: radial-gradient(circle at 40% 35%, #ff9a8a, #b8342a); color: #2b0a06; }
+  .opcao.jogar { min-width: 210px; padding: 14px 30px; }
+  .opcao.jogar b { color: #67e8b4; font-size: 20px; }
+
+  /* ---------------- telas pequenas ---------------- */
+  @media (max-width: 820px), (max-height: 520px) {
+    #hud { gap: 5px; padding: 8px 58px 18px 6px; flex-wrap: wrap; }
+    #btSom { width: 40px; height: 40px; font-size: 17px; top: 10px; right: 8px; }
+    .painel { min-width: 0; padding: 6px 9px 7px; border-radius: 9px; }
+    #painelVel { min-width: 0; }
+    .rotulo { font-size: 8.5px; letter-spacing: 1px; margin-bottom: 1px; }
+    .valor { font-size: 17px; }
+    #painelVel .valor { font-size: 21px; }
+    .unidade { font-size: 9.5px; }
+    .giro { height: 3px; margin-top: 4px; }
+    #faixaInfo { top: 66px; }
+    #faixaInfo > span:not(.sep) { font-size: 9px; padding: 3px 8px; letter-spacing: .8px; }
+    #alertaTras { top: 96px; }
+    #alertaTras span { font-size: 10.5px; padding: 4px 10px; }
+    #aviso { font-size: 22px; top: 40%; }
+    .tela { gap: 10px; padding: 16px; }
+    .tela h1 { font-size: 26px; letter-spacing: 2px; }
+    .idiomaTitulo { font-size: 19px; }
+    .tela p { font-size: 12.5px; line-height: 1.5; }
+    .dica { font-size: 11px; }
+    .teclas { display: none; }
+    .opcao { min-width: 130px; padding: 11px 16px; }
+    .opcao b { font-size: 15px; }
+    .opcao span { font-size: 10.5px; }
+    .opcao.jogar { min-width: 170px; padding: 12px 22px; }
+    .opcao.jogar b { font-size: 17px; }
+    #painelNitro, #painelMarcha { display: block; }
+  }
+  @media (max-width: 560px) {
+    #painelMarcha { display: none; }        /* espaço curto: marcha fica no painel da moto */
+  }
   #carregando { position: fixed; inset: 0; z-index: 30; display: flex; gap: 14px;
                 align-items: center; justify-content: center; background: #05080c; color: #8ba3ba; }
 </style>
@@ -170,9 +256,14 @@
     <div class="valor"><span id="valVel">0</span> <span class="unidade">km/h</span></div>
   </div>
   <div class="painel" id="painelMarcha">
-    <div class="rotulo"><span data-txt="marcha">Marcha</span> <b id="modoCambio">auto</b></div>
+    <div class="rotulo"><span data-txt="marcha">Marcha</span> <b>auto</b></div>
     <div class="valor" id="valMarcha">1</div>
     <div class="giro"><i id="barraGiro"></i></div>
+  </div>
+  <div class="painel" id="painelNitro">
+    <div class="rotulo" data-txt="nitroRot">Nitro</div>
+    <div class="valor"><span id="valNitro">100</span> <span class="unidade">%</span></div>
+    <div class="giro"><i id="barraNitro"></i></div>
   </div>
   <div class="painel" id="painelBatidas">
     <div class="rotulo" data-txt="batidas">Batidas</div>
@@ -188,7 +279,16 @@
 <div id="alertaTras"><span data-txt="aproximando">Veículo se aproximando</span></div>
 <div id="perigo"></div>
 <div id="borrado"></div>
-<div id="dicaMarcha" data-txt="reduza">Reduza a marcha (Q)</div>
+<button id="btSom" aria-label="som">🔊</button>
+
+<div id="toque" class="oculto">
+  <div id="analogico"><i id="alavanca"></i><span class="dicaAnalog" data-txt="dicaAnalog">↑ acelerar · ↓ frear</span></div>
+  <div id="botoes">
+    <button id="btNitro" data-txt="btNitro">NITRO</button>
+    <button id="btFreio" data-txt="btFreio">FREIO</button>
+  </div>
+</div>
+
 <div id="flashDano"></div>
 <div id="aviso">BATIDA!</div>
 
@@ -211,7 +311,7 @@
     <div class="tecla"><b data-txt="tEspaco">ESPAÇO</b><span data-txt="tFrear">Frear</span></div>
     <div class="tecla"><b>A</b><span data-txt="tEsq">Curva à esquerda</span></div>
     <div class="tecla"><b>D</b><span data-txt="tDir">Curva à direita</span></div>
-    <div class="tecla"><b>M</b><span data-txt="tCambio">Câmbio auto/manual</span></div>
+    <div class="tecla"><b data-txt="tShift">SHIFT</b><span data-txt="tNitro">Nitro</span></div>
     <div class="tecla"><b>S</b><span data-txt="tSom">Liga/desliga o som</span></div>
   </div>
   <p class="dica" data-txt="dicaCambio">O câmbio é automático: as 6 marchas sobem e reduzem sozinhas conforme o giro.
@@ -229,7 +329,8 @@
       </button>
     </div>
   </div>
-  <p class="piscar"><b data-txt="comecar">Pressione ENTER para começar</b></p>
+  <button class="opcao jogar" id="btJogar"><b data-txt="jogar">Jogar</b></button>
+  <p class="piscar dica"><b data-txt="comecar">Pressione ENTER para começar</b></p>
 </div>
 
 <div class="tela oculta" id="telaFim">
@@ -240,7 +341,8 @@
     <div><div class="rotulo" data-txt="tempo">Tempo</div><div class="valor" id="fimTempo">00:00</div></div>
     <div><div class="rotulo" data-txt="velMax">Vel. máxima</div><div class="valor"><span id="fimVel">0</span> <span class="unidade">km/h</span></div></div>
   </div>
-  <p class="piscar"><b data-txt="reiniciar">Pressione R para pilotar de novo</b></p>
+  <button class="opcao jogar" id="btReiniciar"><b data-txt="denovo">Pilotar de novo</b></button>
+  <p class="piscar dica"><b data-txt="reiniciar">Pressione R para pilotar de novo</b></p>
 </div>
 
 <div id="carregando">Carregando…</div>
@@ -278,6 +380,9 @@
 
   const PITCH_BASE   = -0.16;   // o piloto olha um pouco para baixo
   const ALTURA_OLHOS = 1.60;
+  const NITRO_GASTO  = 0.30;   // tanque por segundo em uso
+  const NITRO_RECARGA= 0.075;  // tanque por segundo recarregando
+  const VEL_NITRO    = 75;     // m/s (270 km/h) com o nitro acionado
   const MAX_BATIDAS  = 3;
   const T_INVULN     = 1.8;
 
@@ -311,7 +416,9 @@
   const canvas = document.getElementById("cena");
   const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true,
     powerPreference: "high-performance", logarithmicDepthBuffer: true });   // evita o terreno brigar com o asfalto
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+  const telaPequena = Math.min(window.innerWidth, window.innerHeight) < 620 ||
+                      ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, telaPequena ? 1.3 : 1.8));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -329,7 +436,7 @@
   // luz do sol com sombra acompanhando o jogador
   const sol = new THREE.DirectionalLight(0xfff0d8, 1.30);
   sol.castShadow = true;
-  sol.shadow.mapSize.set(1024, 1024);
+  sol.shadow.mapSize.set(telaPequena ? 512 : 1024, telaPequena ? 512 : 1024);
   sol.shadow.camera.near = 1;
   sol.shadow.camera.far = 130;
   sol.shadow.camera.left = -28; sol.shadow.camera.right = 28;
@@ -2562,7 +2669,7 @@
   texPainel.anisotropy = 8;
 
 
-  function desenhaPainel(vel, giro, marcha, auto, dist, combustivel) {
+  function desenhaPainel(vel, giro, marcha, nitro, dist, combustivel) {
     const g = ctxPainel, tx = T().painel;
     g.fillStyle = "#05090e"; g.fillRect(0, 0, 512, 256);
     const brilho = g.createRadialGradient(256, 118, 20, 256, 118, 300);
@@ -2581,7 +2688,14 @@
     g.fillStyle = "#5f7285"; g.font = "700 12px 'Segoe UI', Arial"; g.textAlign = "left";
     g.fillText(tx.giro, x0, yBarra + 26);
     g.textAlign = "right";
-    g.fillText(auto ? "AUTO" : "MANUAL", x1, yBarra + 26);
+    g.fillText("AUTO", x1, yBarra + 26);
+    // barra de nitro logo abaixo do giro
+    g.fillStyle = "#101820"; g.fillRect(x0, yBarra + 34, x1 - x0, 9);
+    const gradN = g.createLinearGradient(x0, 0, x1, 0);
+    gradN.addColorStop(0, "#2f7fd0"); gradN.addColorStop(1, "#7fe3ff");
+    g.fillStyle = gradN; g.fillRect(x0 + 1, yBarra + 35, (x1 - x0 - 2) * clamp(nitro, 0, 1), 7);
+    g.fillStyle = "#5f7285"; g.font = "700 11px 'Segoe UI', Arial"; g.textAlign = "left";
+    g.fillText("NITRO", x0, yBarra + 56);
 
     // velocidade: número centralizado na tela, com a unidade logo abaixo
     g.textAlign = "center";
@@ -3017,16 +3131,17 @@
     pt: {
       tituloA: "Infinyt", tituloB: "Cycle",
       descricao: "Pilote em primeira pessoa por uma rodovia infinita de três faixas. Ultrapasse carros, SUVs, vans, caminhões e motos, encare curvas e desvios e vá o mais longe que conseguir. Você aguenta duas batidas — na terceira, a corrida acaba.",
-      tAcelerar: "Acelerar", tEspaco: "ESPAÇO", tFrear: "Frear",
+      tAcelerar: "Acelerar", tEspaco: "ESPAÇO", tFrear: "Frear", tShift: "SHIFT",
       tEsq: "Curva à esquerda", tDir: "Curva à direita",
-      tCambio: "Câmbio auto/manual", tSom: "Liga/desliga o som",
-      dicaCambio: "O câmbio é automático: as 6 marchas sobem e reduzem sozinhas conforme o giro. No modo manual (tecla M) use <b>Q</b> para reduzir e <b>E</b> para subir — e lá não existe limitador: a moto continua ganhando velocidade sem teto. A moto só faz a curva em movimento e nunca anda de ré.",
-      dificuldade: "Dificuldade",
+      tNitro: "Nitro", tSom: "Liga/desliga o som",
+      dicaCambio: "O câmbio é automático: as 6 marchas sobem e reduzem sozinhas conforme o giro. Segure <b>SHIFT</b> para acionar o nitro e passar do limitador — o tanque gasta rápido e recarrega sozinho. A moto só faz a curva em movimento e nunca anda de ré.",
+      dificuldade: "Dificuldade", jogar: "Jogar", denovo: "Pilotar de novo",
+      btNitro: "NITRO", btFreio: "FREIO", dicaAnalog: "↑ acelerar · ↓ frear",
       facilNome: "Fácil", facilDesc: "Trânsito tranquilo",
       medioNome: "Médio", medioDesc: "Mais trânsito e curvas",
       comecar: "Pressione ENTER para começar",
       distancia: "Distância", tempo: "Tempo", velocidade: "Velocidade",
-      marcha: "Marcha", batidas: "Batidas", velMax: "Vel. máxima",
+      marcha: "Marcha", batidas: "Batidas", velMax: "Vel. máxima", nitroRot: "Nitro",
       reduza: "Reduza a marcha (Q)", aproximando: "Veículo se aproximando",
       fimTitulo: "Fim de Jogo", fimTexto: "Você bateu três vezes. A corrida terminou.",
       reiniciar: "Pressione R para pilotar de novo",
@@ -3046,16 +3161,17 @@
     en: {
       tituloA: "Infinyt", tituloB: "Cycle",
       descricao: "Ride first-person down an endless three-lane highway. Overtake cars, SUVs, vans, trucks and motorcycles, take on curves and swerves, and get as far as you can. You survive two crashes — the third ends the run.",
-      tAcelerar: "Accelerate", tEspaco: "SPACE", tFrear: "Brake",
+      tAcelerar: "Accelerate", tEspaco: "SPACE", tFrear: "Brake", tShift: "SHIFT",
       tEsq: "Turn left", tDir: "Turn right",
-      tCambio: "Auto/manual gearbox", tSom: "Toggle sound",
-      dicaCambio: "The gearbox is automatic: all 6 gears shift up and down on their own with the revs. In manual mode (key M) use <b>Q</b> to downshift and <b>E</b> to upshift — and there is no rev limiter there: the bike keeps gaining speed with no ceiling. The bike only turns while moving and never goes in reverse.",
-      dificuldade: "Difficulty",
+      tNitro: "Nitro", tSom: "Toggle sound",
+      dicaCambio: "The gearbox is automatic: all 6 gears shift up and down on their own with the revs. Hold <b>SHIFT</b> for nitro to push past the limiter — the tank drains fast and refills on its own. The bike only turns while moving and never goes in reverse.",
+      dificuldade: "Difficulty", jogar: "Play", denovo: "Ride again",
+      btNitro: "NITRO", btFreio: "BRAKE", dicaAnalog: "↑ throttle · ↓ brake",
       facilNome: "Easy", facilDesc: "Calm traffic",
       medioNome: "Medium", medioDesc: "More traffic and curves",
       comecar: "Press ENTER to start",
       distancia: "Distance", tempo: "Time", velocidade: "Speed",
-      marcha: "Gear", batidas: "Crashes", velMax: "Top speed",
+      marcha: "Gear", batidas: "Crashes", velMax: "Top speed", nitroRot: "Nitro",
       reduza: "Downshift (Q)", aproximando: "Vehicle approaching",
       fimTitulo: "Game Over", fimTexto: "You crashed three times. The run is over.",
       reiniciar: "Press R to ride again",
@@ -3096,10 +3212,11 @@
   const ESTADO = { IDIOMA: -1, INICIO: 0, JOGANDO: 1, FIM: 2 };
   let estado = ESTADO.IDIOMA;
 
-  const teclas = { w: false, freio: false, a: false, d: false };
+  const teclas = { w: false, freio: false, a: false, d: false, nitro: false, eixo: null };
   const jogo = {
     s: 0, dist: 0, lat: 0, vel: 0, direcao: 0, esterco: 0, inclinacao: 0,
     marcha: 0, giro: 0, auto: true, esperaTroca: 0, combustivel: 1,
+    nitro: 1, nitroAtivo: false, nitroSoando: false,
     tempo: 0, batidas: 0, invuln: 0, velMax: 0, balanco: 0,
     tremor: 0, velMostrada: 0, proxMarca: 5000, perigo: 0, aproximando: 0
   };
@@ -3112,8 +3229,9 @@
   const barraGiro = document.getElementById("barraGiro");
   const painelMarcha = document.getElementById("painelMarcha");
   const painelBatidas = document.getElementById("painelBatidas");
-  const modoCambio = document.getElementById("modoCambio");
-  const dicaMarcha = document.getElementById("dicaMarcha");
+  const elNitro = document.getElementById("valNitro");
+  const barraNitro = document.getElementById("barraNitro");
+  const painelNitro = document.getElementById("painelNitro");
   const chipTempo = document.getElementById("chipTempo");
   const chipClima = document.getElementById("chipClima");
   const alertaTras = document.getElementById("alertaTras");
@@ -3134,9 +3252,9 @@
     barraGiro.style.width = Math.min(100, jogo.giro * 100) + "%";
     painelMarcha.classList.toggle("limite", jogo.giro >= 0.97);
     painelBatidas.classList.toggle("perigo", jogo.batidas >= 2);
-    modoCambio.textContent = jogo.auto ? T().auto : T().manual;
-    const engasgando = estado === ESTADO.JOGANDO && !jogo.auto && jogo.marcha > 0 && jogo.giro < 0.12;
-    dicaMarcha.style.display = engasgando ? "block" : "none";
+    elNitro.textContent = Math.round(jogo.nitro * 100);
+    barraNitro.style.width = (jogo.nitro * 100) + "%";
+    painelNitro.classList.toggle("ativo", jogo.nitroAtivo);
     const hh = Math.floor(ambiente.hora), mm = Math.floor((ambiente.hora % 1) * 60);
     chipTempo.textContent = nomeDaFase(ambiente.hora) + " " +
       String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0");
@@ -3168,21 +3286,84 @@
     });
   }
 
+  // ---- controles de toque (celular): analógico, nitro, freio e som ----
+  const ehToque = ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
+  const divToque = document.getElementById("toque");
+  const analogico = document.getElementById("analogico");
+  const alavanca = document.getElementById("alavanca");
+  const btNitro = document.getElementById("btNitro");
+  const btFreio = document.getElementById("btFreio");
+  const btSom = document.getElementById("btSom");
+  if (ehToque) divToque.classList.remove("oculto");
+
+  (function montaAnalogico() {
+    let ativo = false, id = null, cx = 0, cy = 0, raio = 1;
+    function inicia(e) {
+      const r = analogico.getBoundingClientRect();
+      cx = r.left + r.width / 2; cy = r.top + r.height / 2; raio = r.width / 2;
+      ativo = true; id = e.pointerId;
+      analogico.setPointerCapture(id);
+      move(e);
+    }
+    function move(e) {
+      if (!ativo || e.pointerId !== id) return;
+      let dx = (e.clientX - cx) / raio, dy = (e.clientY - cy) / raio;
+      const d = Math.hypot(dx, dy);
+      if (d > 1) { dx /= d; dy /= d; }
+      const zona = 0.16;
+      teclas.eixo = Math.abs(dx) < zona ? 0 : clamp((dx - Math.sign(dx) * zona) / (1 - zona), -1, 1);
+      teclas.w = dy < -0.28;
+      teclas.freio = dy > 0.34 || btFreio.classList.contains("pressionado");
+      alavanca.style.transform = "translate(-50%, -50%) translate(" + (dx * raio * 0.55) + "px," + (dy * raio * 0.55) + "px)";
+      som.inicia(); som.retoma();
+      e.preventDefault();
+    }
+    function solta(e) {
+      if (e && id !== null && e.pointerId !== id) return;
+      ativo = false; id = null;
+      teclas.eixo = null; teclas.w = false;
+      teclas.freio = btFreio.classList.contains("pressionado");
+      alavanca.style.transform = "translate(-50%, -50%)";
+    }
+    analogico.addEventListener("pointerdown", inicia);
+    analogico.addEventListener("pointermove", move);
+    analogico.addEventListener("pointerup", solta);
+    analogico.addEventListener("pointercancel", solta);
+    window.addEventListener("blur", solta);
+  })();
+
+  function botaoSegura(bt, aoLigar, aoDesligar) {
+    function liga(e) { bt.classList.add("pressionado"); aoLigar(); som.inicia(); som.retoma(); e.preventDefault(); }
+    function desliga(e) { bt.classList.remove("pressionado"); aoDesligar(); if (e) e.preventDefault(); }
+    bt.addEventListener("pointerdown", liga);
+    bt.addEventListener("pointerup", desliga);
+    bt.addEventListener("pointerleave", desliga);
+    bt.addEventListener("pointercancel", desliga);
+    window.addEventListener("blur", function () { desliga(null); });
+  }
+  botaoSegura(btNitro, function () { teclas.nitro = true; }, function () { teclas.nitro = false; });
+  botaoSegura(btFreio, function () { teclas.freio = true; }, function () { teclas.freio = false; });
+  btSom.addEventListener("click", function () {
+    som.inicia(); som.retoma();
+    const ligado = som.alterna();
+    btSom.textContent = ligado ? "🔊" : "🔇";
+    btSom.classList.toggle("mudo", !ligado);
+  });
+
+  // botões de jogar e reiniciar (funcionam no clique e no toque)
+  document.getElementById("btJogar").addEventListener("click", function () {
+    if (estado === ESTADO.INICIO) iniciaPartida();
+  });
+  document.getElementById("btReiniciar").addEventListener("click", function () {
+    if (estado === ESTADO.FIM) iniciaPartida();
+  });
+
   let avisoTimer = 0;
   function mostraAviso(txt) {
     aviso.textContent = txt;
     aviso.style.opacity = "1";
     avisoTimer = 1.4;
   }
-  function trocaMarcha(passo) {
-    if (jogo.auto) { mostraAviso(T().cambioAutoAviso); return; }
-    const nova = jogo.marcha + passo;
-    if (nova < 0 || nova >= MARCHAS.length) return;
-    if (passo < 0 && jogo.vel > MARCHAS[nova] * 1.02) { mostraAviso(T().giroAlto); return; }
-    jogo.marcha = nova;
-    som.troca();
-  }
-
   window.addEventListener("keydown", function (e) {
     const k = e.key.toLowerCase();
     som.inicia(); som.retoma();
@@ -3191,14 +3372,7 @@
     if (k === " " || k === "arrowdown") teclas.freio = true;
     if (k === "a" || k === "arrowleft") teclas.a = true;
     if (k === "d" || k === "arrowright") teclas.d = true;
-    if (estado === ESTADO.JOGANDO && !e.repeat) {
-      if (k === "e" || k === "shift") trocaMarcha(1);
-      if (k === "q" || k === "control") trocaMarcha(-1);
-      if (k === "m") {
-        jogo.auto = !jogo.auto; jogo.esperaTroca = 0.5;
-        mostraAviso(jogo.auto ? T().cambioAuto : T().cambioManual);
-      }
-    }
+    if (k === "shift") teclas.nitro = true;
     if (estado === ESTADO.IDIOMA) {
       if (k === "1") escolheIdioma("pt");
       if (k === "2") escolheIdioma("en");
@@ -3210,7 +3384,7 @@
       if (k === "enter") iniciaPartida();
     }
     if (estado === ESTADO.FIM && k === "r") iniciaPartida();
-    if (["w","a","d","q","e","m","s"," ","arrowup","arrowdown","arrowleft","arrowright"].indexOf(k) >= 0) e.preventDefault();
+    if (["w","a","d","s","shift"," ","arrowup","arrowdown","arrowleft","arrowright"].indexOf(k) >= 0) e.preventDefault();
   });
   window.addEventListener("keyup", function (e) {
     const k = e.key.toLowerCase();
@@ -3218,8 +3392,11 @@
     if (k === " " || k === "arrowdown") teclas.freio = false;
     if (k === "a" || k === "arrowleft") teclas.a = false;
     if (k === "d" || k === "arrowright") teclas.d = false;
+    if (k === "shift") teclas.nitro = false;
   });
-  window.addEventListener("blur", function () { teclas.w = teclas.freio = teclas.a = teclas.d = false; });
+  window.addEventListener("blur", function () {
+    teclas.w = teclas.freio = teclas.a = teclas.d = teclas.nitro = false; teclas.eixo = null;
+  });
 
   // =====================================================================
   //  Colisões
@@ -3310,6 +3487,7 @@
     reiniciaEstrada();
     jogo.s = 0; jogo.dist = 0; jogo.lat = 0; jogo.vel = 0; jogo.direcao = 0; jogo.esterco = 0;
     jogo.inclinacao = 0; jogo.marcha = 0; jogo.giro = 0; jogo.esperaTroca = 0; jogo.combustivel = 1;
+    jogo.nitro = 1; jogo.nitroAtivo = false; jogo.nitroSoando = false;
     jogo.tempo = 0; jogo.batidas = 0; jogo.invuln = 0; jogo.velMax = 0; jogo.balanco = 0;
     jogo.tremor = 0; jogo.velMostrada = 0; jogo.proxMarca = 5000; jogo.perigo = 0; jogo.aproximando = 0;
     proxObra = 1000;
@@ -3343,7 +3521,7 @@
     const topo = MARCHAS[jogo.marcha];
     const piso = jogo.marcha === 0 ? 0 : MARCHAS[jogo.marcha - 1] * 0.70;
     jogo.giro = clamp((jogo.vel - piso) / (topo - piso), 0, 1.05);
-    if (jogo.auto && jogo.esperaTroca <= 0) {
+    if (jogo.esperaTroca <= 0) {
       if (jogo.giro > 0.94 && jogo.marcha < MARCHAS.length - 1 && teclas.w) {
         jogo.marcha++; jogo.esperaTroca = 0.45; som.troca();
       } else if (jogo.giro < 0.26 && jogo.marcha > 0 && jogo.vel <= MARCHAS[jogo.marcha - 1]) {
@@ -3351,23 +3529,34 @@
       }
     }
 
+    // ---- nitro: enquanto tiver tanque, empurra além do limitador ----
+    const querNitro = teclas.nitro && jogo.nitro > 0.02 && jogo.vel > 6;
+    jogo.nitroAtivo = querNitro;
+    if (querNitro) {
+      jogo.nitro = Math.max(0, jogo.nitro - NITRO_GASTO * dt);
+      if (!jogo.nitroSoando) { som.nitro(true); jogo.nitroSoando = true; }
+    } else {
+      jogo.nitro = Math.min(1, jogo.nitro + NITRO_RECARGA * dt * (teclas.w ? 0.45 : 1));
+      if (jogo.nitroSoando) { som.nitro(false); jogo.nitroSoando = false; }
+    }
+    const tetoAtual = querNitro ? VEL_NITRO : MARCHAS[jogo.marcha];
+
     // ---- motor: acelera, freia, nunca dá ré ----
-    const semLimite = !jogo.auto;      // no manual não existe limitador
-    if (teclas.w) {
+    if (teclas.w || querNitro) {
       const torque = clamp(1.30 - Math.pow(Math.abs(jogo.giro - 0.70), 1.3) * 2.0, 0.28, 1);
       const forcaMarcha = 2.2 - jogo.marcha * 0.28;
       if (jogo.giro < 1) jogo.vel += ACEL * torque * forcaMarcha * dt;
-      else if (semLimite) jogo.vel += ACEL * 0.30 * forcaMarcha * dt;
+      if (querNitro) jogo.vel += ACEL * 1.5 * dt;          // empurrão do nitro
       // saída de moto parada: embreagem ajuda a arrancar em 1ª
       if (jogo.vel < 5 && jogo.marcha === 0) jogo.vel += 6.5 * dt;
       jogo.combustivel = Math.max(0.04, jogo.combustivel - dt * 0.00042);
     }
     if (teclas.freio) jogo.vel -= FREIO * dt;
-    if (!teclas.w && !teclas.freio) jogo.vel -= (ATRITO + (5 - jogo.marcha) * 0.55) * dt;
-    jogo.vel = clamp(jogo.vel, 0, semLimite ? Infinity : topo);
+    if (!teclas.w && !querNitro && !teclas.freio) jogo.vel -= (ATRITO + (5 - jogo.marcha) * 0.55) * dt;
+    jogo.vel = clamp(jogo.vel, 0, tetoAtual);
 
     // ---- esterço: a moto realmente faz a curva ----
-    const alvoDir = (teclas.d ? 1 : 0) - (teclas.a ? 1 : 0);
+    const alvoDir = teclas.eixo !== null ? teclas.eixo : (teclas.d ? 1 : 0) - (teclas.a ? 1 : 0);
     jogo.direcao += (alvoDir - jogo.direcao) * Math.min(1, dt * 11);
     const relVel = clamp(jogo.vel / VEL_MAX, 0, 1);
     const eficacia = clamp(jogo.vel / VEL_ESTERCO, 0, 1) * (1 - 0.45 * relVel);
@@ -3438,7 +3627,7 @@
       const sinal = Math.abs(jogo.direcao) > 0.35 ? Math.sign(jogo.direcao) : 0;
       pi.mesh.visible = sinal === pi.lado && piscaLigado;
     }
-    const fovAlvo = 70 + Math.pow(rel, 1.15) * 26;
+    const fovAlvo = 70 + Math.pow(rel, 1.15) * 26 + (jogo.nitroAtivo ? 8 : 0);
     camera.fov += (fovAlvo - camera.fov) * Math.min(1, dt * 2.4);
     camera.updateProjectionMatrix();
   }
@@ -3570,6 +3759,30 @@
       o.start(t); o.stop(t + 0.45);
     }
 
+    let nitroG = null, nitroF = null, nitroFonte = null;
+    function nitro(ligar) {
+      if (!ctx) return;
+      if (!nitroG) {
+        nitroF = ctx.createBiquadFilter();
+        nitroF.type = "bandpass"; nitroF.frequency.value = 2300; nitroF.Q.value = 0.8;
+        nitroG = ctx.createGain(); nitroG.gain.value = 0;
+        nitroF.connect(nitroG); nitroG.connect(mestre);
+        nitroFonte = fonteRuido(nitroF, 0.9);
+      }
+      rampa(nitroG.gain, ligar ? 0.16 : 0, ligar ? 0.05 : 0.25);
+      if (ligar) {
+        const t = agora();
+        const o = ctx.createOscillator(); o.type = "sawtooth";
+        o.frequency.setValueAtTime(220, t);
+        o.frequency.exponentialRampToValueAtTime(880, t + 0.25);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.18, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        o.connect(g); g.connect(mestre);
+        o.start(t); o.stop(t + 0.32);
+      }
+    }
+
     function troca() {
       if (!ctx) return;
       const t = agora();
@@ -3601,7 +3814,7 @@
     }
     function retoma() { if (ctx && ctx.state === "suspended") ctx.resume(); }
 
-    return { inicia: inicia, atualiza: atualiza, batida: batida, troca: troca,
+    return { inicia: inicia, atualiza: atualiza, batida: batida, troca: troca, nitro: nitro,
              passagem: passagem, alterna: alterna, retoma: retoma,
              estaLigado: function () { return ligado; },
              diagnostico: function () {
@@ -3634,7 +3847,7 @@
 
   function atualizaVento(dt) {
     const rel = clamp((jogo.vel - 22) / (VEL_MAX - 22), 0, 1.4);
-    vento.mat.opacity = Math.pow(rel, 1.25) * 0.40 * (1 - ambiente.noite * 0.4);
+    vento.mat.opacity = (Math.pow(rel, 1.25) * 0.40 + (jogo.nitroAtivo ? 0.22 : 0)) * (1 - ambiente.noite * 0.4);
     if (rel <= 0.02) { vento.obj.visible = false; return; }
     vento.obj.visible = true;
     const comp = 1.5 + rel * 9.5, passo = jogo.vel * dt * 1.2;
@@ -3754,7 +3967,7 @@
     sol.target.updateMatrixWorld();
 
     if (quadro % 4 === 0) {
-      desenhaPainel(jogo.vel * 3.6, jogo.giro, jogo.marcha + 1, jogo.auto, jogo.dist / 1000, jogo.combustivel);
+      desenhaPainel(jogo.vel * 3.6, jogo.giro, jogo.marcha + 1, jogo.nitro, jogo.dist / 1000, jogo.combustivel);
     }
     // reflexos do ambiente, de tempos em tempos
     tCubo += dt;
@@ -3766,9 +3979,10 @@
       grupoMoto.visible = true;
     }
     // retrovisores: renderiza em quadros alternados
-    // um espelho por vez, em quadros alternados
-    if (quadro % 3 !== 0) {
-      const i = (quadro % 3) - 1;
+    // um espelho por vez, em quadros alternados (mais espaçado no celular)
+    const ciclo = telaPequena ? 5 : 3;
+    if (quadro % ciclo === 1 || quadro % ciclo === 2) {
+      const i = (quadro % ciclo) - 1;
       renderer.shadowMap.autoUpdate = false;
       renderer.setRenderTarget(alvosEspelho[i]);
       renderer.render(cena, camsEspelho[i]);
@@ -3793,12 +4007,12 @@
   camera.position.set(0, ALTURA_OLHOS, 0.30);
   atualizaPista(0);
   atualizaCenario(0, 0);
-  desenhaPainel(0, 0, 1, true, 0, 1);
+  desenhaPainel(0, 0, 1, 1, 0, 1);
   camCubo.position.set(0, alturaEm(0) + 3.2, 0);
   grupoMoto.visible = false; camCubo.update(renderer, cena); grupoMoto.visible = true;
   document.getElementById("carregando").style.display = "none";
 
-  window.__depuracao = { jogo: jogo, transito: transito, cones: cones, TIPOS: TIPOS, ambiente: ambiente, som: som, renderer: renderer, cena: cena, grupoMoto: grupoMoto,
+  window.__depuracao = { jogo: jogo, teclas: teclas, transito: transito, cones: cones, TIPOS: TIPOS, ambiente: ambiente, som: som, renderer: renderer, cena: cena, grupoMoto: grupoMoto,
                          nivel: function () { return nivel; }, idioma: function () { return idioma; },
                          curvatura: curvaturaEm,
                          direcaoMoto: function () { return grupoDirecao ? +grupoDirecao.rotation.y.toFixed(3) : null; } };
