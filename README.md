@@ -23,13 +23,18 @@ O jogo é responsivo e ganha controles de toque automaticamente em telas sensív
 - **Analógico** no canto inferior esquerdo: para os lados faz a curva, para cima
   acelera e para baixo freia.
 - **NITRO** e **FREIO** em botões redondos à direita.
-- **Botão de som** no alto, à direita.
+- **Botão de som** no alto, à direita, e ao lado dele o **botão de interface**, que
+  troca o analógico por um teclado de setas (◀ ▶ para as curvas, ▲ acelera,
+  ▼ freia) e aumenta os botões de NITRO e FREIO. Dá para alternar a qualquer
+  momento, inclusive no meio da corrida.
 - **Tocar na dificuldade já começa a corrida** — no celular não existe um segundo
   botão para confirmar. No computador o clique só seleciona, e o **Jogar** (ou
   ENTER) inicia.
 - As telas de idioma e de fim de jogo também têm botões — nada depende do teclado.
-- HUD, telas e textos se reorganizam em retrato e paisagem; no celular a
-  resolução, as sombras e os retrovisores rodam num modo mais leve.
+- HUD, telas e textos se reorganizam em retrato e paisagem: abaixo de 470 px os
+  rótulos viram abreviações, abaixo de 560 px a marcha sai do HUD (segue no painel
+  da moto) e abaixo de 380 px o tempo também sai (aparece no resumo final). No
+  celular a resolução, as sombras e os retrovisores rodam num modo mais leve.
 
 ## Como jogar
 
