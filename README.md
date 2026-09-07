@@ -1,4 +1,4 @@
-# Moto Infinita 3D — Rodovia Sem Fim
+# Infinyt Cycle
 
 Jogo 3D de moto em **primeira pessoa**, jogado direto no navegador. Todo o jogo
 (HUD, mensagens e instruções) está em **português do Brasil**.
