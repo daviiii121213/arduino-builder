@@ -24,8 +24,10 @@ O jogo é responsivo e ganha controles de toque automaticamente em telas sensív
   acelera e para baixo freia.
 - **NITRO** e **FREIO** em botões redondos à direita.
 - **Botão de som** no alto, à direita.
-- Nas telas de idioma, dificuldade e fim de jogo há botões (**Jogar**, **Pilotar
-  de novo**) — nada depende do teclado.
+- **Tocar na dificuldade já começa a corrida** — no celular não existe um segundo
+  botão para confirmar. No computador o clique só seleciona, e o **Jogar** (ou
+  ENTER) inicia.
+- As telas de idioma e de fim de jogo também têm botões — nada depende do teclado.
 - HUD, telas e textos se reorganizam em retrato e paisagem; no celular a
   resolução, as sombras e os retrovisores rodam num modo mais leve.
 

@@ -3140,6 +3140,7 @@
       facilNome: "Fácil", facilDesc: "Trânsito tranquilo",
       medioNome: "Médio", medioDesc: "Mais trânsito e curvas",
       comecar: "Pressione ENTER para começar",
+      comecarToque: "Toque na dificuldade para começar",
       distancia: "Distância", tempo: "Tempo", velocidade: "Velocidade",
       marcha: "Marcha", batidas: "Batidas", velMax: "Vel. máxima", nitroRot: "Nitro",
       reduza: "Reduza a marcha (Q)", aproximando: "Veículo se aproximando",
@@ -3170,6 +3171,7 @@
       facilNome: "Easy", facilDesc: "Calm traffic",
       medioNome: "Medium", medioDesc: "More traffic and curves",
       comecar: "Press ENTER to start",
+      comecarToque: "Tap a difficulty to start",
       distancia: "Distance", tempo: "Time", velocidade: "Speed",
       marcha: "Gear", batidas: "Crashes", velMax: "Top speed", nitroRot: "Nitro",
       reduza: "Downshift (Q)", aproximando: "Vehicle approaching",
@@ -3196,6 +3198,11 @@
       const v = T()[el.dataset.txt];
       if (typeof v === "string") el.innerHTML = v;
     });
+    // em tela de toque a dica explica que a dificuldade já inicia a corrida
+    if (typeof ehToque !== "undefined" && ehToque) {
+      const dica = document.querySelector('[data-txt="comecar"]');
+      if (dica) dica.innerHTML = T().comecarToque;
+    }
     document.documentElement.lang = idioma === "pt" ? "pt-BR" : "en";
   }
 
@@ -3269,7 +3276,7 @@
     b.addEventListener("click", function () { escolheIdioma(b.dataset.idioma); });
   });
   document.querySelectorAll("[data-nivel]").forEach(function (b) {
-    b.addEventListener("click", function () { escolheNivel(b.dataset.nivel); });
+    b.addEventListener("click", function () { escolheNivel(b.dataset.nivel, true); });
   });
   function escolheIdioma(id) {
     idioma = id;
@@ -3279,11 +3286,16 @@
     estado = ESTADO.INICIO;
     som.inicia(); som.retoma();
   }
-  function escolheNivel(n) {
+  function escolheNivel(n, porToque) {
     nivel = n;
     document.querySelectorAll("[data-nivel]").forEach(function (b) {
       b.classList.toggle("selecionado", b.dataset.nivel === n);
     });
+    // em tela de toque o próprio botão da dificuldade começa o jogo
+    if (porToque && ehToque && estado === ESTADO.INICIO) {
+      som.inicia(); som.retoma();
+      setTimeout(function () { if (estado === ESTADO.INICIO) iniciaPartida(); }, 170);
+    }
   }
 
   // ---- controles de toque (celular): analógico, nitro, freio e som ----
@@ -3294,7 +3306,10 @@
   const btNitro = document.getElementById("btNitro");
   const btFreio = document.getElementById("btFreio");
   const btSom = document.getElementById("btSom");
-  if (ehToque) divToque.classList.remove("oculto");
+  if (ehToque) {
+    divToque.classList.remove("oculto");
+    document.getElementById("btJogar").style.display = "none";
+  }
 
   (function montaAnalogico() {
     let ativo = false, id = null, cx = 0, cy = 0, raio = 1;
