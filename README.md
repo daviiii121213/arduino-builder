@@ -68,13 +68,51 @@ pressione **ENTER** para começar.
 
 ## Som
 
-Tudo sintetizado na Web Audio API (sem arquivos): motor com giro e carga (o tom
-acompanha o RPM da marcha), vento pela velocidade, pneus na pista, guincho de freio,
-estouro da batida, blip da troca de marcha e o "whoosh" de cada veículo que passa
-perto. A tecla **S** liga e desliga o som.
+Tudo sintetizado na Web Audio API (sem arquivos). A tecla **S** liga e desliga o som.
+
+**Da moto**: motor com giro e carga (o tom acompanha o RPM da marcha), vento pela
+velocidade, pneus na pista, guincho de freio, estouro da batida, blip da troca de
+marcha e o rugido do nitro.
+
+**Do trânsito**: cada veículo próximo ganha um motor próprio — são seis vozes
+sintetizadas emprestadas aos veículos mais perto do jogador, com:
+
+- **timbre por classe**: um compacto gira em ~78 Hz com serra e onda quadrada
+  brilhante; um sedã e um SUV descem para 68 e 62 Hz; van e picape ficam em ~52 Hz;
+  ônibus, caminhão e carreta viram diesel grave (40, 36 e 32 Hz) com muito clatter
+  e filtro fechado; a moto sobe para 132 Hz, aguda e limpa;
+- **giro real**: a frequência acompanha a velocidade do veículo dentro da faixa da
+  classe, então um caminhão em subida soa diferente de um em cruzeiro;
+- **efeito Doppler**: o tom sobe enquanto o veículo se aproxima e cai assim que
+  passa, calculado pela taxa de afastamento;
+- **panorâmica e distância**: o som vem do lado da pista em que o veículo está e cai
+  com a distância (some por volta de 110 m);
+- **guincho de freio** quando alguém freia perto — e nos pesados vem junto o escape
+  do freio a ar;
+- **whoosh de ultrapassagem** com peso por classe: curto e agudo na moto, longo e
+  grave na carreta.
 
 ## Polimento visual
 
+- **Freio a disco em todas as rodas**: disco embutido dentro do aro e pinça do lado
+  de fora, no eixo certo de cada roda.
+- **Frentes com profundidade**: a grade é recuada de verdade (fundo escuro, ripas e
+  batentes laterais) e o farol é uma moldura escura embutida na carroceria com a
+  lente recuada dentro dela, em vez de uma placa lisa.
+- **Cabines de perfil extrudado**: em compacto, sedã, SUV e picape o contorno lateral
+  (capô, para-brisa, teto, vigia) é uma peça só, então o para-brisa inclinado é uma
+  face da própria carroceria — não uma cunha solta apoiada sobre o capô — com o vidro
+  assentado por cima e as colunas pintadas aparecendo nas bordas.
+- **Cada veículo com identidade própria**: neblinas e ponteiras de escape no compacto,
+  moldura cromada e escape duplo no sedã, protetor de cárter e borrachão dos
+  para-lamas no SUV, caçamba com nervuras, santantônio e engate na picape, faixa de
+  frota e escada traseira na van, duas faixas salientes, letreiro de destino aceso e
+  portas do bagageiro no ônibus, quebra-sol, buzinas de ar, degraus e refletores
+  laterais no caminhão e na carreta, fila de refletores e para-barro no semirreboque.
+- **Moto do trânsito refeita**: chassi treliçado, motor com aletas e coletor, tanque,
+  carenagem lateral, garfo com mesa e bengalas, balança, corrente e coroa, ponteira
+  subindo sob a rabeta, farol duplo, discos de freio e piloto de verdade (quadril
+  atrás, joelhos no tanque, botas nas pedaleiras, tronco sobre o tanque).
 - **Rodas com volume real**: o pneu é torneado (perfil com flanco arredondado, ombro
   e parede interna), o aro fica **dentro** do pneu, com cubo central e face de raios;
   cada classe usa seu tamanho e as geometrias são compartilhadas entre veículos.
@@ -90,6 +128,8 @@ perto. A tecla **S** liga e desliga o som.
 - **Túnel** a cada 4,2 km: teto e paredes em fitas que acompanham a curva, lâmpadas
   no teto, sol cortado e farol aceso lá dentro.
 - **Evento de pista**: veículo parado no acostamento com pisca-alerta ligado.
+- **LOD em dois níveis**: frisos, ripas e refletores somem depois de ~62 m e as peças
+  miúdas depois de ~130 m, então o detalhe todo só é desenhado onde dá para ver.
 - **Sensação de velocidade em faixas**: vento a partir de ~80 km/h, campo de visão
   abrindo até 96°, e borrão periférico só acima de ~173 km/h — o centro da tela
   continua limpo.
