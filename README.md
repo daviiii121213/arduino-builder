@@ -16,9 +16,32 @@ pressione **ENTER** para começar.
 | `A` | Faz a curva para a esquerda |
 | `D` | Faz a curva para a direita |
 | `M` | Alterna câmbio automático / manual |
+| `S` | Liga / desliga o som |
 | `E` | Sobe a marcha (no manual) |
 | `Q` | Reduz a marcha (no manual) |
 | `R` | Reinicia a corrida após o fim de jogo |
+
+## Mundo vivo
+
+- **Ciclo de dia e noite completo** (~7 min por volta): madrugada, amanhecer, manhã,
+  tarde, pôr do sol e noite. O sol percorre o céu mudando de cor, intensidade e
+  direção das sombras; à noite acendem o farol da moto (luz real projetada na
+  pista), os faróis e lanternas do trânsito, os postes, as tachas refletivas e
+  aparecem as estrelas.
+- **Clima dinâmico**: céu limpo, nublado, chuva e neblina, alternando sozinhos.
+  A chuva molha o asfalto (que passa a refletir), aumenta a névoa e acende as luzes.
+- **Relevo**: a rodovia sobe e desce em rampas longas; pista, defensas, terreno,
+  trânsito e moto acompanham a inclinação.
+- **Infraestrutura**: placas de velocidade, direção e advertência, tachas refletivas,
+  viadutos cruzando a pista, posto de combustível iluminado, outdoors, linhas de
+  energia com fios, cercas, celeiros e galpões, montanhas no horizonte.
+
+## Som
+
+Tudo sintetizado na Web Audio API (sem arquivos): motor com giro e carga (o tom
+acompanha o RPM da marcha), vento pela velocidade, pneus na pista (mais forte no
+molhado), chuva, guincho de freio, estouro da batida, blip da troca de marcha e o
+"whoosh" de cada veículo que passa perto. A tecla **S** liga e desliga o som.
 
 ## Visual
 
@@ -40,11 +63,19 @@ mapa de ambiente para os reflexos dos metais e névoa atmosférica no horizonte.
 - **Cenário** com defensas metálicas de perfil W e postes, árvores variadas, moitas,
   tufos de capim com flores, colinas, postes de iluminação, céu com nuvens e a
   silhueta de uma cidade no horizonte.
-- **Trânsito** com sedãs, SUVs, vans, caminhões e motos — carrocerias arredondadas,
-  vidros, faróis, lanternas e rodas que giram conforme a velocidade.
+- **Trânsito** com compactos, sedãs, SUVs, picapes, vans, ônibus, caminhões,
+  carretas e motos — carrocerias arredondadas, vidros, faróis, lanternas e rodas
+  que giram conforme a velocidade. Pesados preferem a direita, motos e compactos
+  usam mais a esquerda, e a densidade varia por trecho da rodovia.
 - **Trânsito que ultrapassa**: cada veículo tem uma velocidade desejada, acompanha
   quem está à frente, troca de faixa para ultrapassar quando há espaço (sem cortar
   o jogador) e volta para a direita quando a faixa libera.
+
+## Sensação de velocidade
+
+Campo de visão que abre com a velocidade, rastros de vento passando ao lado, borrão
+suave só na periferia da tela, vibração do motor na câmera, reação a acelerar e
+frear e tremor na batida.
 
 ## O que o jogo tem
 
@@ -66,7 +97,10 @@ mapa de ambiente para os reflexos dos metais e névoa atmosférica no horizonte.
 - **Sistema de colisão**: cada batida é contada. São permitidas duas batidas; na
   terceira, a corrida termina.
 - **HUD no topo da tela** com distância percorrida (km), tempo da corrida,
-  velocidade atual em km/h e o contador de batidas.
+  velocidade em km/h (com transição suave), marcha e modo do câmbio, contador de
+  batidas, além da faixa com horário, fase do dia, clima e a próxima marca de 5 km.
+  Avisa quando você está fechando em cima de um veículo e quando alguém se aproxima
+  por trás.
 - **Cenário de rodovia**: defensas metálicas dos dois lados, campo com árvores e
   moitas, postes de iluminação, céu com nuvens e a silhueta de uma cidade no horizonte.
 - Parado, basta apertar **W** para a moto arrancar de novo (a 1ª marcha tem ajuda
