@@ -1003,7 +1003,8 @@
   const MAT_CROMO = new THREE.MeshStandardMaterial({ color: 0xe4e9ee, roughness: 0.20, metalness: 0.85, envMap: AMBIENTE, envMapIntensity: 1.0 });
   const MAT_LANTERNA = new THREE.MeshStandardMaterial({ color: 0xc41f1f, emissive: 0x8c0f0f, emissiveIntensity: 0.85, roughness: 0.35 });
   const MAT_FAROL = new THREE.MeshStandardMaterial({ color: 0xf4f6f0, emissive: 0x5d5b4a, emissiveIntensity: 0.4, roughness: 0.2, metalness: 0.4 });
-  const CORES_VEIC = [0x1f4f9c, 0xa8191f, 0xe8eaec, 0x22262b, 0xc9a227, 0x1f7a4d, 0x5b3a8c, 0x7d8b96, 0xd8590f];
+  const CORES_VEIC = [0x1f4f9c, 0xa8191f, 0xeef1f3, 0x24282d, 0xc9a227, 0x1f7a4d,
+                      0x8c96a0, 0x16305e, 0xd8d0bc, 0xb2470f, 0x4a5058, 0x2f6f9e];
 
   function pintura(cor) {
     return new THREE.MeshStandardMaterial({ color: cor, roughness: 0.30, metalness: 0.55,
@@ -1061,155 +1062,623 @@
     g.add(bt); brilhosNoturnos.push(bt);
   }
 
+  // ---------------------------------------------------------------
+  //  Peças reaproveitadas por todos os veículos
+  // ---------------------------------------------------------------
+  const MAT_FREIO = new THREE.MeshStandardMaterial({ color: 0xff2a1e, emissive: 0xff1a10,
+    emissiveIntensity: 1.6, roughness: 0.3 });
+  const MAT_PISCA = new THREE.MeshStandardMaterial({ color: 0xff9a1f, emissive: 0xff8000,
+    emissiveIntensity: 1.5, roughness: 0.35 });
+  const MAT_VEDACAO = new THREE.MeshStandardMaterial({ color: 0x1b1e22, roughness: 0.9 });
+  const MAT_PLACA = new THREE.MeshStandardMaterial({
+    map: textura((function () {
+      const c = tela(128, 64), g = c.getContext("2d");
+      g.fillStyle = "#eceff1"; g.fillRect(0, 0, 128, 64);
+      g.fillStyle = "#1b3a8f"; g.fillRect(0, 0, 128, 12);
+      g.fillStyle = "#16181a"; g.font = "700 26px 'Segoe UI', Arial"; g.textAlign = "center";
+      g.fillText("BR 3A21", 64, 46);
+      return c;
+    })()), roughness: 0.55
+  });
+
+  // roda: pneu com ombro arredondado + face de aro desenhada
+  function criaRoda(raio, larg) {
+    const geo = new THREE.CylinderGeometry(raio, raio, larg, 24);
+    geo.rotateZ(Math.PI / 2);
+    const m = new THREE.Mesh(geo, [MAT_PNEU, MAT_FACE_ARO, MAT_FACE_ARO]);
+    m.castShadow = true;
+    m.userData.raio = raio;
+    return m;
+  }
+  // paralama: arco por cima da roda, na cor da carroceria
+  function arco(pai, x, z, raio, larg, mat) {
+    const a = new THREE.Mesh(new THREE.TorusGeometry(raio * 1.12, larg * 0.42, 8, 14, Math.PI), mat);
+    a.rotation.y = Math.PI / 2;
+    a.scale.z = 0.55;
+    a.position.set(x, raio * 1.02, z);
+    pai.add(a);
+  }
+  function poeRodas(g, meiaLarg, zs, raio, larg, matArco) {
+    if (!g.userData.rodas) g.userData.rodas = [];
+    zs.forEach(function (z) {
+      [-meiaLarg, meiaLarg].forEach(function (x) {
+        const r = criaRoda(raio, larg);
+        r.position.set(x, raio, z);
+        g.add(r);
+        g.userData.rodas.push(r);
+        if (matArco) arco(g, x, z, raio, larg, matArco);
+      });
+    });
+  }
+  // rodado duplo (caminhões e ônibus)
+  function rodasDuplas(g, meiaLarg, zs, raio, larg) {
+    if (!g.userData.rodas) g.userData.rodas = [];
+    zs.forEach(function (z) {
+      [-1, 1].forEach(function (l) {
+        [0, larg * 1.05].forEach(function (d) {
+          const r = criaRoda(raio, larg);
+          r.position.set(l * (meiaLarg - d), raio, z);
+          g.add(r);
+          g.userData.rodas.push(r);
+        });
+      });
+    });
+  }
+  function vidro(comp, alt, larg, raio) { return new THREE.Mesh(geoCorpo(comp, alt, larg, raio), MAT_VIDRO); }
+  // vinco de porta / linha de painel
+  function vinco(pai, x, y, z, comp, larg) {
+    const v = new THREE.Mesh(new THREE.BoxGeometry(larg || 0.02, 0.02, comp), MAT_VEDACAO);
+    v.position.set(x, y, z);
+    pai.add(v);
+  }
+  function poePlaca(pai, y, z, frente) {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.2), MAT_PLACA);
+    p.position.set(0, y, z);
+    p.rotation.y = frente ? 0 : Math.PI;
+    pai.add(p);
+  }
+  function espelho(pai, x, y, z, esc, mat) {
+    const haste = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.18 * esc, 7), MAT_ESCURO);
+    haste.rotation.z = Math.PI / 2 - 0.5 * Math.sign(x);
+    haste.position.set(x - Math.sign(x) * 0.07 * esc, y, z);
+    pai.add(haste);
+    const casco = new THREE.Mesh(geoCorpo(0.10 * esc, 0.20 * esc, 0.07 * esc, 0.03 * esc), mat || MAT_ESCURO);
+    casco.position.set(x, y + 0.03 * esc, z);
+    pai.add(casco);
+    const espelhoVidro = new THREE.Mesh(new THREE.PlaneGeometry(0.055 * esc, 0.16 * esc), MAT_VIDRO);
+    espelhoVidro.position.set(x - Math.sign(x) * 0.037 * esc, y + 0.03 * esc, z);
+    espelhoVidro.rotation.y = -Math.sign(x) * Math.PI / 2;
+    pai.add(espelhoVidro);
+  }
+  // conjunto de luzes: farol, lanterna, luz de freio e piscas
+  function conjuntoLuzes(g, meiaLarg, zF, zT, yF, yT, largLuz) {
+    const lf = largLuz || meiaLarg * 1.5;
+    const grupoFreio = new THREE.Group();
+    [-1, 1].forEach(function (l) {
+      const farol = new THREE.Mesh(geoCorpo(0.13, 0.17, lf * 0.34, 0.05), MAT_FAROL);
+      farol.position.set(l * lf * 0.30, yF, zF); g.add(farol);
+      const lant = new THREE.Mesh(geoCorpo(0.10, 0.17, lf * 0.30, 0.04), MAT_LANTERNA);
+      lant.position.set(l * lf * 0.32, yT, zT); g.add(lant);
+      const freio = new THREE.Mesh(geoCorpo(0.06, 0.11, lf * 0.26, 0.03), MAT_FREIO);
+      freio.position.set(l * lf * 0.32, yT, zT - 0.04 * Math.sign(zT || -1));
+      grupoFreio.add(freio);
+    });
+    grupoFreio.visible = false;
+    g.add(grupoFreio);
+    g.userData.luzFreio = grupoFreio;
+    g.userData.piscas = [];
+    [-1, 1].forEach(function (l) {
+      [[zF, yF], [zT, yT]].forEach(function (par) {
+        const p = new THREE.Mesh(geoCorpo(0.07, 0.09, 0.16, 0.03), MAT_PISCA);
+        p.position.set(l * lf * 0.5, par[1], par[0]);
+        p.visible = false;
+        g.add(p);
+        g.userData.piscas.push({ mesh: p, lado: l });
+      });
+    });
+    const bf = criaBrilho(2.4, 0xfff0cc); bf.position.set(0, yF, zF + 0.25);
+    g.add(bf); brilhosNoturnos.push(bf);
+    const bt = criaBrilho(1.8, 0xff5a3c); bt.position.set(0, yT, zT - 0.25);
+    g.add(bt); brilhosNoturnos.push(bt);
+  }
+  // detalhes pequenos são desligados a distância (LOD simples)
+  const MATS_LUZ = [];
+  function marcaDetalhes(g) {
+    const lista = [];
+    const cx = new THREE.Box3();
+    g.traverse(function (o) {
+      if (!o.isMesh || !o.geometry) return;
+      if (o.material === MAT_FAROL || o.material === MAT_LANTERNA ||
+          o.material === MAT_FREIO || o.material === MAT_PISCA) return;
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      const bb = o.geometry.boundingBox;
+      const t = Math.max((bb.max.x - bb.min.x) * Math.abs(o.scale.x),
+                         (bb.max.y - bb.min.y) * Math.abs(o.scale.y),
+                         (bb.max.z - bb.min.z) * Math.abs(o.scale.z));
+      if (t < 0.62) lista.push(o);
+    });
+    g.userData.detalhes = lista;
+  }
+
+  // carroceria separada das rodas, para a suspensão trabalhar
+  function corpoDe(g) {
+    const c = new THREE.Group();
+    g.add(c);
+    g.userData.carroceria = c;
+    return c;
+  }
+
+  // ---------------------------------------------------------------
+  //  1. COMPACTO — hatch curto, cabine alta, traseira cortada
+  // ---------------------------------------------------------------
+  function criaCompacto(cor) {
+    const g = new THREE.Group(), c = corpoDe(g), p = pintura(cor);
+    const base = new THREE.Mesh(geoCorpo(3.78, 0.80, 1.72, 0.30), p);
+    base.position.y = 0.76; base.castShadow = true; c.add(base);
+    const capo = new THREE.Mesh(geoCorpo(0.95, 0.30, 1.62, 0.20), p);
+    capo.position.set(0, 1.06, 1.30); capo.rotation.x = -0.06; c.add(capo);
+    const cabine = new THREE.Mesh(geoCorpo(2.05, 0.72, 1.60, 0.34), p);
+    cabine.position.set(0, 1.40, -0.30); cabine.castShadow = true; c.add(cabine);
+    const janelas = vidro(1.95, 0.52, 1.64, 0.26);
+    janelas.position.set(0, 1.44, -0.30); c.add(janelas);
+    const parabrisa = vidro(0.55, 0.60, 1.52, 0.16);
+    parabrisa.position.set(0, 1.34, 0.68); parabrisa.rotation.x = -0.55; c.add(parabrisa);
+    const traseira = vidro(0.36, 0.52, 1.5, 0.14);
+    traseira.position.set(0, 1.40, -1.30); traseira.rotation.x = 0.45; c.add(traseira);
+    const saia = new THREE.Mesh(geoCorpo(3.6, 0.24, 1.66, 0.10), MAT_ESCURO);
+    saia.position.y = 0.42; c.add(saia);
+    const grade = new THREE.Mesh(geoCorpo(0.08, 0.18, 1.0, 0.04), MAT_ESCURO);
+    grade.position.set(0, 0.80, 1.88); c.add(grade);
+    [-1, 1].forEach(function (l) {
+      const maca = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.16), MAT_ESCURO);
+      maca.position.set(l * 0.86, 1.06, -0.10); c.add(maca);
+      vinco(c, l * 0.87, 0.95, -0.05, 1.5);
+    });
+    espelho(c, -0.94, 1.24, 0.55, 0.9, p); espelho(c, 0.94, 1.24, 0.55, 0.9, p);
+    conjuntoLuzes(g, 0.86, 1.90, -1.90, 0.92, 0.98, 1.30);
+    poePlaca(c, 0.62, -1.93);
+    poeRodas(g, 0.80, [1.18, -1.16], 0.30, 0.21, p);
+    return g;
+  }
+
+  // ---------------------------------------------------------------
+  //  2. SEDÃ — três volumes, capô longo, porta-malas definido
+  // ---------------------------------------------------------------
   function criaSedan(cor) {
-    const g = new THREE.Group(), p = pintura(cor);
-    const corpo = new THREE.Mesh(geoCorpo(4.55, 0.92, 1.86, 0.34), p);
-    corpo.position.y = 0.78; corpo.castShadow = true; g.add(corpo);
-    const cabine = new THREE.Mesh(geoCorpo(2.55, 0.70, 1.70, 0.42), p);
-    cabine.position.set(0, 1.44, -0.22); cabine.castShadow = true; g.add(cabine);
-    const vidros = new THREE.Mesh(geoCorpo(2.42, 0.52, 1.74, 0.34), MAT_VIDRO);
-    vidros.position.set(0, 1.46, -0.22); g.add(vidros);
-    const saia = new THREE.Mesh(geoCorpo(4.3, 0.30, 1.80, 0.12), MAT_ESCURO);
-    saia.position.y = 0.42; g.add(saia);
-    const grade = new THREE.Mesh(geoCorpo(0.10, 0.22, 1.20, 0.05), MAT_ESCURO);
-    grade.position.set(0, 0.78, 2.28); g.add(grade);
-    luzes(g, 0.93, 2.26, -2.26, 0.86);
-    poeRodas(g, 0.86, [1.42, -1.40], 0.33, 0.24);
+    const g = new THREE.Group(), c = corpoDe(g), p = pintura(cor);
+    const base = new THREE.Mesh(geoCorpo(4.58, 0.74, 1.86, 0.30), p);
+    base.position.y = 0.72; base.castShadow = true; c.add(base);
+    const capo = new THREE.Mesh(geoCorpo(1.45, 0.26, 1.76, 0.18), p);
+    capo.position.set(0, 1.00, 1.42); capo.rotation.x = -0.05; c.add(capo);
+    const portamalas = new THREE.Mesh(geoCorpo(1.10, 0.28, 1.74, 0.18), p);
+    portamalas.position.set(0, 1.01, -1.60); c.add(portamalas);
+    const cabine = new THREE.Mesh(geoCorpo(2.35, 0.66, 1.72, 0.40), p);
+    cabine.position.set(0, 1.36, -0.15); cabine.castShadow = true; c.add(cabine);
+    const janelas = vidro(2.25, 0.46, 1.76, 0.30);
+    janelas.position.set(0, 1.38, -0.15); c.add(janelas);
+    const parabrisa = vidro(0.70, 0.56, 1.62, 0.16);
+    parabrisa.position.set(0, 1.26, 0.92); parabrisa.rotation.x = -0.72; c.add(parabrisa);
+    const traseira = vidro(0.62, 0.50, 1.6, 0.15);
+    traseira.position.set(0, 1.30, -1.30); traseira.rotation.x = 0.65; c.add(traseira);
+    const saia = new THREE.Mesh(geoCorpo(4.4, 0.22, 1.80, 0.09), MAT_ESCURO);
+    saia.position.y = 0.40; c.add(saia);
+    const grade = new THREE.Mesh(geoCorpo(0.09, 0.20, 1.20, 0.05), MAT_ESCURO);
+    grade.position.set(0, 0.80, 2.26); c.add(grade);
+    const friso = new THREE.Mesh(geoCorpo(4.3, 0.05, 1.88, 0.02), MAT_CROMO);
+    friso.position.y = 0.90; c.add(friso);
+    [-1, 1].forEach(function (l) {
+      vinco(c, l * 0.94, 0.92, 0.28, 1.2);
+      vinco(c, l * 0.94, 0.92, -0.95, 1.1);
+      const maca = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.18), MAT_CROMO);
+      maca.position.set(l * 0.93, 1.05, 0.30); c.add(maca);
+    });
+    espelho(c, -1.00, 1.20, 0.82, 1.0, p); espelho(c, 1.00, 1.20, 0.82, 1.0, p);
+    conjuntoLuzes(g, 0.93, 2.28, -2.28, 0.88, 0.94, 1.45);
+    poePlaca(c, 0.62, -2.31);
+    poeRodas(g, 0.86, [1.42, -1.40], 0.33, 0.23, p);
     return g;
   }
+
+  // ---------------------------------------------------------------
+  //  3. SUV — alto, cabine reta, rodas grandes, longarinas de teto
+  // ---------------------------------------------------------------
   function criaSUV(cor) {
-    const g = new THREE.Group(), p = pintura(cor);
-    const corpo = new THREE.Mesh(geoCorpo(4.85, 1.20, 1.98, 0.30), p);
-    corpo.position.y = 0.95; corpo.castShadow = true; g.add(corpo);
-    const cabine = new THREE.Mesh(geoCorpo(3.10, 0.86, 1.86, 0.34), p);
-    cabine.position.set(0, 1.86, -0.30); cabine.castShadow = true; g.add(cabine);
-    const vidros = new THREE.Mesh(geoCorpo(2.96, 0.62, 1.90, 0.28), MAT_VIDRO);
-    vidros.position.set(0, 1.88, -0.30); g.add(vidros);
-    [-0.62, 0.62].forEach(function (x) {           // longarinas de teto
-      const b = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 2.4), MAT_ESCURO);
-      b.position.set(x, 2.31, -0.30); g.add(b);
+    const g = new THREE.Group(), c = corpoDe(g), p = pintura(cor);
+    const base = new THREE.Mesh(geoCorpo(4.88, 1.05, 1.98, 0.26), p);
+    base.position.y = 1.00; base.castShadow = true; c.add(base);
+    const cabine = new THREE.Mesh(geoCorpo(3.05, 0.82, 1.90, 0.28), p);
+    cabine.position.set(0, 1.90, -0.25); cabine.castShadow = true; c.add(cabine);
+    const janelas = vidro(2.90, 0.60, 1.94, 0.20);
+    janelas.position.set(0, 1.92, -0.25); c.add(janelas);
+    const parabrisa = vidro(0.50, 0.74, 1.84, 0.16);
+    parabrisa.position.set(0, 1.82, 1.18); parabrisa.rotation.x = -0.42; c.add(parabrisa);
+    const traseiraV = vidro(0.30, 0.66, 1.82, 0.14);
+    traseiraV.position.set(0, 1.92, -1.80); traseiraV.rotation.x = 0.18; c.add(traseiraV);
+    const teto = new THREE.Mesh(geoCorpo(2.9, 0.10, 1.84, 0.05), p);
+    teto.position.set(0, 2.33, -0.25); c.add(teto);
+    [-0.66, 0.66].forEach(function (x) {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.09, 2.3), MAT_ESCURO);
+      rail.position.set(x, 2.42, -0.30); c.add(rail);
+      const pe = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.10, 0.14), MAT_ESCURO);
+      pe.position.set(x, 2.36, 0.75); c.add(pe);
     });
-    const parachoque = new THREE.Mesh(geoCorpo(4.9, 0.34, 1.94, 0.12), MAT_ESCURO);
-    parachoque.position.y = 0.52; g.add(parachoque);
-    luzes(g, 0.99, 2.40, -2.40, 1.10);
-    poeRodas(g, 0.92, [1.55, -1.50], 0.40, 0.28);
+    const parachoqueF = new THREE.Mesh(geoCorpo(0.42, 0.46, 2.00, 0.12), MAT_ESCURO);
+    parachoqueF.position.set(0, 0.72, 2.30); c.add(parachoqueF);
+    const parachoqueT = new THREE.Mesh(geoCorpo(0.36, 0.44, 2.00, 0.12), MAT_ESCURO);
+    parachoqueT.position.set(0, 0.74, -2.32); c.add(parachoqueT);
+    const grade = new THREE.Mesh(geoCorpo(0.10, 0.30, 1.30, 0.05), MAT_ESCURO);
+    grade.position.set(0, 1.16, 2.40); c.add(grade);
+    const gradeCromo = new THREE.Mesh(geoCorpo(0.11, 0.07, 1.32, 0.03), MAT_CROMO);
+    gradeCromo.position.set(0, 1.24, 2.42); c.add(gradeCromo);
+    const estribo = new THREE.Mesh(geoCorpo(2.4, 0.10, 0.22, 0.04), MAT_ESCURO);
+    [-1, 1].forEach(function (l) {
+      const e = estribo.clone(); e.position.set(l * 1.02, 0.56, -0.1); c.add(e);
+      vinco(c, l * 1.00, 1.20, 0.30, 1.3);
+      vinco(c, l * 1.00, 1.20, -1.05, 1.2);
+    });
+    espelho(c, -1.10, 1.76, 1.10, 1.15, p); espelho(c, 1.10, 1.76, 1.10, 1.15, p);
+    conjuntoLuzes(g, 0.99, 2.42, -2.40, 1.22, 1.36, 1.55);
+    poePlaca(c, 0.80, -2.44);
+    poeRodas(g, 0.92, [1.55, -1.52], 0.41, 0.28, p);
     return g;
   }
+
+  // ---------------------------------------------------------------
+  //  4. PICAPE — cabine dupla e caçamba com paredes, piso e tampa
+  // ---------------------------------------------------------------
+  function criaPicape(cor) {
+    const g = new THREE.Group(), c = corpoDe(g), p = pintura(cor);
+    const chassiV = new THREE.Mesh(geoCorpo(5.36, 0.72, 1.92, 0.18), p);
+    chassiV.position.y = 0.94; chassiV.castShadow = true; c.add(chassiV);
+    const cabine = new THREE.Mesh(geoCorpo(2.10, 0.86, 1.88, 0.24), p);
+    cabine.position.set(0, 1.76, 0.72); cabine.castShadow = true; c.add(cabine);
+    const janelas = vidro(1.96, 0.60, 1.92, 0.18);
+    janelas.position.set(0, 1.80, 0.72); c.add(janelas);
+    const parabrisa = vidro(0.55, 0.66, 1.78, 0.14);
+    parabrisa.position.set(0, 1.70, 1.72); parabrisa.rotation.x = -0.48; c.add(parabrisa);
+    const tetoP = new THREE.Mesh(geoCorpo(2.0, 0.10, 1.84, 0.05), p);
+    tetoP.position.set(0, 2.20, 0.72); c.add(tetoP);
+    // caçamba: piso, laterais, frente e tampa
+    const pisoC = new THREE.Mesh(new THREE.BoxGeometry(1.76, 0.10, 2.30), MAT_ESCURO);
+    pisoC.position.set(0, 1.32, -1.25); c.add(pisoC);
+    [-1, 1].forEach(function (l) {
+      const parede = new THREE.Mesh(geoCorpo(2.30, 0.62, 0.16, 0.05), p);
+      parede.position.set(l * 0.90, 1.62, -1.25); c.add(parede);
+      const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 2.2, 8), MAT_CROMO);
+      rail.rotation.x = Math.PI / 2;
+      rail.position.set(l * 0.90, 1.96, -1.25); c.add(rail);
+    });
+    const frenteC = new THREE.Mesh(geoCorpo(0.14, 0.62, 1.86, 0.05), p);
+    frenteC.position.set(0, 1.62, -0.10); c.add(frenteC);
+    const tampa = new THREE.Mesh(geoCorpo(0.14, 0.60, 1.86, 0.05), p);
+    tampa.position.set(0, 1.60, -2.38); c.add(tampa);
+    const parachoqueF = new THREE.Mesh(geoCorpo(0.40, 0.44, 1.96, 0.12), MAT_CROMO);
+    parachoqueF.position.set(0, 0.72, 2.58); c.add(parachoqueF);
+    const parachoqueT = new THREE.Mesh(geoCorpo(0.34, 0.40, 1.94, 0.10), MAT_CROMO);
+    parachoqueT.position.set(0, 0.80, -2.62); c.add(parachoqueT);
+    const grade = new THREE.Mesh(geoCorpo(0.12, 0.42, 1.42, 0.05), MAT_ESCURO);
+    grade.position.set(0, 1.28, 2.66); c.add(grade);
+    [-1, 1].forEach(function (l) {
+      const estriboP = new THREE.Mesh(geoCorpo(1.9, 0.09, 0.20, 0.04), MAT_ESCURO);
+      estriboP.position.set(l * 1.00, 0.62, 0.7); c.add(estriboP);
+      vinco(c, l * 0.98, 1.10, 0.75, 1.9);
+    });
+    espelho(c, -1.14, 1.72, 1.62, 1.25, MAT_ESCURO); espelho(c, 1.14, 1.72, 1.62, 1.25, MAT_ESCURO);
+    conjuntoLuzes(g, 0.97, 2.68, -2.66, 1.24, 1.44, 1.55);
+    poePlaca(c, 0.90, -2.70);
+    poeRodas(g, 0.90, [1.72, -1.58], 0.44, 0.30, p);
+    return g;
+  }
+
+  // ---------------------------------------------------------------
+  //  5. VAN — caixa alta, teto elevado, porta lateral corrediça
+  // ---------------------------------------------------------------
   function criaVan(cor) {
-    const g = new THREE.Group(), p = pintura(cor);
-    const corpo = new THREE.Mesh(geoCorpo(5.60, 2.05, 2.02, 0.42), p);
-    corpo.position.y = 1.32; corpo.castShadow = true; g.add(corpo);
-    const parabrisa = new THREE.Mesh(geoCorpo(0.5, 1.0, 1.86, 0.18), MAT_VIDRO);
-    parabrisa.position.set(0, 1.72, 2.62); parabrisa.rotation.x = -0.22; g.add(parabrisa);
-    const janelas = new THREE.Mesh(geoCorpo(2.6, 0.62, 2.06, 0.16), MAT_VIDRO);
-    janelas.position.set(0, 1.78, 0.9); g.add(janelas);
-    const saia = new THREE.Mesh(geoCorpo(5.5, 0.42, 1.98, 0.12), MAT_ESCURO);
-    saia.position.y = 0.46; g.add(saia);
-    luzes(g, 1.01, 2.78, -2.78, 0.86);
-    poeRodas(g, 0.92, [1.85, -1.75], 0.37, 0.26);
+    const g = new THREE.Group(), c = corpoDe(g), p = pintura(cor);
+    const corpo = new THREE.Mesh(geoCorpo(5.62, 2.10, 2.02, 0.36), p);
+    corpo.position.y = 1.42; corpo.castShadow = true; c.add(corpo);
+    const bico = new THREE.Mesh(geoCorpo(0.7, 1.0, 1.94, 0.28), p);
+    bico.position.set(0, 0.96, 2.55); c.add(bico);
+    const parabrisa = vidro(0.50, 1.04, 1.86, 0.14);
+    parabrisa.position.set(0, 1.86, 2.62); parabrisa.rotation.x = -0.22; c.add(parabrisa);
+    const janelaLat = vidro(2.5, 0.66, 2.06, 0.14);
+    janelaLat.position.set(0, 1.98, 0.85); c.add(janelaLat);
+    const janelaTras = vidro(0.16, 0.62, 1.74, 0.10);
+    janelaTras.position.set(0, 1.94, -2.82); c.add(janelaTras);
+    const tetoAlto = new THREE.Mesh(geoCorpo(3.6, 0.22, 1.86, 0.10), p);
+    tetoAlto.position.set(0, 2.40, -0.5); c.add(tetoAlto);
+    const saia = new THREE.Mesh(geoCorpo(5.5, 0.40, 1.98, 0.10), MAT_ESCURO);
+    saia.position.y = 0.48; c.add(saia);
+    const grade = new THREE.Mesh(geoCorpo(0.10, 0.26, 1.30, 0.05), MAT_ESCURO);
+    grade.position.set(0, 1.02, 2.88); c.add(grade);
+    // porta corrediça e portas traseiras
+    [-1, 1].forEach(function (l) {
+      vinco(c, l * 1.02, 1.55, 0.85, 2.4);
+      vinco(c, l * 1.02, 1.55, -1.05, 0.02, 0.03);
+      const trilho = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 2.2), MAT_ESCURO);
+      trilho.position.set(l * 1.02, 1.05, 0.7); c.add(trilho);
+    });
+    const divisaoTras = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.9, 0.03), MAT_ESCURO);
+    divisaoTras.position.set(0, 1.5, -2.83); c.add(divisaoTras);
+    espelho(c, -1.20, 1.86, 2.30, 1.5, MAT_ESCURO); espelho(c, 1.20, 1.86, 2.30, 1.5, MAT_ESCURO);
+    conjuntoLuzes(g, 1.01, 2.86, -2.84, 1.02, 1.30, 1.60);
+    poePlaca(c, 0.72, -2.88);
+    poeRodas(g, 0.92, [1.86, -1.76], 0.38, 0.26, p);
     return g;
   }
+
+  // ---------------------------------------------------------------
+  //  6. ÔNIBUS — rodoviário longo, janelas panorâmicas, dois eixos
+  // ---------------------------------------------------------------
+  function criaOnibus(cor) {
+    const g = new THREE.Group(), c = corpoDe(g), p = pintura(cor);
+    const corpo = new THREE.Mesh(geoCorpo(11.5, 2.55, 2.50, 0.40), p);
+    corpo.position.y = 2.25; corpo.castShadow = true; c.add(corpo);
+    const bagageiro = new THREE.Mesh(geoCorpo(9.6, 0.95, 2.52, 0.16), MAT_ESCURO);
+    bagageiro.position.y = 1.10; c.add(bagageiro);
+    [-1, 1].forEach(function (l) {
+      [2.6, -0.4].forEach(function (z) {
+        const porta = new THREE.Mesh(geoCorpo(0.9, 0.9, 0.06, 0.04), MAT_ESCURO);
+        porta.position.set(l * 1.26, 1.2, z); c.add(porta);
+      });
+    });
+    const faixa = new THREE.Mesh(geoCorpo(11.4, 0.34, 2.54, 0.10),
+      new THREE.MeshStandardMaterial({ color: 0xf2f4f6, roughness: 0.45, metalness: 0.3, envMap: AMBIENTE, envMapIntensity: 0.6 }));
+    faixa.position.y = 1.72; c.add(faixa);
+    const janelas = vidro(8.9, 1.05, 2.54, 0.20);
+    janelas.position.set(0, 2.90, -0.9); c.add(janelas);
+    const parabrisa = vidro(0.35, 1.45, 2.36, 0.16);
+    parabrisa.position.set(0, 2.75, 5.68); parabrisa.rotation.x = -0.12; c.add(parabrisa);
+    const janelaTras = vidro(0.16, 1.0, 2.30, 0.12);
+    janelaTras.position.set(0, 2.85, -5.68); c.add(janelaTras);
+    const teto = new THREE.Mesh(geoCorpo(11.0, 0.16, 2.40, 0.08), p);
+    teto.position.y = 3.52; c.add(teto);
+    const arCond = new THREE.Mesh(geoCorpo(2.6, 0.28, 1.9, 0.10), MAT_ESCURO);
+    arCond.position.set(0, 3.68, 1.6); c.add(arCond);
+    [-1, 1].forEach(function (l) {
+      const grade2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.5, 1.2), MAT_ESCURO);
+      grade2.position.set(l * 1.27, 1.6, -4.4); c.add(grade2);
+      vinco(c, l * 1.26, 2.2, 0, 8.5, 0.03);
+    });
+    espelho(c, -1.55, 3.05, 5.30, 2.0, MAT_ESCURO); espelho(c, 1.55, 3.05, 5.30, 2.0, MAT_ESCURO);
+    conjuntoLuzes(g, 1.24, 5.76, -5.74, 1.30, 1.60, 1.95);
+    poePlaca(c, 1.05, -5.78);
+    rodasDuplas(g, 1.10, [-3.6], 0.52, 0.30);
+    poeRodas(g, 1.14, [4.0], 0.52, 0.32, null);
+    return g;
+  }
+
+  // ---------------------------------------------------------------
+  //  7. CAMINHÃO — cabine avançada e baú com ripas e chassi visível
+  // ---------------------------------------------------------------
   function criaCaminhao(cor) {
-    const g = new THREE.Group(), p = pintura(cor);
-    const cabine = new THREE.Mesh(geoCorpo(2.5, 2.35, 2.50, 0.34), p);
-    cabine.position.set(0, 2.05, 3.55); cabine.castShadow = true; g.add(cabine);
-    const parabrisa = new THREE.Mesh(geoCorpo(0.28, 1.0, 2.28, 0.14), MAT_VIDRO);
-    parabrisa.position.set(0, 2.55, 4.72); g.add(parabrisa);
-    const bau = new THREE.Mesh(geoCorpo(7.0, 3.05, 2.55, 0.16),
-      new THREE.MeshStandardMaterial({ color: 0xe3e7ea, roughness: 0.55, metalness: 0.3, envMap: AMBIENTE }));
-    bau.position.set(0, 2.55, -1.2); bau.castShadow = true; g.add(bau);
-    const chassi = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.34, 9.6), MAT_ESCURO);
-    chassi.position.set(0, 0.86, 0.4); g.add(chassi);
-    const tanque = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 1.5, 16), MAT_CROMO);
-    tanque.rotation.x = Math.PI / 2; tanque.position.set(-1.24, 1.0, 2.1); g.add(tanque);
+    const g = new THREE.Group(), c = corpoDe(g), p = pintura(cor);
+    const cabine = new THREE.Mesh(geoCorpo(2.35, 2.45, 2.50, 0.34), p);
+    cabine.position.set(0, 2.20, 3.72); cabine.castShadow = true; c.add(cabine);
+    const tetoCab = new THREE.Mesh(geoCorpo(2.2, 0.5, 2.3, 0.16), p);
+    tetoCab.position.set(0, 3.55, 3.72); c.add(tetoCab);
+    const parabrisa = vidro(0.25, 1.05, 2.28, 0.14);
+    parabrisa.position.set(0, 2.75, 4.86); c.add(parabrisa);
     [-1, 1].forEach(function (l) {
-      const escape = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 2.6, 12), MAT_CROMO);
-      escape.position.set(l * 1.28, 2.6, 3.2); g.add(escape);
+      const lateral = vidro(0.9, 0.75, 0.08, 0.06);
+      lateral.position.set(l * 1.24, 2.6, 3.5); c.add(lateral);
     });
-    const parachoque = new THREE.Mesh(geoCorpo(0.3, 0.44, 2.56, 0.08), MAT_CROMO);
-    parachoque.position.set(0, 0.82, 4.72); g.add(parachoque);
-    const lantTraseira = new THREE.Mesh(geoCorpo(0.14, 0.32, 2.3, 0.05), MAT_LANTERNA);
-    lantTraseira.position.set(0, 1.1, -4.78); g.add(lantTraseira);
-    const farolFrente = new THREE.Mesh(geoCorpo(0.16, 0.24, 2.2, 0.05), MAT_FAROL);
-    farolFrente.position.set(0, 1.16, 4.74); g.add(farolFrente);
-    poeRodas(g, 1.12, [3.3, -1.6, -3.1], 0.52, 0.34);
+    const grade = new THREE.Mesh(geoCorpo(0.16, 0.9, 2.2, 0.08), MAT_ESCURO);
+    grade.position.set(0, 1.65, 4.88); c.add(grade);
+    const gradeCr = new THREE.Mesh(geoCorpo(0.17, 0.12, 2.24, 0.04), MAT_CROMO);
+    gradeCr.position.set(0, 2.05, 4.90); c.add(gradeCr);
+    const parachoque = new THREE.Mesh(geoCorpo(0.34, 0.46, 2.56, 0.08), MAT_CROMO);
+    parachoque.position.set(0, 0.86, 4.94); c.add(parachoque);
+    // baú com ripas
+    const bau = new THREE.Mesh(geoCorpo(6.6, 3.05, 2.55, 0.14),
+      new THREE.MeshStandardMaterial({ color: 0xe6eaed, roughness: 0.62, metalness: 0.2, envMap: AMBIENTE, envMapIntensity: 0.5 }));
+    bau.position.set(0, 2.70, -1.4); bau.castShadow = true; c.add(bau);
+    for (let i = 0; i < 3; i++) {
+      const ripa = new THREE.Mesh(new THREE.BoxGeometry(2.58, 0.06, 0.05), MAT_VEDACAO);
+      ripa.position.set(0, 1.7 + i * 1.0, -1.4);
+      c.add(ripa);
+    }
+    [-1, 1].forEach(function (l) {
+      const canto = new THREE.Mesh(new THREE.BoxGeometry(0.08, 3.0, 0.10), MAT_ESCURO);
+      canto.position.set(l * 1.27, 2.70, -4.66); c.add(canto);
+    });
+    const portaBau = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.8, 0.05), MAT_VEDACAO);
+    portaBau.position.set(0, 2.70, -4.72); c.add(portaBau);
+    const chassi = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.34, 9.4), MAT_ESCURO);
+    chassi.position.set(0, 0.90, 0.4); c.add(chassi);
+    [-1, 1].forEach(function (l) {
+      const tanque = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 1.5, 14), MAT_CROMO);
+      tanque.rotation.x = Math.PI / 2; tanque.position.set(l * 1.22, 1.05, 2.0); c.add(tanque);
+      const escape = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 2.6, 12), MAT_CROMO);
+      escape.position.set(l * 1.24, 2.5, 2.9); c.add(escape);
+      const paraLama = new THREE.Mesh(new THREE.TorusGeometry(0.66, 0.09, 6, 12, Math.PI), MAT_ESCURO);
+      paraLama.rotation.y = Math.PI / 2; paraLama.scale.z = 0.5;
+      paraLama.position.set(l * 1.14, 0.55, -2.4); c.add(paraLama);
+    });
+    espelho(c, -1.58, 2.85, 4.40, 1.9, MAT_ESCURO); espelho(c, 1.58, 2.85, 4.40, 1.9, MAT_ESCURO);
+    conjuntoLuzes(g, 1.24, 4.96, -4.78, 1.22, 1.30, 1.90);
+    poePlaca(c, 0.95, -4.82);
+    poeRodas(g, 1.12, [3.4], 0.52, 0.32, null);
+    rodasDuplas(g, 1.10, [-1.7, -3.2], 0.52, 0.30);
     return g;
   }
-  function criaMotoTransito(cor) {
-    const g = new THREE.Group(), p = pintura(cor);
-    const matPiloto = new THREE.MeshStandardMaterial({ color: 0x22262c, roughness: 0.75 });
-    const matEscuro = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.6, metalness: 0.3 });
-    const matCromoM = new THREE.MeshStandardMaterial({ color: 0xcfd6dc, roughness: 0.3, metalness: 0.6,
-      envMap: AMBIENTE, envMapIntensity: 0.6 });
 
-    // tanque e rabeta
-    const tanque = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), p);
-    tanque.scale.set(0.20, 0.16, 0.42);
-    tanque.position.set(0, 0.86, 0.18); tanque.castShadow = true; g.add(tanque);
-    const carenagem = new THREE.Mesh(geoCorpo(0.9, 0.42, 0.42, 0.16), p);
-    carenagem.position.set(0, 0.80, 0.62); g.add(carenagem);
-    const banco = new THREE.Mesh(geoCorpo(0.72, 0.16, 0.32, 0.06), matEscuro);
-    banco.position.set(0, 0.94, -0.36); g.add(banco);
-    const rabeta = new THREE.Mesh(geoCorpo(0.5, 0.22, 0.28, 0.08), p);
-    rabeta.position.set(0, 1.02, -0.75); g.add(rabeta);
-    const motor = new THREE.Mesh(geoCorpo(0.5, 0.34, 0.4, 0.08), matEscuro);
-    motor.position.set(0, 0.6, 0.05); g.add(motor);
-    const escape = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 0.9, 12), matCromoM);
-    escape.rotation.x = Math.PI / 2 + 0.06;
-    escape.position.set(0.16, 0.5, -0.5); g.add(escape);
-
-    // garfo, guidão e farol
-    [-0.11, 0.11].forEach(function (x) {
-      const garfo = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.72, 10), matCromoM);
-      garfo.position.set(x, 0.62, 0.86); garfo.rotation.x = 0.34; g.add(garfo);
-    });
-    const guidao = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.62, 10), matEscuro);
-    guidao.rotation.z = Math.PI / 2;
-    guidao.position.set(0, 1.02, 0.74); g.add(guidao);
-    const farolM = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), matEscuro);
-    farolM.scale.set(1, 0.85, 0.6);
-    farolM.position.set(0, 0.98, 0.90); g.add(farolM);
-    const lenteM = new THREE.Mesh(new THREE.CircleGeometry(0.10, 16), MAT_FAROL);
-    lenteM.position.set(0, 0.98, 0.98); g.add(lenteM);
-    const bfM = criaBrilho(1.6, 0xfff0cc); bfM.position.set(0, 0.98, 1.05);
-    g.add(bfM); brilhosNoturnos.push(bfM);
-    const lantM = new THREE.Mesh(geoCorpo(0.1, 0.1, 0.22, 0.03), MAT_LANTERNA);
-    lantM.position.set(0, 1.02, -0.92); g.add(lantM);
-    const btM = criaBrilho(1.2, 0xff5a3c); btM.position.set(0, 1.02, -1.0);
-    g.add(btM); brilhosNoturnos.push(btM);
-    const paralamaM = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.05, 8, 16, 1.4), p);
-    paralamaM.rotation.y = Math.PI / 2; paralamaM.rotation.z = 0.6;
-    paralamaM.scale.set(1, 1, 0.5);
-    paralamaM.position.set(0, 0.34, 0.98); g.add(paralamaM);
-
-    // piloto
-    const pernas = new THREE.Mesh(geoCorpo(0.66, 0.3, 0.5, 0.12), matPiloto);
-    pernas.position.set(0, 0.72, -0.16); g.add(pernas);
-    const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.25, 0.62, 14), matPiloto);
-    tronco.position.set(0, 1.36, -0.30); tronco.rotation.x = -0.30;
-    tronco.castShadow = true; g.add(tronco);
-    const ombrosM = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), matPiloto);
-    ombrosM.scale.set(0.26, 0.13, 0.18);
-    ombrosM.position.set(0, 1.60, -0.22); g.add(ombrosM);
+  // ---------------------------------------------------------------
+  //  8. CARRETA — cavalo mecânico + semirreboque articulado
+  //     (o reboque é um objeto separado, posicionado atrás na pista)
+  // ---------------------------------------------------------------
+  function criaCavalo(cor) {
+    const g = new THREE.Group(), c = corpoDe(g), p = pintura(cor);
+    const cabine = new THREE.Mesh(geoCorpo(2.6, 2.55, 2.48, 0.32), p);
+    cabine.position.set(0, 2.30, 1.35); cabine.castShadow = true; c.add(cabine);
+    const cabineAlta = new THREE.Mesh(geoCorpo(2.2, 0.62, 2.3, 0.18), p);
+    cabineAlta.position.set(0, 3.72, 1.2); c.add(cabineAlta);
+    const defletor = new THREE.Mesh(geoCorpo(1.0, 1.0, 2.2, 0.2), p);
+    defletor.position.set(0, 4.05, 0.4); defletor.rotation.x = 0.3; c.add(defletor);
+    const parabrisa = vidro(0.24, 1.05, 2.26, 0.12);
+    parabrisa.position.set(0, 2.95, 2.58); c.add(parabrisa);
     [-1, 1].forEach(function (l) {
-      const braco = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.66, 10), matPiloto);
-      braco.position.set(l * 0.20, 1.34, 0.22);
-      braco.rotation.x = Math.PI / 2 - 0.55; braco.rotation.z = -l * 0.16;
-      g.add(braco);
-      const mao = new THREE.Mesh(new THREE.SphereGeometry(0.062, 10, 8), matEscuro);
-      mao.position.set(l * 0.27, 1.04, 0.72); g.add(mao);
+      const lateral = vidro(0.85, 0.7, 0.08, 0.06);
+      lateral.position.set(l * 1.23, 2.75, 1.1); c.add(lateral);
+      const escape = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.0, 12), MAT_CROMO);
+      escape.position.set(l * 1.28, 2.7, 0.35); c.add(escape);
+      const tanque = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.7, 14), MAT_CROMO);
+      tanque.rotation.x = Math.PI / 2; tanque.position.set(l * 1.26, 1.1, -0.5); c.add(tanque);
+      const paraLama = new THREE.Mesh(new THREE.TorusGeometry(0.66, 0.09, 6, 12, Math.PI), MAT_ESCURO);
+      paraLama.rotation.y = Math.PI / 2; paraLama.scale.z = 0.5;
+      paraLama.position.set(l * 1.13, 0.55, -1.9); c.add(paraLama);
     });
-    const capaceteM = new THREE.Mesh(new THREE.SphereGeometry(0.185, 18, 14),
+    const grade = new THREE.Mesh(geoCorpo(0.16, 1.0, 2.2, 0.08), MAT_ESCURO);
+    grade.position.set(0, 1.75, 2.60); c.add(grade);
+    const gradeCr = new THREE.Mesh(geoCorpo(0.17, 0.14, 2.24, 0.05), MAT_CROMO);
+    gradeCr.position.set(0, 2.2, 2.62); c.add(gradeCr);
+    const parachoque = new THREE.Mesh(geoCorpo(0.34, 0.5, 2.56, 0.08), MAT_CROMO);
+    parachoque.position.set(0, 0.86, 2.66); c.add(parachoque);
+    const chassi = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.34, 5.6), MAT_ESCURO);
+    chassi.position.set(0, 0.95, -0.5); c.add(chassi);
+    const quintaRoda = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.14, 14), MAT_ESCURO);
+    quintaRoda.position.set(0, 1.16, -1.9); c.add(quintaRoda);
+    espelho(c, -1.60, 3.05, 2.10, 2.0, MAT_ESCURO); espelho(c, 1.60, 3.05, 2.10, 2.0, MAT_ESCURO);
+    conjuntoLuzes(g, 1.24, 2.70, -2.6, 1.25, 1.4, 1.95);
+    poePlaca(c, 0.95, 2.72, true);
+    poeRodas(g, 1.12, [1.4], 0.54, 0.32, null);
+    rodasDuplas(g, 1.10, [-1.7, -3.0], 0.54, 0.30);
+    return g;
+  }
+  function criaReboque() {
+    const g = new THREE.Group();
+    const matBau = new THREE.MeshStandardMaterial({ color: 0xdfe4e8, roughness: 0.6, metalness: 0.22,
+      envMap: AMBIENTE, envMapIntensity: 0.5 });
+    const bau = new THREE.Mesh(geoCorpo(11.2, 3.1, 2.55, 0.12), matBau);
+    bau.position.set(0, 3.0, 0); bau.castShadow = true; g.add(bau);
+    for (let i = 0; i < 3; i++) {
+      const ripa = new THREE.Mesh(new THREE.BoxGeometry(2.58, 0.05, 0.05), MAT_VEDACAO);
+      ripa.position.set(0, 1.9 + i * 1.05, 0); g.add(ripa);
+    }
+    [-1, 1].forEach(function (l) {
+      const canto = new THREE.Mesh(new THREE.BoxGeometry(0.09, 3.05, 0.10), MAT_ESCURO);
+      canto.position.set(l * 1.27, 3.0, -5.5); g.add(canto);
+      const saia = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.7, 5.0), MAT_ESCURO);
+      saia.position.set(l * 1.24, 1.15, -1.6); g.add(saia);
+      const paraLama = new THREE.Mesh(new THREE.TorusGeometry(0.66, 0.09, 6, 12, Math.PI), MAT_ESCURO);
+      paraLama.rotation.y = Math.PI / 2; paraLama.scale.z = 0.5;
+      paraLama.position.set(l * 1.13, 0.56, -4.0); g.add(paraLama);
+    });
+    const portas = new THREE.Mesh(new THREE.BoxGeometry(2.42, 2.85, 0.06), MAT_VEDACAO);
+    portas.position.set(0, 3.0, -5.62); g.add(portas);
+    [-0.6, 0.6].forEach(function (x) {
+      const barra = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.7, 8), MAT_CROMO);
+      barra.position.set(x, 3.0, -5.68); g.add(barra);
+    });
+    const chassiR = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.3, 11.0), MAT_ESCURO);
+    chassiR.position.set(0, 1.28, 0); g.add(chassiR);
+    const pino = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.16, 14), MAT_ESCURO);
+    pino.position.set(0, 1.20, 4.3); g.add(pino);
+    [-1, 1].forEach(function (l) {
+      const perna = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.9, 0.16), MAT_ESCURO);
+      perna.position.set(l * 0.8, 0.95, 2.4); g.add(perna);
+    });
+    const lant = new THREE.Mesh(geoCorpo(0.1, 0.3, 2.3, 0.04), MAT_LANTERNA);
+    lant.position.set(0, 1.35, -5.72); g.add(lant);
+    const freio = new THREE.Mesh(geoCorpo(0.06, 0.18, 2.1, 0.03), MAT_FREIO);
+    freio.position.set(0, 1.35, -5.76); freio.visible = false; g.add(freio);
+    g.userData.luzFreio = freio;
+    const bt = criaBrilho(2.6, 0xff5a3c); bt.position.set(0, 1.35, -5.95);
+    g.add(bt); brilhosNoturnos.push(bt);
+    poePlaca(g, 1.05, -5.8);
+    rodasDuplas(g, 1.10, [-3.4, -4.6], 0.52, 0.30);
+    return g;
+  }
+
+  // ---------------------------------------------------------------
+  //  9. MOTO DO TRÂNSITO — esportiva carenada, silhueta baixa
+  // ---------------------------------------------------------------
+  function criaMotoTransito(cor) {
+    const g = new THREE.Group(), c = corpoDe(g), p = pintura(cor);
+    const matPiloto = new THREE.MeshStandardMaterial({ color: 0x232830, roughness: 0.78 });
+    const matEsc = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.6, metalness: 0.3 });
+    const matCr = new THREE.MeshStandardMaterial({ color: 0xcfd6dc, roughness: 0.32, metalness: 0.55,
+      envMap: AMBIENTE, envMapIntensity: 0.55 });
+
+    const carenagem = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 14), p);
+    carenagem.scale.set(0.22, 0.24, 0.55);
+    carenagem.position.set(0, 0.82, 0.30); carenagem.castShadow = true; c.add(carenagem);
+    const bico = new THREE.Mesh(geoCorpo(0.5, 0.42, 0.36, 0.14), p);
+    bico.position.set(0, 1.02, 0.80); bico.rotation.x = -0.35; c.add(bico);
+    const parabrisaM = new THREE.Mesh(geoCorpo(0.26, 0.22, 0.30, 0.08), MAT_VIDRO);
+    parabrisaM.position.set(0, 1.20, 0.70); parabrisaM.rotation.x = -0.5; c.add(parabrisaM);
+    const banco = new THREE.Mesh(geoCorpo(0.62, 0.14, 0.30, 0.06), matEsc);
+    banco.position.set(0, 0.95, -0.30); c.add(banco);
+    const rabeta = new THREE.Mesh(geoCorpo(0.55, 0.24, 0.26, 0.09), p);
+    rabeta.position.set(0, 1.02, -0.66); rabeta.rotation.x = -0.18; c.add(rabeta);
+    const motor = new THREE.Mesh(geoCorpo(0.46, 0.36, 0.42, 0.08), matEsc);
+    motor.position.set(0, 0.58, 0.10); c.add(motor);
+    const escape = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.8, 12), matCr);
+    escape.rotation.x = Math.PI / 2 - 0.1;
+    escape.position.set(0.15, 0.5, -0.55); c.add(escape);
+    const balanca = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.10, 0.7), matEsc);
+    balanca.position.set(0.14, 0.45, -0.42); c.add(balanca);
+    [-0.10, 0.10].forEach(function (x) {
+      const garfo = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.66, 8), matCr);
+      garfo.position.set(x, 0.66, 0.82); garfo.rotation.x = 0.36; c.add(garfo);
+    });
+    const guidao = new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.017, 0.56, 8), matEsc);
+    guidao.rotation.z = Math.PI / 2; guidao.position.set(0, 1.03, 0.62); c.add(guidao);
+    [-1, 1].forEach(function (l) {
+      const esp = new THREE.Mesh(geoCorpo(0.10, 0.06, 0.05, 0.02), matEsc);
+      esp.position.set(l * 0.34, 1.14, 0.60); c.add(esp);
+      const haste = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.14, 6), matEsc);
+      haste.position.set(l * 0.30, 1.08, 0.60); haste.rotation.z = -l * 0.5; c.add(haste);
+    });
+    const disco = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.01, 18), matCr);
+    disco.rotation.z = Math.PI / 2; disco.position.set(0.05, 0.34, 0.98); c.add(disco);
+    const farolM = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 10), matEsc);
+    farolM.scale.set(1, 0.8, 0.55); farolM.position.set(0, 0.98, 0.94); c.add(farolM);
+    const lenteM = new THREE.Mesh(new THREE.CircleGeometry(0.10, 14), MAT_FAROL);
+    lenteM.position.set(0, 0.98, 1.01); c.add(lenteM);
+    const lantM = new THREE.Mesh(geoCorpo(0.08, 0.09, 0.20, 0.03), MAT_LANTERNA);
+    lantM.position.set(0, 1.05, -0.92); c.add(lantM);
+    const freioM = new THREE.Mesh(geoCorpo(0.05, 0.06, 0.18, 0.02), MAT_FREIO);
+    freioM.position.set(0, 1.05, -0.95); freioM.visible = false; c.add(freioM);
+    g.userData.luzFreio = freioM;
+    g.userData.piscas = [];
+    [-1, 1].forEach(function (l) {
+      const pi = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), MAT_PISCA);
+      pi.position.set(l * 0.26, 1.05, -0.86); pi.visible = false; c.add(pi);
+      g.userData.piscas.push({ mesh: pi, lado: l });
+    });
+    const bfM = criaBrilho(1.5, 0xfff0cc); bfM.position.set(0, 0.98, 1.1);
+    c.add(bfM); brilhosNoturnos.push(bfM);
+    const btM = criaBrilho(1.1, 0xff5a3c); btM.position.set(0, 1.05, -1.05);
+    c.add(btM); brilhosNoturnos.push(btM);
+    poePlaca(c, 0.78, -0.98);
+    const paralamaM = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.045, 8, 14, 1.3), p);
+    paralamaM.rotation.y = Math.PI / 2; paralamaM.rotation.z = 0.7;
+    paralamaM.scale.set(1, 1, 0.5); paralamaM.position.set(0, 0.34, 0.98); c.add(paralamaM);
+
+    // piloto inclinado sobre o tanque
+    const pernasM = new THREE.Mesh(geoCorpo(0.6, 0.28, 0.46, 0.11), matPiloto);
+    pernasM.position.set(0, 0.72, -0.10); c.add(pernasM);
+    const troncoM = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.23, 0.58, 12), matPiloto);
+    troncoM.position.set(0, 1.28, -0.20); troncoM.rotation.x = -0.42;
+    troncoM.castShadow = true; c.add(troncoM);
+    [-1, 1].forEach(function (l) {
+      const bracoM = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.6, 8), matPiloto);
+      bracoM.position.set(l * 0.18, 1.20, 0.20);
+      bracoM.rotation.x = Math.PI / 2 - 0.42; bracoM.rotation.z = -l * 0.16; c.add(bracoM);
+      const maoM = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), matEsc);
+      maoM.position.set(l * 0.26, 1.04, 0.60); c.add(maoM);
+    });
+    const capaceteM = new THREE.Mesh(new THREE.SphereGeometry(0.17, 16, 12),
       new THREE.MeshStandardMaterial({ color: 0xeef1f4, roughness: 0.2, metalness: 0.2,
-        envMap: AMBIENTE, envMapIntensity: 0.8 }));
-    capaceteM.position.set(0, 1.76, -0.16); capaceteM.castShadow = true; g.add(capaceteM);
-    const viseiraM = new THREE.Mesh(new THREE.SphereGeometry(0.188, 16, 12, Math.PI * 0.62, Math.PI * 0.76, Math.PI * 0.26, Math.PI * 0.4),
+        envMap: AMBIENTE, envMapIntensity: 0.7 }));
+    capaceteM.position.set(0, 1.62, -0.02); capaceteM.castShadow = true; c.add(capaceteM);
+    const viseiraM = new THREE.Mesh(new THREE.SphereGeometry(0.173, 14, 10, Math.PI * 0.62, Math.PI * 0.76, Math.PI * 0.26, Math.PI * 0.4),
       new THREE.MeshStandardMaterial({ color: 0x141c26, roughness: 0.08, metalness: 0.6, envMap: AMBIENTE }));
-    viseiraM.position.copy(capaceteM.position);
-    viseiraM.rotation.y = Math.PI; g.add(viseiraM);
+    viseiraM.position.copy(capaceteM.position); viseiraM.rotation.y = Math.PI; c.add(viseiraM);
 
     g.userData.rodas = [];
-    [[0.98, 0.34], [-0.72, 0.34]].forEach(function (par) {
+    [[0.98, 0.32], [-0.72, 0.34]].forEach(function (par) {
       const r = criaRoda(par[1], 0.13);
       r.position.set(0, par[1], par[0]); g.add(r);
       g.userData.rodas.push(r);
@@ -1217,105 +1686,39 @@
     return g;
   }
 
-  function criaCompacto(cor) {
-    const g = new THREE.Group(), p = pintura(cor);
-    const corpo = new THREE.Mesh(geoCorpo(3.75, 0.88, 1.72, 0.32), p);
-    corpo.position.y = 0.74; corpo.castShadow = true; g.add(corpo);
-    const cabine = new THREE.Mesh(geoCorpo(2.15, 0.72, 1.62, 0.40), p);
-    cabine.position.set(0, 1.38, -0.10); cabine.castShadow = true; g.add(cabine);
-    const vidros = new THREE.Mesh(geoCorpo(2.02, 0.54, 1.66, 0.32), MAT_VIDRO);
-    vidros.position.set(0, 1.40, -0.10); g.add(vidros);
-    const saia = new THREE.Mesh(geoCorpo(3.6, 0.26, 1.66, 0.10), MAT_ESCURO);
-    saia.position.y = 0.42; g.add(saia);
-    luzes(g, 0.86, 1.86, -1.86, 0.82);
-    poeRodas(g, 0.80, [1.20, -1.18], 0.30, 0.22);
-    return g;
-  }
-  function criaPicape(cor) {
-    const g = new THREE.Group(), p = pintura(cor);
-    const corpo = new THREE.Mesh(geoCorpo(5.3, 1.05, 1.95, 0.26), p);
-    corpo.position.y = 0.95; corpo.castShadow = true; g.add(corpo);
-    const cabine = new THREE.Mesh(geoCorpo(1.95, 0.82, 1.85, 0.28), p);
-    cabine.position.set(0, 1.82, 0.75); cabine.castShadow = true; g.add(cabine);
-    const vidros = new THREE.Mesh(geoCorpo(1.82, 0.60, 1.89, 0.22), MAT_VIDRO);
-    vidros.position.set(0, 1.86, 0.75); g.add(vidros);
-    const cacamba = new THREE.Mesh(geoCorpo(2.5, 0.62, 1.92, 0.10), p);
-    cacamba.position.set(0, 1.70, -1.20); g.add(cacamba);
-    const fundo = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.08, 2.4), MAT_ESCURO);
-    fundo.position.set(0, 1.44, -1.20); g.add(fundo);
-    const parachoque = new THREE.Mesh(geoCorpo(5.3, 0.32, 1.98, 0.10), MAT_ESCURO);
-    parachoque.position.y = 0.52; g.add(parachoque);
-    luzes(g, 0.97, 2.62, -2.62, 1.05);
-    poeRodas(g, 0.90, [1.70, -1.55], 0.42, 0.30);
-    return g;
-  }
-  function criaOnibus(cor) {
-    const g = new THREE.Group(), p = pintura(cor);
-    const corpo = new THREE.Mesh(geoCorpo(11.5, 3.1, 2.5, 0.45), p);
-    corpo.position.y = 2.05; corpo.castShadow = true; g.add(corpo);
-    const faixa = new THREE.Mesh(geoCorpo(11.6, 0.42, 2.54, 0.10),
-      new THREE.MeshStandardMaterial({ color: 0xf2f4f6, roughness: 0.5, metalness: 0.3, envMap: AMBIENTE }));
-    faixa.position.y = 2.55; g.add(faixa);
-    const janelas = new THREE.Mesh(geoCorpo(9.0, 0.9, 2.54, 0.16), MAT_VIDRO);
-    janelas.position.set(0, 2.85, -0.6); g.add(janelas);
-    const parabrisa = new THREE.Mesh(geoCorpo(0.2, 1.5, 2.3, 0.14), MAT_VIDRO);
-    parabrisa.position.set(0, 2.6, 5.72); g.add(parabrisa);
-    const saia = new THREE.Mesh(geoCorpo(11.4, 0.7, 2.44, 0.10), MAT_ESCURO);
-    saia.position.y = 0.72; g.add(saia);
-    luzes(g, 1.24, 5.76, -5.76, 1.20);
-    poeRodas(g, 1.10, [4.1, -3.4], 0.52, 0.32);
-    return g;
-  }
-  function criaCarreta(cor) {
-    const g = new THREE.Group(), p = pintura(cor);
-    const cabine = new THREE.Mesh(geoCorpo(2.9, 2.6, 2.5, 0.34), p);
-    cabine.position.set(0, 2.2, 6.0); cabine.castShadow = true; g.add(cabine);
-    const parabrisa = new THREE.Mesh(geoCorpo(0.22, 1.05, 2.3, 0.14), MAT_VIDRO);
-    parabrisa.position.set(0, 2.8, 7.34); g.add(parabrisa);
-    const bau = new THREE.Mesh(geoCorpo(11.5, 3.2, 2.55, 0.14),
-      new THREE.MeshStandardMaterial({ color: 0xdfe3e7, roughness: 0.6, metalness: 0.25, envMap: AMBIENTE }));
-    bau.position.set(0, 2.75, -1.6); bau.castShadow = true; g.add(bau);
-    const chassi = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.36, 15.5), MAT_ESCURO);
-    chassi.position.set(0, 0.95, 0.6); g.add(chassi);
-    [-1, 1].forEach(function (l) {
-      const escape = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 2.8, 12), MAT_CROMO);
-      escape.position.set(l * 1.28, 2.9, 5.6); g.add(escape);
-      const tanque = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.6, 14), MAT_CROMO);
-      tanque.rotation.x = Math.PI / 2; tanque.position.set(l * 1.3, 1.1, 4.2); g.add(tanque);
-    });
-    const parachoque = new THREE.Mesh(geoCorpo(0.32, 0.48, 2.56, 0.08), MAT_CROMO);
-    parachoque.position.set(0, 0.86, 7.36); g.add(parachoque);
-    const lant = new THREE.Mesh(geoCorpo(0.14, 0.34, 2.3, 0.05), MAT_LANTERNA);
-    lant.position.set(0, 1.15, -7.4); g.add(lant);
-    const farolC = new THREE.Mesh(geoCorpo(0.16, 0.26, 2.2, 0.05), MAT_FAROL);
-    farolC.position.set(0, 1.2, 7.36); g.add(farolC);
-    const bf = criaBrilho(3.2, 0xfff0cc); bf.position.set(0, 1.2, 7.6); g.add(bf); brilhosNoturnos.push(bf);
-    const bt = criaBrilho(2.4, 0xff5a3c); bt.position.set(0, 1.15, -7.6); g.add(bt); brilhosNoturnos.push(bt);
-    poeRodas(g, 1.12, [5.6, 3.4, -4.6, -6.0], 0.52, 0.34);
-    return g;
-  }
-
+  // faixas de velocidade em m/s (as do enunciado, em km/h, divididas por 3,6),
+  // além de aceleração, frenagem e agilidade de troca de faixa por classe
   const TIPOS = {
-    compacto: { larg: 1.72, comp: 3.8,  velMin: 22, velMax: 33, faixa: 2, cria: criaCompacto },
-    sedan:    { larg: 1.86, comp: 4.6,  velMin: 23, velMax: 35, faixa: 1, cria: criaSedan },
-    suv:      { larg: 1.98, comp: 4.9,  velMin: 22, velMax: 33, faixa: 1, cria: criaSUV },
-    picape:   { larg: 1.95, comp: 5.4,  velMin: 21, velMax: 31, faixa: 1, cria: criaPicape },
-    van:      { larg: 2.02, comp: 5.7,  velMin: 19, velMax: 28, faixa: 2, cria: criaVan },
-    onibus:   { larg: 2.50, comp: 11.6, velMin: 18, velMax: 25, faixa: 2, cria: criaOnibus },
-    caminhao: { larg: 2.55, comp: 10.4, velMin: 16, velMax: 23, faixa: 2, cria: criaCaminhao },
-    carreta:  { larg: 2.55, comp: 15.6, velMin: 15, velMax: 21, faixa: 2, cria: criaCarreta },
-    moto:     { larg: 0.85, comp: 2.2,  velMin: 27, velMax: 38, faixa: 0, cria: criaMotoTransito }
+    compacto: { larg: 1.72, comp: 3.8,  velMin: 21.9, velMax: 33.1, acel: 2.6, freio: 6.0, agil: 1.15, faixa: 2, cria: criaCompacto },
+    sedan:    { larg: 1.86, comp: 4.6,  velMin: 23.1, velMax: 35.0, acel: 3.0, freio: 6.2, agil: 1.10, faixa: 1, cria: criaSedan },
+    suv:      { larg: 1.98, comp: 4.9,  velMin: 21.9, velMax: 33.1, acel: 2.6, freio: 5.8, agil: 1.00, faixa: 1, cria: criaSUV },
+    picape:   { larg: 1.95, comp: 5.4,  velMin: 21.1, velMax: 31.1, acel: 2.4, freio: 5.4, agil: 0.92, faixa: 1, cria: criaPicape },
+    van:      { larg: 2.02, comp: 5.7,  velMin: 18.9, velMax: 28.1, acel: 2.0, freio: 5.0, agil: 0.85, faixa: 2, cria: criaVan },
+    onibus:   { larg: 2.50, comp: 11.6, velMin: 18.1, velMax: 25.0, acel: 1.4, freio: 4.0, agil: 0.60, faixa: 2, cria: criaOnibus },
+    caminhao: { larg: 2.55, comp: 10.4, velMin: 16.1, velMax: 23.1, acel: 1.2, freio: 3.6, agil: 0.55, faixa: 2, cria: criaCaminhao },
+    carreta:  { larg: 2.55, comp: 15.6, velMin: 15.0, velMax: 21.1, acel: 0.9, freio: 3.0, agil: 0.42, faixa: 2, cria: criaCavalo, reboque: true },
+    moto:     { larg: 0.85, comp: 2.2,  velMin: 26.9, velMax: 38.1, acel: 4.5, freio: 7.5, agil: 1.60, faixa: 0, cria: criaMotoTransito }
   };
-  // frota fixa (nada de criar modelo em tempo de execução): variedade sem custo extra
   const FROTA = ["compacto","sedan","suv","sedan","compacto","picape","van","suv","sedan",
                  "caminhao","onibus","carreta","moto","moto","sedan","compacto","picape",
                  "suv","van","caminhao"];
 
   const transito = FROTA.map(function (tipo, i) {
-    const obj = TIPOS[tipo].cria(CORES_VEIC[i % CORES_VEIC.length]);
+    const obj = TIPOS[tipo].cria(CORES_VEIC[(i * 7 + 3) % CORES_VEIC.length]);
+    marcaDetalhes(obj);
     obj.visible = false;
     cena.add(obj);
-    return { tipo: tipo, obj: obj, s: 0, faixa: 1, lat: 0, vel: 0, ativo: false };
+    const v = { tipo: tipo, obj: obj, s: 0, faixa: 1, lat: 0, vel: 0, velDesejada: 0,
+                ativo: false, freando: false, sinal: 0, esperaFaixa: 0, passou: false, perto: null,
+                latAnterior: 0, velAnterior: 0 };
+    if (TIPOS[tipo].reboque) {
+      v.reboque = criaReboque();
+      marcaDetalhes(v.reboque);
+      v.reboque.visible = false;
+      cena.add(v.reboque);
+      v.latReboque = 0;
+    }
+    return v;
   });
 
   function livre(s, faixa, comp, ignorar) {
@@ -1340,6 +1743,9 @@
       v.velDesejada = rand(t.velMin, t.velMax);
       v.vel = v.velDesejada;
       v.esperaFaixa = rand(0, 3);
+      v.freando = false; v.sinal = 0; v.passou = false;
+      v.latAnterior = v.lat; v.velAnterior = v.vel;
+      if (v.reboque) { v.latReboque = v.lat; v.reboque.visible = true; }
       v.obj.visible = true; v.ativo = true;
       return;
     }
@@ -1358,6 +1764,21 @@
     if (Math.abs(FAIXAS_X[faixa] - jogo.lat) < 2.4 && dj > -45 && dj < 28) return false;
     return true;
   }
+  // acelera ou freia respeitando a classe (pesado demora mais nos dois sentidos)
+  function aplicaVelocidade(v, alvo, dt) {
+    const t = TIPOS[v.tipo];
+    const limite = clamp(alvo, 0, t.velMax);
+    if (limite > v.vel) {
+      v.vel = Math.min(limite, v.vel + t.acel * dt);
+      v.freando = false;
+    } else if (limite < v.vel - 0.05) {
+      v.vel = Math.max(limite, v.vel - t.freio * dt);
+      v.freando = true;
+    } else {
+      v.freando = false;
+    }
+  }
+
   function conduz(v, dt) {
     if (v.esperaFaixa > 0) v.esperaFaixa -= dt;
     let alvo = null, dist = Infinity;
@@ -1381,10 +1802,10 @@
       }
       if (!trocou) {                                   // sem espaço: acompanha o da frente
         const limite = folga < 14 ? alvo.vel * 0.92 : alvo.vel;
-        v.vel += (limite - v.vel) * Math.min(1, dt * 1.6);
+        aplicaVelocidade(v, limite, dt);
       }
     } else {
-      v.vel += (v.velDesejada - v.vel) * Math.min(1, dt * 0.7);
+      aplicaVelocidade(v, v.velDesejada, dt);
       // volta para a direita quando a faixa está livre (rodovia organizada)
       if (v.esperaFaixa <= 0 && v.faixa < N_FAIXAS - 1 && Math.random() < dt * 0.25 &&
           faixaLivre(v, v.faixa + 1)) {
@@ -1392,26 +1813,78 @@
       }
     }
   }
+  let piscaTempo = 0, piscaLigado = true;
   function atualizaTransito(dt, sJogador) {
+    piscaTempo += dt;
+    if (piscaTempo > 0.38) { piscaTempo = 0; piscaLigado = !piscaLigado; }
     for (const v of transito) {
       if (!v.ativo) { nasceVeiculo(v, sJogador); continue; }
       conduz(v, dt);
       v.s += v.vel * dt;
-      if (v.s < sJogador - 110 || v.s > sJogador + 900) {
-        v.ativo = false; v.obj.visible = false; nasceVeiculo(v, sJogador); continue;
+      if (v.s < sJogador - 130 || v.s > sJogador + 900) {
+        v.ativo = false; v.obj.visible = false;
+        if (v.reboque) v.reboque.visible = false;
+        nasceVeiculo(v, sJogador); continue;
       }
+      const t = TIPOS[v.tipo];
       const latAlvo = FAIXAS_X[v.faixa];
-      const passo = (latAlvo - v.lat) * Math.min(1, dt * 1.1);   // troca de faixa suave
+      const passo = (latAlvo - v.lat) * Math.min(1, dt * t.agil);   // agilidade por classe
       v.lat += passo;
       posMundo(v.s, v.lat, _p1);
       v.obj.position.set(_p1.x, _p1.y, _p1.z);
       v.obj.rotation.x = -inclinacaoEm(v.s);
-      // aponta um pouco para onde está indo enquanto muda de faixa
       v.obj.rotation.y = _p1.h - Math.atan2(passo, Math.max(0.001, v.vel * dt)) * 0.35;
+
       // rodas girando conforme a velocidade
       const rodas = v.obj.userData.rodas;
-      if (rodas) {
-        for (const r of rodas) r.rotation.x -= (v.vel / r.userData.raio) * dt;
+      if (rodas) { for (const r of rodas) r.rotation.x -= (v.vel / r.userData.raio) * dt; }
+
+      // LOD: detalhes miúdos só de perto
+      const perto = (v.s - sJogador) < 140 && (v.s - sJogador) > -60;
+      if (v.perto !== perto) {
+        v.perto = perto;
+        const det = v.obj.userData.detalhes;
+        if (det) for (const o of det) o.visible = perto;
+        if (v.reboque && v.reboque.userData.detalhes) {
+          for (const o of v.reboque.userData.detalhes) o.visible = perto;
+        }
+      }
+
+      // luz de freio
+      const luzF = v.obj.userData.luzFreio;
+      if (luzF) luzF.visible = v.freando;
+
+      // pisca no sentido da troca de faixa
+      const desvio = latAlvo - v.lat;
+      v.sinal = Math.abs(desvio) > 0.25 ? Math.sign(desvio) : 0;
+      const piscas = v.obj.userData.piscas;
+      if (piscas) {
+        const ligado = v.sinal !== 0 && piscaLigado;
+        for (const pi of piscas) pi.mesh.visible = ligado && pi.lado === v.sinal;
+      }
+
+      // suspensão: mergulha ao frear, senta ao acelerar
+      const corpoV = v.obj.userData.carroceria;
+      if (corpoV) {
+        const acel = clamp((v.vel - v.velAnterior) / Math.max(dt, 0.001), -8, 8);
+        corpoV.rotation.x = lerp(corpoV.rotation.x, -acel * 0.004, Math.min(1, dt * 5));
+        corpoV.position.y = lerp(corpoV.position.y, -Math.abs(acel) * 0.004, Math.min(1, dt * 5));
+      }
+      v.velAnterior = v.vel;
+
+      // semirreboque articulado: segue a pista atrás do cavalo mecânico
+      if (v.reboque) {
+        const sReb = v.s - 6.2;
+        v.latReboque = lerp(v.latReboque, v.lat, Math.min(1, dt * 1.4));
+        posMundo(sReb, v.latReboque, _p2);
+        v.reboque.position.set(_p2.x, _p2.y, _p2.z);
+        v.reboque.rotation.x = -inclinacaoEm(sReb);
+        v.reboque.rotation.y = _p2.h - Math.atan2(v.lat - v.latReboque, 6.2) * 0.9;
+        v.reboque.visible = true;
+        const rodasR = v.reboque.userData.rodas;
+        if (rodasR) { for (const r of rodasR) r.rotation.x -= (v.vel / r.userData.raio) * dt; }
+        const lfR = v.reboque.userData.luzFreio;
+        if (lfR) lfR.visible = v.freando;
       }
     }
   }
@@ -1918,7 +2391,8 @@
     return rt;
   });
   const camsEspelho = [];
-  let rodaJogador = null, farolMoto = null, brilhoFarol = null;
+  let rodaJogador = null, rodaTraseira = null, farolMoto = null, brilhoFarol = null;
+  let luzFreioJogador = null, piscasJogador = [];
 
   (function montaMoto() {
     // textura do tanque: o topo do tanque cai em u = 0.75 (esfera girada 90° em X)
@@ -2213,6 +2687,88 @@
     farolMoto.position.set(0, Y_BAR - 0.10, Z_BAR + 0.28);
     farolMoto.target.position.set(0, -0.6, Z_BAR + 40);
     m.add(farolMoto); m.add(farolMoto.target);
+
+    // ---------------- motor, escapamento e traseira (aparecem nos retrovisores) ----------------
+    const matMotor = new THREE.MeshStandardMaterial({ color: 0x3c4248, roughness: 0.45, metalness: 0.7,
+      envMap: AMBIENTE, envMapIntensity: 0.6 });
+    const bloco = new THREE.Mesh(geoCorpo(0.44, 0.36, 0.42, 0.08), matMotor);
+    bloco.position.set(0, 0.60, 0.18); bloco.castShadow = true; m.add(bloco);
+    const cabecote = new THREE.Mesh(geoCorpo(0.28, 0.22, 0.40, 0.05), matMotor);
+    cabecote.position.set(0, 0.82, 0.30); m.add(cabecote);
+    for (let i = 0; i < 4; i++) {                       // aletas de refrigeração
+      const aleta = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.018, 0.36), matAluminio);
+      aleta.position.set(0, 0.50 + i * 0.075, 0.16); m.add(aleta);
+    }
+    const carter = new THREE.Mesh(geoCorpo(0.40, 0.16, 0.34, 0.06), matMotor);
+    carter.position.set(0, 0.40, 0.12); m.add(carter);
+    // coletor e ponteira do escapamento
+    const curvaEsc = new THREE.CatmullRomCurve3([
+      V(0.06, 0.66, 0.42), V(0.14, 0.40, 0.28), V(0.16, 0.34, -0.10), V(0.19, 0.42, -0.62)
+    ]);
+    const coletor = new THREE.Mesh(new THREE.TubeGeometry(curvaEsc, 20, 0.032, 10, false), matCromo);
+    coletor.castShadow = true; m.add(coletor);
+    const ponteira = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.078, 0.42, 16), matCromo);
+    ponteira.rotation.x = Math.PI / 2 - 0.12;
+    ponteira.position.set(0.19, 0.46, -0.85); m.add(ponteira);
+    const saidaEsc = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.03, 14), matPlastico);
+    saidaEsc.rotation.x = Math.PI / 2 - 0.12;
+    saidaEsc.position.set(0.19, 0.48, -1.06); m.add(saidaEsc);
+
+    // balança, amortecedor e roda traseira
+    const eixoTras = V(0, 0.30, -1.02);
+    [-1, 1].forEach(function (l) {
+      const balanca = entre(V(l * 0.13, 0.46, -0.24), V(l * 0.115, eixoTras.y, eixoTras.z), 0.036, 0.030, matAluminio, 10);
+      balanca.castShadow = true; m.add(balanca);
+    });
+    const amortecedor = entre(V(0.09, 0.86, -0.34), V(0.10, 0.44, -0.66), 0.028, 0.024, matPlastico, 10);
+    m.add(amortecedor);
+    const molaTras = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.22, 12), 
+      new THREE.MeshStandardMaterial({ color: 0xc44b2c, roughness: 0.5, metalness: 0.4, envMap: AMBIENTE }));
+    molaTras.position.set(0.095, 0.66, -0.50); molaTras.rotation.x = -0.55; m.add(molaTras);
+
+    const pneuTras = new THREE.Mesh(new THREE.TorusGeometry(0.245, 0.088, 14, 30), matBorracha);
+    pneuTras.rotation.y = Math.PI / 2;
+    pneuTras.position.copy(eixoTras); pneuTras.castShadow = true; m.add(pneuTras);
+    const geoAroT = new THREE.CylinderGeometry(0.17, 0.17, 0.11, 22);
+    geoAroT.rotateZ(Math.PI / 2);
+    const aroTras = new THREE.Mesh(geoAroT, [matAluminio, MAT_FACE_ARO, MAT_FACE_ARO]);
+    aroTras.position.copy(eixoTras); m.add(aroTras);
+    rodaTraseira = aroTras;
+    const discoTras = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.115, 0.006, 20), matCromo);
+    discoTras.rotation.z = Math.PI / 2;
+    discoTras.position.set(-0.085, eixoTras.y, eixoTras.z); m.add(discoTras);
+    const coroa = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.135, 0.012, 24), matAluminio);
+    coroa.rotation.z = Math.PI / 2;
+    coroa.position.set(0.085, eixoTras.y, eixoTras.z); m.add(coroa);
+
+    // rabeta, lanterna, placa e piscas
+    const rabeta = new THREE.Mesh(geoCorpo(0.62, 0.20, 0.26, 0.07), matTanque);
+    rabeta.position.set(0, 0.92, -0.62); rabeta.rotation.x = -0.16;
+    rabeta.castShadow = true; m.add(rabeta);
+    const paralamaTras = new THREE.Mesh(new THREE.TorusGeometry(0.30, 0.045, 8, 16, 1.2), matPlastico);
+    paralamaTras.rotation.y = Math.PI / 2; paralamaTras.rotation.z = 2.1;
+    paralamaTras.scale.set(1, 1, 0.5);
+    paralamaTras.position.copy(eixoTras); m.add(paralamaTras);
+    const lanterna = new THREE.Mesh(geoCorpo(0.09, 0.09, 0.20, 0.03), MAT_LANTERNA);
+    lanterna.position.set(0, 0.90, -0.92); m.add(lanterna);
+    luzFreioJogador = new THREE.Mesh(geoCorpo(0.05, 0.06, 0.17, 0.02), MAT_FREIO);
+    luzFreioJogador.position.set(0, 0.90, -0.95); luzFreioJogador.visible = false; m.add(luzFreioJogador);
+    const suportePlaca = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.16, 0.02), matPlastico);
+    suportePlaca.position.set(0, 0.80, -0.955); m.add(suportePlaca);
+    poePlaca(m, 0.745, -0.965);
+    const brilhoTras = criaBrilho(1.3, 0xff5a3c);
+    brilhoTras.position.set(0, 0.90, -1.05); m.add(brilhoTras); brilhosNoturnos.push(brilhoTras);
+
+    piscasJogador = [];
+    [-1, 1].forEach(function (l) {
+      const pTras = new THREE.Mesh(new THREE.SphereGeometry(0.036, 10, 8), MAT_PISCA);
+      pTras.position.set(l * 0.17, 0.92, -0.88); pTras.visible = false; m.add(pTras);
+      const haste = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.1, 6), matPlastico);
+      haste.rotation.z = Math.PI / 2; haste.position.set(l * 0.12, 0.92, -0.88); m.add(haste);
+      const pFrente = new THREE.Mesh(new THREE.SphereGeometry(0.034, 10, 8), MAT_PISCA);
+      pFrente.position.set(l * 0.30, Y_BAR - 0.13, Z_BAR + 0.10); pFrente.visible = false; m.add(pFrente);
+      piscasJogador.push({ mesh: pTras, lado: l }, { mesh: pFrente, lado: l });
+    });
 
     grupoInclina.add(m);
   })();
@@ -2528,6 +3084,12 @@
       -jogo.inclinacao * 0.20 + (Math.random() - 0.5) * sacode * 0.5
     );
     if (rodaJogador) rodaJogador.rotation.x -= (jogo.vel / 0.265) * dt;
+    if (rodaTraseira) rodaTraseira.rotation.x -= (jogo.vel / 0.245) * dt;
+    if (luzFreioJogador) luzFreioJogador.visible = teclas.freio && jogo.vel > 0.5;
+    for (const pi of piscasJogador) {
+      const sinal = Math.abs(jogo.direcao) > 0.35 ? Math.sign(jogo.direcao) : 0;
+      pi.mesh.visible = sinal === pi.lado && piscaLigado;
+    }
     const fovAlvo = 70 + Math.pow(rel, 1.15) * 26;
     camera.fov += (fovAlvo - camera.fov) * Math.min(1, dt * 2.4);
     camera.updateProjectionMatrix();

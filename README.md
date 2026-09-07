@@ -63,10 +63,20 @@ mapa de ambiente para os reflexos dos metais e névoa atmosférica no horizonte.
 - **Cenário** com defensas metálicas de perfil W e postes, árvores variadas, moitas,
   tufos de capim com flores, colinas, postes de iluminação, céu com nuvens e a
   silhueta de uma cidade no horizonte.
-- **Trânsito** com compactos, sedãs, SUVs, picapes, vans, ônibus, caminhões,
-  carretas e motos — carrocerias arredondadas, vidros, faróis, lanternas e rodas
-  que giram conforme a velocidade. Pesados preferem a direita, motos e compactos
-  usam mais a esquerda, e a densidade varia por trecho da rodovia.
+- **Frota com dez silhuetas distintas**: compacto (hatch curto), sedã (três volumes),
+  SUV (alto, com longarinas), picape (cabine + caçamba de paredes e tampa), van
+  (teto alto e porta corrediça), ônibus rodoviário (bagageiro, janelas panorâmicas,
+  rodado duplo), caminhão (cabine avançada e baú com ripas), carreta (cavalo
+  mecânico + semirreboque articulado), moto do trânsito (esportiva carenada) e a
+  moto do jogador. Todos com paralamas, vidros, faróis e lanternas em par, luz de
+  freio, piscas, retrovisores, vincos de porta, placa e rodas que giram.
+- **Comportamento por classe**: cada categoria tem faixa de velocidade, aceleração,
+  frenagem e agilidade de troca de faixa próprias — pesados demoram a ganhar e a
+  perder velocidade e mudam de faixa devagar; motos aceleram e circulam mais rápido.
+  A carroceria mergulha ao frear e senta ao acelerar, e o semirreboque articula
+  atrás do cavalo nas curvas.
+- **LOD**: peças miúdas (retrovisores, vincos, placas, frisos) desligam nos veículos
+  distantes, segurando o custo de render em ~1,1 mil draw calls.
 - **Trânsito que ultrapassa**: cada veículo tem uma velocidade desejada, acompanha
   quem está à frente, troca de faixa para ultrapassar quando há espaço (sem cortar
   o jogador) e volta para a direita quando a faixa libera.
