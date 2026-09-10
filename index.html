@@ -70,6 +70,23 @@
     text-transform: uppercase; backdrop-filter: blur(4px);
   }
   #faixaInfo .sep { display: inline-block; width: 6px; }
+  #faixaInfo #chipDestino { color: #ffd88a; border-color: rgba(255,200,110,.34); }
+  #faixaInfo #chipPonto { color: #67e8b4; border-color: rgba(103,232,180,.34); }
+  /* aviso de chegada ao ponto turístico */
+  #localAviso {
+    position: fixed; top: 38%; left: 0; right: 0; z-index: 11; text-align: center;
+    pointer-events: none; opacity: 0; transition: opacity .55s ease;
+  }
+  #localAviso b {
+    display: block; font-size: 30px; font-weight: 800; letter-spacing: 2.5px;
+    color: #ffe6a8; text-shadow: 0 0 26px rgba(255,190,90,.45), 0 3px 16px rgba(0,0,0,.9);
+  }
+  #localAviso span {
+    display: inline-block; margin-top: 8px; padding: 4px 14px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: #e8f0f7; background: rgba(9,14,20,.55);
+    border: 1px solid rgba(255,214,138,.30); backdrop-filter: blur(4px);
+  }
   #alertaTras {
     position: fixed; top: 140px; left: 0; right: 0; z-index: 10; text-align: center;
     pointer-events: none; opacity: 0; transition: opacity .25s;
@@ -258,6 +275,9 @@
     .giro { height: 3px; margin-top: 4px; }
     #faixaInfo { top: 66px; }
     #faixaInfo > span:not(.sep) { font-size: 9px; padding: 3px 8px; letter-spacing: .8px; }
+    #localAviso { top: 34%; }
+    #localAviso b { font-size: 20px; letter-spacing: 1.6px; }
+    #localAviso span { font-size: 9.5px; letter-spacing: 1.2px; margin-top: 5px; }
     #alertaTras { top: 96px; }
     #alertaTras span { font-size: 10.5px; padding: 4px 10px; }
     #aviso { font-size: 22px; top: 40%; }
@@ -337,6 +357,14 @@
   <span id="chipTempo">Manhã 08:30</span>
   <span class="sep"></span>
   <span id="chipClima">Céu limpo</span>
+  <span class="sep"></span>
+  <span id="chipDestino" class="destino">Destino: Cristo Redentor</span>
+  <span class="sep"></span>
+  <span id="chipPonto">1/1</span>
+</div>
+<div id="localAviso">
+  <b id="localNome">RIO DE JANEIRO — BRASIL</b>
+  <span id="localSub">Ponto turístico</span>
 </div>
 <div id="alertaTras"><span data-txt="aproximando">Veículo se aproximando</span></div>
 <div id="perigo"></div>
@@ -446,6 +474,7 @@
   const PASSO        = 5;
   const N_AMOSTRAS   = 210;
   const VIS_FRENTE   = 700;
+  const ALCANCE_MARCO = 2700;   // até onde a linha central é gerada (marcos)
 
   const MARCHAS      = [12.5, 22.0, 32.0, 42.0, 52.0, 61.0];   // m/s por marcha
   const VEL_MAX      = MARCHAS[MARCHAS.length - 1];
@@ -462,6 +491,55 @@
   const VEL_NITRO    = 75;     // m/s (270 km/h) com o nitro acionado
   const MAX_BATIDAS  = 3;
   const T_INVULN     = 1.8;
+
+  // =====================================================================
+  //  Volta ao mundo: a rodovia é dividida em trechos, um por ponto
+  //  turístico. O ciclo se repete para sempre, então depois do último
+  //  destino a estrada continua naturalmente para o primeiro.
+  //  Só os destinos com `pronto: true` entram na rota — os outros já estão
+  //  nomeados aqui e passam a valer sozinhos quando o marco 3D existir.
+  // =====================================================================
+  const COMP_TRECHO = 5200;         // metros de rodovia por destino
+  const S_MARCO     = 3400;         // onde o marco fica dentro do trecho
+  const DESTINOS = [
+    { id: "rio", pronto: true,
+      nome:  { pt: "CRISTO REDENTOR", en: "CHRIST THE REDEEMER" },
+      local: { pt: "RIO DE JANEIRO — BRASIL", en: "RIO DE JANEIRO — BRAZIL" },
+      sub:   { pt: "Ponto turístico 1", en: "Landmark 1" } },
+    { id: "paris", pronto: false,
+      nome:  { pt: "TORRE EIFFEL", en: "EIFFEL TOWER" },
+      local: { pt: "PARIS — FRANÇA", en: "PARIS — FRANCE" }, sub: { pt: "", en: "" } },
+    { id: "ny", pronto: false,
+      nome:  { pt: "ESTÁTUA DA LIBERDADE", en: "STATUE OF LIBERTY" },
+      local: { pt: "NEW YORK — USA", en: "NEW YORK — USA" }, sub: { pt: "", en: "" } },
+    { id: "china", pronto: false,
+      nome:  { pt: "MURALHA DA CHINA", en: "GREAT WALL OF CHINA" },
+      local: { pt: "CHINA", en: "CHINA" }, sub: { pt: "", en: "" } },
+    { id: "giza", pronto: false,
+      nome:  { pt: "PIRÂMIDES DE GIZÉ", en: "PYRAMIDS OF GIZA" },
+      local: { pt: "EGITO — PIRÂMIDES DE GIZÉ", en: "EGYPT — PYRAMIDS OF GIZA" },
+      sub:   { pt: "", en: "" } }
+  ];
+  const ROTA = DESTINOS.filter(function (d) { return d.pronto; });
+
+  // trecho em que o piloto está: k = quantos trechos já começaram,
+  // idx = destino desse trecho, t = 0..1 de progresso dentro dele
+  function trechoEm(sv) {
+    const k = Math.floor(sv / COMP_TRECHO);
+    return { k: k, idx: ((k % ROTA.length) + ROTA.length) % ROTA.length,
+             t: (sv - k * COMP_TRECHO) / COMP_TRECHO };
+  }
+  // marcos já passados e destino que está sendo perseguido agora
+  function marcosPassados(sv) {
+    return sv < S_MARCO ? 0 : Math.floor((sv - S_MARCO) / COMP_TRECHO) + 1;
+  }
+  function destinoAlvo(sv) {
+    const n = marcosPassados(sv);
+    return { idx: ((n % ROTA.length) + ROTA.length) % ROTA.length,
+             numero: (n % ROTA.length) + 1, total: ROTA.length };
+  }
+  // s do marco do trecho k
+  function sDoMarco(k) { return k * COMP_TRECHO + S_MARCO; }
 
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const lerp  = (a, b, t) => a + (b - a) * t;
@@ -485,6 +563,72 @@
       t.repeat.set(repX || 1, repY || 1);
     }
     return t;
+  }
+
+  // =====================================================================
+  //  Junção de malhas estáticas
+  //  Peças que não se mexem e dividem o mesmo material viram uma malha só.
+  //  É o que segura o custo de desenho do cockpit, das palmeiras e dos
+  //  marcos, que têm muitas peças pequenas.
+  //  `permitido` (opcional) limita quais materiais podem ser juntados;
+  //  malhas marcadas com userData.detalhe são juntadas à parte, para
+  //  continuarem podendo ser desligadas a distância.
+  // =====================================================================
+  function juntaPorMaterial(grupo, permitido) {
+    const grupos = new Map();
+    for (const o of grupo.children) {
+      if (!o.isMesh || o.children.length) continue;
+      if (!o.geometry || !o.geometry.attributes.position) continue;
+      if (permitido && permitido.indexOf(o.material) < 0) continue;
+      const chave = (o.userData.detalhe ? "d" : "n") + "|" + o.material.uuid;
+      if (!grupos.has(chave)) grupos.set(chave, { mat: o.material, det: !!o.userData.detalhe, lista: [] });
+      grupos.get(chave).lista.push(o);
+    }
+    grupos.forEach(function (bloco) {
+      const lista = bloco.lista;
+      if (lista.length < 3) return;
+      let nVert = 0, sombra = false, recebe = false, ordem = 0;
+      const geos = lista.map(function (o) {
+        o.updateMatrix();
+        const g2 = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone());
+        g2.applyMatrix4(o.matrix);
+        if (!g2.attributes.normal) g2.computeVertexNormals();
+        nVert += g2.attributes.position.count;
+        sombra = sombra || o.castShadow;
+        recebe = recebe || o.receiveShadow;
+        ordem = Math.max(ordem, o.renderOrder);
+        return g2;
+      });
+      const pos = new Float32Array(nVert * 3);
+      const nor = new Float32Array(nVert * 3);
+      const uv  = new Float32Array(nVert * 2);
+      let iv = 0;
+      for (const g2 of geos) {
+        const pa = g2.attributes.position, na = g2.attributes.normal, ua = g2.attributes.uv;
+        for (let i = 0; i < pa.count; i++) {
+          pos[(iv + i) * 3]     = pa.getX(i);
+          pos[(iv + i) * 3 + 1] = pa.getY(i);
+          pos[(iv + i) * 3 + 2] = pa.getZ(i);
+          nor[(iv + i) * 3]     = na.getX(i);
+          nor[(iv + i) * 3 + 1] = na.getY(i);
+          nor[(iv + i) * 3 + 2] = na.getZ(i);
+          if (ua) { uv[(iv + i) * 2] = ua.getX(i); uv[(iv + i) * 2 + 1] = ua.getY(i); }
+        }
+        iv += pa.count;
+        g2.dispose();
+      }
+      const geoJunta = new THREE.BufferGeometry();
+      geoJunta.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geoJunta.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+      geoJunta.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+      const malha = new THREE.Mesh(geoJunta, bloco.mat);
+      malha.castShadow = sombra; malha.receiveShadow = recebe;
+      malha.renderOrder = ordem;
+      if (bloco.det) malha.userData.detalhe = true;
+      for (const o of lista) grupo.remove(o);
+      grupo.add(malha);
+    });
+    return grupo;
   }
 
   // =====================================================================
@@ -682,7 +826,7 @@
     baseS = gerX = gerZ = gerH = gerS = 0; segAtual = null;
     centro.push({ x: 0, z: 0, h: 0, s: 0 });
     segAtual = { comp: 160, curv: 0, perc: 0 };     // começo sempre reto
-    estender(VIS_FRENTE + 240);
+    estender(ALCANCE_MARCO);
   }
 
   // subidas e descidas longas: soma de senos de comprimento de onda grande
@@ -1190,6 +1334,53 @@
     }
     return g;
   }
+  // palmeira: tronco em anéis e folhas em leque, com o miolo de cocos
+  const MAT_PALMA = new THREE.MeshStandardMaterial({ color: 0x40732c, roughness: 0.9,
+    side: THREE.DoubleSide });
+  const MAT_TRONCO_PALMA = new THREE.MeshStandardMaterial({ color: 0x7d6a4e, roughness: 0.95 });
+  const GEO_FOLHA_PALMA = (function () {
+    // a folha é um losango alongado, dobrado na nervura central
+    const g = new THREE.PlaneGeometry(0.44, 3.1, 1, 6);
+    const pos = g.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i), t = (y + 1.55) / 3.1;      // 0 na base, 1 na ponta
+      pos.setX(i, pos.getX(i) * (0.35 + Math.sin(t * Math.PI) * 0.95));
+      pos.setZ(i, -Math.pow(t, 2.1) * 1.05);            // arqueia para baixo
+    }
+    g.computeVertexNormals();
+    return g;
+  })();
+  function criaPalmeira() {
+    const g = new THREE.Group();
+    const alt = rand(5.5, 10.5), curva = rand(-0.16, 0.16);
+    const nAneis = 3;                       // menos peças: a palmeira é juntada
+    for (let i = 0; i < nAneis; i++) {
+      const t = i / (nAneis - 1);
+      const r = lerp(0.22, 0.13, t);
+      const seg = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.92, r, alt / nAneis * 1.06, 8),
+                                 MAT_TRONCO_PALMA);
+      seg.position.set(Math.sin(t * 1.6) * curva * alt, alt * (t + 0.5 / nAneis), 0);
+      seg.rotation.z = -curva * t * 1.2;
+      g.add(seg);
+    }
+    const topo = new THREE.Vector3(Math.sin(1.6) * curva * alt, alt, 0);
+    const nFolhas = 7 + (Math.random() * 2 | 0);
+    for (let i = 0; i < nFolhas; i++) {
+      const a = (i / nFolhas) * Math.PI * 2 + rand(-0.15, 0.15);
+      const f = new THREE.Mesh(GEO_FOLHA_PALMA, MAT_PALMA);
+      f.position.copy(topo);
+      f.rotation.y = a;
+      f.rotation.x = -Math.PI / 2 + rand(0.25, 0.75);   // abre em leque
+      f.scale.setScalar(rand(0.85, 1.25));
+      g.add(f);
+    }
+    const coco = new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 6), MAT_TRONCO_PALMA);
+    coco.scale.set(1, 0.8, 1);
+    coco.position.copy(topo); coco.position.y -= 0.18;
+    g.add(coco);
+    return juntaPorMaterial(g);           // tronco + folhas = 2 desenhos
+  }
+
   function criaMoita() {
     const g = new THREE.Group();
     for (let i = 0; i < 3 + (Math.random() * 3 | 0); i++) {
@@ -1276,6 +1467,12 @@
         b.rotation.y = rand(-0.4, 0.4);
         g.add(b);
         off = rand(42, 90);
+      }
+      else if (i % 3 === 1) {                         // palmeiras: clima carioca
+        g.add(criaPalmeira());
+        if (Math.random() < 0.5) g.add(criaPalmeira()).position.set(rand(-6, 6), 0, rand(-5, 5));
+        if (Math.random() < 0.6) g.add(criaVegetacaoRasteira());
+        off = rand(6, 30);
       }
       else {
         g.add(criaArvore());
@@ -2855,16 +3052,30 @@
       g.beginPath(); g.arc(128, 184, 11, 0, 7); g.fillStyle = "#16181a"; g.fill(); }
     return c;
   }
+  // brasão de rodovia federal, no estilo das placas brasileiras
+  function placaBR(numero) {
+    const c = tela(256, 256), g = c.getContext("2d");
+    g.fillStyle = "#f2f4f5"; g.fillRect(0, 0, 256, 256);
+    g.fillStyle = "#0f7a3d"; g.fillRect(10, 10, 236, 74);
+    g.fillStyle = "#f2f4f5"; g.font = "700 52px 'Segoe UI', Arial";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText("BR", 128, 49);
+    g.fillStyle = "#16181a"; g.font = "700 96px 'Segoe UI', Arial";
+    g.fillText(String(numero), 128, 168);
+    g.strokeStyle = "#16181a"; g.lineWidth = 7; g.strokeRect(10, 10, 236, 236);
+    return c;
+  }
   const TEX_PLACAS = {
     vel: textura(placaVelocidade(110)),
-    dir: textura(placaDirecao("CENTRO", 42)),
-    dir2: textura(placaDirecao("SAÍDA 14", 2)),
+    dir: textura(placaDirecao("RIO DE JANEIRO", 42)),
+    dir2: textura(placaDirecao("CORCOVADO", 6)),
+    br: textura(placaBR(101)),
     curva: textura(placaAviso(0)),
     atencao: textura(placaAviso(1))
   };
   function criaPlaca(tipo) {
     const g = new THREE.Group();
-    const alturaPoste = tipo === "dir" || tipo === "dir2" ? 3.2 : 2.6;
+    const alturaPoste = (tipo === "dir" || tipo === "dir2") ? 3.2 : 2.6;
     const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, alturaPoste, 10), MAT_POSTE_PLACA);
     poste.position.y = alturaPoste / 2; g.add(poste);
     const larg = (tipo === "dir" || tipo === "dir2") ? 2.0 : 0.8;
@@ -2883,7 +3094,7 @@
 
   const placas = [];
   (function montaPlacas() {
-    const tipos = ["vel", "dir", "curva", "vel", "dir2", "atencao"];
+    const tipos = ["vel", "dir", "curva", "br", "dir2", "atencao"];
     for (let i = 0; i < 6; i++) {
       const g = criaPlaca(tipos[i]);
       g.visible = false;
@@ -3126,6 +3337,200 @@
     tunel.paredes[1].geo.attributes.position.needsUpdate = true;
   }
 
+  // =====================================================================
+  //  MARCOS DA VOLTA AO MUNDO
+  //  Cada ponto turístico é um grupo 3D único. Ele é reposicionado no
+  //  trecho em que o piloto está (streaming: um só objeto serve para
+  //  todas as voltas) e fica escondido quando está longe. Os detalhes
+  //  miúdos desligam a distância, como no trânsito.
+  // =====================================================================
+  const marcos = [];
+  function registraMarco(id, obj, lado, off, alcance) {
+    obj.visible = false;
+    cena.add(obj);
+    const det = [];
+    obj.traverse(function (o) {
+      if (o.isMesh && o.userData.detalhe) det.push(o);
+    });
+    marcos.push({ id: id, obj: obj, lado: lado, off: off,
+                  alcance: alcance || 2600, detalhes: det, perto: null });
+  }
+  // qual trecho k tem esse destino e está mais perto do piloto
+  function trechoDoMarco(idx, sv) {
+    const L = ROTA.length, base = Math.floor(sv / COMP_TRECHO);
+    let melhor = null, dist = Infinity;
+    for (let d = -1; d <= 2; d++) {
+      const k = base + d;
+      if (k < 0 || (((k % L) + L) % L) !== idx) continue;
+      const dd = Math.abs(sDoMarco(k) - (sv + 700));
+      if (dd < dist) { dist = dd; melhor = k; }
+    }
+    return melhor;
+  }
+  function atualizaMarcos(sJogador) {
+    for (const mk of marcos) {
+      const idx = ROTA.findIndex(function (d) { return d.id === mk.id; });
+      if (idx < 0) { mk.obj.visible = false; continue; }
+      const k = trechoDoMarco(idx, sJogador);
+      if (k === null) { mk.obj.visible = false; continue; }
+      const sM = sDoMarco(k), d = sM - sJogador;
+      if (d < -500 || d > mk.alcance) { mk.obj.visible = false; continue; }
+      posMundo(sM, mk.lado * mk.off, _p1);
+      mk.obj.position.set(_p1.x, _p1.y, _p1.z);
+      mk.obj.rotation.y = _p1.h + mk.lado * 0.40;   // levemente voltado à pista
+      mk.obj.visible = true;
+      const perto = d < 1000;
+      if (mk.perto !== perto) {
+        mk.perto = perto;
+        for (const o of mk.detalhes) o.visible = perto;
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------
+  //  1. CRISTO REDENTOR — Rio de Janeiro
+  //  O morro do Corcovado com a estátua no alto: pedestal-capela,
+  //  túnica cônica, ombros, braços abertos e cabeça. As proporções
+  //  seguem a estátua real (figura ~30 m, braços ~28 m de ponta a
+  //  ponta), ampliadas para ler bem a 400 m de distância.
+  // ---------------------------------------------------------------
+  function criaCristoRedentor() {
+    const g = new THREE.Group();
+    // o morro é escuro de propósito: a 400-1500 m o que identifica o
+    // Corcovado é a silhueta recortada contra o céu, e um cinza médio
+    // se dissolveria na bruma junto com as serras do fundo
+    const MAT_ROCHA = new THREE.MeshStandardMaterial({ color: 0x4d5346, roughness: 0.97 });
+    const MAT_ROCHA_CLARA = new THREE.MeshStandardMaterial({ color: 0x6a6f60, roughness: 0.94 });
+    const MAT_MATA  = new THREE.MeshStandardMaterial({ color: 0x16300f, roughness: 0.96 });
+    const MAT_MATA_CLARA = new THREE.MeshStandardMaterial({ color: 0x28491c, roughness: 0.95 });
+    const MAT_PEDRA = new THREE.MeshStandardMaterial({ color: 0xcbc6ba, roughness: 0.78,
+      metalness: 0.04, envMap: AMBIENTE, envMapIntensity: 0.16 });
+    const MAT_PEDRA_ESC = new THREE.MeshStandardMaterial({ color: 0xa5a094, roughness: 0.84 });
+
+    // ---- morro do Corcovado: saia de mata, corpo de granito e o pico ----
+    const saia = new THREE.Mesh(ruidoNaGeometria(new THREE.ConeGeometry(240, 180, 12), 0.13), MAT_MATA);
+    saia.position.y = 52; saia.scale.set(1.08, 1, 0.9); g.add(saia);
+    // o corpo do morro é achatado num eixo e girado: um cone perfeito lê como
+    // vulcão, e o Corcovado é uma agulha de granito irregular
+    const corpoMorro = new THREE.Mesh(ruidoNaGeometria(new THREE.ConeGeometry(155, 380, 11), 0.15), MAT_MATA);
+    corpoMorro.position.y = 150; corpoMorro.scale.set(1.12, 1, 0.82);
+    corpoMorro.rotation.y = 0.6; g.add(corpoMorro);
+    const pico = new THREE.Mesh(ruidoNaGeometria(new THREE.ConeGeometry(44, 120, 9), 0.17), MAT_ROCHA);
+    pico.position.set(-8, 298, 5); pico.rotation.z = 0.05; g.add(pico);
+    // esporões laterais: quebram o triângulo e dão perfil de serra
+    [[112, 0.9, 62, 190], [-96, 2.4, 54, 150], [40, 4.2, 70, 210]].forEach(function (e) {
+      const sp = new THREE.Mesh(ruidoNaGeometria(new THREE.ConeGeometry(e[2], e[3], 8), 0.2),
+                                Math.random() < 0.6 ? MAT_MATA : MAT_ROCHA);
+      sp.position.set(Math.cos(e[1]) * Math.abs(e[0]), e[3] * 0.42, Math.sin(e[1]) * Math.abs(e[0]));
+      sp.rotation.z = (e[0] > 0 ? -1 : 1) * 0.16;
+      sp.scale.set(1, 1, 0.8);
+      g.add(sp);
+    });
+    // paredões de granito expostos: assentados na própria encosta (o raio
+    // do cone naquela altura), senão ficam flutuando ao lado do morro
+    for (let i = 0; i < 6; i++) {
+      const y = rand(90, 250);
+      const rEnc = 155 * (1 - (y + 40) / 380) * 0.9;   // raio do cone nessa altura
+      const a = rand(-1.1, 1.1);                       // face voltada à pista
+      const pared = new THREE.Mesh(new THREE.BoxGeometry(rand(26, 48), rand(50, 110), 10),
+                                   MAT_ROCHA_CLARA);
+      pared.position.set(Math.sin(a) * rEnc * 0.92, y, Math.cos(a) * rEnc * 0.92);
+      pared.rotation.set(rand(-0.12, 0.12), a, rand(-0.18, 0.18));
+      g.add(pared);
+    }
+    for (let i = 0; i < 10; i++) {                    // mata subindo a encosta
+      const a = (i / 10) * Math.PI * 2 + 0.4, r = 85 + Math.random() * 95;
+      const mata = new THREE.Mesh(ruidoNaGeometria(new THREE.SphereGeometry(1, 8, 6), 0.22),
+                                  i % 3 === 0 ? MAT_MATA_CLARA : MAT_MATA);
+      mata.scale.set(rand(30, 62), rand(14, 30), rand(30, 62));
+      mata.position.set(Math.cos(a) * r, 45 + Math.random() * 110, Math.sin(a) * r);
+      g.add(mata);
+    }
+
+    // ---- a estátua, num subgrupo para poder ser ampliada de uma vez ----
+    // Proporções da estátua real (figura 30 m, braços 28 m de ponta a
+    // ponta, pedestal 8 m), com um fator de escala para ler de longe.
+    const estatua = new THREE.Group();
+    const plataforma = new THREE.Mesh(new THREE.CylinderGeometry(18, 20, 3, 16), MAT_PEDRA_ESC);
+    plataforma.position.y = 1.5; estatua.add(plataforma);
+    const degrau = new THREE.Mesh(new THREE.CylinderGeometry(14, 15.5, 2.4, 16), MAT_PEDRA_ESC);
+    degrau.position.y = 4.2; estatua.add(degrau);
+    for (let i = 0; i < 20; i++) {                    // guarda-corpo do mirante
+      const a = (i / 20) * Math.PI * 2;
+      const bal = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.6, 1.1), MAT_PEDRA);
+      bal.position.set(Math.cos(a) * 18.2, 4.3, Math.sin(a) * 18.2);
+      bal.userData.detalhe = true; estatua.add(bal);
+    }
+    // pedestal-capela
+    const YB = 5.4;
+    const rodape = new THREE.Mesh(new THREE.BoxGeometry(10.4, 1.6, 10.4), MAT_PEDRA_ESC);
+    rodape.position.y = YB + 0.8; estatua.add(rodape);
+    const capela = new THREE.Mesh(new THREE.BoxGeometry(8.4, 10.4, 8.4), MAT_PEDRA);
+    capela.position.y = YB + 6.8; estatua.add(capela);
+    const cornija = new THREE.Mesh(new THREE.BoxGeometry(10, 1.3, 10), MAT_PEDRA);
+    cornija.position.y = YB + 12.6; estatua.add(cornija);
+    const porta = new THREE.Mesh(new THREE.BoxGeometry(2.6, 4.6, 0.6), MAT_PEDRA_ESC);
+    porta.position.set(0, YB + 4.1, 4.3); porta.userData.detalhe = true; estatua.add(porta);
+    [-1, 1].forEach(function (l) {
+      const pil = new THREE.Mesh(new THREE.BoxGeometry(1.2, 9.6, 1.2), MAT_PEDRA_ESC);
+      pil.position.set(l * 3.5, YB + 6.6, 4.2); pil.userData.detalhe = true; estatua.add(pil);
+    });
+
+    // a figura: túnica cônica, peito, ombros, braços abertos e cabeça
+    const YF = YB + 13.2;
+    const barra = new THREE.Mesh(new THREE.CylinderGeometry(6.4, 6.9, 1.8, 16), MAT_PEDRA);
+    barra.position.y = YF + 0.9; estatua.add(barra);
+    const tunica = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 6.6, 19, 16), MAT_PEDRA);
+    tunica.position.y = YF + 10; estatua.add(tunica);
+    for (let i = 0; i < 12; i++) {                    // vincos da túnica
+      const a = (i / 12) * Math.PI * 2;
+      const vin = new THREE.Mesh(new THREE.BoxGeometry(0.8, 17.5, 0.8), MAT_PEDRA_ESC);
+      vin.position.set(Math.cos(a) * 5.1, YF + 9.6, Math.sin(a) * 5.1);
+      vin.rotation.y = -a; vin.userData.detalhe = true; estatua.add(vin);
+    }
+    const peito = new THREE.Mesh(new THREE.BoxGeometry(7.6, 8.4, 4.6), MAT_PEDRA);
+    peito.position.y = YF + 23.4; estatua.add(peito);
+    const ombros = new THREE.Mesh(new THREE.BoxGeometry(11.4, 3.2, 4.8), MAT_PEDRA);
+    ombros.position.y = YF + 27.2; estatua.add(ombros);
+    [-1, 1].forEach(function (l) {                    // braços: 28 m de vão
+      const braco = new THREE.Mesh(new THREE.BoxGeometry(11.6, 2.7, 3.1), MAT_PEDRA);
+      braco.position.set(l * 11.3, YF + 26.6, 0);
+      braco.rotation.z = l * 0.05; estatua.add(braco);
+      const manga = new THREE.Mesh(new THREE.BoxGeometry(3.7, 3.8, 3.9), MAT_PEDRA);
+      manga.position.set(l * 6.6, YF + 26.9, 0); estatua.add(manga);
+      const mao = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.1, 2.8), MAT_PEDRA_ESC);
+      mao.position.set(l * 17.4, YF + 25.9, 0);
+      mao.userData.detalhe = true; estatua.add(mao);
+    });
+    const pescoco = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.9, 2.2, 10), MAT_PEDRA);
+    pescoco.position.y = YF + 29.5; estatua.add(pescoco);
+    const cabeca = new THREE.Mesh(new THREE.SphereGeometry(2.4, 14, 11), MAT_PEDRA);
+    cabeca.scale.set(1, 1.2, 1.02);
+    cabeca.position.y = YF + 32.3; estatua.add(cabeca);
+    const cabelo = new THREE.Mesh(new THREE.SphereGeometry(2.48, 14, 8, 0, Math.PI * 2, 0, 1.5), MAT_PEDRA_ESC);
+    cabelo.scale.set(1, 1.22, 1.04);
+    cabelo.position.y = YF + 32.5; cabelo.userData.detalhe = true; estatua.add(cabelo);
+    const barbaCr = new THREE.Mesh(new THREE.SphereGeometry(1.5, 10, 8), MAT_PEDRA_ESC);
+    barbaCr.scale.set(0.9, 1.1, 0.7);
+    barbaCr.position.set(0, YF + 30.6, 1.6);
+    barbaCr.userData.detalhe = true; estatua.add(barbaCr);
+
+    juntaPorMaterial(estatua);              // ~60 peças -> ~4 desenhos
+    estatua.position.y = 348;               // topo do morro
+    estatua.scale.setScalar(1.75);          // ampliada para ler a 400-1500 m
+    g.add(estatua);
+
+    // refletores do mirante, acesos à noite
+    [-1, 1].forEach(function (l) {
+      const br = criaBrilho(46, 0xfff0cc);
+      br.position.set(l * 26, 366, 20);
+      g.add(br); brilhosNoturnos.push(br);
+    });
+    juntaPorMaterial(g);                    // morro: ~30 peças -> ~4 desenhos
+    return g;
+  }
+  registraMarco("rio", criaCristoRedentor(), -1, 340, 2500);
+
   // ---- montagem e posicionamento da infraestrutura ----
   const postos = [criaPosto(), criaPosto()];
   postos.forEach(function (o) { o.visible = false; cena.add(o); });
@@ -3162,6 +3567,16 @@
       const m = new THREE.Mesh(new THREE.ConeGeometry(raio, alt, 8), matFundo);
       m.position.set((i - 4) * 1100 + rand(-260, 260), alt / 2 - 130, 1300 + rand(-260, 260));
       montanhas.add(m);
+    }
+    // morros de granito arredondados (tipo Pão de Açúcar), a silhueta que
+    // identifica o Rio no horizonte
+    const matMorro = matDistante(0x415a72, 0.34);
+    for (let i = 0; i < 6; i++) {
+      const alt = 150 + Math.random() * 180, raio = 110 + Math.random() * 90;
+      const mo = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 9), matMorro);
+      mo.scale.set(raio, alt, raio * 0.9);
+      mo.position.set((i - 2.5) * 620 + rand(-160, 160), -alt * 0.32, 260 + rand(-200, 200));
+      montanhas.add(mo);
     }
     for (let i = 0; i < 16; i++) {                    // serra da frente
       const alt = 190 + Math.random() * 320, raio = 240 + Math.random() * 300;
@@ -4302,63 +4717,10 @@
     //  Ficam de fora grupos (roda, direção), luzes, piscas, a tela do
     //  painel e os vidros dos espelhos — tudo que anima ou liga/desliga.
     // ---------------------------------------------------------------
-    (function juntaEstaticos() {
-      const juntaveis = [matAluminio, matAnodizado, matCromo, matParafuso, matPlastico,
+    juntaPorMaterial(m, [matAluminio, matAnodizado, matCromo, matParafuso, matPlastico,
                          matBorracha, matPunho, matCosta, matLuva, matLuvaCost,
                          matLuvaPalma, matLuvaDet, matJaqueta, matPele, matContato,
-                         matMotor, matTanqueLiso];
-      const porMaterial = new Map();
-      for (const o of m.children) {
-        if (!o.isMesh || o.children.length) continue;
-        if (juntaveis.indexOf(o.material) < 0) continue;
-        if (!o.geometry || !o.geometry.attributes.position) continue;
-        if (!porMaterial.has(o.material)) porMaterial.set(o.material, []);
-        porMaterial.get(o.material).push(o);
-      }
-      porMaterial.forEach(function (lista, mat) {
-        if (lista.length < 3) return;
-        let nVert = 0, sombra = false, recebe = false, ordem = 0;
-        const geos = lista.map(function (o) {
-          o.updateMatrix();
-          const g = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone());
-          g.applyMatrix4(o.matrix);
-          if (!g.attributes.normal) g.computeVertexNormals();
-          nVert += g.attributes.position.count;
-          sombra = sombra || o.castShadow;
-          recebe = recebe || o.receiveShadow;
-          ordem = Math.max(ordem, o.renderOrder);
-          return g;
-        });
-        const pos = new Float32Array(nVert * 3);
-        const nor = new Float32Array(nVert * 3);
-        const uv  = new Float32Array(nVert * 2);
-        let iv = 0;
-        for (const g of geos) {
-          const pa = g.attributes.position, na = g.attributes.normal, ua = g.attributes.uv;
-          for (let i = 0; i < pa.count; i++) {
-            pos[(iv + i) * 3]     = pa.getX(i);
-            pos[(iv + i) * 3 + 1] = pa.getY(i);
-            pos[(iv + i) * 3 + 2] = pa.getZ(i);
-            nor[(iv + i) * 3]     = na.getX(i);
-            nor[(iv + i) * 3 + 1] = na.getY(i);
-            nor[(iv + i) * 3 + 2] = na.getZ(i);
-            if (ua) { uv[(iv + i) * 2] = ua.getX(i); uv[(iv + i) * 2 + 1] = ua.getY(i); }
-          }
-          iv += pa.count;
-          g.dispose();
-        }
-        const geoJunta = new THREE.BufferGeometry();
-        geoJunta.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-        geoJunta.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
-        geoJunta.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
-        const malhaJunta = new THREE.Mesh(geoJunta, mat);
-        malhaJunta.castShadow = sombra; malhaJunta.receiveShadow = recebe;
-        malhaJunta.renderOrder = ordem;
-        malhaJunta.frustumCulled = false;
-        for (const o of lista) m.remove(o);
-        m.add(malhaJunta);
-      });
-    })();
+                         matMotor, matTanqueLiso]);
 
     // a moto e o piloto ficam na camada do cockpit: as câmeras dos espelhos
     // não desenham essa camada, então o vidro mostra só a pista atrás
@@ -4390,6 +4752,8 @@
       comecarToque: "Toque na dificuldade para começar",
       distancia: "Distância", tempo: "Tempo", velocidade: "Velocidade",
       marcha: "Marcha", batidas: "Batidas", velMax: "Vel. máxima", nitroRot: "Nitro",
+      destinoRot: "Destino", pontoRot: "Ponto turístico",
+      chegou: "Ponto turístico alcançado", proximo: "Próximo destino",
       reduza: "Reduza a marcha (Q)", aproximando: "Veículo se aproximando",
       fimTitulo: "Fim de Jogo", fimTexto: "Você bateu três vezes. A corrida terminou.",
       reiniciar: "Pressione R para pilotar de novo",
@@ -4422,6 +4786,8 @@
       comecarToque: "Tap a difficulty to start",
       distancia: "Distance", tempo: "Time", velocidade: "Speed",
       marcha: "Gear", batidas: "Crashes", velMax: "Top speed", nitroRot: "Nitro",
+      destinoRot: "Destination", pontoRot: "Landmark",
+      chegou: "Landmark reached", proximo: "Next destination",
       reduza: "Downshift (Q)", aproximando: "Vehicle approaching",
       fimTitulo: "Game Over", fimTexto: "You crashed three times. The run is over.",
       reiniciar: "Press R to ride again",
@@ -4480,7 +4846,8 @@
     marcha: 0, giro: 0, auto: true, esperaTroca: 0, combustivel: 1,
     nitro: 1, nitroAtivo: false, nitroSoando: false,
     tempo: 0, batidas: 0, invuln: 0, velMax: 0, balanco: 0,
-    tremor: 0, velMostrada: 0, proxMarca: 5000, perigo: 0, aproximando: 0
+    tremor: 0, velMostrada: 0, proxMarca: 5000, perigo: 0, aproximando: 0,
+    trecho: null, marcosFeitos: null
   };
 
   const elDist = document.getElementById("valDist");
@@ -4496,6 +4863,11 @@
   const painelNitro = document.getElementById("painelNitro");
   const chipTempo = document.getElementById("chipTempo");
   const chipClima = document.getElementById("chipClima");
+  const chipDestino = document.getElementById("chipDestino");
+  const chipPonto = document.getElementById("chipPonto");
+  const localAviso = document.getElementById("localAviso");
+  const localNome = document.getElementById("localNome");
+  const localSub = document.getElementById("localSub");
   const alertaTras = document.getElementById("alertaTras");
   const elPerigo = document.getElementById("perigo");
   const elBorrado = document.getElementById("borrado");
@@ -4504,6 +4876,37 @@
   const telaIdioma = document.getElementById("telaIdioma");
   const telaInicio = document.getElementById("telaInicio");
   const telaFim = document.getElementById("telaFim");
+
+  // ---- jornada: aviso de chegada e indicador de destino ----
+  let localTimer = 0;
+  function mostraLocal(nome, sub) {
+    localNome.textContent = nome;
+    localSub.textContent = sub;
+    localAviso.style.opacity = "1";
+    localTimer = 4.6;
+  }
+  function atualizaJornada(dt) {
+    const tr = trechoEm(jogo.s), alvo = destinoAlvo(jogo.s);
+    // entrou num trecho novo: anuncia o país/cidade
+    if (jogo.trecho !== tr.k) {
+      const primeiro = jogo.trecho === null;
+      jogo.trecho = tr.k;
+      const d = ROTA[tr.idx];
+      mostraLocal(d.local[idioma], (primeiro ? "" : T().proximo + " · ") + d.nome[idioma]);
+    }
+    // passou pelo marco: fecha o destino e segue para o próximo
+    if (jogo.marcosFeitos !== alvo.numero) {
+      if (jogo.marcosFeitos !== null) {
+        const feito = ROTA[(alvo.idx - 1 + ROTA.length) % ROTA.length];
+        mostraLocal(feito.nome[idioma], T().chegou);
+      }
+      jogo.marcosFeitos = alvo.numero;
+    }
+    if (localTimer > 0) {
+      localTimer -= dt;
+      if (localTimer <= 0) localAviso.style.opacity = "0";
+    }
+  }
 
   function atualizaHUD() {
     elDist.textContent = (jogo.dist / 1000).toFixed(2);
@@ -4521,6 +4924,12 @@
     chipTempo.textContent = nomeDaFase(ambiente.hora) + " " +
       String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0");
     chipClima.textContent = T().climas[ambiente.clima] || "";
+    const alvo = destinoAlvo(jogo.s);
+    const estreitoHUD = window.innerWidth <= 640;
+    chipDestino.textContent = (estreitoHUD ? "" : T().destinoRot + ": ") +
+                              ROTA[alvo.idx].nome[idioma];
+    chipPonto.textContent = (estreitoHUD ? "" : T().pontoRot + " ") +
+                            alvo.numero + "/" + alvo.total;
     alertaTras.style.opacity = jogo.aproximando > 0 ? "1" : "0";
     elPerigo.style.opacity = (jogo.perigo * 0.5).toFixed(2);
     elBorrado.style.opacity = (clamp((jogo.vel - 48) / 13, 0, 1) * 0.75).toFixed(2);
@@ -4815,6 +5224,8 @@
     jogo.nitro = 1; jogo.nitroAtivo = false; jogo.nitroSoando = false;
     jogo.tempo = 0; jogo.batidas = 0; jogo.invuln = 0; jogo.velMax = 0; jogo.balanco = 0;
     jogo.tremor = 0; jogo.velMostrada = 0; jogo.proxMarca = 5000; jogo.perigo = 0; jogo.aproximando = 0;
+    jogo.trecho = null; jogo.marcosFeitos = null;
+    localAviso.style.opacity = "0"; localTimer = 0;
     proxObra = 1000;
     for (const v of transito) {
       v.ativo = false; v.obj.visible = false;
@@ -4901,7 +5312,7 @@
     if (jogo.vel > jogo.velMax) jogo.velMax = jogo.vel;
     if (jogo.invuln > 0) jogo.invuln -= dt;
 
-    estender(jogo.s + VIS_FRENTE + 240);
+    estender(jogo.s + ALCANCE_MARCO);      // alcance p/ posicionar os marcos
     const descarte = Math.floor((jogo.s - 140 - baseS) / PASSO);
     if (descarte > 60) { centro.splice(0, descarte); baseS += descarte * PASSO; }
 
@@ -5402,6 +5813,7 @@
       verificaColisoes();
       resolveSolidos();
       avaliaEntorno(dt);
+      atualizaJornada(dt);
       atualizaHUD();
       if (avisoTimer > 0) { avisoTimer -= dt; if (avisoTimer <= 0) aviso.style.opacity = "0"; }
     } else if (estado === ESTADO.INICIO) {
@@ -5414,6 +5826,7 @@
     atualizaPista(jogo.s);
     atualizaCenario(jogo.s, dt);
     atualizaMataDistante(jogo.s);
+    atualizaMarcos(jogo.s);
     atualizaInfra(jogo.s);
     domo.position.copy(grupoMoto.position);
     skyline.position.set(grupoMoto.position.x - 2100, grupoMoto.position.y - 20, grupoMoto.position.z + 2600);
@@ -5471,7 +5884,8 @@
   grupoMoto.visible = false; camCubo.update(renderer, cena); grupoMoto.visible = true;
   document.getElementById("carregando").style.display = "none";
 
-  window.__depuracao = { telaPainel: telaPainel, jogo: jogo, teclas: teclas, transito: transito, cones: cones, TIPOS: TIPOS, ambiente: ambiente, som: som, renderer: renderer, cena: cena, grupoMoto: grupoMoto,
+  window.__camDbg = camera;
+  window.__depuracao = { marcos: marcos, ROTA: ROTA, telaPainel: telaPainel, jogo: jogo, teclas: teclas, transito: transito, cones: cones, TIPOS: TIPOS, ambiente: ambiente, som: som, renderer: renderer, cena: cena, grupoMoto: grupoMoto,
                          nivel: function () { return nivel; }, idioma: function () { return idioma; },
                          curvatura: curvaturaEm,
                          direcaoMoto: function () { return grupoDirecao ? +grupoDirecao.rotation.y.toFixed(3) : null; } };

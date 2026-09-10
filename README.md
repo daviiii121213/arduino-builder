@@ -3,6 +3,51 @@
 Jogo 3D de moto em **primeira pessoa**, jogado direto no navegador. Todo o jogo
 (HUD, mensagens e instruções) está em **português do Brasil**.
 
+## Volta ao mundo (em construção)
+
+A rodovia é dividida em **trechos**, um por ponto turístico, e o ciclo se
+repete para sempre: passado o último destino a estrada continua naturalmente
+para o primeiro, sem teleporte e sem fim de jogo. Distância e tempo seguem
+correndo — só o contador de destinos volta para 1.
+
+| | |
+|---|---|
+| Trecho | 5.200 m de rodovia por destino |
+| Marco | a 3.400 m do início do trecho |
+| Contador | `1/N → 2/N → … → 1/N`, indefinidamente |
+
+A tabela `DESTINOS` já nomeia os cinco pontos na ordem pedida (Cristo Redentor,
+Torre Eiffel, Estátua da Liberdade, Muralha da China, Pirâmides de Gizé), mas
+só os marcados `pronto: true` entram na rota. **Hoje só o Cristo Redentor está
+construído**, então o ciclo é `1/1`; cada novo marco 3D passa a valer sozinho,
+sem mexer no resto.
+
+### Cristo Redentor — Rio de Janeiro
+
+- **Morro do Corcovado** em geometria 3D: saia de mata, corpo verde achatado e
+  girado (um cone perfeito lê como vulcão), pico de granito, três esporões que
+  quebram o triângulo e paredões de rocha assentados no raio da própria
+  encosta.
+- **A estátua** com as proporções da real (figura de 30 m, braços de 28 m de
+  vão, pedestal-capela de 8 m), ampliada 1,75× para ler entre 400 e 1.500 m:
+  plataforma do mirante com guarda-corpo, capela com pilastras e porta, túnica
+  cônica com vincos, peito, ombros, braços abertos com mangas e mãos, pescoço,
+  cabeça, cabelo e barba. Refletores acendem à noite.
+- **Aproximação**: o marco é reposicionado no trecho atual (um só objeto serve
+  para todas as voltas) e some além de 2,5 km; os detalhes miúdos desligam
+  depois de 1 km. A névoa da cena faz a perspectiva atmosférica — ele nasce
+  como silhueta na bruma e vai ganhando corpo.
+- **Clima carioca na beira da pista**: palmeiras com tronco em anéis e folhas
+  em leque, morros de granito arredondados no horizonte (silhueta tipo Pão de
+  Açúcar), placa verde apontando "RIO DE JANEIRO 42 km", saída para o
+  "CORCOVADO" e brasão "BR 101".
+- **HUD**: dois chips novos na faixa de informação — `DESTINO: CRISTO REDENTOR`
+  e `PONTO TURÍSTICO 1/1` — e um aviso temporário "RIO DE JANEIRO — BRASIL" ao
+  entrar no trecho, que sai depois de ~4,5 s. Nada interrompe a pilotagem.
+- **Custo**: as peças estáticas do morro e da estátua são juntadas por material
+  na inicialização (~90 malhas viram 9), e a palmeira virou 2 desenhos. Com o
+  marco em cena o jogo desenha ~1.500 chamadas, abaixo de onde estava antes.
+
 ## Idioma e dificuldade
 
 Ao abrir, o jogo pergunta o idioma — **Selecione o idioma / Select the language** —
