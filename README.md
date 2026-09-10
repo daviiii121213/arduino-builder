@@ -137,6 +137,49 @@ sintetizadas emprestadas aos veículos mais perto do jogador, com:
   ganhou bezel de borracha com quatro parafusos e um suporte em L que sai da
   mesa — o painel deixou de flutuar na frente do piloto.
 
+## A moto vista do piloto
+
+Detalhamento no nível de uma moto de produção, com a construção montada na
+ordem certa (fundido -> coxim -> carcaça -> moldura -> tela -> lente):
+
+- **Punho** de revolução de verdade (flange interna, cintura onde a mão fecha,
+  ressalto na ponta), com textura de borracha: nervuras longitudinais, faixa de
+  losangos no miolo e brilho de desgaste onde a palma encosta. Ao lado, o tubo
+  do acelerador, ponteira, anel cromado, contrapeso e o parafuso de fixação.
+- **Manete** com lâmina afinando para fora, ponta enrolada, nervura de reforço
+  por baixo e o braço até o pivô. O perch é um corpo fundido com meia-lua de
+  aperto e dois parafusos, pivô com porca, regulador com dial sextavado e
+  oclusão no encaixe.
+- **Freio e embreagem separados**: à direita o cilindro-mestre com reservatório,
+  tampa, visor e mangueira trançada descendo para a pinça; à esquerda o
+  regulador e a coifa do cabo.
+- **Caixa de comandos** em duas metades com costura visível e parafuso por
+  baixo: seta, buzina e comutador de farol à esquerda; chave de emergência,
+  botão de partida e alerta à direita. De cada uma saem dois cabos presos ao
+  tubo por abraçadeiras, com engate no fim.
+- **Coluna de direção**: mesa, tampas dos garfos com anel de vedação e
+  regulador sextavado, parafusos de aperto, porca da coluna, capa pintada na
+  cor da moto, ignição com aro cromado, chave e argola.
+- **Painel** com carcaça emborrachada, costas nervuradas, conector do chicote,
+  moldura com quatro parafusos, pestana com lábio de borracha, lente de
+  acrílico com risco de luz e um suporte fundido com orelhas, coxins e
+  parafusos saindo da mesa. O chicote desce por trás pela coluna.
+- **Retrovisores** com casca convexa, anel de espessura, aro de borracha e
+  filete cromado; haste em dois trechos com dobra, base rosqueada e
+  contraporca.
+- **Mãos**: dorso e canhão em couro costurado (textura com grão e pesponto),
+  dedos em duas falanges com nós salientes sob capa rígida, juntas
+  arredondadas, polegar por baixo e sombra de contato na borracha.
+- **Separação de material**: alumínio escovado, anodizado escuro, cromo,
+  parafuso, plástico, borracha, couro, pele e pintura — os metais usam mapa de
+  rugosidade escovado e a pintura do tanque ganhou riscos finos, nuvens de
+  verniz e mapa de rugosidade próprio.
+- **Custo controlado**: o cockpit está sempre na tela, então as peças que não
+  se mexem e dividem material são juntadas numa malha só na inicialização
+  (ficam de fora rodas, direção, luzes, piscas, a tela e os vidros dos
+  espelhos). Isso devolveu ~280 chamadas de desenho das ~300 que o
+  detalhamento custou.
+
 ## Polimento visual
 
 - **Freio a disco em todas as rodas**: disco embutido dentro do aro e pinça do lado
