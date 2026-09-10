@@ -52,6 +52,20 @@ pressione **ENTER** para começar.
 | `S` | Liga / desliga o som |
 | `R` | Reinicia a corrida após o fim de jogo |
 
+## Profundidade e horizonte
+
+- **Perspectiva atmosférica em camadas**: duas serras (a de fundo mais alta, a
+  ~3,7 km, e a da frente a ~2,4 km), uma faixa de mata a 300–1300 m, o skyline
+  da cidade e as colinas próximas. Cada camada tem a própria dose de bruma, e a
+  cor é remisturada por quadro com a cor do horizonte do momento — de manhã
+  ficam azuladas, no pôr do sol alaranjadas, à noite quase pretas.
+- **Asfalto**: textura de 1024x2048 cobrindo 36 m (era 24 m), com variação de
+  tom em grande escala, agregado fino e grãos expostos, estrias no sentido da
+  pista, faixas de recapeamento com borda esfumaçada e costura serpenteante,
+  juntas transversais, trilhas de rodagem, óleo pingado no eixo das faixas,
+  trincas ramificadas, panelas rasas, terra soprada no acostamento e tinta com
+  desgaste e lascas.
+
 ## Mundo vivo
 
 - **Ciclo de dia e noite completo** (~7 min por volta): madrugada, amanhecer, manhã,
@@ -91,6 +105,37 @@ sintetizadas emprestadas aos veículos mais perto do jogador, com:
   do freio a ar;
 - **whoosh de ultrapassagem** com peso por classe: curto e agudo na moto, longo e
   grave na carreta.
+
+## Cockpit em primeira pessoa
+
+- **Retrovisores limpos**: cada espelho renderiza a pista atrás de verdade, em
+  alvo de 384x232, com aro de borracha, filete cromado e um risco de luz no
+  vidro. A carcaça é girada 0,4 rad, então tudo que vai na frente dela é
+  deslocado ao longo da **normal da face** — deslocar só em Z fazia o meio da
+  carcaça furar o vidro e virar uma mancha escura no reflexo.
+- **A moto e o piloto ficam numa camada só do cockpit**, que as câmeras dos
+  espelhos não desenham: o vidro mostra a estrada, nunca o próprio piloto.
+  O farol continua na camada da pista, para iluminar o asfalto à noite.
+- **Mãos com anatomia**: dorso, palma, punho de couro com velcro, quatro dedos
+  em duas falanges cada, nós salientes com capa rígida, juntas arredondadas e
+  polegar passando por baixo. Índice e médio pousam sobre o manete (freio à
+  direita, embreagem à esquerda) e os outros dois fecham no punho.
+- **Sombra de contato** onde a mão aperta a borracha e onde a palma encosta,
+  para a mão não parecer flutuando em volta do punho.
+- **Braços**: ombreira, manga com costura, cotoveleira rígida, punho da jaqueta
+  e antebraço de pele saindo por dentro da manga.
+- **Comandos completos**: perch com pivô e regulador, lâmina do manete, cilindro
+  mestre com reservatório, tampa, visor e mangueira de freio trançada à direita;
+  regulador e coifa da embreagem à esquerda; caixa de comandos em duas metades
+  com seta, buzina, comutador de farol, chave de emergência, botão de partida e
+  alerta; cabos com abraçadeira; contrapeso e ponteira de guidão.
+- **Três leituras de metal**: alumínio acetinado, anodizado escuro e cromo, com
+  `envMapIntensity` baixo — o mapa de ambiente é o céu claro, e valores altos
+  deixavam guidão e manetes brancos.
+- **Painel integrado**: textura de 1024x512 (o dobro), números maiores,
+  marcações no conta-giros, moldura interna, reflexo de vidro e vinheta. O pod
+  ganhou bezel de borracha com quatro parafusos e um suporte em L que sai da
+  mesa — o painel deixou de flutuar na frente do piloto.
 
 ## Polimento visual
 
