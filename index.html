@@ -574,24 +574,42 @@
   //  malhas marcadas com userData.detalhe são juntadas à parte, para
   //  continuarem podendo ser desligadas a distância.
   // =====================================================================
-  function juntaPorMaterial(grupo, permitido) {
+  const _invJunta = new THREE.Matrix4();
+  function juntaPorMaterial(grupo, permitido, recursivo) {
     const grupos = new Map();
-    for (const o of grupo.children) {
-      if (!o.isMesh || o.children.length) continue;
-      if (!o.geometry || !o.geometry.attributes.position) continue;
+    // alvos: filhos diretos, ou toda a subárvore quando `recursivo` — nesse
+    // caso a matriz usada é a do objeto relativa à raiz da junção
+    const alvos = [];
+    if (recursivo) {
+      grupo.updateMatrixWorld(true);
+      _invJunta.copy(grupo.matrixWorld).invert();
+      grupo.traverse(function (o) {
+        if (o === grupo || !o.isMesh || !o.geometry || !o.geometry.attributes.position) return;
+        alvos.push({ o: o, m: new THREE.Matrix4().multiplyMatrices(_invJunta, o.matrixWorld) });
+      });
+    } else {
+      for (const o of grupo.children) {
+        if (!o.isMesh || o.children.length) continue;
+        if (!o.geometry || !o.geometry.attributes.position) continue;
+        o.updateMatrix();
+        alvos.push({ o: o, m: o.matrix });
+      }
+    }
+    for (const alvo of alvos) {
+      const o = alvo.o;
       if (permitido && permitido.indexOf(o.material) < 0) continue;
       const chave = (o.userData.detalhe ? "d" : "n") + "|" + o.material.uuid;
       if (!grupos.has(chave)) grupos.set(chave, { mat: o.material, det: !!o.userData.detalhe, lista: [] });
-      grupos.get(chave).lista.push(o);
+      grupos.get(chave).lista.push(alvo);
     }
     grupos.forEach(function (bloco) {
       const lista = bloco.lista;
       if (lista.length < 3) return;
       let nVert = 0, sombra = false, recebe = false, ordem = 0;
-      const geos = lista.map(function (o) {
-        o.updateMatrix();
+      const geos = lista.map(function (alvo) {
+        const o = alvo.o;
         const g2 = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone());
-        g2.applyMatrix4(o.matrix);
+        g2.applyMatrix4(alvo.m);
         if (!g2.attributes.normal) g2.computeVertexNormals();
         nVert += g2.attributes.position.count;
         sombra = sombra || o.castShadow;
@@ -625,7 +643,7 @@
       malha.castShadow = sombra; malha.receiveShadow = recebe;
       malha.renderOrder = ordem;
       if (bloco.det) malha.userData.detalhe = true;
-      for (const o of lista) grupo.remove(o);
+      for (const alvo of lista) if (alvo.o.parent) alvo.o.parent.remove(alvo.o);
       grupo.add(malha);
     });
     return grupo;
@@ -1031,10 +1049,35 @@
       g.ellipse(Math.random() * 512, Math.random() * 512, 30 + Math.random() * 90, 24 + Math.random() * 70, Math.random() * 3, 0, Math.PI * 2);
       g.fill();
     }
+    // manchas largas e desfocadas: quebram a leitura de tapete verde uniforme
+    // e, por serem maiores que o ladrilho aparente, escondem a repetição
+    g.filter = "blur(22px)";
+    for (let i = 0; i < 10; i++) {
+      const t = Math.random();
+      g.fillStyle = t < 0.5 ? "rgba(104,133,62,.42)" : t < 0.82 ? "rgba(137,152,78,.34)" : "rgba(74,99,46,.4)";
+      g.beginPath();
+      g.ellipse(Math.random() * 512, Math.random() * 512, 90 + Math.random() * 150, 70 + Math.random() * 130,
+                Math.random() * 3, 0, Math.PI * 2);
+      g.fill();
+    }
+    // clareiras de terra seca — pasto gasto, trilha de gado, solo exposto
+    for (let i = 0; i < 7; i++) {
+      g.fillStyle = Math.random() < 0.5 ? "rgba(146,120,80,.3)" : "rgba(122,104,72,.26)";
+      g.beginPath();
+      g.ellipse(Math.random() * 512, Math.random() * 512, 24 + Math.random() * 62, 18 + Math.random() * 48,
+                Math.random() * 3, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.filter = "none";
     for (let i = 0; i < 26000; i++) {
       const t = Math.random();
       g.fillStyle = t < 0.4 ? "rgba(129,159,74,.55)" : t < 0.75 ? "rgba(84,110,50,.5)" : "rgba(162,178,92,.4)";
       g.fillRect(Math.random() * 512, Math.random() * 512, 2, 3);
+    }
+    // fiapos secos por cima: palha caída que a grama viva sozinha não dá
+    for (let i = 0; i < 3000; i++) {
+      g.fillStyle = Math.random() < 0.6 ? "rgba(168,150,96,.34)" : "rgba(190,178,120,.26)";
+      g.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
     }
     return c;
   }
@@ -1270,10 +1313,13 @@
   const GEO_COPA = [0, 1, 2].map(function () {
     return ruidoNaGeometria(new THREE.IcosahedronGeometry(1, 2), 0.22);
   });
-  const MAT_FOLHA = [0x3f6b2c, 0x4a7d33, 0x355f27, 0x578a38].map(function (c) {
+  const MAT_FOLHA = [0x3f6b2c, 0x4a7d33, 0x355f27, 0x578a38,
+                     0x2c5520, 0x69963f, 0x44712b, 0x5c8a30].map(function (c) {
     return new THREE.MeshStandardMaterial({ color: c, roughness: 0.92, metalness: 0, flatShading: false });
   });
   const MAT_TRONCO = new THREE.MeshStandardMaterial({ color: 0x6a4c33, roughness: 0.95 });
+  const MAT_TRONCO_SECO = new THREE.MeshStandardMaterial({ color: 0x8a7a63, roughness: 0.97 });
+  const MAT_PEDRA_MATO = new THREE.MeshStandardMaterial({ color: 0x7b7a72, roughness: 0.96 });
   const MAT_MOITA  = new THREE.MeshStandardMaterial({ color: 0x466f2b, roughness: 0.95 });
 
   const CORES_FLOR = [0xf2e14c, 0xe8f0f2, 0xdc6ea8, 0xe0803c, 0xb46ad6];
@@ -1310,30 +1356,113 @@
   const GEO_TUFO = new THREE.PlaneGeometry(1.5, 1.1);
 
 
+  // sombra de contato: mancha escura no pé de cada planta, para nada
+  // parecer apoiado no nada. O cenário é montado antes dos veículos, então
+  // tem a própria textura de sombra.
+  const MAT_SOMBRA_VEG = new THREE.MeshBasicMaterial({
+    map: textura((function () {
+      const c = tela(64, 64), g = c.getContext("2d");
+      const gr = g.createRadialGradient(32, 32, 2, 32, 32, 31);
+      gr.addColorStop(0, "rgba(0,0,0,.55)");
+      gr.addColorStop(0.5, "rgba(0,0,0,.26)");
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+      return c;
+    })()), transparent: true, depthWrite: false, opacity: 0.8, fog: true });
+  const GEO_SOMBRA_VEG = new THREE.PlaneGeometry(1, 1);
+  function poeSombraVeg(g, raio, x, z) {
+    const s2 = new THREE.Mesh(GEO_SOMBRA_VEG, MAT_SOMBRA_VEG);
+    s2.rotation.x = -Math.PI / 2;
+    s2.scale.setScalar(raio * 2.2);
+    s2.position.set(x || 0, 0.06, z || 0);
+    s2.renderOrder = 1;
+    g.add(s2);
+  }
+  // tronco com afinamento e leve inclinação, em dois trechos
+  function troncoDe(g, alt, raioBase, inclina) {
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(raioBase * 0.72, raioBase, alt * 0.55, 9), MAT_TRONCO);
+    base.position.set(0, alt * 0.275, 0);
+    base.rotation.z = inclina * 0.4;
+    base.castShadow = true; g.add(base);
+    const topo = new THREE.Mesh(
+      new THREE.CylinderGeometry(raioBase * 0.42, raioBase * 0.72, alt * 0.5, 8), MAT_TRONCO);
+    topo.position.set(Math.sin(inclina) * alt * 0.25, alt * 0.76, 0);
+    topo.rotation.z = inclina;
+    topo.castShadow = true; g.add(topo);
+    return new THREE.Vector3(Math.sin(inclina) * alt * 0.42, alt, 0);
+  }
+  // quatro espécies com silhuetas distintas, para a beira da pista não
+  // virar a mesma árvore repetida a cada 20 m
   function criaArvore() {
     const g = new THREE.Group();
-    const alt = rand(3.6, 7.2), raio = rand(1.7, 3.1);
-    const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.14 * raio, 0.30 * raio, alt, 12), MAT_TRONCO);
-    tronco.position.y = alt / 2;
-    g.add(tronco);
-    const nCopas = 2 + (Math.random() * 2 | 0);
-    for (let i = 0; i < nCopas; i++) {
-      const c = new THREE.Mesh(escolha(GEO_COPA), escolha(MAT_FOLHA));
-      const e = raio * rand(0.55, 1.0);
-      c.position.set(rand(-0.5, 0.5) * raio, alt * rand(0.78, 1.12) + i * 0.16, rand(-0.5, 0.5) * raio);
-      c.scale.set(e, e * rand(0.72, 0.95), e);
-      c.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
-      g.add(c);
+    const especie = Math.random();
+    if (especie < 0.34) {                              // ---- copa redonda ----
+      const alt = rand(4.2, 7.4), raio = rand(1.9, 3.2);
+      const topo = troncoDe(g, alt, 0.19 * raio, rand(-0.12, 0.12));
+      const nCopas = 3 + (Math.random() * 3 | 0);
+      for (let i = 0; i < nCopas; i++) {
+        const c = new THREE.Mesh(escolha(GEO_COPA), escolha(MAT_FOLHA));
+        const e = raio * rand(0.5, 0.95);
+        c.position.set(topo.x + rand(-0.6, 0.6) * raio, alt * rand(0.9, 1.18),
+                       rand(-0.6, 0.6) * raio);
+        c.scale.set(e, e * rand(0.7, 0.95), e);
+        c.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+        c.castShadow = true; g.add(c);
+      }
+      for (let i = 0; i < 2; i++) {                    // galhos saindo do tronco
+        const b = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.09, alt * 0.4, 6), MAT_TRONCO);
+        b.position.set(topo.x + rand(-0.4, 0.4), alt * rand(0.62, 0.8), rand(-0.4, 0.4));
+        b.rotation.z = rand(-0.7, 0.7); b.rotation.x = rand(-0.7, 0.7);
+        g.add(b);
+      }
+      poeSombraVeg(g, raio * 0.85, topo.x * 0.5, 0);
+    } else if (especie < 0.62) {                       // ---- conífera ----
+      const alt = rand(6.0, 10.5), raio = rand(1.3, 2.2);
+      const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.22, alt * 0.35, 8), MAT_TRONCO);
+      tr.position.y = alt * 0.175; tr.castShadow = true; g.add(tr);
+      const nAndar = 4 + (Math.random() * 2 | 0);
+      const matC = escolha(MAT_FOLHA);
+      for (let i = 0; i < nAndar; i++) {
+        const t = i / nAndar;
+        const cone = new THREE.Mesh(
+          new THREE.ConeGeometry(raio * (1 - t * 0.68), alt * 0.34, 8), matC);
+        cone.position.set(rand(-0.06, 0.06), alt * (0.28 + t * 0.62), rand(-0.06, 0.06));
+        cone.rotation.y = Math.random() * 3;
+        cone.castShadow = true; g.add(cone);
+      }
+      poeSombraVeg(g, raio * 0.8, 0, 0);
+    } else if (especie < 0.86) {                       // ---- esguia (eucalipto) ----
+      const alt = rand(7.5, 12.5), raio = rand(1.1, 1.9);
+      const topo = troncoDe(g, alt, 0.15 * raio, rand(-0.16, 0.16));
+      for (let i = 0; i < 4; i++) {
+        const c = new THREE.Mesh(escolha(GEO_COPA), escolha(MAT_FOLHA));
+        const e = raio * rand(0.45, 0.8);
+        c.position.set(topo.x + rand(-0.5, 0.5) * raio, alt * rand(0.82, 1.1),
+                       rand(-0.5, 0.5) * raio);
+        c.scale.set(e, e * rand(1.0, 1.5), e);
+        c.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+        c.castShadow = true; g.add(c);
+      }
+      poeSombraVeg(g, raio * 0.7, topo.x * 0.5, 0);
+    } else {                                            // ---- seca, sem folha ----
+      const alt = rand(3.4, 5.6);
+      const matSeco = MAT_TRONCO_SECO;
+      const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.24, alt, 7), matSeco);
+      tr.position.y = alt / 2; tr.rotation.z = rand(-0.1, 0.1);
+      tr.castShadow = true; g.add(tr);
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 + rand(-0.4, 0.4);
+        const b = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.07, alt * rand(0.4, 0.7), 5), matSeco);
+        b.position.set(Math.cos(a) * 0.3, alt * rand(0.6, 0.88), Math.sin(a) * 0.3);
+        b.rotation.set(rand(-0.9, 0.9), 0, rand(-0.9, 0.9));
+        g.add(b);
+      }
+      poeSombraVeg(g, 0.9, 0, 0);
     }
-    // galho visível
-    for (let i = 0; i < 1; i++) {
-      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.10, alt * 0.45, 7), MAT_TRONCO);
-      b.position.set(rand(-0.4, 0.4), alt * 0.72, rand(-0.4, 0.4));
-      b.rotation.z = rand(-0.6, 0.6); b.rotation.x = rand(-0.6, 0.6);
-      g.add(b);
-    }
-    return g;
+    return juntaPorMaterial(g);
   }
+
   // palmeira: tronco em anéis e folhas em leque, com o miolo de cocos
   const MAT_PALMA = new THREE.MeshStandardMaterial({ color: 0x40732c, roughness: 0.9,
     side: THREE.DoubleSide });
@@ -1383,27 +1512,99 @@
 
   function criaMoita() {
     const g = new THREE.Group();
-    for (let i = 0; i < 3 + (Math.random() * 3 | 0); i++) {
-      const b = new THREE.Mesh(escolha(GEO_COPA), MAT_MOITA);
-      const e = rand(0.5, 1.05);
-      b.position.set(rand(-1, 1), e * 0.62, rand(-1, 1));
-      b.scale.set(e, e * 0.72, e);
+    const n = 3 + (Math.random() * 3 | 0);
+    for (let i = 0; i < n; i++) {
+      const b = new THREE.Mesh(escolha(GEO_COPA), Math.random() < 0.3 ? escolha(MAT_FOLHA) : MAT_MOITA);
+      const e = rand(0.45, 1.15);
+      b.position.set(rand(-1.2, 1.2), e * 0.58, rand(-1.2, 1.2));
+      b.scale.set(e, e * rand(0.55, 0.85), e * rand(0.85, 1.15));
+      b.rotation.y = Math.random() * 3;
       g.add(b);
     }
-    return g;
+    poeSombraVeg(g, 1.1, 0, 0);
+    return juntaPorMaterial(g);
+  }
+  // pedras e um tronco caído: quebram a repetição do mato
+  function criaPedras() {
+    const g = new THREE.Group();
+    for (let i = 0; i < 2 + (Math.random() * 3 | 0); i++) {
+      const r = new THREE.Mesh(ruidoNaGeometria(new THREE.IcosahedronGeometry(1, 0), 0.3),
+                               MAT_PEDRA_MATO);
+      const e = rand(0.28, 0.95);
+      r.position.set(rand(-2.2, 2.2), e * 0.42, rand(-2.2, 2.2));
+      r.scale.set(e, e * rand(0.5, 0.85), e * rand(0.8, 1.3));
+      r.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+      r.castShadow = true;
+      g.add(r);
+    }
+    if (Math.random() < 0.45) {                       // tronco caído
+      const comp = rand(2.2, 4.4);
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.24, comp, 7), MAT_TRONCO_SECO);
+      t.rotation.z = Math.PI / 2; t.rotation.y = Math.random() * 3;
+      t.position.set(rand(-1.5, 1.5), 0.2, rand(-1.5, 1.5));
+      t.castShadow = true; g.add(t);
+    }
+    return juntaPorMaterial(g);
   }
   function criaVegetacaoRasteira() {
     const g = new THREE.Group();
-    for (let i = 0; i < 3; i++) {
+    const n = 3 + (Math.random() * 3 | 0);
+    for (let i = 0; i < n; i++) {
       const t = new THREE.Mesh(GEO_TUFO, escolha(MAT_TUFO));
-      t.position.set(rand(-4, 4), 0.5, rand(-4, 4));
+      t.position.set(rand(-4.5, 4.5), 0.5 * rand(0.7, 1.5), rand(-4.5, 4.5));
       t.rotation.y = Math.random() * Math.PI;
-      t.scale.setScalar(rand(0.7, 1.5));
+      t.scale.setScalar(rand(0.6, 1.7));
       g.add(t);
       const t2 = t.clone(); t2.rotation.y += Math.PI / 2; g.add(t2);
     }
-    return g;
+    return juntaPorMaterial(g);
   }
+  // Um "ponto de cenário" deixa de ser uma árvore solitária e passa a ser
+  // uma touceira: duas ou três árvores de espécies diferentes, arbustos,
+  // pedras e capim. Tudo é juntado numa malha por material no fim, então a
+  // beira da pista fica muito mais cheia pelo mesmo custo de desenho.
+  function criaTouceira() {
+    const g = new THREE.Group();
+    const nArv = 1 + (Math.random() * 3 | 0);
+    for (let i = 0; i < nArv; i++) {
+      const a = criaArvore();
+      a.position.set(rand(-8, 8), 0, rand(-7, 7));
+      a.scale.setScalar(rand(0.68, 1.25));
+      a.rotation.y = Math.random() * 6.28;
+      g.add(a);
+    }
+    for (let i = 0; i < 1 + (Math.random() * 3 | 0); i++) {
+      const mo = criaMoita();
+      mo.position.set(rand(-9, 9), 0, rand(-8, 8));
+      mo.scale.setScalar(rand(0.7, 1.4));
+      g.add(mo);
+    }
+    for (let i = 0; i < 2 + (Math.random() * 2 | 0); i++) {
+      const r = criaVegetacaoRasteira();
+      r.position.set(rand(-9, 9), 0, rand(-8, 8));
+      g.add(r);
+    }
+    if (Math.random() < 0.55) {
+      const pe = criaPedras();
+      pe.position.set(rand(-8, 8), 0, rand(-7, 7));
+      g.add(pe);
+    }
+    return juntaPorMaterial(g, null, true);
+  }
+  // faixa de capim alto colada na defensa, dos dois lados da pista
+  function criaBeiraCapim() {
+    const g = new THREE.Group();
+    for (let i = 0; i < 14; i++) {
+      const t = new THREE.Mesh(GEO_TUFO, escolha(MAT_TUFO));
+      t.position.set(rand(-1.6, 1.6), rand(0.34, 0.62), -10 + i * 1.5 + rand(-0.5, 0.5));
+      t.rotation.y = Math.random() * Math.PI;
+      t.scale.setScalar(rand(0.5, 1.1));
+      g.add(t);
+      const t2 = t.clone(); t2.rotation.y += Math.PI / 2; g.add(t2);
+    }
+    return juntaPorMaterial(g, null, true);
+  }
+
   const MAT_LAMPADA = new THREE.MeshStandardMaterial({
     color: 0xf6f1de, emissive: 0xffe9b0, emissiveIntensity: 0.0, roughness: 0.3
   });
@@ -1452,13 +1653,15 @@
 
   const cenario = [];
   (function montaCenario() {
-    for (let i = 0; i < 68; i++) {
+    for (let i = 0; i < 84; i++) {
       const g = new THREE.Group();
       const tipo = i % 7;
-      let off;
-      if (tipo === 0) { g.add(criaPosteLuz()); off = 3.4; }
-      else if (tipo === 3) { g.add(criaMoita()); g.add(criaVegetacaoRasteira()); off = rand(2.5, 9); }
-      else if (tipo === 6) { g.add(criaColina()); off = rand(46, 120); }
+      let off, especie = "arvore";
+      if (tipo === 0) { g.add(criaPosteLuz()); off = 3.4; especie = "poste"; }
+      else if (tipo === 3) {                          // capim colado na defensa
+        g.add(criaBeiraCapim()); off = rand(1.2, 4.5); especie = "beira";
+      }
+      else if (tipo === 6) { g.add(criaColina()); off = rand(46, 120); especie = "colina"; }
       else if (tipo === 4 && i % 14 === 4) {          // casas, celeiros e galpões
         const q = Math.random();
         const b = q < 0.4 ? criaGalpao(0xe0d7c4, 9, 4.2, 8)
@@ -1466,22 +1669,22 @@
                 : criaGalpao(0xc9ccd0, 20, 7, 14);
         b.rotation.y = rand(-0.4, 0.4);
         g.add(b);
-        off = rand(42, 90);
+        off = rand(42, 90); especie = "predio";
       }
       else if (i % 3 === 1) {                         // palmeiras: clima carioca
-        g.add(criaPalmeira());
-        if (Math.random() < 0.5) g.add(criaPalmeira()).position.set(rand(-6, 6), 0, rand(-5, 5));
-        if (Math.random() < 0.6) g.add(criaVegetacaoRasteira());
+        const pal = new THREE.Group();
+        pal.add(criaPalmeira());
+        if (Math.random() < 0.6) {
+          const p2 = criaPalmeira();
+          p2.position.set(rand(-7, 7), 0, rand(-6, 6));
+          p2.scale.setScalar(rand(0.8, 1.15)); pal.add(p2);
+        }
+        if (Math.random() < 0.7) pal.add(criaVegetacaoRasteira());
+        if (Math.random() < 0.5) pal.add(criaMoita());
+        g.add(juntaPorMaterial(pal, null, true));
         off = rand(6, 30);
       }
-      else {
-        g.add(criaArvore());
-        if (Math.random() < 0.55) g.add(criaVegetacaoRasteira());
-        if (Math.random() < 0.5) { const m = criaMoita(); m.position.set(rand(-4, 4), 0, rand(-3, 3)); g.add(m); }
-        off = rand(5, 34);
-      }
-      const especie = tipo === 0 ? "poste" : tipo === 3 ? "moita" : tipo === 6 ? "colina"
-                    : (tipo === 4 && i % 14 === 4) ? "predio" : "arvore";
+      else { g.add(criaTouceira()); off = rand(5, 34); }
       g.userData = { s: i * 22 + rand(-7, 7), lado: i % 2 === 0 ? -1 : 1, off: off,
                      especie: especie, base: off, fase: Math.random() * 6.28 };
       cena.add(g);
@@ -1505,15 +1708,16 @@
       let mostra = true;
       if (d.especie === "arvore") mostra = (d.s % 100) / 100 < reg.arvores;
       else if (d.especie === "predio") mostra = reg.predios > 0.3;
-      else if (d.especie === "moita") mostra = (d.s % 70) / 70 < reg.moitas;
+      else if (d.especie === "beira") mostra = (d.s % 70) / 70 < reg.moitas * 1.2;
       g.visible = mostra;
       if (!mostra) continue;
-      const off = d.especie === "colina" ? d.base : d.base * reg.dist;
+      const off = (d.especie === "colina" || d.especie === "beira")
+                    ? d.base : d.base * reg.dist;
       posMundo(d.s, d.lado * (LAT_DEFENSA + off), _p1);
       g.position.set(_p1.x, _p1.y - 0.25, _p1.z);
       g.rotation.y = _p1.h + (d.lado > 0 ? Math.PI : 0);
       // vegetação balançando de leve com o vento
-      if (d.especie === "arvore" || d.especie === "moita") {
+      if (d.especie === "arvore" || d.especie === "beira") {
         g.rotation.z = Math.sin(tempoVento * 0.9 + d.fase) * 0.017;
       }
     }
@@ -3233,30 +3437,101 @@
     });
     return g;
   }
+  const MAT_CERCA = [0x8a6d4f, 0x7a6046, 0x94795c].map(function (c) {
+    return new THREE.MeshStandardMaterial({ color: c, roughness: 0.95 });
+  });
+  const MAT_ARAME = new THREE.MeshStandardMaterial({ color: 0x7d7a70, roughness: 0.6, metalness: 0.5 });
   function criaCerca(comp) {
+    // cerca de fazenda: mourões tortos, alturas desiguais, travessas que nem
+    // sempre vão de ponta a ponta e um arame liso no topo. A versão antiga era
+    // uma grade perfeita e por isso lia como cenário de placeholder.
     const g = new THREE.Group();
-    const matMadeira = new THREE.MeshStandardMaterial({ color: 0x8a6d4f, roughness: 0.95 });
-    for (let i = 0; i < 6; i++) {
-      const p = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.2, 0.09), matMadeira);
-      p.position.set(0, 0.6, -comp / 2 + i * (comp / 5)); g.add(p);
+    const n = 7, passo = comp / (n - 1);
+    const alturas = [];
+    for (let i = 0; i < n; i++) {
+      const alt = rand(1.05, 1.32), z = -comp / 2 + i * passo + rand(-0.18, 0.18);
+      alturas.push(alt);
+      const mat = MAT_CERCA[i % MAT_CERCA.length];
+      const p = new THREE.Mesh(new THREE.BoxGeometry(rand(0.075, 0.105), alt, 0.09), mat);
+      p.position.set(0, alt / 2, z);
+      p.rotation.x = rand(-0.055, 0.055);      // mourão fora de prumo
+      p.rotation.z = rand(-0.04, 0.04);
+      g.add(p);
+      // topo chanfrado: o corte de serra que todo mourão de madeira tem
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.045, 0.1), mat);
+      cap.position.set(0, alt + 0.015, z); cap.rotation.x = rand(-0.14, 0.14);
+      g.add(cap);
+      poeSombraVeg(g, 0.22, 0, z);
     }
-    [0.85, 0.45].forEach(function (y) {
-      const t = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, comp), matMadeira);
-      t.position.set(0, y, 0); g.add(t);
-    });
-    return g;
+    // travessas por vão, cada uma na altura dos seus dois mourões
+    for (let i = 0; i < n - 1; i++) {
+      const z0 = -comp / 2 + i * passo, zm = z0 + passo / 2;
+      const h = Math.min(alturas[i], alturas[i + 1]);
+      [h * 0.74, h * 0.4].forEach(function (y, k) {
+        if (Math.random() < 0.1) return;             // tábua faltando
+        const t = new THREE.Mesh(new THREE.BoxGeometry(0.05, rand(0.06, 0.085), passo * 1.02),
+                                 MAT_CERCA[(i + k) % MAT_CERCA.length]);
+        t.position.set(rand(-0.02, 0.02), y + rand(-0.03, 0.03), zm);
+        t.rotation.x = rand(-0.02, 0.02);
+        g.add(t);
+      });
+    }
+    const arame = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, comp), MAT_ARAME);
+    arame.position.set(0.03, alturas[0] * 0.92, 0);
+    g.add(arame);
+    return juntaPorMaterial(g, null, true);
   }
+  const MAT_POSTE_MAD = new THREE.MeshStandardMaterial({ color: 0x6f5f4c, roughness: 0.95 });
+  const MAT_POSTE_FERRAGEM = new THREE.MeshStandardMaterial({ color: 0x5a5a58, roughness: 0.55, metalness: 0.7 });
+  const MAT_ISOLADOR = new THREE.MeshStandardMaterial({ color: 0xc9c4b4, roughness: 0.35 });
   function criaTorreEnergia() {
+    // poste de distribuição: cruzeta com isoladores de porcelana, mão-francesa,
+    // degraus de escalada e, às vezes, um transformador. São esses detalhes de
+    // silhueta que o jogador vê passando a 200 km/h.
     const g = new THREE.Group();
-    const mastro = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.24, 11, 8),
-      new THREE.MeshStandardMaterial({ color: 0x6f5f4c, roughness: 0.95 }));
-    mastro.position.y = 5.5; mastro.castShadow = true; g.add(mastro);
-    [10.4, 9.4].forEach(function (y, i) {
-      const braco = new THREE.Mesh(new THREE.BoxGeometry(2.6 - i * 0.7, 0.14, 0.14),
-        new THREE.MeshStandardMaterial({ color: 0x6f5f4c, roughness: 0.95 }));
-      braco.position.y = y; g.add(braco);
+    const alt = rand(10.2, 12.0);
+    const mastro = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.24, alt, 9), MAT_POSTE_MAD);
+    mastro.position.y = alt / 2; mastro.castShadow = true;
+    mastro.rotation.z = rand(-0.025, 0.025);
+    g.add(mastro);
+    const cruzetas = [{ y: alt - 0.6, l: 2.6 }, { y: alt - 1.6, l: 1.9 }];
+    cruzetas.forEach(function (c, i) {
+      const braco = new THREE.Mesh(new THREE.BoxGeometry(c.l, 0.15, 0.13), MAT_POSTE_MAD);
+      braco.position.y = c.y; g.add(braco);
+      // mão-francesa: as duas diagonais que seguram a cruzeta no mastro
+      [-1, 1].forEach(function (lado) {
+        const d = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.66, 0.04), MAT_POSTE_FERRAGEM);
+        d.position.set(lado * c.l * 0.21, c.y - 0.3, 0.09);
+        d.rotation.z = lado * 0.62;
+        g.add(d);
+      });
+      // isoladores de porcelana nas pontas e no centro
+      [-c.l / 2 + 0.16, 0, c.l / 2 - 0.16].forEach(function (x) {
+        if (i === 1 && x === 0) return;
+        const iso = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.085, 0.17, 8), MAT_ISOLADOR);
+        iso.position.set(x, c.y + 0.16, 0); g.add(iso);
+        const saia = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.055, 0.05, 8), MAT_ISOLADOR);
+        saia.position.set(x, c.y + 0.11, 0); g.add(saia);
+        const pino = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.12, 6), MAT_POSTE_FERRAGEM);
+        pino.position.set(x, c.y + 0.06, 0); g.add(pino);
+      });
     });
-    return g;
+    // degraus de escalada alternados, como nos postes reais
+    for (let i = 0; i < 7; i++) {
+      const y = 2.4 + i * 1.05, lado = i % 2 ? 1 : -1;
+      const d = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.035, 0.035), MAT_POSTE_FERRAGEM);
+      d.position.set(lado * 0.2, y, 0.02); g.add(d);
+    }
+    if (Math.random() < 0.35) {
+      const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.72, 12), MAT_POSTE_FERRAGEM);
+      tr.position.set(0.42, alt - 3.1, 0); g.add(tr);
+      const tampa = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.07, 12), MAT_POSTE_FERRAGEM);
+      tampa.position.set(0.42, alt - 2.72, 0); g.add(tampa);
+      const supTr = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.07, 0.07), MAT_POSTE_FERRAGEM);
+      supTr.position.set(0.22, alt - 2.72, 0); g.add(supTr);
+    }
+    poeSombraVeg(g, 0.5, 0, 0);
+    return juntaPorMaterial(g, null, true);
   }
 
   // ---------------------------------------------------------------
@@ -3559,36 +3834,73 @@
     const matFundo = matDistante(0x445c74, 0.52);
     const matFrente = matDistante(0x3d566e, 0.30);
     const matTopo = matDistante(0xbccad6, 0.22);
+    const matVinco = matDistante(0x33495f, 0.30);
+    // um cone liso lê como pirâmide de papel. Cada maciço é um cone com o
+    // perfil quebrado por ruído, achatado num eixo e girado, mais dois ou três
+    // picos subsidiários encostados na saia — é isso que dá silhueta de serra.
+    function macico(g, x, z, alt, raio, mat, matAlto, baseY) {
+      const giro = rand(0, Math.PI * 2), achata = rand(0.58, 0.92);
+      function pico(px, pz, pa, pr, m, lados) {
+        const geo = ruidoNaGeometria(new THREE.ConeGeometry(pr, pa, lados), 0.2);
+        const c = new THREE.Mesh(geo, m);
+        c.position.set(px, baseY + pa / 2, pz);
+        c.rotation.y = rand(0, Math.PI * 2);
+        // escala assimétrica + leve tombo: nenhum pico sai isósceles, que é o
+        // que denunciava a montanha como cone de geometria pura
+        c.rotation.z = rand(-0.1, 0.1);
+        c.scale.set(rand(0.82, 1.3), 1, achata * rand(0.82, 1.2));
+        return c;
+      }
+      const raiz = new THREE.Group();
+      raiz.position.set(x, 0, z);
+      raiz.rotation.y = giro;
+      raiz.add(pico(0, 0, alt, raio, mat, 9));
+      // ombros: deslocados para fora e bem mais baixos, quebram a base
+      const n = 2 + (Math.random() < 0.5 ? 1 : 0);
+      for (let j = 0; j < n; j++) {
+        const a = rand(0, Math.PI * 2), d = raio * rand(0.5, 0.95);
+        raiz.add(pico(Math.cos(a) * d, Math.sin(a) * d,
+                      alt * rand(0.36, 0.66), raio * rand(0.42, 0.68), mat, 8));
+      }
+      // vinco de sombra num flanco: sugere vale sem custar iluminação
+      if (Math.random() < 0.7) {
+        const a = rand(0, Math.PI * 2), d = raio * rand(0.25, 0.5);
+        raiz.add(pico(Math.cos(a) * d, Math.sin(a) * d,
+                      alt * rand(0.5, 0.78), raio * rand(0.3, 0.46), matVinco, 7));
+      }
+      if (matAlto && alt > 380) {
+        const t = pico(rand(-raio * 0.12, raio * 0.12), rand(-raio * 0.12, raio * 0.12),
+                       alt * 0.26, raio * 0.3, matAlto, 8);
+        t.position.y = baseY + alt * 0.84;
+        raiz.add(t);
+      }
+      g.add(raiz);
+    }
     // a serra de fundo fica MAIS LONGE (z local positivo = adiante) e mais
     // alta; a da frente, menor e com mais contraste. Assim as duas leem como
     // camadas de profundidade em vez de um paredão só.
     for (let i = 0; i < 9; i++) {                     // serra distante
-      const alt = 420 + Math.random() * 480, raio = 520 + Math.random() * 480;
-      const m = new THREE.Mesh(new THREE.ConeGeometry(raio, alt, 8), matFundo);
-      m.position.set((i - 4) * 1100 + rand(-260, 260), alt / 2 - 130, 1300 + rand(-260, 260));
-      montanhas.add(m);
+      macico(montanhas, (i - 4) * 1100 + rand(-260, 260), 1300 + rand(-260, 260),
+             420 + Math.random() * 480, 520 + Math.random() * 480, matFundo, null, -130);
     }
     // morros de granito arredondados (tipo Pão de Açúcar), a silhueta que
     // identifica o Rio no horizonte
     const matMorro = matDistante(0x415a72, 0.34);
     for (let i = 0; i < 6; i++) {
       const alt = 150 + Math.random() * 180, raio = 110 + Math.random() * 90;
-      const mo = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 9), matMorro);
+      const mo = new THREE.Mesh(ruidoNaGeometria(new THREE.SphereGeometry(1, 12, 9), 0.09), matMorro);
       mo.scale.set(raio, alt, raio * 0.9);
+      mo.rotation.y = rand(0, Math.PI * 2);
       mo.position.set((i - 2.5) * 620 + rand(-160, 160), -alt * 0.32, 260 + rand(-200, 200));
       montanhas.add(mo);
     }
     for (let i = 0; i < 16; i++) {                    // serra da frente
-      const alt = 190 + Math.random() * 320, raio = 240 + Math.random() * 300;
-      const m = new THREE.Mesh(new THREE.ConeGeometry(raio, alt, 9), matFrente);
-      m.position.set((i - 8) * 520 + rand(-150, 150), alt / 2 - 40, rand(-240, 240));
-      montanhas.add(m);
-      if (alt > 380) {
-        const t = new THREE.Mesh(new THREE.ConeGeometry(raio * 0.32, alt * 0.3, 9), matTopo);
-        t.position.set(m.position.x, alt * 0.85 - 40, m.position.z);
-        montanhas.add(t);
-      }
+      macico(montanhas, (i - 8) * 520 + rand(-150, 150), rand(-240, 240),
+             190 + Math.random() * 320, 240 + Math.random() * 300, matFrente, matTopo, -40);
     }
+    // tudo isso é estático e nunca é animado: junta por material para o
+    // horizonte inteiro voltar a custar meia dúzia de chamadas
+    juntaPorMaterial(montanhas, null, true);
     cena.add(montanhas);
   })();
 
@@ -3827,7 +4139,7 @@
   }
 
   // ---- retrovisores com imagem real do que está atrás ----
-  const ESP_L = 384, ESP_A = 232;
+  const ESP_L = 512, ESP_A = 312;
   // risco de luz do vidro do espelho: faixa diagonal suave
   const TEX_BRILHO_ESP = (function () {
     const c = tela(256, 256), g = c.getContext("2d");
@@ -3840,6 +4152,19 @@
     gr.addColorStop(0.64, "rgba(255,255,255,.14)");
     gr.addColorStop(1.00, "rgba(255,255,255,0)");
     g.fillStyle = gr; g.fillRect(-80, -80, 420, 420);
+    return textura(c);
+  })();
+
+  // vinheta do vidro: um espelho real escurece na borda, onde a curvatura
+  // joga a luz para fora, e é isso que separa o reflexo de uma foto chapada
+  const TEX_VINHETA_ESP = (function () {
+    const c = tela(128, 128), g = c.getContext("2d");
+    const gr = g.createRadialGradient(64, 64, 30, 64, 64, 64);
+    gr.addColorStop(0.00, "rgba(0,0,0,0)");
+    gr.addColorStop(0.62, "rgba(6,9,14,.14)");
+    gr.addColorStop(0.86, "rgba(6,9,14,.44)");
+    gr.addColorStop(1.00, "rgba(6,9,14,.82)");
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
     return textura(c);
   })();
 
@@ -3891,6 +4216,27 @@
     w.addColorStop(1.00, "rgba(126,132,140,0)");
     g.fillStyle = w; g.fillRect(0, 0, 512, 128);
     return textura(c);
+  })();
+  // plástico técnico e borracha: cor lisa escura sai clara e leitosa na tela e
+  // todo o comando virava o mesmo cinza. Um grão fino resolve a separação de
+  // material sem custar geometria nenhuma.
+  const TEX_PLASTICO = (function () {
+    const c = tela(128, 128), g = c.getContext("2d");
+    g.fillStyle = "#1b1f25"; g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 5200; i++) {
+      g.fillStyle = Math.random() < 0.5 ? "rgba(255,255,255,.045)" : "rgba(0,0,0,.16)";
+      g.fillRect(Math.random() * 128, Math.random() * 128, 1.4, 1.4);
+    }
+    return textura(c, 3, 3);
+  })();
+  const TEX_BORRACHA = (function () {
+    const c = tela(128, 128), g = c.getContext("2d");
+    g.fillStyle = "#121418"; g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 3400; i++) {
+      g.fillStyle = Math.random() < 0.5 ? "rgba(226,232,238,.05)" : "rgba(0,0,0,.22)";
+      g.fillRect(Math.random() * 128, Math.random() * 128, 2, 2);
+    }
+    return textura(c, 4, 4);
   })();
   const TEX_COURO = (function () {
     const c = tela(256, 256), g = c.getContext("2d");
@@ -3989,18 +4335,18 @@
       map: textura(texTanque), roughness: 0.42, metalness: 0.52,
       roughnessMap: TEX_VERNIZ, envMap: AMBIENTE, envMapIntensity: 1.05
     });
-    const matPlastico = new THREE.MeshStandardMaterial({ color: 0x15181d, roughness: 0.5, metalness: 0.12 });
-    const matBorracha = new THREE.MeshStandardMaterial({ color: 0x0d0f12, roughness: 0.95 });
+    const matPlastico = new THREE.MeshStandardMaterial({ map: TEX_PLASTICO, roughness: 0.52, metalness: 0.10 });
+    const matBorracha = new THREE.MeshStandardMaterial({ map: TEX_BORRACHA, roughness: 0.96, metalness: 0.0 });
     // alumínio escovado, anodizado escuro e cromo: três leituras de metal
-    const matAluminio = new THREE.MeshStandardMaterial({ color: 0x30363d, roughness: 0.78,
-      metalness: 0.30, envMap: AMBIENTE, envMapIntensity: 0.14, roughnessMap: TEX_ESCOVADO });
+    const matAluminio = new THREE.MeshStandardMaterial({ color: 0x4a5158, roughness: 0.62,
+      metalness: 0.46, envMap: AMBIENTE, envMapIntensity: 0.26, roughnessMap: TEX_ESCOVADO });
     const matAnodizado = new THREE.MeshStandardMaterial({ color: 0x191d22, roughness: 0.66,
       metalness: 0.34, envMap: AMBIENTE, envMapIntensity: 0.10, roughnessMap: TEX_ESCOVADO });
     // borracha do punho, com nervuras, losangos e brilho de desgaste
     const matPunho = new THREE.MeshStandardMaterial({ map: TEX_PUNHO, roughness: 0.86,
       metalness: 0.04 });
-    const matCromo    = new THREE.MeshStandardMaterial({ color: 0x6d757d, roughness: 0.24,
-      metalness: 0.88, envMap: AMBIENTE, envMapIntensity: 0.34 });
+    const matCromo    = new THREE.MeshStandardMaterial({ color: 0x8b949c, roughness: 0.16,
+      metalness: 0.94, envMap: AMBIENTE, envMapIntensity: 0.52 });
     const matParafuso = new THREE.MeshStandardMaterial({ color: 0x585f67, roughness: 0.42,
       metalness: 0.70, envMap: AMBIENTE, envMapIntensity: 0.28 });
     const matLuva     = new THREE.MeshStandardMaterial({ map: TEX_COURO, roughness: 0.70,
@@ -4016,9 +4362,21 @@
     const matJaqueta  = new THREE.MeshStandardMaterial({ color: 0x161d26, roughness: 0.62, metalness: 0.08,
       envMap: AMBIENTE, envMapIntensity: 0.35 });
     const matCosta    = new THREE.MeshStandardMaterial({ color: 0x0e131a, roughness: 0.55, metalness: 0.1 });
+    // manga e antebraço: cor lisa escura sai clara e plástica na tela, então o
+    // tecido leva o grão do couro com um tom frio por cima — lê como jaqueta
+    const matManga    = new THREE.MeshStandardMaterial({ map: TEX_COURO, color: 0xa8b6c6,
+      roughness: 0.80, metalness: 0.04 });
+    const matMangaEsc = new THREE.MeshStandardMaterial({ map: TEX_COURO, color: 0x7f8c9c,
+      roughness: 0.78, metalness: 0.05 });
     // oclusão de contato: manga escura translúcida usada onde peças se encostam
     const matContato  = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true,
       opacity: 0.34, depthWrite: false, fog: false });
+    // nome em cada material: é por ele que as malhas juntadas se identificam
+    // quando se inspeciona a cena (as peças estáticas perdem o nome ao juntar)
+    Object.entries({ matPlastico, matBorracha, matAluminio, matAnodizado, matPunho,
+      matCromo, matParafuso, matLuva, matLuvaCost, matLuvaPalma, matLuvaDet,
+      matProtClaro, matPele, matJaqueta, matCosta, matManga, matMangaEsc, matContato })
+      .forEach(function (e) { e[1].name = e[0]; });
     const m = new THREE.Group();
 
     const Y_BAR = 1.085, Z_BAR = 0.62, X_PUNHO = 0.335;
@@ -4270,6 +4628,40 @@
       const engate = new THREE.Mesh(geoCorpo(0.014, 0.012, 0.020, 0.003), matCosta);
       engate.position.set(x - lado * 0.318, yP + 0.014, zP + 0.036); m.add(engate);
 
+      // ---- segundo cabo do acelerador: o punho giratório tem par de cabos
+      //      (abre e fecha), saindo de uma caixinha de junção no tubo ----
+      const cabo2 = new THREE.CatmullRomCurve3([
+        V(x - lado * 0.150, yP - 0.024, zP + 0.006),
+        V(x - lado * 0.186, yP - 0.104, zP + 0.074),
+        V(x - lado * 0.128, yP - 0.226, zP + 0.140),
+        V(x - lado * 0.056, yP - 0.302, zP + 0.102)
+      ]);
+      m.add(new THREE.Mesh(new THREE.TubeGeometry(cabo2, 20, 0.0062, 8, false), matBorracha));
+      const juncao = new THREE.Mesh(geoCorpo(0.026, 0.020, 0.030, 0.005), matPlastico);
+      juncao.position.set(x - lado * 0.144, yP - 0.012, zP + 0.012);
+      juncao.rotation.y = lado * 0.2; m.add(juncao);
+      const tampaJun = new THREE.Mesh(new THREE.CylinderGeometry(0.0072, 0.0072, 0.010, 8), matAluminio);
+      tampaJun.rotation.z = Math.PI / 2 - lado * 0.2;
+      tampaJun.position.set(x - lado * 0.157, yP - 0.012, zP + 0.010); m.add(tampaJun);
+      // espiral de proteção (split loom) num trecho do chicote elétrico
+      for (let k = 0; k < 7; k++) {
+        const volta = new THREE.Mesh(new THREE.TorusGeometry(0.0062, 0.0016, 5, 10), matPlastico);
+        volta.rotation.y = Math.PI / 2 + lado * 0.13;
+        volta.rotation.x = 0.4;
+        volta.position.set(x - lado * (0.222 + k * 0.012), yP - 0.011, zP - 0.010 + k * 0.002);
+        m.add(volta);
+      }
+
+      // ---- oclusão de contato nas junções: sem a linha escura embaixo de
+      //      cada abraçadeira as peças parecem apenas encostadas no tubo ----
+      [[0.050, 0.008, 0.0285], [0.148, 0.000, 0.0265], [0.095, 0.042, 0.0245]]
+        .forEach(function (j) {
+          const ao = new THREE.Mesh(new THREE.TorusGeometry(j[2], 0.0075, 6, 14), matContato);
+          ao.rotation.y = Math.PI / 2 + lado * 0.13;
+          ao.position.set(x - lado * j[0], yP + j[1] * 0.5, zP + j[1]);
+          ao.renderOrder = 1; m.add(ao);
+        });
+
       // ---- retrovisor: base rosqueada com contraporca, haste em dois
       //      trechos (como na foto, com uma dobra no meio) e rótula ----
       const pBase = V(x - lado * 0.095, yP + 0.042, zP + 0.016);
@@ -4287,6 +4679,18 @@
       contraPorca.position.set(pBase.x, pBase.y + 0.017, pBase.z); m.add(contraPorca);
       const baseEsp = new THREE.Mesh(geoCorpo(0.040, 0.014, 0.040, 0.006), matAnodizado);
       baseEsp.position.set(pBase.x, pBase.y - 0.014, pBase.z); m.add(baseEsp);
+      // pé do espelho: placa de fixação, coifa de borracha sobre a rosca e os
+      // dois parafusos que prendem a placa no suporte do manete
+      const placaEsp = new THREE.Mesh(geoCorpo(0.052, 0.008, 0.050, 0.004), matAluminio);
+      placaEsp.position.set(pBase.x, pBase.y - 0.023, pBase.z);
+      placaEsp.rotation.y = lado * 0.12; m.add(placaEsp);
+      const coifa = new THREE.Mesh(new THREE.CylinderGeometry(0.0195, 0.0245, 0.016, 14), matBorracha);
+      coifa.position.set(pBase.x, pBase.y - 0.006, pBase.z); m.add(coifa);
+      [[0.017, 0.015], [-0.016, -0.014]].forEach(function (o) {
+        const pf = new THREE.Mesh(new THREE.CylinderGeometry(0.0042, 0.0042, 0.007, 6), matParafuso);
+        pf.position.set(pBase.x - lado * o[0], pBase.y - 0.027, pBase.z + o[1]);
+        m.add(pf);
+      });
       const rotula = new THREE.Mesh(new THREE.SphereGeometry(0.0165, 14, 11), matPlastico);
       rotula.position.copy(pTopo); m.add(rotula);
 
@@ -4327,6 +4731,23 @@
       brilhoEsp.rotation.copy(vidro.rotation);
       brilhoEsp.renderOrder = 2;
       m.add(brilhoEsp);
+      // vinheta por cima do reflexo e sombra de contato onde o vidro entra no
+      // aro: sem elas o vidro parecia uma tela recortada na carcaça
+      const vinhetaEsp = new THREE.Mesh(geoVidro, new THREE.MeshBasicMaterial({
+        map: TEX_VINHETA_ESP, transparent: true, depthWrite: false,
+        toneMapped: false, fog: false
+      }));
+      vinhetaEsp.scale.copy(vidro.scale);
+      naFace(vinhetaEsp, 0.0312);
+      vinhetaEsp.rotation.copy(vidro.rotation);
+      vinhetaEsp.renderOrder = 1;
+      m.add(vinhetaEsp);
+      const oclusaoAro = new THREE.Mesh(new THREE.TorusGeometry(1, 0.030, 6, 32), matContato);
+      oclusaoAro.scale.set(0.109, 0.067, 0.10);
+      naFace(oclusaoAro, 0.0305);
+      oclusaoAro.rotation.copy(vidro.rotation);
+      oclusaoAro.renderOrder = 2;
+      m.add(oclusaoAro);
       // aro: borracha por fora e filete cromado encostando no vidro
       const aroVidro = new THREE.Mesh(new THREE.TorusGeometry(1, 0.055, 8, 32), matPlastico);
       aroVidro.scale.set(0.125, 0.079, 0.20);
@@ -4347,38 +4768,45 @@
 
       // a câmera do espelho abre para FORA (antes apontava para dentro e
       // enquadrava o próprio piloto, o que virava uma mancha escura no vidro)
-      const cam = new THREE.PerspectiveCamera(56, ESP_L / ESP_A, 0.5, 700);
+      // espelho de moto é convexo: abre bem mais que o olho humano. Abrir o
+      // campo também empurra o horizonte para o meio do vidro, que é o que
+      // mata a leitura de "foto colada" no lugar de reflexo
+      const cam = new THREE.PerspectiveCamera(68, ESP_L / ESP_A, 0.5, 700);
       cam.position.set(cEsp.x + lado * 0.05, cEsp.y, cEsp.z);
       cam.rotation.y = -lado * 0.46;
-      cam.rotation.x = -0.055;                 // um pouco para baixo: mostra a pista
+      // bem inclinada para baixo: espelho de moto mostra pista e acostamento,
+      // não o céu — a faixa branca estourada em cima matava o reflexo
+      cam.rotation.x = -0.145;
       grupoInclina.add(cam);
       camsEspelho.push(cam);
 
       // ---- braço: ombreira, manga, cotoveleira e antebraço ----
-      const ombro = V(lado * 0.235, 1.325, -0.40);
-      const cotovelo = V(lado * 0.30, 1.145, 0.06);
-      const pulso = V(x - lado * 0.052, yP + 0.020, zP - 0.062);
-      const ombreira = new THREE.Mesh(new THREE.SphereGeometry(0.072, 14, 11), matJaqueta);
-      ombreira.scale.set(1, 0.9, 0.95); ombreira.position.copy(ombro);
-      ombreira.castShadow = true; m.add(ombreira);
-      // manga vai do ombro até depois do cotovelo e a pele começa por dentro dela,
-      // sem deixar emenda aparente entre a jaqueta e o braço
+      // o ombro fica ATRÁS do olho da câmera. A manga desenhada até lá cruzava
+      // o plano próximo e o triângulo recortado virava uma cunha clara que
+      // cobria o punho e a mão inteira. A manga visível começa então num ponto
+      // à frente do olho e abaixo do quadro, saindo pela borda de baixo como
+      // num jogo em primeira pessoa de verdade.
+      const cotovelo = V(lado * 0.335, 1.000, 0.262);
+      const pulso = V(x - lado * 0.050, yP - 0.042, zP - 0.118);
+      const ombroVis = V(lado * 0.318, 0.885, 0.120);
+      // manga vai do começo visível até depois do cotovelo e a pele começa por
+      // dentro dela, sem deixar emenda aparente entre a jaqueta e o braço
       const meioAntebraco = new THREE.Vector3().lerpVectors(cotovelo, pulso, 0.44);
-      const braco = entre(ombro, meioAntebraco, 0.058, 0.049, matJaqueta, 14);
+      const braco = entre(ombroVis, meioAntebraco, 0.047, 0.041, matManga, 14);
       braco.castShadow = true; braco.receiveShadow = true; m.add(braco);
-      const cotoveleira = new THREE.Mesh(new THREE.SphereGeometry(0.052, 12, 10), matLuvaDet);
-      cotoveleira.scale.set(1.05, 0.55, 1.15);
+      const cotoveleira = new THREE.Mesh(new THREE.SphereGeometry(0.048, 12, 10), matMangaEsc);
+      cotoveleira.scale.set(0.88, 0.42, 1.0);
       cotoveleira.position.copy(cotovelo);
       cotoveleira.quaternion.copy(braco.quaternion); m.add(cotoveleira);
-      const costuraM = new THREE.Mesh(new THREE.TorusGeometry(0.053, 0.0035, 6, 16), matCosta);
-      costuraM.position.lerpVectors(ombro, meioAntebraco, 0.62);
+      const costuraM = new THREE.Mesh(new THREE.TorusGeometry(0.048, 0.0035, 6, 16), matMangaEsc);
+      costuraM.position.lerpVectors(ombroVis, meioAntebraco, 0.62);
       costuraM.quaternion.copy(braco.quaternion);
       costuraM.rotateX(Math.PI / 2); m.add(costuraM);
-      const punhoJaq = new THREE.Mesh(new THREE.CylinderGeometry(0.050, 0.044, 0.052, 14), matCosta);
+      const punhoJaq = new THREE.Mesh(new THREE.CylinderGeometry(0.044, 0.039, 0.050, 14), matMangaEsc);
       punhoJaq.position.copy(meioAntebraco);
       punhoJaq.quaternion.copy(braco.quaternion); m.add(punhoJaq);
       const inicioPele = new THREE.Vector3().lerpVectors(cotovelo, pulso, 0.32);
-      const antebraco = entre(inicioPele, pulso, 0.046, 0.034, matCosta, 14);
+      const antebraco = entre(inicioPele, pulso, 0.036, 0.029, matMangaEsc, 14);
       antebraco.castShadow = true; antebraco.receiveShadow = true; m.add(antebraco);
 
       // =========================================================
@@ -4386,90 +4814,120 @@
       //  duas falanges abraçando o punho e polegar por baixo
       // =========================================================
       const yaw = lado * 0.13;                      // segue o ângulo do punho
+      // A mão fica na metade externa do punho. Antes era uma pilha de três
+      // caixas: de dentro da moto o piloto via um bloco branco retangular no
+      // lugar do dorso da luva. Agora o volume é arredondado, a mão FECHA em
+      // volta da borracha e são os nós e as falanges que aparecem por cima.
+      const xM = x + lado * 0.030;
       // ponto na circunferência do punho: ang 0 = frente, cresce para baixo
       function noPunho(fx, raio, ang) {
         return V(fx, yP + Math.cos(ang + Math.PI / 2) * raio,
                      zP + Math.sin(ang + Math.PI / 2) * raio);
       }
       // manopla de contato: escurece a borracha por baixo da mão (oclusão)
-      const sombraPunho = new THREE.Mesh(new THREE.CylinderGeometry(0.0322, 0.0322, 0.118, 16), matContato);
+      const sombraPunho = new THREE.Mesh(new THREE.CylinderGeometry(0.0322, 0.0322, 0.104, 16), matContato);
       sombraPunho.rotation.z = Math.PI / 2; sombraPunho.rotation.y = yaw;
-      sombraPunho.position.set(x - lado * 0.004, yP, zP);
+      sombraPunho.position.set(xM, yP, zP);
       sombraPunho.renderOrder = 1; m.add(sombraPunho);
 
-      // dorso da mão, apoiado em cima e um pouco atrás do punho
-      const dorso = new THREE.Mesh(geoCorpo(0.098, 0.040, 0.112, 0.026), matLuvaCost);
-      dorso.position.set(x - lado * 0.006, yP + 0.032, zP - 0.008);
-      dorso.rotation.y = yaw; dorso.rotation.x = -0.16;
+      // punho fechado: a luva envolve a borracha. Um cilindro pouco maior que
+      // o punho lê como palma e dedos fechados, e é sobre ele que os nós e as
+      // falanges ganham relevo — bem mais convincente que uma placa chata.
+      const fecho = new THREE.Mesh(new THREE.CylinderGeometry(0.0368, 0.0362, 0.088, 18), matLuva);
+      fecho.rotation.z = Math.PI / 2; fecho.rotation.y = yaw;
+      fecho.position.set(xM, yP - 0.001, zP);
+      fecho.castShadow = true; fecho.receiveShadow = true; m.add(fecho);
+
+      // dorso: domo de couro costurado por cima, mais alto na linha dos nós
+      const dorso = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 12), matLuvaCost);
+      dorso.scale.set(0.046, 0.0215, 0.036);
+      dorso.position.set(xM - lado * 0.002, yP + 0.023, zP - 0.013);
+      dorso.rotation.y = yaw; dorso.rotation.x = -0.22;
       dorso.castShadow = true; dorso.receiveShadow = true; m.add(dorso);
-      // palma, fechando por baixo/atrás
-      const palma = new THREE.Mesh(geoCorpo(0.078, 0.030, 0.104, 0.022), matLuvaPalma);
-      palma.position.set(x - lado * 0.010, yP - 0.006, zP - 0.030);
-      palma.rotation.y = yaw; palma.rotation.x = 0.22; m.add(palma);
-      // protetor rígido sobre o dorso, com três vincos
-      const protetor = new THREE.Mesh(geoCorpo(0.070, 0.014, 0.092, 0.014), matProtClaro);
-      protetor.position.set(x - lado * 0.006, yP + 0.052, zP - 0.006);
-      protetor.rotation.y = yaw; protetor.rotation.x = -0.16; m.add(protetor);
-      [-0.024, 0, 0.024].forEach(function (dv) {
-        const vincoL = new THREE.Mesh(new THREE.BoxGeometry(0.070, 0.004, 0.006), matCosta);
-        vincoL.position.set(x - lado * 0.006 + dv * 0, yP + 0.060, zP - 0.006 + dv);
-        vincoL.rotation.y = yaw; m.add(vincoL);
+      // tendões: três vincos rasos no couro do dorso, no sentido dos dedos
+      [-0.020, 0, 0.020].forEach(function (dx) {
+        const tendao = new THREE.Mesh(new THREE.CylinderGeometry(0.0026, 0.0026, 0.036, 6), matLuvaPalma);
+        tendao.rotation.x = Math.PI / 2 - 0.30;
+        tendao.position.set(xM - lado * dx, yP + 0.041, zP - 0.008);
+        m.add(tendao);
       });
+      // osso do pulso: a saliência que fecha o dorso do lado de dentro
+      const ossoPulso = new THREE.Mesh(new THREE.SphereGeometry(0.0165, 10, 8), matLuvaCost);
+      ossoPulso.scale.set(1, 0.8, 1.1);
+      ossoPulso.position.set(xM - lado * 0.046, yP + 0.018, zP - 0.016); m.add(ossoPulso);
+
       // punho da luva: canhão de couro + tira de velcro
-      const canhao = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.040, 0.060, 14), matLuvaCost);
-      canhao.position.set(x - lado * 0.062, yP + 0.024, zP - 0.052);
+      const canhao = new THREE.Mesh(new THREE.CylinderGeometry(0.044, 0.038, 0.058, 14), matLuvaCost);
+      canhao.position.set(xM - lado * 0.060, yP - 0.016, zP - 0.074);
       canhao.rotation.z = Math.PI / 2 - lado * 0.35; canhao.rotation.x = 0.5;
       canhao.castShadow = true; m.add(canhao);
-      const velcro = new THREE.Mesh(new THREE.TorusGeometry(0.044, 0.008, 8, 16), matProtClaro);
-      velcro.position.set(x - lado * 0.070, yP + 0.026, zP - 0.058);
+      const velcro = new THREE.Mesh(new THREE.TorusGeometry(0.042, 0.0072, 8, 16), matLuvaDet);
+      velcro.position.set(xM - lado * 0.070, yP - 0.024, zP - 0.086);
       velcro.rotation.y = Math.PI / 2 - lado * 0.35; velcro.rotation.z = 0.42; m.add(velcro);
 
       // ---- quatro dedos: nó (MCP) -> falange -> junta (PIP) -> ponta ----
-      // índice e médio pousam sobre o manete; anelar e mínimo fecham no punho
+      // índice e médio pousam sobre o manete; anelar e mínimo fecham no punho.
+      // o índice fica do lado de DENTRO (perto do cilindro do freio), como na
+      // moto real, e cada dedo tem curvatura própria: dedos paralelos entregam
+      // na hora que a mão é geometria e não anatomia
       const DEDOS = [
-        { off: -0.048, r: 0.0118, noManete: true  },   // índice (lado de dentro)
-        { off: -0.019, r: 0.0122, noManete: true  },   // médio
-        { off:  0.010, r: 0.0110, noManete: false },   // anelar
-        { off:  0.037, r: 0.0094, noManete: false }    // mínimo
+        { off:  0.030, r: 0.0116, noManete: true,  curva: 0.00, alt: 1.00 },  // índice (dentro)
+        { off:  0.008, r: 0.0122, noManete: true,  curva: 0.06, alt: 1.06 },  // médio
+        { off: -0.014, r: 0.0112, noManete: false, curva: 0.16, alt: 1.02 },  // anelar
+        { off: -0.035, r: 0.0094, noManete: false, curva: 0.30, alt: 0.92 }   // mínimo
       ];
-      DEDOS.forEach(function (d) {
-        const fx = x - lado * d.off;
-        const no  = noPunho(fx, 0.0395, -0.66);                   // nó, em cima e à frente
-        const pip = noPunho(fx, 0.0415,  0.34);                   // junta média, na frente
+      DEDOS.forEach(function (d, i) {
+        const fx = xM - lado * d.off;
+        const no  = noPunho(fx, 0.0392 * d.alt, -0.80 + d.curva * 0.3);
+        const pip = noPunho(fx, 0.0425, 0.30 + d.curva);
         const pta = d.noManete
-          ? V(fx + lado * 0.004, yP - 0.014, zP + 0.086)          // ponta sobre o manete
-          : noPunho(fx, 0.0405, 1.34);                            // ponta fechada por baixo
+          ? V(fx + lado * 0.004, yP - 0.016, zP + 0.082)          // ponta sobre o manete
+          : noPunho(fx, 0.0402, 1.30 + d.curva);                  // ponta fechada por baixo
         const falange = entre(no, pip, d.r, d.r * 0.96, matLuva, 9);
-        falange.castShadow = true; m.add(falange);
+        falange.castShadow = true; falange.receiveShadow = true; m.add(falange);
         const distal = entre(pip, pta, d.r * 0.94, d.r * 0.80, matLuva, 9);
         distal.castShadow = true; m.add(distal);
         // nó saliente e junta arredondada: dão a leitura de articulação
-        const noBola = new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.16, 10, 8), matLuva);
+        const noBola = new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.20, 10, 8), matLuva);
         noBola.position.copy(no); m.add(noBola);
-        const capaNo = new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.18, 10, 8), matProtClaro);
-        capaNo.scale.set(1, 0.62, 0.9);
-        capaNo.position.set(no.x, no.y + d.r * 0.42, no.z - d.r * 0.10); m.add(capaNo);
-        const juntaBola = new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.02, 9, 7), matLuva);
+        const capaNo = new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.24, 10, 8), matLuvaDet);
+        capaNo.scale.set(0.88, 0.60, 0.90);
+        capaNo.position.set(no.x, no.y + d.r * 0.50, no.z - d.r * 0.06); m.add(capaNo);
+        const juntaBola = new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.04, 9, 7), matLuva);
         juntaBola.position.copy(pip); m.add(juntaBola);
-        const ponta = new THREE.Mesh(new THREE.SphereGeometry(d.r * 0.84, 9, 7), matLuvaPalma);
+        const ponta = new THREE.Mesh(new THREE.SphereGeometry(d.r * 0.86, 9, 7), matLuvaPalma);
         ponta.position.copy(pta); m.add(ponta);
+        // oclusão entre dedos: sem esse escuro no vão os dedos colam num bloco
+        if (i < DEDOS.length - 1) {
+          const vao = new THREE.Mesh(new THREE.SphereGeometry(d.r * 0.95, 8, 6), matContato);
+          vao.scale.set(0.42, 1.15, 1.5);
+          vao.position.set(no.x - lado * 0.011, no.y - d.r * 0.35, no.z + d.r * 0.5);
+          vao.renderOrder = 1; m.add(vao);
+        }
+        // sombra da ponta do dedo no manete: contato de verdade
+        if (d.noManete) {
+          const sc = new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.25, 8, 6), matContato);
+          sc.scale.set(1, 0.34, 0.9);
+          sc.position.set(pta.x, pta.y + d.r * 0.7, pta.z);
+          sc.renderOrder = 1; m.add(sc);
+        }
       });
       // ---- polegar: passa por baixo, do lado de dentro ----
-      const polBase = V(x - lado * 0.058, yP + 0.018, zP - 0.028);
-      const polMeio = V(x - lado * 0.046, yP - 0.016, zP + 0.006);
-      const polPta  = V(x - lado * 0.022, yP - 0.030, zP + 0.028);
-      const pol1 = entre(polBase, polMeio, 0.0145, 0.0132, matLuva, 9);
+      const polBase = V(xM - lado * 0.044, yP + 0.014, zP - 0.024);
+      const polMeio = V(xM - lado * 0.034, yP - 0.018, zP + 0.008);
+      const polPta  = V(xM - lado * 0.012, yP - 0.032, zP + 0.030);
+      const pol1 = entre(polBase, polMeio, 0.0148, 0.0134, matLuva, 9);
       pol1.castShadow = true; m.add(pol1);
-      const pol2 = entre(polMeio, polPta, 0.0128, 0.0108, matLuva, 9);
+      const pol2 = entre(polMeio, polPta, 0.0130, 0.0110, matLuva, 9);
       pol2.castShadow = true; m.add(pol2);
-      const polJunta = new THREE.Mesh(new THREE.SphereGeometry(0.0132, 9, 7), matLuva);
+      const polJunta = new THREE.Mesh(new THREE.SphereGeometry(0.0134, 9, 7), matLuva);
       polJunta.position.copy(polMeio); m.add(polJunta);
-      const polPonta = new THREE.Mesh(new THREE.SphereGeometry(0.0108, 9, 7), matLuvaPalma);
+      const polPonta = new THREE.Mesh(new THREE.SphereGeometry(0.0110, 9, 7), matLuvaPalma);
       polPonta.position.copy(polPta); m.add(polPonta);
       // sombra de contato onde a palma e o polegar encostam na borracha
       const contatoPalma = new THREE.Mesh(new THREE.SphereGeometry(0.050, 12, 9), matContato);
-      contatoPalma.scale.set(1.15, 0.30, 1.0);
-      contatoPalma.position.set(x - lado * 0.006, yP + 0.010, zP - 0.014);
+      contatoPalma.scale.set(1.05, 0.30, 1.0);
+      contatoPalma.position.set(xM - lado * 0.004, yP + 0.008, zP - 0.012);
       contatoPalma.renderOrder = 1; m.add(contatoPalma);
     });
 
@@ -4771,7 +5229,8 @@
     // ---------------------------------------------------------------
     juntaPorMaterial(m, [matAluminio, matAnodizado, matCromo, matParafuso, matPlastico,
                          matBorracha, matPunho, matCosta, matLuva, matLuvaCost,
-                         matLuvaPalma, matLuvaDet, matProtClaro, matJaqueta, matPele, matContato,
+                         matLuvaPalma, matLuvaDet, matProtClaro, matJaqueta, matManga, matMangaEsc,
+                         matPele, matContato,
                          matMotor, matTanqueLiso]);
 
     // a moto e o piloto ficam na camada do cockpit: as câmeras dos espelhos
@@ -5937,7 +6396,7 @@
   document.getElementById("carregando").style.display = "none";
 
   window.__camDbg = camera;
-  window.__depuracao = { marcos: marcos, ROTA: ROTA, telaPainel: telaPainel, jogo: jogo, teclas: teclas, transito: transito, cones: cones, TIPOS: TIPOS, ambiente: ambiente, som: som, renderer: renderer, cena: cena, grupoMoto: grupoMoto,
+  window.__depuracao = { marcos: marcos, ROTA: ROTA, telaPainel: telaPainel, jogo: jogo, teclas: teclas, transito: transito, cones: cones, TIPOS: TIPOS, ambiente: ambiente, som: som, renderer: renderer, cena: cena, grupoMoto: grupoMoto, camera: camera,
                          nivel: function () { return nivel; }, idioma: function () { return idioma; },
                          curvatura: curvaturaEm,
                          direcaoMoto: function () { return grupoDirecao ? +grupoDirecao.rotation.y.toFixed(3) : null; } };

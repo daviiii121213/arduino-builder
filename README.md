@@ -154,29 +154,48 @@ sintetizadas emprestadas aos veículos mais perto do jogador, com:
 ## Cockpit em primeira pessoa
 
 - **Retrovisores limpos**: cada espelho renderiza a pista atrás de verdade, em
-  alvo de 384x232, com aro de borracha, filete cromado e um risco de luz no
-  vidro. A carcaça é girada 0,4 rad, então tudo que vai na frente dela é
-  deslocado ao longo da **normal da face** — deslocar só em Z fazia o meio da
-  carcaça furar o vidro e virar uma mancha escura no reflexo.
+  alvo de 512x312, com aro de borracha, filete cromado, risco de luz e uma
+  **vinheta** escurecendo a borda do vidro, mais a sombra de contato no encaixe
+  do aro — sem isso o reflexo lia como foto chapada na carcaça. A câmera abre
+  68° (espelho de moto é convexo) e olha bem para baixo, mostrando pista e
+  acostamento em vez de uma faixa de céu estourada. No pé da haste há placa de
+  fixação, coifa de borracha sobre a rosca, contraporca e dois parafusos.
+  A carcaça é girada 0,4 rad, então tudo que vai na frente dela é deslocado ao
+  longo da **normal da face** — deslocar só em Z fazia o meio da carcaça furar
+  o vidro e virar uma mancha escura no reflexo.
 - **A moto e o piloto ficam numa camada só do cockpit**, que as câmeras dos
   espelhos não desenham: o vidro mostra a estrada, nunca o próprio piloto.
   O farol continua na camada da pista, para iluminar o asfalto à noite.
-- **Mãos com anatomia**: dorso, palma, punho de couro com velcro, quatro dedos
-  em duas falanges cada, nós salientes com capa rígida, juntas arredondadas e
-  polegar passando por baixo. Índice e médio pousam sobre o manete (freio à
+- **Mãos com anatomia**: a mão **fecha** em volta da borracha (o punho cerrado é
+  um volume só, não uma pilha de placas), com domo de couro costurado por cima,
+  tendões, osso do pulso, canhão com velcro, quatro dedos em duas falanges,
+  nós salientes sob capa rígida, juntas arredondadas e polegar por baixo.
+  Cada dedo tem curvatura e altura próprias — dedos paralelos entregam na hora
+  que é geometria e não anatomia. Índice e médio pousam sobre o manete (freio à
   direita, embreagem à esquerda) e os outros dois fecham no punho.
-- **Sombra de contato** onde a mão aperta a borracha e onde a palma encosta,
-  para a mão não parecer flutuando em volta do punho.
-- **Braços**: ombreira, manga com costura, cotoveleira rígida, punho da jaqueta
-  e antebraço de pele saindo por dentro da manga.
+  A mão fica na metade **externa** do punho: encostada no comando de guidão ela
+  desaparecia atrás da caixa de interruptores.
+- **Sombra de contato** onde a mão aperta a borracha, onde a palma encosta, no
+  vão entre os dedos e embaixo das pontas que tocam o manete.
+- **Braços**: a manga visível começa num ponto à FRENTE do olho e abaixo do
+  quadro, saindo pela borda de baixo da tela. Desenhada até o ombro real (atrás
+  da câmera) ela cruzava o plano próximo e o triângulo recortado virava uma
+  cunha clara que cobria a mão inteira. Manga com costura, cotoveleira, punho
+  da jaqueta e antebraço, todos com **grão de couro**: cor lisa escura sai clara
+  e plástica na tela, e o braço parecia um tubo de PVC.
 - **Comandos completos**: perch com pivô e regulador, lâmina do manete, cilindro
   mestre com reservatório, tampa, visor e mangueira de freio trançada à direita;
   regulador e coifa da embreagem à esquerda; caixa de comandos em duas metades
   com seta, buzina, comutador de farol, chave de emergência, botão de partida e
-  alerta; cabos com abraçadeira; contrapeso e ponteira de guidão.
+  alerta; **par de cabos** de acelerador saindo de uma caixinha de junção,
+  espiral de proteção no chicote elétrico, abraçadeiras; contrapeso e ponteira
+  de guidão. Cada abraçadeira tem um anel de oclusão no tubo, senão as peças
+  parecem só encostadas no guidão.
 - **Três leituras de metal**: alumínio acetinado, anodizado escuro e cromo, com
-  `envMapIntensity` baixo — o mapa de ambiente é o céu claro, e valores altos
-  deixavam guidão e manetes brancos.
+  `envMapIntensity` contido — o mapa de ambiente é o céu claro, e valores altos
+  deixavam guidão e manetes brancos. O plástico e a borracha ganharam **grão
+  próprio**: sem textura, cor lisa escura sobe muito na tela e todo o comando
+  virava o mesmo cinza leitoso do metal.
 - **Mostrador redondo analógico**, no lugar do pod retangular: aro cromado com
   a carcaça aberta em cima (o mostrador fica na frente da tampa, senão o cromo
   cobre o desenho), vidro com risco de luz, pé fundido saindo do console e
@@ -264,6 +283,25 @@ ordem certa (fundido -> coxim -> carcaça -> moldura -> tela -> lente):
 - **Regiões de paisagem**: campo aberto, floresta, fazenda, industrial, serra e
   subúrbio se alternam a cada ~1,6 km, mudando quais elementos aparecem e a que
   distância da pista; o espaçamento tem folga aleatória, sem fila perfeita.
+- **Vegetação variada**: quatro espécies de árvore (copa redonda, conífera em
+  cones empilhados, eucalipto esguio e árvore seca sem folhas), oito verdes de
+  folha, moitas e capim rasteiro mais densos, pedras e troncos caídos. As
+  árvores vêm em **touceiras** (uma a três árvores com moitas, capim e pedras
+  em volta) em vez de exemplares isolados e igualmente espaçados, e há faixas
+  de capim na beira do asfalto. Cada planta tem sua **sombra de contato** no
+  chão.
+- **Montanhas como maciços**: cada uma é um cone com o perfil quebrado por
+  ruído, achatado num eixo e girado, mais dois ou três picos subsidiários na
+  saia e um vinco de sombra num flanco — um cone liso lia como pirâmide de
+  papel. Os morros de granito também levam ruído.
+- **Cercas de fazenda**: mourões fora de prumo, alturas desiguais, topo
+  chanfrado, travessas por vão (às vezes falta uma tábua) e arame liso no topo,
+  no lugar da grade perfeita.
+- **Postes de distribuição**: cruzetas com isoladores de porcelana (saia e
+  pino), mão-francesa, degraus de escalada alternados e, às vezes,
+  transformador com tampa e suporte.
+- **Grama com variação**: manchas largas desfocadas e clareiras de terra seca
+  por baixo dos fiapos de capim, para o gramado não ler como tapete uniforme.
 - **Vegetação balançando** de leve com o vento.
 - **Túnel** a cada 4,2 km: teto e paredes em fitas que acompanham a curva, lâmpadas
   no teto, sol cortado e farol aceso lá dentro.
