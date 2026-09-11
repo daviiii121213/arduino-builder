@@ -4,6 +4,16 @@ A 2D top-down RPG about turning one rusty furnace on a patch of gravel into a sp
 automated industrial complex. You walk the floor yourself: mine by hand, lay belts, wire
 power, hire a crew, take contracts, research technology and watch the plant come alive.
 
+It ships in two complete implementations of the same game:
+
+* **Browser** — vanilla JavaScript + Canvas2D, no build step (this file)
+* **Desktop** — pure Python + pygame, no dependencies beyond pygame ([PYGAME.md](PYGAME.md))
+
+Both share the same design, balance numbers and procedural art language; neither uses
+any image or audio files.
+
+## Browser version
+
 **Play it:** serve the folder and open it — there is no build step.
 
 ```bash
