@@ -3697,87 +3697,132 @@
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
   // ---- painel digital: textura desenhada a cada quadro ----
-  const telaPainel = tela(1024, 512);
+  // ---------------------------------------------------------------
+  //  Mostrador redondo: um velocímetro analógico como o da referência —
+  //  aro claro, mostrador rosado, escala de 0 a 220, ponteiro vermelho e
+  //  os dados do jogo (marcha, giro, nitro, combustível e hodômetro) em
+  //  janelinhas dentro do próprio relógio.
+  // ---------------------------------------------------------------
+  const telaPainel = tela(512, 512);
   const ctxPainel = telaPainel.getContext("2d");
   const texPainel = new THREE.CanvasTexture(telaPainel);
   texPainel.encoding = THREE.sRGBEncoding;
   texPainel.anisotropy = 16;
 
+  const VEL_ESCALA = 220;                  // fundo de escala do mostrador
+  const ANG_INI = Math.PI * 0.75;          // 0 km/h embaixo à esquerda
+  const ANG_FIM = Math.PI * 2.25;          // 220 km/h embaixo à direita
+  function anguloVel(v) {
+    return ANG_INI + (ANG_FIM - ANG_INI) * clamp(v / VEL_ESCALA, 0, 1);
+  }
 
   function desenhaPainel(vel, giro, marcha, nitro, dist, combustivel) {
-    const g = ctxPainel, tx = T().painel;
-    // a tela tem 1024x512 mas o desenho continua em coordenadas de 512x256:
-    // dobrar a escala deixa números e traços nítidos sem mexer no layout
-    g.setTransform(2, 0, 0, 2, 0, 0);
-    g.fillStyle = "#05090e"; g.fillRect(0, 0, 512, 256);
-    const brilho = g.createRadialGradient(256, 118, 20, 256, 118, 300);
-    brilho.addColorStop(0, "rgba(30,60,88,.5)"); brilho.addColorStop(1, "rgba(6,10,16,0)");
-    g.fillStyle = brilho; g.fillRect(0, 0, 512, 256);
+    const g = ctxPainel, tx = T().painel, C = 256;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, 512, 512);
 
-    // barra de giro no topo, centralizada
-    const x0 = 30, x1 = 482, yBarra = 30, nSeg = 32, larg = (x1 - x0) / nSeg;
-    for (let i = 0; i < nSeg; i++) {
-      const t = i / (nSeg - 1);
-      const aceso = t <= giro;
-      g.fillStyle = aceso ? (t > 0.88 ? "#ff4646" : t > 0.72 ? "#ffd166" : "#57d8ff") : "rgba(255,255,255,.07)";
-      g.fillRect(x0 + i * larg, yBarra - 9, larg - 3, 18);
+    // ---- aro externo claro e mostrador rosado ----
+    g.fillStyle = "#e7e3d8";
+    g.beginPath(); g.arc(C, C, 250, 0, 7); g.fill();
+    g.strokeStyle = "rgba(90,86,78,.55)"; g.lineWidth = 5;
+    g.beginPath(); g.arc(C, C, 247, 0, 7); g.stroke();
+    const fundo = g.createRadialGradient(C - 60, C - 80, 30, C, C, 230);
+    fundo.addColorStop(0.00, "#f6c9cb");
+    fundo.addColorStop(0.55, "#e9a7ab");
+    fundo.addColorStop(1.00, "#cf888f");
+    g.fillStyle = fundo;
+    g.beginPath(); g.arc(C, C, 228, 0, 7); g.fill();
+    g.strokeStyle = "rgba(70,40,44,.35)"; g.lineWidth = 3;
+    g.beginPath(); g.arc(C, C, 228, 0, 7); g.stroke();
+
+    // ---- escala: traços a cada 10 e números a cada 20 ----
+    g.textAlign = "center"; g.textBaseline = "middle";
+    for (let v = 0; v <= VEL_ESCALA; v += 10) {
+      const a = anguloVel(v), grande = v % 20 === 0;
+      const r1 = 214, r2 = grande ? 188 : 199;
+      g.strokeStyle = v >= 180 ? "#a32020" : "#3a2326";
+      g.lineWidth = grande ? 5 : 2.6;
+      g.beginPath();
+      g.moveTo(C + Math.cos(a) * r1, C + Math.sin(a) * r1);
+      g.lineTo(C + Math.cos(a) * r2, C + Math.sin(a) * r2);
+      g.stroke();
+      if (grande && v % 40 === 0) {
+        g.fillStyle = v >= 180 ? "#a32020" : "#33201f";
+        g.font = "700 34px 'Segoe UI', Arial";
+        g.fillText(String(v), C + Math.cos(a) * 158, C + Math.sin(a) * 158);
+      }
     }
-    for (let i = 0; i <= 8; i++) {                    // marcações de 1000 giros
-      const xm = x0 + (x1 - x0) * (i / 8);
-      g.fillStyle = i >= 7 ? "rgba(255,90,90,.65)" : "rgba(150,180,205,.40)";
-      g.fillRect(xm - 1, yBarra + 11, 2, i % 2 ? 3 : 6);
+    g.fillStyle = "rgba(58,35,38,.8)"; g.font = "700 20px 'Segoe UI', Arial";
+    g.fillText(tx.unidade, C, C - 92);
+
+    // ---- arco de giro (âmbar) e de nitro (azul), na borda de dentro ----
+    function arco(r, ini, frac, cor, esp) {
+      if (frac <= 0.001) return;
+      g.strokeStyle = cor; g.lineWidth = esp; g.lineCap = "round";
+      g.beginPath();
+      g.arc(C, C, r, ini, ini + (ANG_FIM - ANG_INI) * 0.46 * frac);
+      g.stroke();
+      g.lineCap = "butt";
     }
-    g.textBaseline = "alphabetic";
-    g.fillStyle = "#5f7285"; g.font = "700 12px 'Segoe UI', Arial"; g.textAlign = "left";
-    g.fillText(tx.giro, x0, yBarra + 26);
-    g.textAlign = "right";
-    g.fillText("AUTO", x1, yBarra + 26);
-    // barra de nitro logo abaixo do giro
-    g.fillStyle = "#101820"; g.fillRect(x0, yBarra + 34, x1 - x0, 9);
-    const gradN = g.createLinearGradient(x0, 0, x1, 0);
-    gradN.addColorStop(0, "#2f7fd0"); gradN.addColorStop(1, "#7fe3ff");
-    g.fillStyle = gradN; g.fillRect(x0 + 1, yBarra + 35, (x1 - x0 - 2) * clamp(nitro, 0, 1), 7);
-    g.fillStyle = "#5f7285"; g.font = "700 11px 'Segoe UI', Arial"; g.textAlign = "left";
-    g.fillText("NITRO", x0, yBarra + 56);
+    arco(176, ANG_INI + 0.06, clamp(giro, 0, 1), giro > 0.9 ? "#d33b2e" : "#e0a13a", 9);
+    arco(176, ANG_FIM - 0.06 - (ANG_FIM - ANG_INI) * 0.46 * clamp(nitro, 0, 1),
+         clamp(nitro, 0, 1), "#3f9bd6", 9);
 
-    // velocidade: número centralizado na tela, com a unidade logo abaixo
-    g.textAlign = "center";
-    g.fillStyle = "#eef6ff"; g.font = "700 112px 'Segoe UI', Arial";
-    g.fillText(String(Math.round(vel)), 244, 168);
-    g.fillStyle = "#7fe3b6"; g.font = "700 24px 'Segoe UI', Arial";
-    g.fillText(tx.unidade, 244, 196);
+    // ---- janela da marcha e leitura digital da velocidade ----
+    g.fillStyle = "rgba(40,22,24,.82)";
+    g.beginPath(); g.arc(C, C + 62, 46, 0, 7); g.fill();
+    g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 3;
+    g.beginPath(); g.arc(C, C + 62, 46, 0, 7); g.stroke();
+    g.fillStyle = "#ffd166"; g.font = "700 50px 'Segoe UI', Arial";
+    g.fillText(String(marcha), C, C + 66);
+    g.fillStyle = "rgba(58,35,38,.75)"; g.font = "700 15px 'Segoe UI', Arial";
+    g.fillText("AUTO", C, C + 122);
 
-    // marcha à direita, alinhada com o número
-    g.fillStyle = "#101820"; g.fillRect(398, 84, 92, 94);
-    g.strokeStyle = "rgba(120,190,240,.34)"; g.lineWidth = 2; g.strokeRect(398, 84, 92, 94);
-    g.fillStyle = "#ffd166"; g.font = "700 66px 'Segoe UI', Arial";
-    g.fillText(String(marcha), 444, 154);
+    g.fillStyle = "rgba(40,22,24,.80)";
+    g.fillRect(C - 74, C - 96, 148, 52);
+    g.strokeStyle = "rgba(255,255,255,.18)"; g.lineWidth = 2;
+    g.strokeRect(C - 74, C - 96, 148, 52);
+    g.fillStyle = "#f4f8ff"; g.font = "700 40px 'Segoe UI', Arial";
+    g.fillText(String(Math.round(vel)), C, C - 68);
 
-    // rodapé: combustível à esquerda, hodômetro à direita, mesma linha de base
+    // ---- hodômetro e combustível ----
+    g.fillStyle = "rgba(40,22,24,.78)";
+    g.fillRect(C - 66, C + 150, 132, 34);
+    g.fillStyle = "#e7ecf2"; g.font = "700 21px 'Segoe UI', Arial";
+    g.fillText(dist.toFixed(1) + " km", C, C + 168);
+    g.fillStyle = "rgba(58,35,38,.7)"; g.font = "700 13px 'Segoe UI', Arial";
+    g.textAlign = "right"; g.fillText(tx.comb, C - 78, C + 20);
     g.textAlign = "left";
-    g.fillStyle = "#5f7285"; g.font = "700 12px 'Segoe UI', Arial";
-    g.fillText(tx.comb, 30, 222);
-    g.fillStyle = "#101820"; g.fillRect(80, 210, 130, 13);
-    g.fillStyle = combustivel < 0.22 ? "#ff6b6b" : "#57d8ff";
-    g.fillRect(82, 212, 126 * combustivel, 9);
-    g.textAlign = "right";
-    g.fillStyle = "#93a9bd"; g.font = "700 15px 'Segoe UI', Arial";
-    g.fillText(dist.toFixed(1) + " km", 482, 222);
-    g.fillStyle = "#5f7285"; g.font = "700 11px 'Segoe UI', Arial";
-    g.fillText(tx.motor, 482, 242);
+    g.fillStyle = "rgba(40,22,24,.55)"; g.fillRect(C - 74, C + 10, 60, 11);
+    g.fillStyle = combustivel < 0.22 ? "#d9433a" : "#3f9bd6";
+    g.fillRect(C - 73, C + 11, 58 * clamp(combustivel, 0, 1), 9);
+    g.textAlign = "center";
 
-    // moldura interna e reflexo de vidro: dá a sensação de tela sob acrílico
-    g.strokeStyle = "rgba(120,190,240,.16)"; g.lineWidth = 2;
-    g.strokeRect(12, 10, 488, 236);
-    const refl = g.createLinearGradient(0, 0, 512, 256);
-    refl.addColorStop(0.00, "rgba(255,255,255,.10)");
-    refl.addColorStop(0.26, "rgba(255,255,255,.02)");
-    refl.addColorStop(0.30, "rgba(255,255,255,0)");
-    refl.addColorStop(1.00, "rgba(255,255,255,0)");
-    g.fillStyle = refl; g.fillRect(0, 0, 512, 256);
-    const vin = g.createRadialGradient(256, 128, 170, 256, 128, 360);
-    vin.addColorStop(0, "rgba(0,0,0,0)"); vin.addColorStop(1, "rgba(0,0,0,.38)");
-    g.fillStyle = vin; g.fillRect(0, 0, 512, 256);
+    // ---- ponteiro vermelho com contrapeso e cubo ----
+    const a = anguloVel(vel);
+    g.save();
+    g.translate(C, C); g.rotate(a);
+    g.fillStyle = "rgba(70,30,34,.28)";
+    g.beginPath(); g.moveTo(-34, 7); g.lineTo(206, 4); g.lineTo(206, -4); g.lineTo(-34, -7); g.fill();
+    g.fillStyle = "#c9282a";
+    g.beginPath(); g.moveTo(-38, 9); g.lineTo(202, 3.5); g.lineTo(202, -3.5); g.lineTo(-38, -9); g.fill();
+    g.fillStyle = "#8f1c1e";
+    g.beginPath(); g.moveTo(-38, 9); g.lineTo(-66, 7); g.lineTo(-66, -7); g.lineTo(-38, -9); g.fill();
+    g.restore();
+    g.fillStyle = "#e7e3d8";
+    g.beginPath(); g.arc(C, C, 26, 0, 7); g.fill();
+    g.fillStyle = "#6d6a62";
+    g.beginPath(); g.arc(C, C, 15, 0, 7); g.fill();
+
+    // ---- reflexo do vidro por cima de tudo ----
+    const brilho = g.createLinearGradient(70, 40, 300, 300);
+    brilho.addColorStop(0.00, "rgba(255,255,255,.30)");
+    brilho.addColorStop(0.34, "rgba(255,255,255,.06)");
+    brilho.addColorStop(0.40, "rgba(255,255,255,0)");
+    g.save();
+    g.beginPath(); g.arc(C, C, 228, 0, 7); g.clip();
+    g.fillStyle = brilho; g.fillRect(0, 0, 512, 512);
+    g.restore();
     texPainel.needsUpdate = true;
   }
 
@@ -3892,10 +3937,10 @@
     const texTanque = (function () {
       const c = tela(1024, 512), g = c.getContext("2d");
       const grad = g.createLinearGradient(0, 0, 1024, 0);
-      grad.addColorStop(0.00, "#0a1c56"); grad.addColorStop(0.25, "#081647");
-      grad.addColorStop(0.50, "#123591"); grad.addColorStop(0.62, "#1a45bd");
-      grad.addColorStop(0.75, "#2a5ce0"); grad.addColorStop(0.88, "#1a45bd");
-      grad.addColorStop(1.00, "#0d2469");
+      grad.addColorStop(0.00, "#04332f"); grad.addColorStop(0.25, "#032b28");
+      grad.addColorStop(0.50, "#0b6e67"); grad.addColorStop(0.62, "#11938a");
+      grad.addColorStop(0.75, "#1ab5aa"); grad.addColorStop(0.88, "#11938a");
+      grad.addColorStop(1.00, "#063f3a");
       g.fillStyle = grad; g.fillRect(0, 0, 1024, 512);
       // faixas brancas correndo pelo topo do tanque
       g.fillStyle = "#f2f5f8"; g.fillRect(736, 0, 22, 512); g.fillRect(778, 0, 22, 512);
@@ -3965,6 +4010,8 @@
     const matLuvaPalma= new THREE.MeshStandardMaterial({ color: 0x101318, roughness: 0.88, metalness: 0.02 });
     const matLuvaDet  = new THREE.MeshStandardMaterial({ color: 0x252b33, roughness: 0.34, metalness: 0.35,
       envMap: AMBIENTE, envMapIntensity: 0.5 });                           // protetor rígido
+    const matProtClaro = new THREE.MeshStandardMaterial({ color: 0x9aa1a9, roughness: 0.38,
+      metalness: 0.30, envMap: AMBIENTE, envMapIntensity: 0.45 });         // protetor claro
     const matPele     = new THREE.MeshStandardMaterial({ color: 0x9d6b47, roughness: 0.84, metalness: 0.0 });
     const matJaqueta  = new THREE.MeshStandardMaterial({ color: 0x161d26, roughness: 0.62, metalness: 0.08,
       envMap: AMBIENTE, envMapIntensity: 0.35 });
@@ -3983,7 +4030,7 @@
     tanque.scale.set(0.245, 0.175, 0.42);
     tanque.position.set(0, 0.855, 0.22);
     tanque.castShadow = true; tanque.receiveShadow = true; m.add(tanque);
-    const matTanqueLiso = new THREE.MeshStandardMaterial({ color: 0x1a45bd, roughness: 0.42,
+    const matTanqueLiso = new THREE.MeshStandardMaterial({ color: 0x11938a, roughness: 0.42,
       metalness: 0.52, roughnessMap: TEX_VERNIZ, envMap: AMBIENTE, envMapIntensity: 1.05 });
     const bico = new THREE.Mesh(geoTanque, matTanqueLiso);
     bico.scale.set(0.185, 0.135, 0.17);
@@ -4255,7 +4302,7 @@
       // carcaça: casca convexa por trás + anel de espessura, para o espelho
       // ter volume de verdade em vez de virar uma placa
       const corpoEsp = new THREE.Mesh(new THREE.SphereGeometry(1, 26, 18), matPlastico);
-      corpoEsp.scale.set(0.124, 0.079, 0.026);
+      corpoEsp.scale.set(0.138, 0.088, 0.028);
       corpoEsp.position.copy(cEsp);
       corpoEsp.rotation.y = angEsp; corpoEsp.rotation.z = lado * 0.10;
       corpoEsp.castShadow = true; m.add(corpoEsp);
@@ -4266,7 +4313,7 @@
       const geoVidro = new THREE.CircleGeometry(1, 32);
       const vidro = new THREE.Mesh(geoVidro,
         new THREE.MeshBasicMaterial({ map: alvosEspelho[idx].texture, toneMapped: false }));
-      vidro.scale.set(0.100, 0.061, 1);
+      vidro.scale.set(0.112, 0.069, 1);
       naFace(vidro, 0.030);
       vidro.rotation.set(0, Math.PI + angEsp, -lado * 0.10);
       m.add(vidro);
@@ -4282,18 +4329,18 @@
       m.add(brilhoEsp);
       // aro: borracha por fora e filete cromado encostando no vidro
       const aroVidro = new THREE.Mesh(new THREE.TorusGeometry(1, 0.055, 8, 32), matPlastico);
-      aroVidro.scale.set(0.112, 0.071, 0.20);
+      aroVidro.scale.set(0.125, 0.079, 0.20);
       naFace(aroVidro, 0.024);
       aroVidro.rotation.copy(vidro.rotation);
       m.add(aroVidro);
       // anel de espessura entre a casca e o aro: dá o volume da carcaça
       const anelEsp = new THREE.Mesh(new THREE.TorusGeometry(1, 0.040, 6, 32), matCosta);
-      anelEsp.scale.set(0.118, 0.075, 0.26);
+      anelEsp.scale.set(0.131, 0.083, 0.26);
       naFace(anelEsp, 0.012);
       anelEsp.rotation.copy(vidro.rotation);
       m.add(anelEsp);
       const filete = new THREE.Mesh(new THREE.TorusGeometry(1, 0.018, 6, 32), matCromo);
-      filete.scale.set(0.1015, 0.0625, 0.16);
+      filete.scale.set(0.1135, 0.0705, 0.16);
       naFace(filete, 0.0305);
       filete.rotation.copy(vidro.rotation);
       m.add(filete);
@@ -4316,7 +4363,7 @@
       ombreira.castShadow = true; m.add(ombreira);
       // manga vai do ombro até depois do cotovelo e a pele começa por dentro dela,
       // sem deixar emenda aparente entre a jaqueta e o braço
-      const meioAntebraco = new THREE.Vector3().lerpVectors(cotovelo, pulso, 0.42);
+      const meioAntebraco = new THREE.Vector3().lerpVectors(cotovelo, pulso, 0.44);
       const braco = entre(ombro, meioAntebraco, 0.058, 0.049, matJaqueta, 14);
       braco.castShadow = true; braco.receiveShadow = true; m.add(braco);
       const cotoveleira = new THREE.Mesh(new THREE.SphereGeometry(0.052, 12, 10), matLuvaDet);
@@ -4327,11 +4374,11 @@
       costuraM.position.lerpVectors(ombro, meioAntebraco, 0.62);
       costuraM.quaternion.copy(braco.quaternion);
       costuraM.rotateX(Math.PI / 2); m.add(costuraM);
-      const punhoJaq = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.047, 0.048, 14), matCosta);
+      const punhoJaq = new THREE.Mesh(new THREE.CylinderGeometry(0.050, 0.044, 0.052, 14), matCosta);
       punhoJaq.position.copy(meioAntebraco);
       punhoJaq.quaternion.copy(braco.quaternion); m.add(punhoJaq);
-      const inicioPele = new THREE.Vector3().lerpVectors(cotovelo, pulso, 0.30);
-      const antebraco = entre(inicioPele, pulso, 0.045, 0.033, matPele, 14);
+      const inicioPele = new THREE.Vector3().lerpVectors(cotovelo, pulso, 0.32);
+      const antebraco = entre(inicioPele, pulso, 0.046, 0.034, matCosta, 14);
       antebraco.castShadow = true; antebraco.receiveShadow = true; m.add(antebraco);
 
       // =========================================================
@@ -4360,7 +4407,7 @@
       palma.position.set(x - lado * 0.010, yP - 0.006, zP - 0.030);
       palma.rotation.y = yaw; palma.rotation.x = 0.22; m.add(palma);
       // protetor rígido sobre o dorso, com três vincos
-      const protetor = new THREE.Mesh(geoCorpo(0.070, 0.014, 0.092, 0.014), matLuvaDet);
+      const protetor = new THREE.Mesh(geoCorpo(0.070, 0.014, 0.092, 0.014), matProtClaro);
       protetor.position.set(x - lado * 0.006, yP + 0.052, zP - 0.006);
       protetor.rotation.y = yaw; protetor.rotation.x = -0.16; m.add(protetor);
       [-0.024, 0, 0.024].forEach(function (dv) {
@@ -4373,7 +4420,7 @@
       canhao.position.set(x - lado * 0.062, yP + 0.024, zP - 0.052);
       canhao.rotation.z = Math.PI / 2 - lado * 0.35; canhao.rotation.x = 0.5;
       canhao.castShadow = true; m.add(canhao);
-      const velcro = new THREE.Mesh(new THREE.TorusGeometry(0.044, 0.008, 8, 16), matLuvaDet);
+      const velcro = new THREE.Mesh(new THREE.TorusGeometry(0.044, 0.008, 8, 16), matProtClaro);
       velcro.position.set(x - lado * 0.070, yP + 0.026, zP - 0.058);
       velcro.rotation.y = Math.PI / 2 - lado * 0.35; velcro.rotation.z = 0.42; m.add(velcro);
 
@@ -4399,7 +4446,7 @@
         // nó saliente e junta arredondada: dão a leitura de articulação
         const noBola = new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.16, 10, 8), matLuva);
         noBola.position.copy(no); m.add(noBola);
-        const capaNo = new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.18, 10, 8), matLuvaDet);
+        const capaNo = new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.18, 10, 8), matProtClaro);
         capaNo.scale.set(1, 0.62, 0.9);
         capaNo.position.set(no.x, no.y + d.r * 0.42, no.z - d.r * 0.10); m.add(capaNo);
         const juntaBola = new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.02, 9, 7), matLuva);
@@ -4457,108 +4504,113 @@
       bota.position.set(lado * 0.26, 0.46, 0.05); m.add(bota);
     });
 
-    // ---------------- painel: pod emborrachado sobre suporte fundido ----
-    // A construção é a de uma moto de verdade, de trás para a frente:
-    // suporte fundido saindo da mesa -> coxim de borracha -> carcaça do pod
-    // -> moldura -> tela -> lente de acrílico com reflexo.
-    const caixaPainel = new THREE.Mesh(geoCorpo(0.118, 0.158, 0.295, 0.024), matPlastico);
-    caixaPainel.position.set(0, Y_BAR + 0.138, Z_BAR + 0.146);
-    caixaPainel.rotation.x = -0.30;
-    caixaPainel.castShadow = true; caixaPainel.receiveShadow = true; m.add(caixaPainel);
-    // costas do pod: caixa mais estreita, com nervuras e o conector do chicote
-    const costasPod = new THREE.Mesh(geoCorpo(0.055, 0.100, 0.190, 0.012), matCosta);
-    costasPod.position.set(0, 0, 0.070); caixaPainel.add(costasPod);
-    [-0.055, 0, 0.055].forEach(function (dx) {
-      const nervP = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.092, 0.048), matCosta);
-      nervP.position.set(dx, 0, 0.088); caixaPainel.add(nervP);
-    });
-    const conector = new THREE.Mesh(geoCorpo(0.030, 0.026, 0.038, 0.005), matCosta);
-    conector.position.set(0.055, -0.050, 0.070); caixaPainel.add(conector);
-
-    const telaMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.252, 0.126),
-      new THREE.MeshBasicMaterial({ map: texPainel, toneMapped: false }));
-    telaMesh.position.set(0, 0, -0.062);      // face voltada para o piloto
-    telaMesh.rotation.y = Math.PI;
-    caixaPainel.add(telaMesh);
-    // lente de acrílico na frente da tela, com um risco de luz por cima
-    const lentePainel = new THREE.Mesh(new THREE.PlaneGeometry(0.258, 0.130),
-      new THREE.MeshBasicMaterial({ map: TEX_BRILHO_ESP, transparent: true, opacity: 0.16,
-        depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false }));
-    lentePainel.position.set(0, 0, -0.067);
-    lentePainel.rotation.y = Math.PI;
-    lentePainel.renderOrder = 2;
-    caixaPainel.add(lentePainel);
-    // pestana sobre a tela, com o lábio de borracha
-    const viseiraPainel = new THREE.Mesh(geoCorpo(0.046, 0.018, 0.268, 0.007), matPlastico);
-    viseiraPainel.position.set(0, Y_BAR + 0.220, Z_BAR + 0.130);
-    viseiraPainel.rotation.x = -0.30; m.add(viseiraPainel);
-    const labioViseira = new THREE.Mesh(new THREE.BoxGeometry(0.264, 0.008, 0.012), matBorracha);
-    labioViseira.position.set(0, 0.084, -0.056); caixaPainel.add(labioViseira);
-    // moldura de borracha em volta da tela, presa no próprio pod
-    [[0, 0.071, 0.278, 0.014], [0, -0.071, 0.278, 0.014],
-     [0.1455, 0, 0.014, 0.150], [-0.1455, 0, 0.014, 0.150]].forEach(function (b) {
-      const barra2 = new THREE.Mesh(new THREE.BoxGeometry(b[2], b[3], 0.012), matBorracha);
-      barra2.position.set(b[0], b[1], -0.064);
-      caixaPainel.add(barra2);
-    });
-    [[-0.129, 0.058], [0.129, 0.058], [-0.129, -0.058], [0.129, -0.058]].forEach(function (q) {
-      const pfP = new THREE.Mesh(new THREE.CylinderGeometry(0.0055, 0.0055, 0.012, 6), matParafuso);
-      pfP.rotation.x = Math.PI / 2;
-      pfP.position.set(q[0], q[1], -0.069);
-      caixaPainel.add(pfP);
-    });
-    // suporte fundido: fica atrás do plano da tela e inclinado para longe do
-    // piloto, senão a ponta dele aparece cruzando os números
-    const bracoPainel = new THREE.Mesh(geoCorpo(0.030, 0.096, 0.026, 0.008), matAnodizado);
-    bracoPainel.position.set(0, Y_BAR + 0.056, Z_BAR + 0.124);
-    bracoPainel.rotation.x = 0.22; m.add(bracoPainel);
+    // ---------------- console e mostrador redondo ----------------
+    // Como na referência: uma capa clara cobrindo a mesa, e em cima dela um
+    // único relógio redondo com aro cromado, vidro e o mostrador rosado.
+    const matConsole = new THREE.MeshStandardMaterial({ color: 0xcfc9b8, roughness: 0.52,
+      metalness: 0.22, envMap: AMBIENTE, envMapIntensity: 0.30 });
+    const consoleTopo = new THREE.Mesh(geoCorpo(0.215, 0.072, 0.310, 0.034), matConsole);
+    consoleTopo.position.set(0, Y_BAR + 0.010, Z_BAR + 0.086);
+    consoleTopo.rotation.x = 0.12;
+    consoleTopo.castShadow = true; consoleTopo.receiveShadow = true; m.add(consoleTopo);
+    const consoleFrente = new THREE.Mesh(geoCorpo(0.085, 0.084, 0.262, 0.026), matConsole);
+    consoleFrente.position.set(0, Y_BAR - 0.018, Z_BAR + 0.172);
+    consoleFrente.rotation.x = 0.45; m.add(consoleFrente);
+    // filetes verde-água nas pontas do console, como na referência
     [-1, 1].forEach(function (l) {
-      const orelha = new THREE.Mesh(geoCorpo(0.024, 0.040, 0.014, 0.005), matAnodizado);
-      orelha.position.set(l * 0.030, Y_BAR + 0.078, Z_BAR + 0.130);
-      orelha.rotation.x = 0.22; orelha.rotation.z = -l * 0.35; m.add(orelha);
-      const pfO = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.012, 6), matParafuso);
-      pfO.rotation.z = Math.PI / 2;
-      pfO.position.set(l * 0.040, Y_BAR + 0.086, Z_BAR + 0.132); m.add(pfO);
-      // coxim de borracha entre o suporte e a carcaça
-      const coximP = new THREE.Mesh(new THREE.CylinderGeometry(0.010, 0.010, 0.014, 10), matBorracha);
-      coximP.rotation.z = Math.PI / 2;
-      coximP.position.set(l * 0.032, Y_BAR + 0.086, Z_BAR + 0.132); m.add(coximP);
+      const filete = new THREE.Mesh(geoCorpo(0.190, 0.030, 0.028, 0.010), matTanqueLiso);
+      filete.position.set(l * 0.152, Y_BAR + 0.012, Z_BAR + 0.086);
+      filete.rotation.x = 0.12; m.add(filete);
+      const tampaLat = new THREE.Mesh(geoCorpo(0.070, 0.052, 0.020, 0.008), matTanqueLiso);
+      tampaLat.position.set(l * 0.150, Y_BAR - 0.020, Z_BAR + 0.160);
+      tampaLat.rotation.x = 0.45; m.add(tampaLat);
     });
-    const peBase = new THREE.Mesh(geoCorpo(0.064, 0.016, 0.076, 0.007), matAnodizado);
-    peBase.position.set(0, Y_BAR + 0.012, Z_BAR + 0.100); m.add(peBase);
-    [-0.026, 0.026].forEach(function (dx) {
-      const pfB = new THREE.Mesh(new THREE.CylinderGeometry(0.0055, 0.0055, 0.012, 6), matParafuso);
-      pfB.position.set(dx, Y_BAR + 0.022, Z_BAR + 0.100); m.add(pfB);
+    const consoleSombra = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 0.22), matContato);
+    consoleSombra.rotation.x = -Math.PI / 2 + 0.12;
+    consoleSombra.position.set(0, Y_BAR - 0.027, Z_BAR + 0.090);
+    consoleSombra.renderOrder = 1; m.add(consoleSombra);
+
+    // lentes de aviso no console (ponto morto e setas), como no painel real
+    [[-0.072, 0x2f8f4a], [-0.044, 0xd9a021], [0.044, 0xd9a021], [0.072, 0x2f6f9e]]
+      .forEach(function (lz) {
+        const lente = new THREE.Mesh(new THREE.CylinderGeometry(0.0075, 0.0075, 0.006, 10),
+          new THREE.MeshStandardMaterial({ color: lz[1], roughness: 0.35, metalness: 0.1,
+            emissive: lz[1], emissiveIntensity: 0.18 }));
+        lente.rotation.x = 0.12;
+        lente.position.set(lz[0], Y_BAR + 0.046, Z_BAR + 0.040); m.add(lente);
+      });
+    // refletor vermelho na ponta direita do console (aparece na foto)
+    const refletorCons = new THREE.Mesh(geoCorpo(0.030, 0.010, 0.048, 0.004),
+      new THREE.MeshStandardMaterial({ color: 0xb52a22, roughness: 0.35, metalness: 0.2,
+        emissive: 0x5a1008, emissiveIntensity: 0.35 }));
+    refletorCons.position.set(0.112, Y_BAR + 0.048, Z_BAR + 0.078);
+    refletorCons.rotation.x = 0.12; m.add(refletorCons);
+
+    // ---- o relógio ----
+    // a carcaça é aberta em cima: o mostrador fica NA FRENTE da tampa do
+    // cilindro, senão o cromo cobre o desenho
+    const ANG_MOST = -1.21;                  // face voltada para o piloto
+    const RM = 0.104;                        // raio do relógio
+    const corpoMost = new THREE.Mesh(
+      new THREE.CylinderGeometry(RM, RM * 0.94, 0.062, 30, 1, true), matCromo);
+    corpoMost.material.side = THREE.DoubleSide;
+    corpoMost.position.set(0, Y_BAR + 0.098, Z_BAR + 0.088);
+    corpoMost.rotation.x = ANG_MOST;
+    corpoMost.castShadow = true; m.add(corpoMost);
+    // face desenhada, vidro e aro — filhos do corpo, então acompanham o ângulo
+    const faceMost = new THREE.Mesh(new THREE.CircleGeometry(RM * 0.955, 36),
+      new THREE.MeshBasicMaterial({ map: texPainel, toneMapped: false, transparent: true }));
+    faceMost.position.set(0, 0.030, 0);
+    faceMost.rotation.x = -Math.PI / 2;
+    corpoMost.add(faceMost);
+    const vidroMost = new THREE.Mesh(new THREE.CircleGeometry(RM * 0.965, 36),
+      new THREE.MeshBasicMaterial({ map: TEX_BRILHO_ESP, transparent: true, opacity: 0.18,
+        depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false }));
+    vidroMost.position.set(0, 0.0325, 0);
+    vidroMost.rotation.x = -Math.PI / 2;
+    vidroMost.renderOrder = 2;
+    corpoMost.add(vidroMost);
+    const aroMost = new THREE.Mesh(new THREE.TorusGeometry(RM * 0.99, 0.007, 8, 36), matCromo);
+    aroMost.position.set(0, 0.0315, 0);
+    aroMost.rotation.x = -Math.PI / 2;
+    corpoMost.add(aroMost);
+    const fundoMost = new THREE.Mesh(new THREE.CylinderGeometry(RM * 0.92, RM * 0.72, 0.034, 22), matPlastico);
+    fundoMost.position.set(0, -0.046, 0);
+    corpoMost.add(fundoMost);
+    // pé do relógio saindo do console, com dois parafusos
+    const peMost = new THREE.Mesh(geoCorpo(0.034, 0.044, 0.070, 0.008), matAnodizado);
+    peMost.position.set(0, Y_BAR + 0.030, Z_BAR + 0.086);
+    peMost.rotation.x = 0.10; m.add(peMost);
+    [-0.020, 0.020].forEach(function (dx) {
+      const pfM = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.010, 6), matParafuso);
+      pfM.rotation.x = 0.12;
+      pfM.position.set(dx, Y_BAR + 0.043, Z_BAR + 0.104); m.add(pfM);
     });
-    const sombraPod = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.11), matContato);
-    sombraPod.rotation.x = -Math.PI / 2 + 0.1;
-    sombraPod.position.set(0, Y_BAR + 0.008, Z_BAR + 0.098);
-    sombraPod.renderOrder = 1; m.add(sombraPod);
-    // chicote saindo por trás do painel e descendo pela coluna de direção
+    // chicote saindo por baixo do relógio e descendo pela coluna
     const chicote = new THREE.CatmullRomCurve3([
-      V(0.045, Y_BAR + 0.105, Z_BAR + 0.190),
-      V(0.060, Y_BAR + 0.020, Z_BAR + 0.185),
-      V(0.030, Y_BAR - 0.080, Z_BAR + 0.150),
+      V(0.030, Y_BAR + 0.060, Z_BAR + 0.140),
+      V(0.048, Y_BAR + 0.000, Z_BAR + 0.170),
+      V(0.024, Y_BAR - 0.090, Z_BAR + 0.150),
       V(0.000, Y_BAR - 0.160, Z_BAR + 0.120)
     ]);
-    m.add(new THREE.Mesh(new THREE.TubeGeometry(chicote, 20, 0.0085, 8, false), matBorracha));
+    m.add(new THREE.Mesh(new THREE.TubeGeometry(chicote, 20, 0.0082, 8, false), matBorracha));
 
     // ---------------- ignição e capa do cavalete de direção ----------
-    const capaColuna = new THREE.Mesh(geoCorpo(0.150, 0.070, 0.190, 0.028), matTanqueLiso);
-    capaColuna.position.set(0, Y_BAR - 0.040, Z_BAR + 0.120);
+    const capaColuna = new THREE.Mesh(geoCorpo(0.130, 0.060, 0.170, 0.026), matTanqueLiso);
+    capaColuna.position.set(0, Y_BAR - 0.052, Z_BAR + 0.128);
     capaColuna.rotation.x = 0.18; m.add(capaColuna);
     const ignicao = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.038, 0.030, 20), matAluminio);
-    ignicao.position.set(0, Y_BAR - 0.020, Z_BAR + 0.140); ignicao.rotation.x = 0.25; m.add(ignicao);
+    ignicao.position.set(0, Y_BAR - 0.030, Z_BAR + 0.146); ignicao.rotation.x = 0.25; m.add(ignicao);
     const aroIgn = new THREE.Mesh(new THREE.TorusGeometry(0.036, 0.005, 6, 20), matCromo);
-    aroIgn.position.set(0, Y_BAR - 0.016, Z_BAR + 0.146); aroIgn.rotation.x = Math.PI / 2 + 0.25;
+    aroIgn.position.set(0, Y_BAR - 0.026, Z_BAR + 0.152); aroIgn.rotation.x = Math.PI / 2 + 0.25;
     m.add(aroIgn);
     const miolIgn = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.040, 16), matCromo);
-    miolIgn.position.set(0, Y_BAR - 0.008, Z_BAR + 0.144); miolIgn.rotation.x = 0.25; m.add(miolIgn);
+    miolIgn.position.set(0, Y_BAR - 0.018, Z_BAR + 0.150); miolIgn.rotation.x = 0.25; m.add(miolIgn);
     const chave = new THREE.Mesh(geoCorpo(0.048, 0.005, 0.019, 0.002), matCromo);
-    chave.position.set(0, Y_BAR + 0.014, Z_BAR + 0.150);
+    chave.position.set(0, Y_BAR + 0.004, Z_BAR + 0.156);
     chave.rotation.z = Math.PI / 2; chave.rotation.x = 0.25; m.add(chave);
     const argola = new THREE.Mesh(new THREE.TorusGeometry(0.014, 0.0025, 6, 14), matCromo);
-    argola.position.set(0, Y_BAR + 0.040, Z_BAR + 0.156); argola.rotation.y = Math.PI / 2;
+    argola.position.set(0, Y_BAR + 0.030, Z_BAR + 0.162); argola.rotation.y = Math.PI / 2;
     m.add(argola);
 
     // ---------------- frente ----------------
@@ -4719,7 +4771,7 @@
     // ---------------------------------------------------------------
     juntaPorMaterial(m, [matAluminio, matAnodizado, matCromo, matParafuso, matPlastico,
                          matBorracha, matPunho, matCosta, matLuva, matLuvaCost,
-                         matLuvaPalma, matLuvaDet, matJaqueta, matPele, matContato,
+                         matLuvaPalma, matLuvaDet, matProtClaro, matJaqueta, matPele, matContato,
                          matMotor, matTanqueLiso]);
 
     // a moto e o piloto ficam na camada do cockpit: as câmeras dos espelhos

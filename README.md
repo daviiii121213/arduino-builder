@@ -177,10 +177,17 @@ sintetizadas emprestadas aos veículos mais perto do jogador, com:
 - **Três leituras de metal**: alumínio acetinado, anodizado escuro e cromo, com
   `envMapIntensity` baixo — o mapa de ambiente é o céu claro, e valores altos
   deixavam guidão e manetes brancos.
-- **Painel integrado**: textura de 1024x512 (o dobro), números maiores,
-  marcações no conta-giros, moldura interna, reflexo de vidro e vinheta. O pod
-  ganhou bezel de borracha com quatro parafusos e um suporte em L que sai da
-  mesa — o painel deixou de flutuar na frente do piloto.
+- **Mostrador redondo analógico**, no lugar do pod retangular: aro cromado com
+  a carcaça aberta em cima (o mostrador fica na frente da tampa, senão o cromo
+  cobre o desenho), vidro com risco de luz, pé fundido saindo do console e
+  chicote descendo pela coluna. O relógio traz escala de 0 a 220 km/h com
+  traços a cada 10, ponteiro vermelho com contrapeso, leitura digital da
+  velocidade, janela da marcha, arcos de giro (âmbar) e nitro (azul), barra de
+  combustível e hodômetro — toda a informação que o painel antigo tinha.
+- **Console claro** cobrindo a mesa, com filetes verde-água nas pontas, quatro
+  lentes de aviso (ponto morto, setas, farol alto) e o refletor vermelho na
+  ponta direita.
+- **Pintura verde-água** com as faixas brancas, no lugar do azul.
 
 ## A moto vista do piloto
 
