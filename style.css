@@ -1,0 +1,14 @@
+:root{ color-scheme: dark; }
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#0b0d10;overflow:hidden;
+  font-family:"Rajdhani","Segoe UI",system-ui,sans-serif;color:#e8e2d4}
+#app{position:fixed;inset:0}
+canvas#game{display:block;width:100%;height:100%;image-rendering:auto;cursor:crosshair;touch-action:none}
+#boot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 40%,#1b2026 0%,#0b0d10 70%);z-index:50;transition:opacity .6s}
+#boot.hidden{opacity:0;pointer-events:none}
+.boot-inner{text-align:center;width:min(90vw,460px)}
+.boot-bar{height:14px;border:2px solid #4a4335;background:#14171b;position:relative;
+  box-shadow:inset 0 2px 6px #000,0 0 0 1px #000;margin-top:18px}
+#bootfill{height:100%;width:0%;background:linear-gradient(180deg,#f5c96a,#d99a2b 55%,#8c5d16);transition:width .25s}
+#bootmsg{margin-top:12px;font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:#9a8f78}

@@ -1,0 +1,13 @@
+{
+  "name": "ironworks",
+  "version": "1.0.0",
+  "description": "Ironworks — a 2D top-down factory-building RPG. No build step, no binary assets: every sprite is painted procedurally to canvas at load.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "serve": "npx --yes http-server -p 8080 -c-1 ."
+  },
+  "keywords": ["game", "factory", "rpg", "canvas", "simulation"],
+  "license": "MIT"
+}
