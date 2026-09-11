@@ -5,7 +5,7 @@
 
 import { BUILDABLES } from '../data/buildables.js';
 import { RECIPES } from '../data/recipes.js';
-import { ITEMS, itemValue } from '../data/items.js';
+import { ITEMS, itemValue, isFluid } from '../data/items.js';
 import { DIRS, clamp } from '../core/utils.js';
 import { machineSprite } from '../art/machines.js';
 
@@ -94,6 +94,7 @@ export class Factory {
     this.ents = [];
     this.grid = new Map();      // "x,y" -> entity
     this.networks = [];
+    this.pipeNets = [];
     this.dirtyPower = true;
     this.stats = { produced: 0, sold: 0, powerUse: 0, powerGen: 0 };
     this.pollution = 0;
@@ -176,6 +177,7 @@ export class Factory {
 
   rebuildPower() {
     this.dirtyPower = false;
+    this.rebuildPipes();
     for (const e of this.ents) e.net = -1;
     this.networks = [];
     const visited = new Set();
@@ -237,6 +239,53 @@ export class Factory {
       for (const b of group) {
         b.net = net;
         if (net >= 0) this.networks[net].members.push(b);
+      }
+    }
+  }
+
+  /** Pipe runs form fluid networks: any machine touching the run can push fluid in or
+   *  draw it out, so water and chemicals move without riding a belt. */
+  rebuildPipes() {
+    this.pipeNets = [];
+    const seen = new Set();
+    for (const start of this.ents) {
+      if (start.kind !== 'pipe' || seen.has(start.id)) continue;
+      const net = { pipes: [], taps: new Set() };
+      const stack = [start];
+      seen.add(start.id);
+      while (stack.length) {
+        const c = stack.pop();
+        net.pipes.push(c);
+        for (const d of DIRS) {
+          const n = this.at(c.x + d.x, c.y + d.y);
+          if (!n) continue;
+          if (n.kind === 'pipe') { if (!seen.has(n.id)) { seen.add(n.id); stack.push(n); } }
+          else net.taps.add(n);
+        }
+      }
+      this.pipeNets.push(net);
+    }
+  }
+
+  tickPipes(dt) {
+    for (const net of this.pipeNets) {
+      if (net.taps.size < 2) continue;
+      net.t = (net.t || 0) + dt;
+      if (net.t < 0.35) continue;
+      net.t = 0;
+      const taps = [...net.taps];
+      for (const src of taps) {
+        for (const id of Object.keys(src.outBuf)) {
+          if (!isFluid(id) || src.outBuf[id] <= 0) continue;
+          for (const dst of taps) {
+            if (dst === src || !dst.accepts(id)) continue;
+            const move = Math.min(4, src.outBuf[id]);
+            src.outBuf[id] -= move;
+            if (src.outBuf[id] <= 0) delete src.outBuf[id];
+            dst.insert(id, move);
+            break;
+          }
+        }
       }
     }
   }
@@ -304,6 +353,8 @@ export class Factory {
       // cool down when idle
       if (e.temp > 20 && !e.active) e.temp -= dt * 6;
     }
+
+    this.tickPipes(dt);
   }
 
   machineSpeed(e, game, prodBonus) {

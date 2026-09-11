@@ -50,6 +50,9 @@ served over HTTP rather than opened as a `file://` URL.
   cutters cut, chemical plants react, assemblers combine, robotics cells build the endgame.
   Machines heat up, wear down and eventually break; a mechanic on staff or a maintenance
   bay keeps them alive.
+* **Fluids.** Water pumps draw from a shoreline and pipes form fluid networks — any
+  machine touching a pipe run can push fluid in or draw it out, feeding chemical plants
+  without occupying a belt.
 * **Selling.** Anything dropped on a Loading Dock is collected by truck and paid for at the
   live market rate, and is automatically counted against active contracts.
 * **Money.** Prices drift with supply and demand, flooding the market lowers your take, and
