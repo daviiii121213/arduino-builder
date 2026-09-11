@@ -4033,103 +4033,113 @@
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, 512, 512);
 
-    // ---- aro externo claro e mostrador rosado ----
-    g.fillStyle = "#e7e3d8";
+    // ---- aro externo e mostrador claro ----
+    // fundo branco-creme: o rosado deixava os traços pretos e o ponteiro
+    // vermelho com pouco contraste, e nenhum velocímetro de moto é rosa
+    g.fillStyle = "#dfdcd3";
     g.beginPath(); g.arc(C, C, 250, 0, 7); g.fill();
-    g.strokeStyle = "rgba(90,86,78,.55)"; g.lineWidth = 5;
+    g.strokeStyle = "rgba(80,78,72,.55)"; g.lineWidth = 5;
     g.beginPath(); g.arc(C, C, 247, 0, 7); g.stroke();
     const fundo = g.createRadialGradient(C - 60, C - 80, 30, C, C, 230);
-    fundo.addColorStop(0.00, "#f6c9cb");
-    fundo.addColorStop(0.55, "#e9a7ab");
-    fundo.addColorStop(1.00, "#cf888f");
+    fundo.addColorStop(0.00, "#fdfdfa");
+    fundo.addColorStop(0.55, "#f0eee7");
+    fundo.addColorStop(1.00, "#d8d4c9");
     g.fillStyle = fundo;
     g.beginPath(); g.arc(C, C, 228, 0, 7); g.fill();
-    g.strokeStyle = "rgba(70,40,44,.35)"; g.lineWidth = 3;
+    g.strokeStyle = "rgba(60,58,54,.35)"; g.lineWidth = 3;
     g.beginPath(); g.arc(C, C, 228, 0, 7); g.stroke();
 
-    // ---- escala: traços a cada 10 e números a cada 20 ----
+    // ---- escala: traços a cada 10 e números a cada 40 ----
     g.textAlign = "center"; g.textBaseline = "middle";
     for (let v = 0; v <= VEL_ESCALA; v += 10) {
       const a = anguloVel(v), grande = v % 20 === 0;
-      const r1 = 214, r2 = grande ? 188 : 199;
-      g.strokeStyle = v >= 180 ? "#a32020" : "#3a2326";
+      const r1 = 212, r2 = grande ? 190 : 201;
+      g.strokeStyle = v >= 180 ? "#a32020" : "#26282c";
       g.lineWidth = grande ? 5 : 2.6;
       g.beginPath();
       g.moveTo(C + Math.cos(a) * r1, C + Math.sin(a) * r1);
       g.lineTo(C + Math.cos(a) * r2, C + Math.sin(a) * r2);
       g.stroke();
       if (grande && v % 40 === 0) {
-        g.fillStyle = v >= 180 ? "#a32020" : "#33201f";
+        g.fillStyle = v >= 180 ? "#a32020" : "#1d1f23";
         g.font = "700 34px 'Segoe UI', Arial";
-        g.fillText(String(v), C + Math.cos(a) * 158, C + Math.sin(a) * 158);
+        g.fillText(String(v), C + Math.cos(a) * 166, C + Math.sin(a) * 166);
       }
     }
-    g.fillStyle = "rgba(58,35,38,.8)"; g.font = "700 20px 'Segoe UI', Arial";
-    g.fillText(tx.unidade, C, C - 92);
+    g.fillStyle = "rgba(40,42,46,.72)"; g.font = "700 19px 'Segoe UI', Arial";
+    g.fillText(tx.unidade, C, C - 124);
 
-    // ---- arco de giro (âmbar) e de nitro (azul), na borda de dentro ----
-    function arco(r, ini, frac, cor, esp) {
+    // ---- arco de giro (âmbar) e de nitro (azul) ----
+    // vão na faixa livre entre a ponta dos traços e a borda do mostrador:
+    // no raio antigo eles cruzavam os números 80, 120, 160 e 200
+    function arco(ini, sentido, frac, cor) {
       if (frac <= 0.001) return;
-      g.strokeStyle = cor; g.lineWidth = esp; g.lineCap = "round";
+      const sweep = (ANG_FIM - ANG_INI) * 0.44 * clamp(frac, 0, 1);
+      g.strokeStyle = cor; g.lineWidth = 8; g.lineCap = "round";
       g.beginPath();
-      g.arc(C, C, r, ini, ini + (ANG_FIM - ANG_INI) * 0.46 * frac);
+      if (sentido > 0) g.arc(C, C, 222, ini, ini + sweep);
+      else g.arc(C, C, 222, ini - sweep, ini);
       g.stroke();
       g.lineCap = "butt";
     }
-    arco(176, ANG_INI + 0.06, clamp(giro, 0, 1), giro > 0.9 ? "#d33b2e" : "#e0a13a", 9);
-    arco(176, ANG_FIM - 0.06 - (ANG_FIM - ANG_INI) * 0.46 * clamp(nitro, 0, 1),
-         clamp(nitro, 0, 1), "#3f9bd6", 9);
+    arco(ANG_INI + 0.05, 1, giro, giro > 0.9 ? "#d33b2e" : "#e0a13a");
+    arco(ANG_FIM - 0.05, -1, nitro, "#3f9bd6");
 
-    // ---- janela da marcha e leitura digital da velocidade ----
-    g.fillStyle = "rgba(40,22,24,.82)";
-    g.beginPath(); g.arc(C, C + 62, 46, 0, 7); g.fill();
-    g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 3;
-    g.beginPath(); g.arc(C, C + 62, 46, 0, 7); g.stroke();
-    g.fillStyle = "#ffd166"; g.font = "700 50px 'Segoe UI', Arial";
-    g.fillText(String(marcha), C, C + 66);
-    g.fillStyle = "rgba(58,35,38,.75)"; g.font = "700 15px 'Segoe UI', Arial";
-    g.fillText("AUTO", C, C + 122);
+    // ---- leitura digital da velocidade (em cima) ----
+    g.fillStyle = "rgba(26,28,32,.88)";
+    g.fillRect(C - 76, C - 106, 152, 56);
+    g.strokeStyle = "rgba(255,255,255,.16)"; g.lineWidth = 2;
+    g.strokeRect(C - 76, C - 106, 152, 56);
+    g.fillStyle = "#f4f8ff"; g.font = "700 42px 'Segoe UI', Arial";
+    g.fillText(String(Math.round(vel)), C, C - 76);
 
-    g.fillStyle = "rgba(40,22,24,.80)";
-    g.fillRect(C - 74, C - 96, 148, 52);
-    g.strokeStyle = "rgba(255,255,255,.18)"; g.lineWidth = 2;
-    g.strokeRect(C - 74, C - 96, 148, 52);
-    g.fillStyle = "#f4f8ff"; g.font = "700 40px 'Segoe UI', Arial";
-    g.fillText(String(Math.round(vel)), C, C - 68);
+    // ---- coluna de baixo: marcha, combustível e hodômetro ----
+    // tudo no setor de baixo, o único por onde o ponteiro nunca passa
+    // a roda da marcha desce o bastante para o ponteiro parado (em 0, apontando
+    // para baixo à esquerda) passar raspando por fora dela
+    g.fillStyle = "rgba(26,28,32,.88)";
+    g.beginPath(); g.arc(C, C + 70, 38, 0, 7); g.fill();
+    g.strokeStyle = "rgba(255,255,255,.20)"; g.lineWidth = 3;
+    g.beginPath(); g.arc(C, C + 70, 38, 0, 7); g.stroke();
+    g.fillStyle = "#ffd166"; g.font = "700 42px 'Segoe UI', Arial";
+    g.fillText(String(marcha), C, C + 73);
+    g.fillStyle = "rgba(40,42,46,.72)"; g.font = "700 14px 'Segoe UI', Arial";
+    g.fillText("AUTO", C, C + 124);
 
-    // ---- hodômetro e combustível ----
-    g.fillStyle = "rgba(40,22,24,.78)";
-    g.fillRect(C - 66, C + 150, 132, 34);
-    g.fillStyle = "#e7ecf2"; g.font = "700 21px 'Segoe UI', Arial";
-    g.fillText(dist.toFixed(1) + " km", C, C + 168);
-    g.fillStyle = "rgba(58,35,38,.7)"; g.font = "700 13px 'Segoe UI', Arial";
-    g.textAlign = "right"; g.fillText(tx.comb, C - 78, C + 20);
-    g.textAlign = "left";
-    g.fillStyle = "rgba(40,22,24,.55)"; g.fillRect(C - 74, C + 10, 60, 11);
-    g.fillStyle = combustivel < 0.22 ? "#d9433a" : "#3f9bd6";
-    g.fillRect(C - 73, C + 11, 58 * clamp(combustivel, 0, 1), 9);
+    g.fillStyle = "rgba(40,42,46,.72)"; g.font = "700 13px 'Segoe UI', Arial";
+    g.textAlign = "right"; g.fillText(tx.comb, C - 66, C + 150);
     g.textAlign = "center";
+    g.fillStyle = "rgba(26,28,32,.45)"; g.fillRect(C - 58, C + 143, 120, 13);
+    g.fillStyle = combustivel < 0.22 ? "#d9433a" : "#3f9bd6";
+    g.fillRect(C - 57, C + 144, 118 * clamp(combustivel, 0, 1), 11);
+
+    g.fillStyle = "rgba(26,28,32,.86)";
+    g.fillRect(C - 70, C + 166, 140, 32);
+    g.fillStyle = "#e7ecf2"; g.font = "700 20px 'Segoe UI', Arial";
+    g.fillText(dist.toFixed(1) + " km", C, C + 183);
 
     // ---- ponteiro vermelho com contrapeso e cubo ----
+    // a ponta para ANTES dos traços: no comprimento antigo ela invadia a
+    // escala e, parado, ficava deitada em cima do "0"
     const a = anguloVel(vel);
     g.save();
     g.translate(C, C); g.rotate(a);
-    g.fillStyle = "rgba(70,30,34,.28)";
-    g.beginPath(); g.moveTo(-34, 7); g.lineTo(206, 4); g.lineTo(206, -4); g.lineTo(-34, -7); g.fill();
+    g.fillStyle = "rgba(40,30,26,.22)";
+    g.beginPath(); g.moveTo(-26, 5.5); g.lineTo(188, 3); g.lineTo(188, -3); g.lineTo(-26, -5.5); g.fill();
     g.fillStyle = "#c9282a";
-    g.beginPath(); g.moveTo(-38, 9); g.lineTo(202, 3.5); g.lineTo(202, -3.5); g.lineTo(-38, -9); g.fill();
+    g.beginPath(); g.moveTo(-30, 7); g.lineTo(184, 2.4); g.lineTo(184, -2.4); g.lineTo(-30, -7); g.fill();
     g.fillStyle = "#8f1c1e";
-    g.beginPath(); g.moveTo(-38, 9); g.lineTo(-66, 7); g.lineTo(-66, -7); g.lineTo(-38, -9); g.fill();
+    g.beginPath(); g.moveTo(-30, 7); g.lineTo(-50, 5.5); g.lineTo(-50, -5.5); g.lineTo(-30, -7); g.fill();
     g.restore();
-    g.fillStyle = "#e7e3d8";
-    g.beginPath(); g.arc(C, C, 26, 0, 7); g.fill();
-    g.fillStyle = "#6d6a62";
-    g.beginPath(); g.arc(C, C, 15, 0, 7); g.fill();
+    g.fillStyle = "#dfdcd3";
+    g.beginPath(); g.arc(C, C, 22, 0, 7); g.fill();
+    g.fillStyle = "#5d5a54";
+    g.beginPath(); g.arc(C, C, 12, 0, 7); g.fill();
 
     // ---- reflexo do vidro por cima de tudo ----
     const brilho = g.createLinearGradient(70, 40, 300, 300);
-    brilho.addColorStop(0.00, "rgba(255,255,255,.30)");
-    brilho.addColorStop(0.34, "rgba(255,255,255,.06)");
+    brilho.addColorStop(0.00, "rgba(255,255,255,.26)");
+    brilho.addColorStop(0.34, "rgba(255,255,255,.05)");
     brilho.addColorStop(0.40, "rgba(255,255,255,0)");
     g.save();
     g.beginPath(); g.arc(C, C, 228, 0, 7); g.clip();
@@ -5019,7 +5029,10 @@
     const faceMost = new THREE.Mesh(new THREE.CircleGeometry(RM * 0.955, 36),
       new THREE.MeshBasicMaterial({ map: texPainel, toneMapped: false, transparent: true }));
     faceMost.position.set(0, 0.030, 0);
-    faceMost.rotation.x = -Math.PI / 2;
+    // o giro em Z vem ANTES do tombo em X (ordem XYZ do three.js): sem ele o
+    // desenho saía de cabeça para baixo no relógio — hodômetro em cima,
+    // leitura digital embaixo e a escala correndo ao contrário
+    faceMost.rotation.set(-Math.PI / 2, 0, Math.PI);
     corpoMost.add(faceMost);
     const vidroMost = new THREE.Mesh(new THREE.CircleGeometry(RM * 0.965, 36),
       new THREE.MeshBasicMaterial({ map: TEX_BRILHO_ESP, transparent: true, opacity: 0.18,
@@ -5422,7 +5435,10 @@
   function atualizaHUD() {
     elDist.textContent = (jogo.dist / 1000).toFixed(2);
     elTempo.textContent = formataTempo(jogo.tempo);
-    elVel.textContent = Math.round(jogo.velMostrada * 3.6);
+    // velocidade real, a mesma que o ponteiro do relógio mostra: velMostrada é
+    // um valor atrasado que existe só para empurrar a câmera na acelerada, e
+    // usá-lo aqui deixava o HUD ~6 km/h abaixo do velocímetro da moto
+    elVel.textContent = Math.round(jogo.vel * 3.6);
     elBatidas.textContent = jogo.batidas;
     elMarcha.textContent = jogo.marcha + 1;
     barraGiro.style.width = Math.min(100, jogo.giro * 100) + "%";

@@ -203,6 +203,17 @@ sintetizadas emprestadas aos veículos mais perto do jogador, com:
   traços a cada 10, ponteiro vermelho com contrapeso, leitura digital da
   velocidade, janela da marcha, arcos de giro (âmbar) e nitro (azul), barra de
   combustível e hodômetro — toda a informação que o painel antigo tinha.
+  A face do relógio leva um giro de meia volta **antes** do tombo (ordem XYZ do
+  three.js): sem ele o desenho saía de cabeça para baixo no cockpit, com o
+  hodômetro em cima e a escala correndo ao contrário. O fundo é branco-creme
+  (o rosado deixava traço preto e ponteiro vermelho sem contraste), os arcos de
+  giro e nitro correm na borda externa — no raio antigo cruzavam os números 80,
+  120, 160 e 200 —, o ponteiro para antes dos traços e marcha, combustível e
+  hodômetro ficam no setor de baixo, o único por onde o ponteiro nunca passa.
+- **HUD e velocímetro batem**: o número grande do HUD mostra a velocidade real,
+  a mesma do ponteiro. Antes ele usava `velMostrada`, um valor atrasado que
+  existe só para empurrar a câmera na acelerada, e ficava ~6 km/h abaixo do
+  relógio da moto.
 - **Console claro** cobrindo a mesa, com filetes verde-água nas pontas, quatro
   lentes de aviso (ponto morto, setas, farol alto) e o refletor vermelho na
   ponta direita.
