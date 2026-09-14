@@ -14,6 +14,27 @@ import { AdminApp } from './pages/seller/AdminApp';
 
 const SELLER_KEY = 'doce-encanto:vendedor';
 
+/** O armazenamento pode estar bloqueado (janela anônima, cookies desativados). */
+const sellerSession = {
+  isUnlocked(): boolean {
+    try {
+      return sessionStorage.getItem(SELLER_KEY) === 'ok';
+    } catch {
+      return memoryUnlocked;
+    }
+  },
+  unlock() {
+    memoryUnlocked = true;
+    try { sessionStorage.setItem(SELLER_KEY, 'ok'); } catch { /* mantém apenas em memória */ }
+  },
+  lock() {
+    memoryUnlocked = false;
+    try { sessionStorage.removeItem(SELLER_KEY); } catch { /* nada a limpar */ }
+  },
+};
+
+let memoryUnlocked = false;
+
 export default function App() {
   const [route, navigate] = useRoute();
   const { ready, settings } = useStore();
@@ -42,19 +63,19 @@ export default function App() {
   }
 
   const unlockSeller = () => {
-    sessionStorage.setItem(SELLER_KEY, 'ok');
+    sellerSession.unlock();
     navigate('/vendedor');
   };
 
   if (path.startsWith('/vendedor')) {
-    if (sessionStorage.getItem(SELLER_KEY) !== 'ok') {
+    if (!sellerSession.isUnlocked()) {
       return <Landing onEnterShop={() => navigate('/loja')} onEnterAdmin={unlockSeller} />;
     }
     return (
       <AdminApp
         section={path.replace('/vendedor', '').replace('/', '') || 'dashboard'}
         navigate={navigate}
-        onExit={() => { sessionStorage.removeItem(SELLER_KEY); navigate('/'); }}
+        onExit={() => { sellerSession.lock(); navigate('/'); }}
       />
     );
   }
