@@ -37,11 +37,14 @@
 .landing__badge strong { font-size: .92rem; color: var(--choc-700); display: block; }
 .landing__badge span { font-size: .76rem; color: var(--ink-mute); }
 .landing__footer { padding: 1.2rem 0 1.8rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; border-top: 1px solid rgba(140, 74, 47, .12); }
-.seller-link {
-  background: none; border: none; color: var(--ink-mute); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase;
-  cursor: pointer; display: inline-flex; align-items: center; gap: .4rem; padding: .4rem .2rem; transition: color .2s var(--ease);
+.seller-access {
+  border-color: var(--choc-400); color: var(--choc-600); background: rgba(255, 255, 255, .7);
+  font-weight: 700; padding: .6rem 1.15rem; box-shadow: var(--shadow-xs);
 }
-.seller-link:hover { color: var(--choc-600); }
+.seller-access:hover { background: var(--choc-500); border-color: var(--choc-500); color: #fff; }
+
+.seller-panel-card { border: 1px solid var(--pink-200); background: linear-gradient(140deg, var(--cream-50), var(--pink-100)); }
+.seller-panel-card h3 { font-size: 1.05rem; }
 
 .code-input {
   width: 100%; text-align: center; font-family: var(--font-display); font-size: 2rem; letter-spacing: .6em;

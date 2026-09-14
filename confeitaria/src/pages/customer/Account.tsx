@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '../../components/Icon';
+import { SellerAccess } from '../../components/SellerAccess';
 import { useToast } from '../../components/Toast';
 import { useStore } from '../../store/store';
 import { formatDate, formatMoney, initials, maskPhone, onlyDigits } from '../../lib/format';
 import { STATUS_META } from '../../lib/status';
 import { uid } from '../../lib/id';
 
-export function Account({ navigate }: { navigate: (path: string) => void }) {
+export function Account({ navigate, onEnterAdmin }: { navigate: (path: string) => void; onEnterAdmin: () => void }) {
   const { currentCustomer, identifyCustomer, updateCustomer, signOut, orders } = useStore();
   const toast = useToast();
   const [loginName, setLoginName] = useState('');
@@ -57,6 +58,19 @@ export function Account({ navigate }: { navigate: (path: string) => void }) {
             <button type="submit" className="btn btn--primary btn--block">Entrar</button>
           </form>
         </div>
+
+          <div className="panel card--pad stack seller-panel-card">
+            <div className="row" style={{ gap: '.7rem', alignItems: 'flex-start' }}>
+              <span className="highlight__icon"><Icon name="store" size={20} /></span>
+              <div>
+                <h3>Área do vendedor</h3>
+                <p className="text-sm muted" style={{ marginTop: '.2rem' }}>
+                  Trabalha na confeitaria? Entre com o código interno para gerenciar pedidos, produtos, estoque e financeiro.
+                </p>
+              </div>
+            </div>
+            <SellerAccess onUnlock={onEnterAdmin} variant="cartao" />
+          </div>
       </div>
     );
   }
@@ -173,6 +187,19 @@ export function Account({ navigate }: { navigate: (path: string) => void }) {
               </div>
             </div>
             <button type="button" className="btn btn--soft btn--sm" onClick={addAddress}><Icon name="plus" size={14} /> Adicionar endereço</button>
+          </div>
+
+          <div className="panel card--pad stack seller-panel-card">
+            <div className="row" style={{ gap: '.7rem', alignItems: 'flex-start' }}>
+              <span className="highlight__icon"><Icon name="store" size={20} /></span>
+              <div>
+                <h3>Área do vendedor</h3>
+                <p className="text-sm muted" style={{ marginTop: '.2rem' }}>
+                  Trabalha na confeitaria? Entre com o código interno para gerenciar pedidos, produtos, estoque e financeiro.
+                </p>
+              </div>
+            </div>
+            <SellerAccess onUnlock={onEnterAdmin} variant="cartao" />
           </div>
         </div>
 

@@ -101,7 +101,7 @@ export default function App() {
       case '/carrinho': return <Cart navigate={navigate} />;
       case '/checkout': return <Checkout navigate={navigate} />;
       case '/pedidos': return <MyOrders navigate={navigate} />;
-      case '/conta': return <Account navigate={navigate} />;
+      case '/conta': return <Account navigate={navigate} onEnterAdmin={unlockSeller} />;
       case '/loja': return <Home navigate={navigate} />;
       default:
         return (
