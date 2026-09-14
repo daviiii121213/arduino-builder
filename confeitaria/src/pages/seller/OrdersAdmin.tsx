@@ -30,7 +30,7 @@ export function OrdersAdmin() {
   const filtered = useMemo(() => {
     const normalized = term.trim().toLowerCase();
     const digits = onlyDigits(term);
-    return orders.filter((order) => {
+    return [...orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).filter((order) => {
       if (filter !== 'todos' && order.status !== filter) return false;
       if (!normalized) return true;
       return (

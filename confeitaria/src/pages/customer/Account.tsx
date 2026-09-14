@@ -18,7 +18,7 @@ export function Account({ navigate }: { navigate: (path: string) => void }) {
   const [newLabel, setNewLabel] = useState('Casa');
 
   const myOrders = useMemo(
-    () => (currentCustomer ? orders.filter((o) => o.customerId === currentCustomer.id) : []),
+    () => (currentCustomer ? orders.filter((o) => o.customerId === currentCustomer.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []),
     [orders, currentCustomer],
   );
   const totalSpent = myOrders.filter((o) => o.status !== 'cancelado').reduce((sum, o) => sum + o.total, 0);

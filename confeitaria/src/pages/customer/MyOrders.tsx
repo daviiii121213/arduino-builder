@@ -15,7 +15,7 @@ export function MyOrders({ navigate }: { navigate: (path: string) => void }) {
 
   const myOrders = useMemo(() => {
     if (!currentCustomer) return [];
-    const list = orders.filter((order) => order.customerId === currentCustomer.id);
+    const list = orders.filter((order) => order.customerId === currentCustomer.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     if (filter === 'andamento') return list.filter((o) => !['entregue', 'cancelado'].includes(o.status));
     if (filter === 'concluidos') return list.filter((o) => ['entregue', 'cancelado'].includes(o.status));
     return list;

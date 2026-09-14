@@ -19,7 +19,7 @@ export function CustomersAdmin() {
     const digits = onlyDigits(term);
     return customers
       .map((customer) => {
-        const list = orders.filter((o) => o.customerId === customer.id);
+        const list = orders.filter((o) => o.customerId === customer.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
         const valid = list.filter((o) => o.status !== 'cancelado');
         return {
           customer,
