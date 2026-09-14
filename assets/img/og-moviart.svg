@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="MoviArt Studio de Dança — Uberlândia, MG">
+  <defs>
+    <radialGradient id="bg" cx="28%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#3B1F36"/>
+      <stop offset="60%" stop-color="#17121B"/>
+      <stop offset="100%" stop-color="#0D0C11"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F3D48C"/>
+      <stop offset="55%" stop-color="#D8A94B"/>
+      <stop offset="100%" stop-color="#9A6E2A"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <g fill="none" stroke="url(#gold)" opacity=".3">
+    <circle cx="960" cy="180" r="120" stroke-width="1"/>
+    <circle cx="960" cy="180" r="190" stroke-width="1" opacity=".6"/>
+    <circle cx="960" cy="180" r="270" stroke-width="1" opacity=".35"/>
+    <path d="M-40 520 C 220 370, 360 610, 620 440 S 980 230, 1240 370" stroke-width="1.3" opacity=".55"/>
+    <path d="M-40 570 C 240 420, 400 660, 660 490 S 1020 280, 1240 420" stroke-width="1" opacity=".35"/>
+  </g>
+  <circle cx="240" cy="520" r="200" fill="#B8585F" opacity=".12"/>
+
+  <g transform="translate(90 190)">
+    <rect width="72" height="72" rx="16" fill="url(#gold)" opacity=".16"/>
+    <path d="M16 52V20h8l12 20 12-20h8v32h-8V37l-9 15h-6l-9-15v17z" fill="url(#gold)" transform="translate(0 0)"/>
+  </g>
+
+  <text x="90" y="330" font-family="Georgia, 'Times New Roman', serif" font-size="86" font-weight="700" fill="#F7F2EA" letter-spacing="-2">MoviArt</text>
+  <text x="90" y="378" font-family="Helvetica, Arial, sans-serif" font-size="26" font-weight="600" fill="#D8A94B" letter-spacing="7">STUDIO DE DANÇA</text>
+
+  <text x="90" y="450" font-family="Helvetica, Arial, sans-serif" font-size="27" fill="#CFC7BC">Jazz · Ballet · Bolero · Dança de Salão · Forró · Zouk</text>
+  <text x="90" y="492" font-family="Helvetica, Arial, sans-serif" font-size="27" fill="#CFC7BC">Uberlândia — MG · Av. Indaiá, 799, Planalto</text>
+
+  <rect x="90" y="530" width="330" height="58" rx="29" fill="#25D366"/>
+  <text x="255" y="567" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="23" font-weight="700" fill="#06240F">(34) 99238-1047</text>
+</svg>
