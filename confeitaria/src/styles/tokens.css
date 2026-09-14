@@ -1,0 +1,57 @@
+:root {
+  /* Paleta inspirada em confeitaria: creme, chocolate e rosa suave */
+  --cream-50: #fffdf9;
+  --cream-100: #fdf7ef;
+  --cream-200: #f8ecdf;
+  --cream-300: #f0dcc8;
+  --beige-400: #e2c9ae;
+  --beige-500: #cfae8c;
+  --choc-400: #a9704f;
+  --choc-500: #8c4a2f;
+  --choc-600: #6f3821;
+  --choc-700: #4e2716;
+  --choc-900: #2c150c;
+  --pink-100: #fdeef2;
+  --pink-200: #fadbe3;
+  --pink-300: #f3b9c8;
+  --pink-400: #e0849c;
+  --pink-500: #c9637f;
+  --green-500: #3f7a2f;
+  --green-100: #e5f3df;
+  --amber-500: #b8761a;
+  --amber-100: #fbefd9;
+  --red-500: #b3323f;
+  --red-100: #fbe3e5;
+  --blue-500: #1d5fb4;
+  --blue-100: #e4eefc;
+
+  --ink: #33231c;
+  --ink-soft: #6b5449;
+  --ink-mute: #967f73;
+  --line: #ece0d4;
+  --line-strong: #dcc9b8;
+  --surface: #ffffff;
+  --surface-alt: var(--cream-100);
+
+  --brand: var(--choc-500);
+  --brand-strong: var(--choc-600);
+  --accent: var(--pink-400);
+
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius: 18px;
+  --radius-lg: 26px;
+  --radius-xl: 34px;
+  --radius-pill: 999px;
+
+  --shadow-xs: 0 1px 2px rgba(63, 38, 24, .06);
+  --shadow-sm: 0 4px 14px rgba(78, 39, 22, .07);
+  --shadow: 0 12px 30px rgba(78, 39, 22, .10);
+  --shadow-lg: 0 26px 60px rgba(62, 30, 16, .16);
+
+  --font-display: 'Fraunces', 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-body: 'Plus Jakarta Sans', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+
+  --ease: cubic-bezier(.22, .61, .36, 1);
+  --header-h: 76px;
+}
