@@ -85,6 +85,9 @@ export function ProductDetailModal({ product, onClose, onAdd }: Props) {
               {product.available ? 'Disponível' : 'Indisponível'}
             </span>
             <span className="badge"><Icon name="clock" size={12} /> {product.prepDays === 0 ? 'Pronta entrega' : `${product.prepDays} dia(s) de antecedência`}</span>
+            <span className={`badge ${product.stock !== null && product.stock <= 3 ? 'badge--warn' : ''}`}>
+              <Icon name="box" size={12} /> {product.stock === null ? 'Feito sob encomenda' : `${product.stock} em estoque`}
+            </span>
             {product.bestSeller && <span className="badge badge--accent"><Icon name="star" size={12} /> Mais vendido</span>}
           </div>
           <p className="soft">{product.details}</p>

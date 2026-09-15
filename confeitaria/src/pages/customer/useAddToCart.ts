@@ -14,6 +14,17 @@ export function useAddToCart() {
         toast.error('Produto indisponível', 'Este item não está disponível para pedido no momento.');
         return false;
       }
+      if (product.stock !== null) {
+        const inCart = cart.items.filter((item) => item.productId === product.id).reduce((sum, item) => sum + item.quantity, 0);
+        if (inCart + quantity > product.stock) {
+          const left = Math.max(0, product.stock - inCart);
+          toast.warn(
+            'Estoque insuficiente',
+            left > 0 ? `Restam apenas ${left} unidade(s) de ${product.name}.` : `${product.name} já está todo reservado no seu carrinho.`,
+          );
+          return false;
+        }
+      }
       cart.addItem({
         productId: product.id,
         name: product.name,

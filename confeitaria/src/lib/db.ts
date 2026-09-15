@@ -1,6 +1,5 @@
 import type { Database } from '../types';
-import { buildSeedDatabase, DEFAULT_SETTINGS, SEED_PRODUCTS } from '../data/seed';
-import { buildDemoData } from '../data/demo';
+import { buildSeedDatabase, DEFAULT_SETTINGS } from '../data/seed';
 
 /**
  * Camada de persistência.
@@ -10,7 +9,13 @@ import { buildDemoData } from '../data/demo';
  * dados real) no futuro não exige mudança nas telas nem no estado global.
  */
 
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
+
+/** Identificadores do histórico fictício usado nas versões anteriores. */
+const LEGACY_DEMO_PREFIXES = ['ped-demo-', 'desp-', 'mov-', 'demo-item-'];
+const LEGACY_DEMO_CUSTOMERS = ['cli-ana', 'cli-carlos', 'cli-juliana', 'cli-marcos'];
+
+const isLegacyDemo = (id: string): boolean => LEGACY_DEMO_PREFIXES.some((prefix) => id.startsWith(prefix));
 export const STORAGE_KEY = 'doce-encanto:db';
 
 export interface StorageDriver {
@@ -70,34 +75,35 @@ export class LocalStorageDriver implements StorageDriver {
 
 function migrate(data: Database): Database {
   const base = buildSeedDatabase(DB_VERSION);
+  const previousVersion = typeof data.version === 'number' ? data.version : 1;
+  /** A partir da versão 2 o sistema começa sem pedidos: limpamos o histórico fictício antigo. */
+  const clean = previousVersion < 2;
+  const orders = (data.orders ?? []).filter((order) => !clean || !isLegacyDemo(order.id));
+  const customers = (data.customers ?? []).filter(
+    (customer) => !clean || !LEGACY_DEMO_CUSTOMERS.includes(customer.id) || orders.some((order) => order.customerId === customer.id),
+  );
+  const expenses = (data.expenses ?? []).filter((expense) => !clean || !isLegacyDemo(expense.id));
+  const stockMoves = (data.stockMoves ?? []).filter((move) => !clean || !isLegacyDemo(move.id));
+
   return {
     ...base,
     ...data,
     version: DB_VERSION,
     settings: { ...DEFAULT_SETTINGS, ...(data.settings ?? {}), payments: { ...DEFAULT_SETTINGS.payments, ...(data.settings?.payments ?? {}) } },
     session: { customerId: data.session?.customerId ?? null },
-    products: (data.products ?? []).map((p) => ({ ...p, optionGroups: p.optionGroups ?? [] })),
-    orders: data.orders ?? [],
-    customers: data.customers ?? [],
+    products: (data.products ?? []).map((p) => ({ ...p, optionGroups: p.optionGroups ?? [], stock: p.stock ?? null })),
+    orders,
+    customers,
     ingredients: data.ingredients ?? [],
-    stockMoves: data.stockMoves ?? [],
-    expenses: data.expenses ?? [],
+    stockMoves,
+    expenses,
     counter: typeof data.counter === 'number' ? data.counter : base.counter,
   };
 }
 
-/** Banco inicial com catálogo + histórico de demonstração. */
+/** Banco inicial: catálogo pronto para vender, sem nenhum pedido lançado. */
 export function createInitialDatabase(): Database {
-  const base = buildSeedDatabase(DB_VERSION);
-  const demo = buildDemoData(SEED_PRODUCTS, base.settings.deliveryFee, base.counter);
-  return {
-    ...base,
-    customers: demo.customers,
-    orders: demo.orders,
-    expenses: demo.expenses,
-    stockMoves: demo.stockMoves,
-    counter: demo.counter,
-  };
+  return buildSeedDatabase(DB_VERSION);
 }
 
 export const storage: StorageDriver = new LocalStorageDriver();

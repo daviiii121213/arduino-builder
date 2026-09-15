@@ -5,11 +5,9 @@ import { useToast } from '../../components/Toast';
 import { useCart } from '../../store/cart';
 import { useStore } from '../../store/store';
 import { PAYMENT_LABEL } from '../../lib/status';
-import { addDays, formatDateLong, formatMoney, maskPhone, onlyDigits, todayISO } from '../../lib/format';
+import { addDays, formatDateLong, formatMoney, maskPhone, todayISO } from '../../lib/format';
 
 const TIMES = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
-
-type Errors = Partial<Record<'name' | 'phone' | 'address' | 'date' | 'time', string>>;
 
 export function Checkout({ navigate }: { navigate: (path: string) => void }) {
   const cart = useCart();
@@ -23,20 +21,19 @@ export function Checkout({ navigate }: { navigate: (path: string) => void }) {
     }, 0);
   }, [cart.items, products]);
 
-  const minDate = addDays(todayISO(), maxPrepDays);
+  const minDate = todayISO();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState(currentCustomer?.name ?? '');
   const [phone, setPhone] = useState(currentCustomer?.phone ?? '');
   const [fulfillment, setFulfillment] = useState<Fulfillment>('entrega');
   const [address, setAddress] = useState(currentCustomer?.addresses[0]?.value ?? '');
-  const [date, setDate] = useState(minDate);
+  const [date, setDate] = useState(() => addDays(todayISO(), maxPrepDays));
   const [time, setTime] = useState('14:00');
   const [payment, setPayment] = useState<PaymentMethod>(
     (Object.keys(settings.payments) as PaymentMethod[]).find((key) => settings.payments[key]) ?? 'pix',
   );
   const [notes, setNotes] = useState('');
-  const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
 
   const freeDelivery = settings.freeDeliveryFrom > 0 && cart.subtotal >= settings.freeDeliveryFrom;
@@ -56,30 +53,18 @@ export function Checkout({ navigate }: { navigate: (path: string) => void }) {
     );
   }
 
-  const validate = (): boolean => {
-    const next: Errors = {};
-    if (name.trim().length < 3) next.name = 'Informe seu nome completo.';
-    if (onlyDigits(phone).length < 10) next.phone = 'Informe um WhatsApp válido com DDD.';
-    if (fulfillment === 'entrega' && address.trim().length < 8) next.address = 'Informe o endereço completo para a entrega.';
-    if (!date) next.date = 'Escolha a data desejada.';
-    else if (date < minDate) next.date = `Precisamos de ${maxPrepDays} dia(s) de antecedência. A data mínima é ${formatDateLong(minDate)}.`;
-    if (!time) next.time = 'Escolha o horário desejado.';
-    setErrors(next);
-    if (Object.keys(next).length) {
-      toast.error('Confira os dados', 'Existem campos obrigatórios para preencher.');
-      return false;
-    }
-    return true;
-  };
+  /** Nenhum campo bloqueia o pedido: o que faltar entra com um valor padrão. */
+  const orderName = name.trim() || 'Cliente da loja';
+  const orderPhone = phone.trim() || 'Não informado';
+  const orderAddress = fulfillment === 'entrega' ? address.trim() || 'Endereço a combinar' : '';
+  const orderDate = date || todayISO();
 
   const goToReview = () => {
-    if (!validate()) return;
     setStep(2);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const confirmOrder = () => {
-    if (!validate()) { setStep(1); return; }
     const outOfStock = cart.items.find((item) => {
       const product = products.find((p) => p.id === item.productId);
       return !product || !product.available;
@@ -92,12 +77,12 @@ export function Checkout({ navigate }: { navigate: (path: string) => void }) {
     setSubmitting(true);
     try {
       const order = createOrder({
-        customerName: name.trim(),
-        customerPhone: maskPhone(phone),
-        address: address.trim(),
+        customerName: orderName,
+        customerPhone: phone.trim() ? maskPhone(phone) : orderPhone,
+        address: orderAddress,
         fulfillment,
         payment,
-        date,
+        date: orderDate,
         time,
         notes,
         items: cart.items,
@@ -145,14 +130,13 @@ export function Checkout({ navigate }: { navigate: (path: string) => void }) {
                 <h3>Seus dados</h3>
                 <div className="form-grid">
                   <div className="field">
-                    <label htmlFor="ck-nome">Nome completo *</label>
-                    <input id="ck-nome" className={`input ${errors.name ? 'input--invalid' : ''}`} value={name} onChange={(e) => setName(e.target.value)} placeholder="Como devemos te chamar?" />
-                    {errors.name && <span className="error-text">{errors.name}</span>}
+                    <label htmlFor="ck-nome">Nome completo</label>
+                    <input id="ck-nome" className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Como devemos te chamar?" />
                   </div>
                   <div className="field">
-                    <label htmlFor="ck-fone">WhatsApp / Telefone *</label>
-                    <input id="ck-fone" className={`input ${errors.phone ? 'input--invalid' : ''}`} value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))} placeholder="(11) 99999-9999" inputMode="tel" />
-                    {errors.phone && <span className="error-text">{errors.phone}</span>}
+                    <label htmlFor="ck-fone">WhatsApp / Telefone</label>
+                    <input id="ck-fone" className="input" value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))} placeholder="(11) 99999-9999" inputMode="tel" />
+                    <span className="hint">Usamos o número só para avisar sobre o pedido.</span>
                   </div>
                 </div>
               </div>
@@ -172,9 +156,8 @@ export function Checkout({ navigate }: { navigate: (path: string) => void }) {
                 </div>
                 {fulfillment === 'entrega' ? (
                   <div className="field">
-                    <label htmlFor="ck-end">Endereço completo *</label>
-                    <textarea id="ck-end" className={`textarea ${errors.address ? 'textarea--invalid' : ''}`} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, complemento, bairro e cidade" style={{ minHeight: '80px' }} />
-                    {errors.address && <span className="error-text">{errors.address}</span>}
+                    <label htmlFor="ck-end">Endereço completo</label>
+                    <textarea id="ck-end" className="textarea" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, número, complemento, bairro e cidade" style={{ minHeight: '80px' }} />
                     {currentCustomer && currentCustomer.addresses.length > 0 && (
                       <div className="chip-row" style={{ marginTop: '.3rem' }}>
                         {currentCustomer.addresses.map((item) => (
@@ -194,16 +177,19 @@ export function Checkout({ navigate }: { navigate: (path: string) => void }) {
                 <h3>Data e horário</h3>
                 <div className="form-grid">
                   <div className="field">
-                    <label htmlFor="ck-data">Data desejada *</label>
-                    <input id="ck-data" type="date" className={`input ${errors.date ? 'input--invalid' : ''}`} value={date} min={minDate} onChange={(e) => setDate(e.target.value)} />
-                    {errors.date ? <span className="error-text">{errors.date}</span> : <span className="hint">Precisamos de {maxPrepDays === 0 ? 'nenhuma' : `${maxPrepDays} dia(s) de`} antecedência para este pedido.</span>}
+                    <label htmlFor="ck-data">Data desejada</label>
+                    <input id="ck-data" type="date" className="input" value={date} min={minDate} onChange={(e) => setDate(e.target.value)} />
+                    <span className="hint">
+                      {maxPrepDays === 0
+                        ? 'Este pedido sai no mesmo dia.'
+                        : `Sugerimos ${maxPrepDays} dia(s) de antecedência para este pedido.`}
+                    </span>
                   </div>
                   <div className="field">
-                    <label htmlFor="ck-hora">Horário desejado *</label>
-                    <select id="ck-hora" className={`select ${errors.time ? 'select--invalid' : ''}`} value={time} onChange={(e) => setTime(e.target.value)}>
+                    <label htmlFor="ck-hora">Horário desejado</label>
+                    <select id="ck-hora" className="select" value={time} onChange={(e) => setTime(e.target.value)}>
                       {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
                     </select>
-                    {errors.time && <span className="error-text">{errors.time}</span>}
                   </div>
                 </div>
               </div>
@@ -260,11 +246,11 @@ export function Checkout({ navigate }: { navigate: (path: string) => void }) {
               </div>
 
               <div className="detail-grid">
-                <div className="detail-item"><span>Cliente</span><strong>{name}</strong></div>
-                <div className="detail-item"><span>WhatsApp</span><strong>{phone}</strong></div>
+                <div className="detail-item"><span>Cliente</span><strong>{orderName}</strong></div>
+                <div className="detail-item"><span>WhatsApp</span><strong>{orderPhone}</strong></div>
                 <div className="detail-item"><span>Tipo de recebimento</span><strong>{fulfillment === 'entrega' ? 'Entrega' : 'Retirada na loja'}</strong></div>
-                <div className="detail-item"><span>Endereço</span><strong>{fulfillment === 'entrega' ? address : settings.address}</strong></div>
-                <div className="detail-item"><span>Data</span><strong>{formatDateLong(date)}</strong></div>
+                <div className="detail-item"><span>Endereço</span><strong>{fulfillment === 'entrega' ? orderAddress : settings.address}</strong></div>
+                <div className="detail-item"><span>Data</span><strong>{formatDateLong(orderDate)}</strong></div>
                 <div className="detail-item"><span>Horário</span><strong>{time}</strong></div>
                 <div className="detail-item"><span>Forma de pagamento</span><strong>{PAYMENT_LABEL[payment]}</strong></div>
                 <div className="detail-item"><span>Observações</span><strong>{notes.trim() || 'Nenhuma'}</strong></div>
@@ -292,7 +278,7 @@ export function Checkout({ navigate }: { navigate: (path: string) => void }) {
           <div className="summary__line"><span>Taxa de entrega</span><span>{deliveryFee > 0 ? formatMoney(deliveryFee) : 'Grátis'}</span></div>
           <div className="summary__total"><span>Total</span><strong>{formatMoney(total)}</strong></div>
           <p className="text-xs muted">
-            {fulfillment === 'entrega' ? 'Entrega' : 'Retirada'} em {formatDateLong(date)} às {time}.
+            {fulfillment === 'entrega' ? 'Entrega' : 'Retirada'} em {formatDateLong(orderDate)} às {time}.
           </p>
         </aside>
       </div>

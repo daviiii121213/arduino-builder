@@ -47,6 +47,12 @@ configurações da confeitaria (dados, taxas, pagamentos e cores do sistema).
 Os dois painéis compartilham o mesmo estado: um pedido criado pelo cliente aparece no painel do
 vendedor, e qualquer mudança de status ou de produto reflete imediatamente na loja.
 
+O sistema começa **sem nenhum pedido lançado**: o catálogo e o estoque já vêm prontos para vender e
+todo o histórico (pedidos, clientes, faturamento, agenda) nasce das compras feitas de verdade na loja.
+Produtos com quantidade fixa têm o estoque debitado a cada pedido e saem do cardápio ao chegar a zero;
+produtos sob encomenda não usam contagem de estoque. No fechamento do pedido nenhum campo é
+obrigatório — o que faltar entra com um valor padrão, para facilitar testes e demonstrações.
+
 ## Arquitetura
 
 ```

@@ -130,6 +130,7 @@ export function ProductsAdmin() {
             <span className="text-sm muted"><strong>{products.filter((p) => p.available).length}</strong> disponíveis</span>
             <span className="text-sm muted"><strong>{products.filter((p) => !p.available).length}</strong> indisponíveis</span>
             <span className="text-sm muted"><strong>{products.filter((p) => p.featured).length}</strong> em destaque</span>
+            <span className="text-sm muted"><strong>{products.filter((p) => p.stock !== null && p.stock <= 3).length}</strong> com estoque baixo</span>
           </div>
         </div>
       </section>
@@ -156,6 +157,9 @@ export function ProductsAdmin() {
                 <h4>{product.name}</h4>
                 <span className="admin-product__meta">{categoryName(product.category)} • {product.unitLabel}</span>
                 <span className="admin-product__meta">{product.optionGroups.length} grupo(s) de personalização</span>
+                <span className={`badge ${product.stock === null ? '' : product.stock === 0 ? 'badge--danger' : product.stock <= 3 ? 'badge--warn' : 'badge--ok'}`} style={{ justifySelf: 'start' }}>
+                  <Icon name="box" size={12} /> {product.stock === null ? 'Sob encomenda' : `${product.stock} em estoque`}
+                </span>
                 <strong style={{ color: 'var(--choc-600)', fontFamily: 'var(--font-display)', fontSize: '1.15rem' }}>
                   {formatMoney(product.promoPrice ?? product.price)}
                   {product.promoPrice != null && <small className="muted text-xs" style={{ textDecoration: 'line-through', marginLeft: '.4rem' }}>{formatMoney(product.price)}</small>}

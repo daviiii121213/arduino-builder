@@ -131,7 +131,7 @@ export function SettingsAdmin() {
         <div className="block__head">
           <div><h3>Dados do sistema</h3><p>Informações salvas neste navegador</p></div>
           <button type="button" className="btn btn--outline-danger btn--sm" onClick={() => setConfirmReset(true)}>
-            <Icon name="alert" size={15} /> Restaurar dados de demonstração
+            <Icon name="alert" size={15} /> Restaurar catálogo inicial
           </button>
         </div>
         <div className="block__body">
@@ -154,8 +154,8 @@ export function SettingsAdmin() {
 
       <ConfirmDialog
         open={confirmReset}
-        title="Restaurar dados de demonstração?"
-        message="Todos os produtos, pedidos, clientes, estoque e lançamentos atuais serão substituídos pelos dados iniciais. Esta ação não pode ser desfeita."
+        title="Restaurar catálogo inicial?"
+        message="Todos os pedidos, clientes, movimentações e despesas serão apagados, e o catálogo, o estoque e as configurações voltam ao estado inicial. Esta ação não pode ser desfeita."
         confirmLabel="Restaurar tudo"
         danger
         onCancel={() => setConfirmReset(false)}
@@ -163,7 +163,7 @@ export function SettingsAdmin() {
           resetDatabase();
           setForm(DEFAULT_SETTINGS);
           setConfirmReset(false);
-          toast.success('Dados restaurados', 'O sistema voltou ao estado inicial de demonstração.');
+          toast.success('Dados restaurados', 'O sistema voltou ao catálogo inicial, sem pedidos lançados.');
         }}
       />
     </>

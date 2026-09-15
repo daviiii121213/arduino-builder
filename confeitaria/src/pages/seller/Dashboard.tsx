@@ -17,7 +17,7 @@ export function Dashboard({ go }: { go: (id: string) => void }) {
     { label: 'Faturamento do dia', value: formatMoney(a.revenueToday), icon: 'wallet' as const, tone: 'kpi--ok', foot: `${a.ordersToday} pedido(s) recebido(s) hoje` },
     { label: 'Faturamento do mês', value: formatMoney(a.revenueMonth), icon: 'trendUp' as const, tone: 'kpi--accent', foot: a.monthGrowth === null ? 'Primeiro mês de vendas' : `${a.monthGrowth >= 0 ? '▲' : '▼'} ${formatNumber(Math.abs(a.monthGrowth))}% vs. mês anterior` },
     { label: 'Previsão do mês', value: formatMoney(a.forecastMonth), icon: 'calendar' as const, tone: 'kpi--info', foot: 'Inclui pedidos agendados' },
-    { label: 'Ticket médio', value: formatMoney(a.averageTicket), icon: 'chart' as const, tone: '', foot: `${a.ordersCount} pedidos no total` },
+    { label: 'Ticket médio', value: formatMoney(a.averageTicket), icon: 'chart' as const, tone: '', foot: `${a.ordersCount} ${a.ordersCount === 1 ? 'pedido' : 'pedidos'} no total` },
   ];
 
   const statusCards = [
@@ -223,7 +223,7 @@ export function Dashboard({ go }: { go: (id: string) => void }) {
       <section className="block">
         <div className="block__head">
           <div><h3>Pedidos por dia</h3><p>Volume de pedidos recebidos nas últimas duas semanas</p></div>
-          <span className="badge">{orders.length} pedidos no sistema</span>
+          <span className="badge">{orders.length} {orders.length === 1 ? 'pedido' : 'pedidos'} no sistema</span>
         </div>
         <div className="block__body">
           <div className="chart-wrap chart-wrap--sm">
@@ -238,7 +238,8 @@ export function Dashboard({ go }: { go: (id: string) => void }) {
             </ResponsiveContainer>
           </div>
           <p className="text-xs muted" style={{ marginTop: '.8rem' }}>
-            Taxa de entrega atual: {formatMoney(settings.deliveryFee)} • Frete grátis acima de {formatMoney(settings.freeDeliveryFrom)} • Pedido mínimo {formatMoney(settings.minOrder)}
+            Taxa de entrega atual: {formatMoney(settings.deliveryFee)} • Frete grátis acima de {formatMoney(settings.freeDeliveryFrom)}
+            {settings.minOrder > 0 ? ` • Pedido mínimo ${formatMoney(settings.minOrder)}` : ' • Sem pedido mínimo'}
           </p>
         </div>
       </section>

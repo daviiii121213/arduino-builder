@@ -128,6 +128,7 @@ export const SEED_PRODUCTS: Product[] = [
     price: 89.9,
     category: 'doces',
     art: 'brigadeiro',
+    stock: 10,
     unitLabel: 'cento',
     bestSeller: true,
     featured: true,
@@ -144,6 +145,7 @@ export const SEED_PRODUCTS: Product[] = [
     price: 84.9,
     category: 'doces',
     art: 'beijinho',
+    stock: 8,
     unitLabel: 'cento',
     optionGroups: [
       g('quantidade-doce', 'Quantidade', 'single', true, [['50 unidades', -38], ['100 unidades (cento)', 0], ['150 unidades', 40]]),
@@ -158,6 +160,7 @@ export const SEED_PRODUCTS: Product[] = [
     price: 74.9,
     category: 'doces',
     art: 'docinhos-gourmet',
+    stock: 9,
     unitLabel: 'bandeja',
     optionGroups: [g('sabores', 'Sabores preferidos', 'multi', false, [['Brigadeiro belga', 0], ['Ninho com Nutella', 0], ['Maracujá', 0], ['Pistache', 8], ['Churros', 0], ['Limão siciliano', 0]])],
   }),
@@ -169,6 +172,7 @@ export const SEED_PRODUCTS: Product[] = [
     price: 39.9,
     category: 'doces',
     art: 'pao-de-mel',
+    stock: 12,
     unitLabel: 'caixa com 6',
     optionGroups: [g('recheio-pm', 'Recheio', 'single', true, [['Doce de leite', 0], ['Brigadeiro', 0], ['Ninho', 4]])],
   }),
@@ -180,6 +184,7 @@ export const SEED_PRODUCTS: Product[] = [
     price: 9.5,
     category: 'cupcakes',
     art: 'cupcake-chocolate',
+    stock: 24,
     bestSeller: true,
     optionGroups: [
       g('quantidade-cup', 'Embalagem', 'single', true, [['Unidade', 0], ['Caixa com 6', 48], ['Caixa com 12', 92]]),
@@ -194,6 +199,7 @@ export const SEED_PRODUCTS: Product[] = [
     price: 9.5,
     category: 'cupcakes',
     art: 'cupcake-baunilha',
+    stock: 18,
     optionGroups: [
       g('quantidade-cup', 'Embalagem', 'single', true, [['Unidade', 0], ['Caixa com 6', 48], ['Caixa com 12', 92]]),
       g('cobertura-cup', 'Cobertura', 'single', false, [['Cream cheese rosé', 0], ['Chantilly', 1], ['Chocolate branco', 2]]),
@@ -249,6 +255,7 @@ export const SEED_PRODUCTS: Product[] = [
     price: 58,
     category: 'kits',
     art: 'caixa-doces',
+    stock: 6,
     featured: true,
     optionGroups: [
       g('caixa-tamanho', 'Tamanho da caixa', 'single', true, [['12 doces', 0], ['20 doces', 34], ['30 doces', 62]]),
@@ -263,6 +270,7 @@ export const SEED_PRODUCTS: Product[] = [
     price: 94.9,
     category: 'salgados',
     art: 'salgados',
+    stock: 12,
     unitLabel: 'cento',
     bestSeller: true,
     optionGroups: [
@@ -278,6 +286,7 @@ export const SEED_PRODUCTS: Product[] = [
     price: 14.9,
     category: 'bebidas',
     art: 'bebidas',
+    stock: 30,
     prepDays: 0,
     optionGroups: [
       g('sabor-suco', 'Sabor', 'single', true, [['Laranja', 0], ['Maracujá', 2], ['Abacaxi com hortelã', 2], ['Morango', 4]]),
@@ -327,7 +336,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hours: 'Segunda a sábado, das 9h às 19h',
   deliveryFee: 12,
   freeDeliveryFrom: 200,
-  minOrder: 25,
+  minOrder: 0,
   pixKey: 'contato@doceencanto.com.br',
   payments: { pix: true, dinheiro: true, cartao: true },
   primaryColor: '#8c4a2f',

@@ -157,7 +157,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setData((prev) => {
       const digits = onlyDigits(input.customerPhone);
       let customers = prev.customers;
-      let customer = customers.find((c) => onlyDigits(c.phone) === digits);
+      /** Sem telefone utilizável, cada pedido gera um cliente próprio em vez de agrupar todos. */
+      let customer = digits.length >= 8 ? customers.find((c) => onlyDigits(c.phone) === digits) : undefined;
       if (!customer) {
         customer = { id: uid('cli'), name: input.customerName, phone: input.customerPhone, addresses: [], notes: '', createdAt: nowIso };
         customers = [customer, ...customers];
@@ -196,7 +197,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         updatedAt: nowIso,
       };
       created = order;
-      return { ...prev, counter, customers, orders: [order, ...prev.orders], session: { customerId: customer.id } };
+
+      /** Dá baixa no estoque dos produtos que trabalham com quantidade fixa. */
+      const sold = new Map<string, number>();
+      order.items.forEach((item) => sold.set(item.productId, (sold.get(item.productId) ?? 0) + item.quantity));
+      const products = prev.products.map((product) => {
+        const quantity = sold.get(product.id);
+        if (!quantity || product.stock === null) return product;
+        const stock = Math.max(0, product.stock - quantity);
+        return { ...product, stock, available: stock > 0 && product.available, updatedAt: nowIso };
+      });
+
+      return { ...prev, counter, customers, products, orders: [order, ...prev.orders], session: { customerId: customer.id } };
     });
 
     return created!;

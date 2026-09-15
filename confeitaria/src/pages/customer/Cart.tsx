@@ -30,7 +30,7 @@ export function Cart({ navigate }: { navigate: (path: string) => void }) {
       toast.error('Item indisponível', `Remova "${unavailable[0].name}" para continuar: o produto saiu do cardápio.`);
       return;
     }
-    if (cart.subtotal < settings.minOrder) {
+    if (settings.minOrder > 0 && cart.subtotal < settings.minOrder) {
       toast.warn('Pedido mínimo', `O valor mínimo para pedidos é de ${formatMoney(settings.minOrder)}.`);
       return;
     }
