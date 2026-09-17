@@ -1,0 +1,26 @@
+{
+  "name": "odontocare",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OdontoCare - Sistema de Gestao para Clinica Odontologica",
+  "type": "commonjs",
+  "scripts": {
+    "build:server": "tsc -p tsconfig.server.json",
+    "build:client": "tsc -p tsconfig.client.json",
+    "build": "npm run build:server && npm run build:client",
+    "seed": "node dist/server/seed.js",
+    "start": "node dist/server/index.js",
+    "dev": "npm run build && npm start",
+    "test": "node tests/api.test.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

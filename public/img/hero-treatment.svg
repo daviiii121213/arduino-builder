@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" width="960" height="640" role="img" aria-label="Dentista atendendo paciente em consultório odontológico moderno">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3FAF9"/><stop offset="1" stop-color="#DDEEEC"/>
+    </linearGradient>
+    <linearGradient id="win" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#CFE9F7"/><stop offset="1" stop-color="#EAF6FC"/>
+    </linearGradient>
+    <linearGradient id="chair" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1C6E8C"/><stop offset="1" stop-color="#0E4A63"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E8EDEF"/><stop offset="1" stop-color="#D2DBDE"/>
+    </linearGradient>
+    <clipPath id="frame"><rect width="960" height="640" rx="0"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <rect width="960" height="640" fill="url(#wall)"/>
+    <rect y="470" width="960" height="170" fill="url(#floor)"/>
+    <path d="M0 470h960v10H0z" fill="#B9C6CA"/>
+
+    <!-- janela -->
+    <rect x="70" y="80" width="250" height="230" rx="14" fill="url(#win)" stroke="#BBD6E2" stroke-width="6"/>
+    <path d="M195 80v230M70 195h250" stroke="#BBD6E2" stroke-width="6"/>
+    <circle cx="255" cy="135" r="26" fill="#FDF0C9"/>
+    <path d="M70 265c40-30 70-10 105-28 30-16 55 6 82 2 25-4 45-16 63-8v79H70z" fill="#CDE9E1" opacity=".75"/>
+
+    <!-- quadro decorativo com dente -->
+    <rect x="700" y="90" width="180" height="150" rx="12" fill="#FFFFFF" stroke="#CFE0DE" stroke-width="5"/>
+    <path d="M790 122c-12-9-24-13-35-13-21 0-35 15-35 38 0 17 5 34 12 54 6 17 11 29 14 37 4 7 8 11 13 11 8 0 11-5 14-17l5-22c1-8 4-11 11-11s10 3 11 11l5 22c3 12 6 17 14 17 5 0 9-4 13-11 3-8 8-20 14-37 7-20 12-37 12-54 0-23-14-38-35-38-11 0-23 4-33 13z" fill="#D8F0EC" transform="scale(.72) translate(300 68)"/>
+
+    <!-- planta -->
+    <path d="M120 470v-70" stroke="#6B8F7A" stroke-width="8" stroke-linecap="round"/>
+    <path d="M120 420c-30-6-44-30-40-56 26-2 44 16 40 56zM120 404c28-10 38-34 32-58-26 1-40 20-32 58z" fill="#7FB69B"/>
+    <path d="M86 470h68l-8 56a10 10 0 0 1-10 9h-32a10 10 0 0 1-10-9z" fill="#C9A227"/>
+
+    <!-- cadeira odontológica -->
+    <rect x="392" y="440" width="120" height="18" rx="9" fill="#9AA9AE"/>
+    <rect x="440" y="360" width="24" height="90" fill="#8E9EA4"/>
+    <path d="M330 350h230a26 26 0 0 1 26 26v18a26 26 0 0 1-26 26H330a26 26 0 0 1-26-26v-18a26 26 0 0 1 26-26z" fill="url(#chair)"/>
+    <path d="M556 300c22 0 38 16 38 38v36h-64v-36c0-22 4-38 26-38z" fill="#1C6E8C"/>
+    <rect x="300" y="322" width="90" height="52" rx="22" fill="#15597A"/>
+
+    <!-- paciente -->
+    <path d="M330 350h150c0 18-12 30-30 30H352c-16 0-22-12-22-30z" fill="#FFFFFF"/>
+    <circle cx="352" cy="330" r="30" fill="#EFC3A3"/>
+    <path d="M324 326c-2-20 10-34 30-34s30 12 30 28c-8-4-14-10-18-16-8 10-22 18-42 22z" fill="#5B4232"/>
+    <path d="M362 342c6 4 14 4 20 0" stroke="#C98C6A" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M340 380h120c26 0 46 8 60 22H340z" fill="#E4F1EF"/>
+
+    <!-- dentista -->
+    <g>
+      <path d="M598 470V392c0-34 24-58 58-58s58 24 58 58v78z" fill="#12A196"/>
+      <path d="M598 470h116v46a10 10 0 0 1-10 10h-96a10 10 0 0 1-10-10z" fill="#0E877E"/>
+      <circle cx="656" cy="300" r="40" fill="#F0C6A6"/>
+      <path d="M620 296c-4-28 12-46 36-46s38 16 38 40c0 6-2 12-4 16-2-16-10-24-24-28-10 12-26 16-46 18z" fill="#2F2A28"/>
+      <path d="M626 306h60v16c0 16-14 28-30 28s-30-12-30-28z" fill="#EAF6F4"/>
+      <rect x="622" y="288" width="68" height="16" rx="8" fill="#DCEFEC"/>
+      <path d="M604 392c-24 10-40 30-44 56l32 10c6-20 14-34 26-44z" fill="#12A196"/>
+      <path d="M708 392c26 10 44 32 48 60l-34 8c-6-22-14-36-26-46z" fill="#12A196"/>
+      <circle cx="574" cy="452" r="16" fill="#F0C6A6"/>
+      <circle cx="742" cy="452" r="16" fill="#F0C6A6"/>
+    </g>
+
+    <!-- luminária -->
+    <path d="M840 130v150c0 40-30 62-68 74" stroke="#9AA9AE" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <path d="M744 336l60 30 22-44-60-30z" fill="#E6EDEF"/>
+    <path d="M752 352l44 22" stroke="#FFF6D2" stroke-width="14" stroke-linecap="round"/>
+    <path d="M730 380c30-12 58-6 78 8l-26 46c-20-16-40-22-62-18z" fill="#FFF7DA" opacity=".55"/>
+
+    <!-- carrinho de instrumentos -->
+    <rect x="820" y="360" width="110" height="110" rx="12" fill="#FFFFFF" stroke="#D3E2E0" stroke-width="5"/>
+    <rect x="836" y="384" width="78" height="10" rx="5" fill="#CFE6E3"/>
+    <rect x="836" y="410" width="78" height="10" rx="5" fill="#CFE6E3"/>
+    <rect x="836" y="436" width="46" height="10" rx="5" fill="#C9A227"/>
+  </g>
+</svg>

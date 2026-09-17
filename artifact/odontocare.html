@@ -1,0 +1,2665 @@
+<title>OdontoCare</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ink:#0C2231; --ink-soft:#33505F; --ink-mute:#6B8494;
+  --ground:#FAF8F5; --surface:#FFFFFF; --surface-2:#F1F6F4; --surface-3:#E4EFEC;
+  --line:#D8E4E1; --line-strong:#BCCFCA;
+  --teal:#0E9488; --teal-deep:#0B6F78; --teal-soft:#D8F0EC;
+  --gold:#C99A2E; --gold-soft:#F6EBD2;
+  --ok:#2F8F5B; --ok-soft:#DFF1E6;
+  --warn:#C77A16; --warn-soft:#FBEDD8;
+  --bad:#BC4A42; --bad-soft:#F8E3E1;
+  --info:#2D6E9E; --info-soft:#DFEDF7;
+  --shadow-sm:0 1px 2px rgba(12,34,49,.06), 0 1px 3px rgba(12,34,49,.05);
+  --shadow-md:0 4px 12px rgba(12,34,49,.07), 0 2px 4px rgba(12,34,49,.04);
+  --shadow-lg:0 18px 44px rgba(12,34,49,.12);
+  --r-sm:8px; --r-md:14px; --r-lg:22px; --r-xl:32px;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --body:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --maxw:1180px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#E9F2F0; --ink-soft:#B7CBC9; --ink-mute:#8AA3A5;
+    --ground:#081A22; --surface:#0E242E; --surface-2:#12303B; --surface-3:#183B47;
+    --line:#1E4351; --line-strong:#2B5A69;
+    --teal:#37B8A8; --teal-deep:#7FD7C9; --teal-soft:#123B3C;
+    --gold:#E0B45A; --gold-soft:#3A2F16;
+    --ok:#5BC286; --ok-soft:#12321F;
+    --warn:#E2A24A; --warn-soft:#3A2A11;
+    --bad:#E68278; --bad-soft:#3A1A17;
+    --info:#6FB2DE; --info-soft:#122A3C;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+    --shadow-md:0 4px 14px rgba(0,0,0,.45);
+    --shadow-lg:0 18px 44px rgba(0,0,0,.55);
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#E9F2F0; --ink-soft:#B7CBC9; --ink-mute:#8AA3A5;
+  --ground:#081A22; --surface:#0E242E; --surface-2:#12303B; --surface-3:#183B47;
+  --line:#1E4351; --line-strong:#2B5A69;
+  --teal:#37B8A8; --teal-deep:#7FD7C9; --teal-soft:#123B3C;
+  --gold:#E0B45A; --gold-soft:#3A2F16;
+  --ok:#5BC286; --ok-soft:#12321F;
+  --warn:#E2A24A; --warn-soft:#3A2A11;
+  --bad:#E68278; --bad-soft:#3A1A17;
+  --info:#6FB2DE; --info-soft:#122A3C;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 4px 14px rgba(0,0,0,.45);
+  --shadow-lg:0 18px 44px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--display);font-weight:600;line-height:1.15;margin:0;text-wrap:balance;letter-spacing:-.01em}
+p{margin:0}
+a{color:inherit}
+img,svg{max-width:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px;border-radius:4px}
+.wrap{width:100%;max-width:var(--maxw);margin:0 auto;padding-inline:20px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--teal-deep)}
+.lede{color:var(--ink-soft);font-size:17px}
+.muted{color:var(--ink-mute)}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- botões ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:999px;
+  padding:11px 20px;font-weight:600;font-size:15px;cursor:pointer;text-decoration:none;transition:transform .15s ease,box-shadow .2s ease,background .2s ease;background:none}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--teal);color:#fff;box-shadow:var(--shadow-md)}
+.btn-primary:hover{background:var(--teal-deep)}
+:root[data-theme="dark"] .btn-primary,:root:not([data-theme="light"]) .btn-primary{color:#04222A}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .btn-primary{color:#fff}}
+.btn-ghost{border-color:var(--line-strong);color:var(--ink);background:var(--surface)}
+.btn-ghost:hover{border-color:var(--teal);color:var(--teal-deep)}
+.btn-gold{background:var(--gold);color:#241B04}
+.btn-quiet{color:var(--ink-soft);padding:8px 12px}
+.btn-quiet:hover{color:var(--teal-deep);background:var(--surface-2)}
+.btn-sm{padding:7px 14px;font-size:13.5px}
+.btn-danger{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.btn-block{width:100%}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+/* ---------- chips / status ---------- */
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.s-aguardando{background:var(--warn-soft);color:var(--warn)}
+.s-confirmada{background:var(--ok-soft);color:var(--ok)}
+.s-em_atendimento{background:var(--info-soft);color:var(--info)}
+.s-atendida{background:var(--surface-3);color:var(--ink-soft)}
+.s-cancelada{background:var(--bad-soft);color:var(--bad)}
+.tag{display:inline-flex;align-items:center;gap:6px;background:var(--teal-soft);color:var(--teal-deep);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600}
+
+/* ---------- cabeçalho público ---------- */
+.site-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.site-header .bar{display:flex;align-items:center;gap:18px;height:72px}
+.brand{display:flex;align-items:center;gap:11px;font-family:var(--display);font-weight:700;font-size:19px;text-decoration:none;letter-spacing:-.02em}
+.brand small{display:block;font-family:var(--body);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute)}
+.site-nav{display:flex;gap:4px;margin-left:auto}
+.site-nav a{padding:8px 13px;border-radius:999px;text-decoration:none;font-size:14.5px;font-weight:500;color:var(--ink-soft)}
+.site-nav a:hover{background:var(--surface-2);color:var(--ink)}
+.header-cta{display:flex;gap:9px;align-items:center}
+@media (max-width:940px){.site-nav{display:none}.header-cta .btn-ghost{display:none}}
+
+/* ---------- hero ---------- */
+.hero{position:relative;overflow:hidden;background:linear-gradient(170deg,var(--surface-2),var(--ground) 68%)}
+.hero::after{content:"";position:absolute;inset:auto -10% -40% 55%;height:420px;background:radial-gradient(closest-side,var(--teal-soft),transparent);opacity:.7;pointer-events:none}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;padding-block:64px 72px;position:relative;z-index:1}
+.hero h1{font-size:clamp(34px,5vw,58px);letter-spacing:-.03em}
+.hero h1 em{font-style:italic;color:var(--teal-deep)}
+.hero .lede{max-width:52ch;margin-top:18px;font-size:18px}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.hero-art{border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--shadow-lg);border:1px solid var(--line);background:var(--surface)}
+.hero-art svg{display:block;width:100%;height:auto}
+.trust{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:36px;border-top:1px solid var(--line);padding-top:22px}
+.trust b{display:block;font-family:var(--display);font-size:26px;color:var(--teal-deep);font-variant-numeric:tabular-nums}
+.trust span{font-size:13px;color:var(--ink-mute);line-height:1.35;display:block}
+@media (max-width:900px){.hero-grid{grid-template-columns:1fr;gap:34px;padding-block:40px 52px}.trust{grid-template-columns:repeat(2,1fr)}}
+
+/* ---------- seções ---------- */
+.section{padding-block:72px}
+.section-head{max-width:62ch;margin-bottom:38px}
+.section-head h2{font-size:clamp(26px,3.4vw,40px);margin-top:10px}
+.section-head p{margin-top:14px;color:var(--ink-soft)}
+.alt{background:var(--surface-2);border-block:1px solid var(--line)}
+
+.svc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.svc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:26px;display:flex;flex-direction:column;gap:12px;transition:transform .2s ease,box-shadow .2s ease;box-shadow:var(--shadow-sm)}
+.svc:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.svc .ic{width:56px;height:56px;border-radius:16px;background:var(--teal-soft);display:grid;place-items:center;color:var(--teal-deep)}
+.svc h3{font-size:19px}
+.svc p{font-size:14.5px;color:var(--ink-soft)}
+.svc ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--ink-mute);display:grid;gap:4px}
+@media (max-width:900px){.svc-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:620px){.svc-grid{grid-template-columns:1fr}}
+
+.env-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:22px}
+.env-col{display:grid;gap:22px}
+.env-card{position:relative;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow-sm)}
+.env-card svg{display:block;width:100%;height:auto}
+.env-card figcaption{position:absolute;left:0;right:0;bottom:0;padding:16px 18px;color:#fff;
+  background:linear-gradient(transparent,rgba(6,26,34,.82));font-size:14px;font-weight:600}
+.env-card figcaption span{display:block;font-weight:400;font-size:12.5px;opacity:.85}
+@media (max-width:820px){.env-grid{grid-template-columns:1fr}}
+
+.benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.benefit{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:22px;display:grid;gap:10px}
+.benefit .ic{width:42px;height:42px;border-radius:12px;background:var(--gold-soft);display:grid;place-items:center;color:var(--gold)}
+.benefit h3{font-size:16.5px;font-family:var(--body);font-weight:700}
+.benefit p{font-size:14px;color:var(--ink-soft)}
+@media (max-width:900px){.benefits{grid-template-columns:1fr 1fr}}
+@media (max-width:540px){.benefits{grid-template-columns:1fr}}
+
+.cta-banner{position:relative;overflow:hidden;border-radius:var(--r-xl);background:linear-gradient(135deg,var(--teal-deep),var(--teal));color:#fff;
+  display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:20px;box-shadow:var(--shadow-lg)}
+.cta-banner .copy{padding:44px}
+.cta-banner h2{color:#fff;font-size:clamp(24px,3vw,34px)}
+.cta-banner p{color:rgba(255,255,255,.9);margin-top:12px;max-width:44ch}
+.cta-banner .btn-gold{margin-top:22px}
+.cta-banner .art{align-self:stretch;display:flex}
+.cta-banner .art svg{width:100%;height:100%;object-fit:cover}
+@media (max-width:820px){.cta-banner{grid-template-columns:1fr}.cta-banner .copy{padding:30px}}
+
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:26px;box-shadow:var(--shadow-sm)}
+.hours{display:grid;gap:2px;margin-top:16px}
+.hours div{display:flex;justify-content:space-between;gap:16px;padding:11px 12px;border-radius:var(--r-sm);font-size:14.5px}
+.hours div:nth-child(odd){background:var(--surface-2)}
+.hours .today{background:var(--teal-soft);color:var(--teal-deep);font-weight:700}
+.hours .closed{color:var(--bad)}
+.contact-list{display:grid;gap:14px;margin-top:16px}
+.contact-list div{display:flex;gap:12px;align-items:flex-start;font-size:14.5px}
+.contact-list .ic{width:36px;height:36px;flex:none;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;color:var(--teal-deep)}
+@media (max-width:820px){.info-grid{grid-template-columns:1fr}}
+
+.site-footer{background:var(--ink);color:#DCE9E7;padding-block:48px 28px;margin-top:8px}
+:root[data-theme="dark"] .site-footer,:root:not([data-theme="light"]) .site-footer{background:#05141B}
+.footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:34px}
+.site-footer h4{color:#fff;font-family:var(--body);font-size:14px;letter-spacing:.1em;text-transform:uppercase}
+.site-footer p,.site-footer a{color:#A9C3C1;font-size:14px;text-decoration:none}
+.site-footer a:hover{color:#fff}
+.site-footer .links{display:grid;gap:9px;margin-top:14px}
+.footer-bottom{margin-top:34px;padding-top:18px;border-top:1px solid rgba(255,255,255,.12);display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;font-size:12.5px;color:#89A5A4}
+@media (max-width:760px){.footer-grid{grid-template-columns:1fr}}
+
+/* ---------- shell dos portais ---------- */
+.app{display:none;min-height:100%}
+.app.on{display:block}
+.app-shell{display:grid;grid-template-columns:262px 1fr;min-height:100vh}
+.side{background:var(--surface);border-right:1px solid var(--line);padding:22px 16px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh;overflow:auto}
+.side .brand{margin:4px 8px 18px}
+.side-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);font-weight:700;margin:14px 10px 4px}
+.side a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;text-decoration:none;color:var(--ink-soft);font-weight:500;font-size:14.5px;cursor:pointer}
+.side a:hover{background:var(--surface-2);color:var(--ink)}
+.side a.active{background:var(--teal-soft);color:var(--teal-deep);font-weight:700}
+.side a .ic{width:20px;height:20px;display:grid;place-items:center;flex:none}
+.side .spacer{flex:1}
+.side .who{margin:10px;padding:14px;border-radius:var(--r-md);background:var(--surface-2);font-size:13px}
+.side .who b{display:block;font-size:14px}
+.main{min-width:0;padding:26px clamp(16px,3vw,34px) 64px;display:flex;flex-direction:column;gap:22px}
+.topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.topbar h1{font-size:clamp(23px,3vw,31px)}
+.topbar .grow{flex:1}
+.mobile-nav{display:none}
+@media (max-width:920px){
+  .app-shell{grid-template-columns:1fr}
+  .side{display:none}
+  .main{padding-bottom:96px}
+  .mobile-nav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--surface);border-top:1px solid var(--line);
+    padding:8px 6px calc(8px + env(safe-area-inset-bottom,0px));justify-content:space-around}
+  .mobile-nav a{display:grid;justify-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--ink-mute);text-decoration:none;padding:6px 10px;border-radius:12px;cursor:pointer}
+  .mobile-nav a.active{color:var(--teal-deep);background:var(--teal-soft)}
+}
+
+/* ---------- banners dos portais ---------- */
+.portal-banner{position:relative;overflow:hidden;border-radius:var(--r-xl);border:1px solid var(--line);background:linear-gradient(120deg,var(--teal-deep),var(--teal) 58%,#1B7F8C);color:#fff;box-shadow:var(--shadow-lg);display:grid;grid-template-columns:1.25fr .75fr}
+.portal-banner .copy{padding:30px 32px;display:grid;gap:12px;align-content:center}
+.portal-banner h2{color:#fff;font-size:clamp(22px,3vw,30px)}
+.portal-banner p{color:rgba(255,255,255,.9);font-size:15px}
+.portal-banner .pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
+  border-radius:999px;padding:7px 14px;font-size:13.5px;font-weight:600;width:fit-content}
+.portal-banner .art{display:flex;align-items:flex-end;justify-content:flex-end}
+.portal-banner .art svg{width:100%;height:100%}
+@media (max-width:760px){.portal-banner{grid-template-columns:1fr}.portal-banner .art{display:none}}
+
+/* ---------- cartões de estatística ---------- */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;display:grid;gap:8px;box-shadow:var(--shadow-sm)}
+.stat .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2);color:var(--teal-deep)}
+.stat b{font-family:var(--display);font-size:29px;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{font-size:12.5px;color:var(--ink-mute);line-height:1.3}
+.stat.accent{border-left:3px solid var(--teal)}
+.stat.warn .ic{background:var(--warn-soft);color:var(--warn)}
+.stat.ok .ic{background:var(--ok-soft);color:var(--ok)}
+.stat.bad .ic{background:var(--bad-soft);color:var(--bad)}
+@media (max-width:1100px){.stats{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+.grid-2{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:start}
+.grid-2.even{grid-template-columns:1fr 1fr}
+@media (max-width:980px){.grid-2,.grid-2.even{grid-template-columns:1fr}}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-sm)}
+.card-head{display:flex;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line)}
+.card-head h3{font-size:17px}
+.card-head .grow{flex:1}
+.card-body{padding:18px 20px}
+.card-body.flush{padding:0}
+
+/* ---------- linha do tempo ---------- */
+.timeline{display:grid;gap:2px}
+.tl-item{display:grid;grid-template-columns:70px 1fr auto;gap:14px;align-items:center;padding:13px 20px;border-bottom:1px solid var(--line);cursor:pointer}
+.tl-item:last-child{border-bottom:0}
+.tl-item:hover{background:var(--surface-2)}
+.tl-time{font-weight:700;font-variant-numeric:tabular-nums;color:var(--teal-deep);font-size:15px}
+.tl-main{min-width:0}
+.tl-main b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-main span{font-size:13px;color:var(--ink-mute);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13.5px;
+  background:var(--teal-soft);color:var(--teal-deep);flex:none;font-family:var(--body)}
+.avatar.f{background:#F4E2EC;color:#9C4874}
+.avatar.m{background:#DCE9F6;color:#2D6E9E}
+:root[data-theme="dark"] .avatar.f,:root:not([data-theme="light"]) .avatar.f{background:#3B2231;color:#F0B6D2}
+:root[data-theme="dark"] .avatar.m,:root:not([data-theme="light"]) .avatar.m{background:#16324A;color:#9CC8EC}
+.row-avatar{display:flex;align-items:center;gap:12px;min-width:0}
+
+/* ---------- gráfico de carga semanal ---------- */
+.chart{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:end;height:160px;padding:6px 4px 0}
+.bar{display:grid;align-content:end;justify-items:center;gap:8px;height:100%}
+.bar .col{width:100%;max-width:38px;border-radius:8px 8px 4px 4px;background:var(--surface-3);position:relative;min-height:4px;transition:height .4s ease}
+.bar .col.has{background:linear-gradient(180deg,var(--teal),var(--teal-deep))}
+.bar .col.today{background:linear-gradient(180deg,var(--gold),#A87D14)}
+.bar .val{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+.bar .lbl{font-size:11px;color:var(--ink-mute);text-align:center;line-height:1.2}
+
+/* ---------- formulários ---------- */
+.form{display:grid;gap:16px}
+.field{display:grid;gap:6px}
+.field label{font-size:13px;font-weight:600;color:var(--ink-soft)}
+.field label .req{color:var(--bad)}
+.field input,.field select,.field textarea{width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line-strong);
+  background:var(--surface);font-size:15px;transition:border-color .15s ease,box-shadow .15s ease}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft);outline:none}
+.field textarea{min-height:90px;resize:vertical}
+.field .hint{font-size:12.5px;color:var(--ink-mute)}
+.field.bad input,.field.bad select,.field.bad textarea{border-color:var(--bad);background:var(--bad-soft)}
+.field .err{font-size:12.5px;color:var(--bad);font-weight:600}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-row.three{grid-template-columns:repeat(3,1fr)}
+@media (max-width:700px){.form-row,.form-row.three{grid-template-columns:1fr}}
+.fieldset{border:1px solid var(--line);border-radius:var(--r-md);padding:18px;display:grid;gap:16px;margin:0}
+.fieldset legend{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--teal-deep);padding:0 8px}
+.age-badge{display:flex;align-items:center;gap:10px;background:var(--teal-soft);color:var(--teal-deep);border-radius:12px;padding:10px 14px;font-weight:600;font-size:14px}
+
+/* ---------- seletor de horários ---------- */
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:9px}
+.slot{padding:11px 6px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface);font-weight:600;
+  font-variant-numeric:tabular-nums;cursor:pointer;text-align:center;font-size:14.5px}
+.slot:hover{border-color:var(--teal);color:var(--teal-deep)}
+.slot.sel{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:var(--shadow-md)}
+.slot[disabled]{background:var(--surface-2);color:var(--ink-mute);cursor:not-allowed;border-style:dashed;text-decoration:line-through}
+
+/* ---------- calendário ---------- */
+.cal{display:grid;gap:8px}
+.cal-head{display:flex;align-items:center;gap:10px}
+.cal-head b{flex:1;font-family:var(--display);font-size:18px;text-transform:capitalize}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal-dow{text-align:center;font-size:11px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.06em;padding-bottom:4px}
+.cal-day{aspect-ratio:1;border-radius:12px;border:1px solid transparent;background:var(--surface-2);cursor:pointer;
+  display:grid;place-content:center;gap:3px;font-variant-numeric:tabular-nums;font-weight:600;font-size:14px;padding:2px}
+.cal-day:hover:not([disabled]){border-color:var(--teal)}
+.cal-day[disabled]{background:transparent;color:var(--ink-mute);opacity:.45;cursor:not-allowed}
+.cal-day.sel{background:var(--teal);color:#fff}
+.cal-day.today{border-color:var(--gold)}
+.cal-day .dot{width:5px;height:5px;border-radius:50%;background:var(--teal);margin:0 auto}
+.cal-day.sel .dot{background:#fff}
+.cal-month{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-cell{min-height:92px;border:1px solid var(--line);border-radius:12px;padding:7px;background:var(--surface);display:grid;gap:4px;align-content:start}
+.cal-cell.out{background:var(--surface-2);opacity:.6}
+.cal-cell .d{font-size:12px;font-weight:700;color:var(--ink-mute);font-variant-numeric:tabular-nums}
+.cal-cell.today .d{color:var(--gold);}
+.cal-cell .ev{font-size:11px;border-radius:6px;padding:2px 6px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+@media (max-width:700px){.cal-cell{min-height:64px}.cal-cell .ev{font-size:10px;padding:1px 4px}}
+
+/* ---------- listas / tabelas ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.toolbar input[type="search"],.toolbar select,.toolbar input[type="date"]{padding:9px 13px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface);font-size:14px}
+.toolbar input[type="search"]{min-width:min(280px,100%)}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:999px;padding:4px;gap:2px;border:1px solid var(--line)}
+.seg button{border:0;background:none;padding:7px 15px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--ink-mute);cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--teal-deep);box-shadow:var(--shadow-sm)}
+.pt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:16px}
+.pt-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;display:grid;gap:14px;box-shadow:var(--shadow-sm);transition:box-shadow .2s ease,transform .2s ease}
+.pt-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.pt-card .top{display:flex;gap:12px;align-items:center;min-width:0}
+.pt-card .top b{font-size:16px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pt-card .top span{font-size:12.5px;color:var(--ink-mute)}
+.pt-meta{display:grid;grid-template-columns:1fr 1fr;gap:9px;font-size:13px}
+.pt-meta div{background:var(--surface-2);border-radius:10px;padding:8px 10px}
+.pt-meta b{display:block;font-size:13.5px;font-variant-numeric:tabular-nums}
+.pt-meta span{font-size:11px;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.pt-actions{display:flex;gap:8px;flex-wrap:wrap}
+.list{display:grid}
+.list-row{display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line);cursor:pointer}
+.list-row:last-child{border-bottom:0}
+.list-row:hover{background:var(--surface-2)}
+.list-row .when{text-align:right;font-size:13px;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+.list-row .when b{display:block;font-size:14.5px;color:var(--ink)}
+@media (max-width:620px){.list-row{grid-template-columns:auto 1fr;grid-template-areas:"a b" ". c" ". d";row-gap:6px}
+  .list-row .row-avatar{grid-area:a/a/a/b}.list-row .when{grid-area:c;text-align:left}.list-row .chip{grid-area:d;justify-self:start}}
+
+/* ---------- estados vazios / carregando ---------- */
+.empty{display:grid;justify-items:center;gap:12px;text-align:center;padding:46px 20px;color:var(--ink-mute)}
+.empty svg{width:170px;height:auto;opacity:.95}
+.empty b{font-family:var(--display);font-size:18px;color:var(--ink);font-weight:600}
+.empty p{font-size:14px;max-width:38ch}
+.skeleton{background:linear-gradient(90deg,var(--surface-2),var(--surface-3),var(--surface-2));background-size:200% 100%;
+  animation:sk 1.4s infinite;border-radius:10px;height:14px}
+@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.sk-card{display:grid;gap:10px;padding:18px}
+.spinner{width:20px;height:20px;border-radius:50%;border:2.5px solid var(--teal-soft);border-top-color:var(--teal);animation:spin .8s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-line{display:flex;align-items:center;gap:10px;color:var(--ink-mute);font-size:14px;padding:22px}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ---------- modal / toast ---------- */
+.modal-bg{position:fixed;inset:0;background:rgba(6,22,30,.55);backdrop-filter:blur(3px);z-index:80;display:grid;place-items:center;padding:16px;overflow:auto}
+.modal{background:var(--surface);border-radius:var(--r-xl);box-shadow:var(--shadow-lg);width:min(620px,100%);max-height:90vh;overflow:auto;border:1px solid var(--line)}
+.modal-head{display:flex;gap:12px;align-items:center;padding:20px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-head h3{font-size:19px;flex:1}
+.modal-body{padding:22px}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:16px 22px;border-top:1px solid var(--line);flex-wrap:wrap}
+.icon-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;color:var(--ink-soft)}
+.icon-btn:hover{background:var(--surface-2);color:var(--ink)}
+.toasts{position:fixed;right:16px;bottom:16px;z-index:90;display:grid;gap:10px;width:min(360px,calc(100vw - 32px))}
+.toast{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:var(--r-md);
+  padding:13px 15px;box-shadow:var(--shadow-lg);display:grid;gap:3px;animation:slide .25s ease}
+.toast.ok{border-left-color:var(--ok)}.toast.bad{border-left-color:var(--bad)}.toast.warn{border-left-color:var(--warn)}
+.toast b{font-size:14px}.toast span{font-size:13px;color:var(--ink-soft)}
+@keyframes slide{from{opacity:0;transform:translateY(8px)}}
+.notif{display:grid;gap:4px;padding:13px 20px;border-bottom:1px solid var(--line)}
+.notif:last-child{border-bottom:0}
+.notif.unread{background:var(--teal-soft)}
+.notif b{font-size:14px}
+.notif span{font-size:13px;color:var(--ink-soft)}
+.notif time{font-size:11.5px;color:var(--ink-mute)}
+.bell{position:relative}
+.bell .dot{position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;border-radius:9px;background:var(--bad);color:#fff;
+  font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.detail-grid>div{background:var(--surface-2);border-radius:12px;padding:12px 14px}
+.detail-grid span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-mute);font-weight:700}
+.detail-grid b{font-size:14.5px;font-weight:600}
+.detail-grid .full{grid-column:1/-1}
+@media (max-width:560px){.detail-grid{grid-template-columns:1fr}}
+.success-hero{display:grid;justify-items:center;text-align:center;gap:14px;padding:12px 0 6px}
+.success-hero svg{width:150px;height:auto}
+.success-hero h2{font-size:26px}
+.banner-note{display:flex;gap:10px;align-items:flex-start;background:var(--gold-soft);border:1px solid color-mix(in srgb,var(--gold) 35%,transparent);
+  border-radius:var(--r-md);padding:13px 15px;font-size:13.5px;color:var(--ink-soft)}
+.care-card{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-lg);padding:18px;box-shadow:var(--shadow-sm)}
+.care-card svg{width:88px;height:auto}
+.care-card h3{font-size:16px;font-family:var(--body);font-weight:700}
+.care-card p{font-size:13.5px;color:var(--ink-soft)}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <defs>
+  <linearGradient id="g-teal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#14A399"/><stop offset="1" stop-color="#0B6F78"/></linearGradient>
+  <linearGradient id="g-wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3FAF9"/><stop offset="1" stop-color="#DCEDEB"/></linearGradient>
+  <linearGradient id="g-win" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#CFE9F7"/><stop offset="1" stop-color="#EAF6FC"/></linearGradient>
+  <linearGradient id="g-chair" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1C6E8C"/><stop offset="1" stop-color="#0E4A63"/></linearGradient>
+  <linearGradient id="g-floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E8EDEF"/><stop offset="1" stop-color="#CFD9DC"/></linearGradient>
+ </defs>
+
+ <!-- ícones de linha -->
+ <g id="ico" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></g>
+ <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M9.5 20v-6h5v6"/></symbol>
+ <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="8.5" cy="14.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="14.5" r="1.1" fill="currentColor" stroke="none"/></symbol>
+ <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M2.6 20c.6-3.6 3.2-5.6 6.4-5.6s5.8 2 6.4 5.6"/><path d="M16.2 5.2a3.2 3.2 0 0 1 0 6.1M18 14.8c2.1.7 3.3 2.5 3.6 5.2"/></symbol>
+ <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+ <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M4.5 7.5l2 1.2M17.5 15.3l2 1.2M4.5 16.5l2-1.2M17.5 8.7l2-1.2"/></symbol>
+ <symbol id="i-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8"/><path d="M17 8.5 20.5 12 17 15.5M10 12h10.5"/></symbol>
+ <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2"/></symbol>
+ <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 3.5h2.7l1.6 4-2 1.4a11.5 11.5 0 0 0 5.4 5.4l1.4-2 4 1.6v2.7a2 2 0 0 1-2.2 2C10.6 18.8 5.2 13.4 4.4 5.7a2 2 0 0 1 2-2.2z"/></symbol>
+ <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="3"/><path d="m4 8 8 5.2L20 8"/></symbol>
+ <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></symbol>
+ <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 10a5.5 5.5 0 0 1 11 0c0 4 1.5 5.5 1.5 5.5H5S6.5 14 6.5 10z"/><path d="M10 18.5a2.2 2.2 0 0 0 4 0"/></symbol>
+ <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.4"/><path d="m16 16 4 4"/></symbol>
+ <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5z"/><path d="M14.5 6.5 17.5 9.5"/></symbol>
+ <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9.5 7V5h5v2M6.5 7l1 13h9l1-13"/><path d="M10.5 11v5.5M13.5 11v5.5"/></symbol>
+ <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+ <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+ <symbol id="i-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5 8 12l6.5 7"/></symbol>
+ <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5 16 12l-6.5 7"/></symbol>
+ <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.2" r="3.6"/><path d="M4.8 20c.7-3.9 3.6-6 7.2-6s6.5 2.1 7.2 6"/></symbol>
+ <symbol id="i-tooth" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.4c-1.3-1-2.6-1.5-3.9-1.5-2.4 0-4 1.7-4 4.4 0 1.9.5 3.9 1.3 6.2.7 2 1.2 3.4 1.6 4.2.4.9.9 1.3 1.5 1.3.9 0 1.3-.6 1.6-2l.5-2.6c.2-.9.5-1.2 1.3-1.2s1.1.3 1.3 1.2l.5 2.6c.3 1.4.7 2 1.6 2 .6 0 1.1-.4 1.5-1.3.4-.8.9-2.2 1.6-4.2.8-2.3 1.3-4.3 1.3-6.2 0-2.7-1.6-4.4-4-4.4-1.3 0-2.6.5-3.9 1.5z"/></symbol>
+ <symbol id="i-sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 13.7 9l5.5 1.7-5.5 1.7L12 18l-1.7-5.6L4.8 10.7 10.3 9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol>
+ <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 5.8v5.5c0 4.4 2.9 7.7 7 9.7 4.1-2 7-5.3 7-9.7V5.8z"/><path d="m9 12 2.2 2.2L15.4 10"/></symbol>
+ <symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7.2-4.4-7.2-9.2A4 4 0 0 1 12 8.4a4 4 0 0 1 7.2 2.4C19.2 15.6 12 20 12 20z"/></symbol>
+ <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+ <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10.5" rx="3"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></symbol>
+ <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6.5h12M8 12h12M8 17.5h12M4 6.5h.01M4 12h.01M4 17.5h.01"/></symbol>
+
+ <!-- marca -->
+ <symbol id="art-logo" viewBox="0 0 48 48">
+  <rect width="48" height="48" rx="14" fill="url(#g-teal)"/>
+  <path d="M24 12.6c-2.1-1.6-4.3-2.3-6.4-2.3-4 0-6.6 2.8-6.6 7.2 0 3.1.9 6.4 2.2 10.2 1.1 3.2 2 5.6 2.7 7 .7 1.4 1.5 2.1 2.5 2.1 1.4 0 2.1-1 2.6-3.3l.9-4.2c.3-1.4.8-2 2.1-2s1.8.6 2.1 2l.9 4.2c.5 2.3 1.2 3.3 2.6 3.3 1 0 1.8-.7 2.5-2.1.7-1.4 1.6-3.8 2.7-7 1.3-3.8 2.2-7.1 2.2-10.2 0-4.4-2.6-7.2-6.6-7.2-2.1 0-4.3.7-6.4 2.3z" fill="#fff"/>
+  <path d="M24 14.8c-1.6-2-4-3.2-6.6-3.2-1.4 0-2.6.3-3.6 1 1.2-.3 2.4-.3 3.6 0 2.4.6 4.2 2 5.3 3.7 1.1-1.7 2.9-3.1 5.3-3.7 1.2-.3 2.4-.3 3.6 0-1-.7-2.2-1-3.6-1-2.6 0-5 1.2-6 3.2z" fill="#CFF3EE"/>
+ </symbol>
+
+ <!-- cena: consultório em atendimento (hero) -->
+ <symbol id="art-hero" viewBox="0 0 960 600">
+  <rect width="960" height="600" fill="url(#g-wall)"/>
+  <rect y="430" width="960" height="170" fill="url(#g-floor)"/><path d="M0 430h960v8H0z" fill="#B9C6CA"/>
+  <rect x="64" y="70" width="238" height="216" rx="14" fill="url(#g-win)" stroke="#BBD6E2" stroke-width="6"/>
+  <path d="M183 70v216M64 178h238" stroke="#BBD6E2" stroke-width="6"/>
+  <circle cx="246" cy="120" r="24" fill="#FDF0C9"/>
+  <path d="M64 245c38-28 66-9 100-26 28-15 52 6 78 2 24-4 43-15 60-8v73H64z" fill="#CDE9E1" opacity=".8"/>
+  <rect x="690" y="74" width="176" height="146" rx="12" fill="#FFFFFF" stroke="#CFE0DE" stroke-width="5"/>
+  <path d="M778 112c-9-7-18-10-27-10-16 0-27 12-27 29 0 13 4 26 9 41 5 13 8 22 11 28 3 6 6 8 10 8 6 0 8-4 11-13l4-17c1-6 3-8 8-8s7 2 8 8l4 17c3 9 5 13 11 13 4 0 7-2 10-8 3-6 6-15 11-28 5-15 9-28 9-41 0-17-11-29-27-29-9 0-18 3-27 10z" fill="#D8F0EC"/>
+  <path d="M110 430v-64" stroke="#6B8F7A" stroke-width="8" stroke-linecap="round"/>
+  <path d="M110 386c-28-6-41-28-37-52 24-2 41 15 37 52zM110 371c26-9 35-31 30-54-24 1-37 19-30 54z" fill="#7FB69B"/>
+  <path d="M78 430h64l-7 52a10 10 0 0 1-10 9h-30a10 10 0 0 1-10-9z" fill="#C99A2E"/>
+  <rect x="382" y="404" width="112" height="16" rx="8" fill="#9AA9AE"/>
+  <rect x="428" y="330" width="22" height="80" fill="#8E9EA4"/>
+  <path d="M322 322h222a25 25 0 0 1 25 25v16a25 25 0 0 1-25 25H322a25 25 0 0 1-25-25v-16a25 25 0 0 1 25-25z" fill="url(#g-chair)"/>
+  <path d="M542 276c21 0 36 15 36 36v34h-61v-34c0-21 4-36 25-36z" fill="#1C6E8C"/>
+  <rect x="292" y="296" width="86" height="48" rx="20" fill="#15597A"/>
+  <path d="M322 322h144c0 17-11 28-28 28H343c-15 0-21-11-21-28z" fill="#FFFFFF"/>
+  <circle cx="344" cy="304" r="28" fill="#EFC3A3"/>
+  <path d="M317 300c-2-19 9-32 28-32s28 11 28 26c-7-4-13-9-17-15-7 10-20 17-39 21z" fill="#5B4232"/>
+  <path d="M352 316c6 4 13 4 19 0" stroke="#C98C6A" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <path d="M332 350h112c24 0 43 8 56 21H332z" fill="#E4F1EF"/>
+  <path d="M586 430v-74c0-32 22-54 54-54s54 22 54 54v74z" fill="#12A196"/>
+  <path d="M586 430h108v44a10 10 0 0 1-10 10h-88a10 10 0 0 1-10-10z" fill="#0E877E"/>
+  <circle cx="640" cy="274" r="38" fill="#F0C6A6"/>
+  <path d="M606 270c-4-26 11-43 34-43s36 15 36 38c0 5-1 11-3 15-2-15-9-22-22-26-10 11-25 15-45 16z" fill="#2F2A28"/>
+  <path d="M612 280h56v15c0 15-13 26-28 26s-28-11-28-26z" fill="#EAF6F4"/>
+  <rect x="608" y="263" width="64" height="15" rx="7.5" fill="#DCEFEC"/>
+  <path d="M592 356c-23 9-38 28-42 53l30 9c6-19 13-32 24-41z" fill="#12A196"/>
+  <path d="M690 356c25 9 42 30 46 57l-32 8c-6-21-13-34-24-44z" fill="#12A196"/>
+  <circle cx="562" cy="414" r="15" fill="#F0C6A6"/><circle cx="722" cy="414" r="15" fill="#F0C6A6"/>
+  <path d="M836 118v142c0 38-28 58-64 70" stroke="#9AA9AE" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <path d="M736 312l58 29 21-42-58-29z" fill="#E6EDEF"/>
+  <path d="M744 328l42 21" stroke="#FFF6D2" stroke-width="13" stroke-linecap="round"/>
+  <path d="M722 354c29-11 56-6 75 8l-25 44c-19-15-38-21-59-17z" fill="#FFF7DA" opacity=".55"/>
+  <rect x="812" y="330" width="106" height="100" rx="12" fill="#FFFFFF" stroke="#D3E2E0" stroke-width="5"/>
+  <rect x="828" y="352" width="74" height="10" rx="5" fill="#CFE6E3"/>
+  <rect x="828" y="376" width="74" height="10" rx="5" fill="#CFE6E3"/>
+  <rect x="828" y="400" width="44" height="10" rx="5" fill="#C99A2E"/>
+ </symbol>
+
+ <!-- cena: recepção -->
+ <symbol id="art-reception" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="url(#g-wall)"/>
+  <rect y="300" width="640" height="120" fill="url(#g-floor)"/>
+  <rect x="42" y="44" width="196" height="120" rx="10" fill="#FFFFFF" stroke="#D3E2E0" stroke-width="5"/>
+  <path d="M140 74c-7-6-14-8-21-8-13 0-21 9-21 23 0 10 3 21 7 33 4 10 6 17 8 22 2 4 5 6 8 6 4 0 6-3 8-10l3-13c1-5 2-6 6-6s5 1 6 6l3 13c2 7 4 10 8 10 3 0 6-2 8-6 2-5 5-12 8-22 4-12 7-23 7-33 0-14-8-23-21-23-7 0-14 2-21 8z" fill="#D8F0EC"/>
+  <text x="140" y="196" text-anchor="middle" font-family="Georgia,serif" font-size="30" fill="#0B6F78">OdontoCare</text>
+  <rect x="300" y="52" width="300" height="86" rx="10" fill="#E6F1F0" stroke="#CFE0DE" stroke-width="4"/>
+  <rect x="320" y="74" width="120" height="10" rx="5" fill="#B9D8D3"/>
+  <rect x="320" y="96" width="200" height="10" rx="5" fill="#CFE6E3"/>
+  <path d="M120 300v-86c0-28 22-50 50-50h300c28 0 50 22 50 50v86z" fill="#0E877E"/>
+  <path d="M104 214h412a12 12 0 0 1 12 12v22H92v-22a12 12 0 0 1 12-12z" fill="#14A399"/>
+  <rect x="180" y="248" width="260" height="10" rx="5" fill="#0B6F78" opacity=".35"/>
+  <circle cx="300" cy="150" r="34" fill="#F0C6A6"/>
+  <path d="M268 146c-4-24 10-40 32-40s34 14 34 36c-8-4-14-10-18-17-8 11-23 18-48 21z" fill="#3B2F2A"/>
+  <path d="M266 214c0-20 15-34 34-34s34 14 34 34z" fill="#FFFFFF"/>
+  <rect x="470" y="180" width="86" height="60" rx="8" fill="#26424F"/>
+  <rect x="478" y="188" width="70" height="44" rx="4" fill="#9FD8E8"/>
+  <rect x="452" y="240" width="122" height="10" rx="5" fill="#8FA1A7"/>
+  <path d="M556 300v-40h50v40z" fill="#7FB69B"/>
+  <path d="M580 260c-24-6-34-26-30-46 20-2 34 14 30 46z" fill="#7FB69B"/>
+  <rect x="548" y="300" width="64" height="48" rx="8" fill="#C99A2E"/>
+  <rect x="40" y="252" width="120" height="48" rx="12" fill="#DDE9EC"/>
+  <rect x="40" y="228" width="120" height="30" rx="12" fill="#C9DAE0"/>
+ </symbol>
+
+ <!-- cena: sala de tratamento e tecnologia -->
+ <symbol id="art-room" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="url(#g-wall)"/>
+  <rect y="310" width="640" height="110" fill="url(#g-floor)"/>
+  <rect x="380" y="40" width="216" height="150" rx="12" fill="url(#g-win)" stroke="#BBD6E2" stroke-width="5"/>
+  <path d="M488 40v150M380 115h216" stroke="#BBD6E2" stroke-width="5"/>
+  <rect x="250" y="286" width="120" height="14" rx="7" fill="#9AA9AE"/>
+  <rect x="296" y="222" width="20" height="68" fill="#8E9EA4"/>
+  <path d="M150 216h216a24 24 0 0 1 24 24v14a24 24 0 0 1-24 24H150a24 24 0 0 1-24-24v-14a24 24 0 0 1 24-24z" fill="url(#g-chair)"/>
+  <path d="M362 176c20 0 34 14 34 34v30h-58v-30c0-20 4-34 24-34z" fill="#1C6E8C"/>
+  <rect x="120" y="192" width="82" height="44" rx="18" fill="#15597A"/>
+  <path d="M96 60v120c0 32-24 50-56 60" stroke="#9AA9AE" stroke-width="9" fill="none" stroke-linecap="round" transform="translate(500,0) scale(-1,1) translate(-500,0)"/>
+  <path d="M96 246l-56 28-20-40 56-28z" fill="#E6EDEF" transform="translate(500,0) scale(-1,1) translate(-500,0)"/>
+  <path d="M470 246c-28-10-54-6-72 8l24 42c18-14 36-20 56-16z" fill="#FFF7DA" opacity=".6"/>
+  <rect x="40" y="200" width="96" height="110" rx="12" fill="#FFFFFF" stroke="#D3E2E0" stroke-width="5"/>
+  <rect x="56" y="222" width="64" height="9" rx="4.5" fill="#CFE6E3"/>
+  <rect x="56" y="244" width="64" height="9" rx="4.5" fill="#CFE6E3"/>
+  <rect x="56" y="266" width="38" height="9" rx="4.5" fill="#C99A2E"/>
+  <rect x="470" y="196" width="130" height="90" rx="10" fill="#26424F"/>
+  <rect x="480" y="206" width="110" height="70" rx="6" fill="#EAF6F4"/>
+  <path d="M535 224c-6-5-12-7-18-7-11 0-18 8-18 20 0 9 2 18 6 28 3 9 5 14 7 19 2 4 4 5 7 5 3 0 5-2 6-9l2-11c1-4 2-5 5-5s4 1 5 5l2 11c1 7 3 9 6 9 3 0 5-1 7-5 2-5 4-10 7-19 4-10 6-19 6-28 0-12-7-20-18-20-6 0-12 2-18 7z" fill="#12A196"/>
+  <rect x="505" y="286" width="60" height="24" rx="6" fill="#8FA1A7"/>
+ </symbol>
+
+ <!-- cena: cuidado e sorriso saudável -->
+ <symbol id="art-smile" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="url(#g-wall)"/>
+  <circle cx="200" cy="150" r="118" fill="#D8F0EC"/>
+  <circle cx="200" cy="150" r="92" fill="#FFFFFF"/>
+  <path d="M132 142h136c0 40-30 70-68 70s-68-30-68-70z" fill="#F2A0A8"/>
+  <path d="M142 142h116c0 8-2 15-5 21H147c-3-6-5-13-5-21z" fill="#FFFFFF"/>
+  <path d="M158 186c12 10 26 16 42 16s30-6 42-16c-12 14-26 22-42 22s-30-8-42-22z" fill="#C9757F"/>
+  <path d="M142 163h116c-8 14-24 24-42 27h-32c-18-3-34-13-42-27z" fill="#FDFDFD"/>
+  <path d="M180 100l6 16 16 6-16 6-6 16-6-16-16-6 16-6z" fill="#C99A2E"/>
+  <path d="M258 96l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" fill="#14A399"/>
+  <path d="M298 214c14-10 28-10 40 0-12 4-26 6-40 0zM62 214c14-10 28-10 40 0-12 4-26 6-40 0z" fill="#9FD3CB"/>
+ </symbol>
+
+ <!-- banner do painel do dentista -->
+ <symbol id="art-banner" viewBox="0 0 520 260">
+  <path d="M0 0h520v260H0z" fill="none"/>
+  <circle cx="420" cy="60" r="130" fill="rgba(255,255,255,.08)"/>
+  <circle cx="330" cy="210" r="90" fill="rgba(255,255,255,.06)"/>
+  <path d="M352 258V150c0-30 22-54 50-54s50 24 50 54v108z" fill="rgba(255,255,255,.95)"/>
+  <circle cx="402" cy="76" r="34" fill="#F0C6A6"/>
+  <path d="M370 72c-4-24 10-40 32-40s34 14 34 36c0 5-1 10-3 14-2-14-8-20-20-24-9 10-23 14-43 14z" fill="#2F2A28"/>
+  <path d="M376 82h52v14c0 14-12 24-26 24s-26-10-26-24z" fill="#EAF6F4"/>
+  <path d="M352 258V150c0-16 6-30 17-40l-17 148z" fill="rgba(0,0,0,.05)"/>
+  <rect x="60" y="86" width="150" height="104" rx="14" fill="rgba(255,255,255,.14)" stroke="rgba(255,255,255,.4)" stroke-width="3"/>
+  <path d="M60 120h150" stroke="rgba(255,255,255,.4)" stroke-width="3"/>
+  <rect x="80" y="138" width="34" height="12" rx="6" fill="rgba(255,255,255,.55)"/>
+  <rect x="124" y="138" width="34" height="12" rx="6" fill="rgba(255,255,255,.35)"/>
+  <rect x="80" y="160" width="34" height="12" rx="6" fill="rgba(255,255,255,.35)"/>
+  <rect x="124" y="160" width="66" height="12" rx="6" fill="#E0B45A"/>
+  <path d="M250 196c-8-6-16-9-24-9-15 0-25 11-25 27 0 12 3 24 8 38 4 12 7 21 10 26 3 5 6 8 9 8 5 0 8-4 10-12l3-16c1-5 3-7 8-7s6 2 7 7l4 16c2 8 4 12 9 12 4 0 7-3 9-8 3-5 6-14 10-26 5-14 8-26 8-38 0-16-10-27-25-27-8 0-16 3-24 9z" fill="rgba(255,255,255,.3)"/>
+ </symbol>
+
+ <!-- banner do portal do cliente -->
+ <symbol id="art-client" viewBox="0 0 520 260">
+  <circle cx="430" cy="90" r="120" fill="rgba(255,255,255,.08)"/>
+  <circle cx="380" cy="230" r="80" fill="rgba(255,255,255,.06)"/>
+  <circle cx="404" cy="112" r="72" fill="rgba(255,255,255,.95)"/>
+  <path d="M356 104h96c0 28-21 50-48 50s-48-22-48-50z" fill="#F2A0A8"/>
+  <path d="M364 104h80c0 6-1 11-3 15h-74c-2-4-3-9-3-15z" fill="#fff"/>
+  <path d="M364 120h80c-6 10-17 17-29 19h-22c-12-2-23-9-29-19z" fill="#FDFDFD"/>
+  <path d="M120 70l7 19 19 7-19 7-7 19-7-19-19-7 19-7z" fill="rgba(255,255,255,.55)"/>
+  <rect x="60" y="130" width="170" height="90" rx="16" fill="rgba(255,255,255,.16)" stroke="rgba(255,255,255,.4)" stroke-width="3"/>
+  <rect x="80" y="152" width="60" height="11" rx="5.5" fill="rgba(255,255,255,.6)"/>
+  <rect x="80" y="174" width="120" height="11" rx="5.5" fill="rgba(255,255,255,.35)"/>
+  <rect x="80" y="194" width="90" height="11" rx="5.5" fill="#E0B45A"/>
+ </symbol>
+
+ <!-- estados vazios e confirmação -->
+ <symbol id="art-empty-cal" viewBox="0 0 260 200">
+  <rect x="42" y="38" width="176" height="140" rx="18" fill="#EAF4F2" stroke="#BCD8D3" stroke-width="4"/>
+  <path d="M42 80h176" stroke="#BCD8D3" stroke-width="4"/>
+  <path d="M84 26v28M176 26v28" stroke="#9FC6C0" stroke-width="7" stroke-linecap="round"/>
+  <rect x="68" y="98" width="34" height="14" rx="7" fill="#CDE6E1"/>
+  <rect x="112" y="98" width="34" height="14" rx="7" fill="#CDE6E1"/>
+  <rect x="156" y="98" width="34" height="14" rx="7" fill="#CDE6E1"/>
+  <rect x="68" y="126" width="34" height="14" rx="7" fill="#DCEEEB"/>
+  <rect x="112" y="126" width="78" height="14" rx="7" fill="#DCEEEB"/>
+  <circle cx="196" cy="152" r="30" fill="#14A399"/>
+  <path d="M196 140v24M184 152h24" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+ </symbol>
+ <symbol id="art-empty-users" viewBox="0 0 260 200">
+  <circle cx="130" cy="92" r="64" fill="#EAF4F2"/>
+  <circle cx="130" cy="78" r="26" fill="#BCD8D3"/>
+  <path d="M92 142c4-22 19-34 38-34s34 12 38 34z" fill="#BCD8D3"/>
+  <circle cx="58" cy="128" r="20" fill="#DCEEEB"/><path d="M36 168c3-14 11-22 22-22s19 8 22 22z" fill="#DCEEEB"/>
+  <circle cx="202" cy="128" r="20" fill="#DCEEEB"/><path d="M180 168c3-14 11-22 22-22s19 8 22 22z" fill="#DCEEEB"/>
+  <circle cx="196" cy="56" r="26" fill="#14A399"/>
+  <path d="M196 44v24M184 56h24" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+ </symbol>
+ <symbol id="art-success" viewBox="0 0 300 220">
+  <circle cx="150" cy="106" r="82" fill="#DFF1E6"/>
+  <circle cx="150" cy="106" r="62" fill="#2F8F5B"/>
+  <path d="m122 108 20 20 40-42" stroke="#fff" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M56 58l6 16 16 6-16 6-6 16-6-16-16-6 16-6z" fill="#C99A2E"/>
+  <path d="M248 140l5 12 12 5-12 5-5 12-5-12-12-5 12-5z" fill="#14A399"/>
+  <path d="M150 196c-6-4-12-6-18-6-11 0-18 8-18 20 0 3 0 6 1 8h70c1-2 1-5 1-8 0-12-7-20-18-20-6 0-12 2-18 6z" fill="#D8F0EC"/>
+ </symbol>
+ <symbol id="art-care" viewBox="0 0 200 160">
+  <circle cx="100" cy="80" r="66" fill="#EAF4F2"/>
+  <path d="M100 44c-9-7-18-10-27-10-17 0-28 12-28 30 0 13 4 27 9 43 5 14 8 24 11 30 3 6 7 9 11 9 6 0 9-4 11-14l4-18c1-6 3-8 9-8s8 2 9 8l4 18c2 10 5 14 11 14 4 0 8-3 11-9 3-6 6-16 11-30 5-16 9-30 9-43 0-18-11-30-28-30-9 0-18 3-27 10z" fill="#fff" stroke="#BCD8D3" stroke-width="4"/>
+  <path d="M132 96c10 0 18 8 18 18s-8 18-18 18-18-8-18-18 8-18 18-18z" fill="#14A399"/>
+  <path d="m126 114 4 5 9-10" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+ </symbol>
+ </svg>
+
+<!-- ===================== SITE PÚBLICO ===================== -->
+<div class="app on" id="app-site">
+ <header class="site-header">
+  <div class="wrap bar">
+   <a class="brand" href="#/" data-nav="/">
+    <svg width="40" height="40" viewBox="0 0 48 48"><use href="#art-logo"/></svg>
+    <span>OdontoCare<small id="brand-sub">Odontologia integrada</small></span>
+   </a>
+   <nav class="site-nav">
+    <a href="#servicos">Serviços</a>
+    <a href="#clinica">A clínica</a>
+    <a href="#horarios">Horários</a>
+    <a href="#contato">Contato</a>
+   </nav>
+   <div class="header-cta">
+    <button class="btn btn-ghost btn-sm" data-action="dentist-login">
+     <svg width="16" height="16"><use href="#i-lock"/></svg> Acesso do Dentista</button>
+    <button class="btn btn-primary btn-sm" data-nav="/cliente">Área do Paciente</button>
+   </div>
+  </div>
+ </header>
+
+ <section class="hero">
+  <div class="wrap hero-grid">
+   <div>
+    <span class="eyebrow">Clínica odontológica · São Paulo</span>
+    <h1>Um sorriso cuidado por quem <em>acompanha cada etapa</em></h1>
+    <p class="lede">Atendimento humanizado de segunda a sábado, das 08h às 22h, com agenda on-line, prontuário organizado e uma equipe que explica cada procedimento antes de começar.</p>
+    <div class="hero-actions">
+     <button class="btn btn-primary" data-nav="/cliente/agendar">
+      <svg width="18" height="18"><use href="#i-calendar"/></svg> Agendar consulta</button>
+     <button class="btn btn-ghost" data-nav="/cliente">
+      <svg width="18" height="18"><use href="#i-user"/></svg> Portal do paciente</button>
+    </div>
+    <div class="trust">
+     <div><b>18</b><span>anos de clínica no Jardim Paulista</span></div>
+     <div><b>14h</b><span>de atendimento por dia, seg. a sáb.</span></div>
+     <div><b>9</b><span>especialidades em um só lugar</span></div>
+     <div><b>30min</b><span>de consulta reservada por paciente</span></div>
+    </div>
+   </div>
+   <figure class="hero-art" style="margin:0">
+    <svg viewBox="0 0 960 600" role="img" aria-label="Dentista atendendo uma paciente em consultório moderno"><use href="#art-hero"/></svg>
+   </figure>
+  </div>
+ </section>
+
+ <section class="section" id="servicos">
+  <div class="wrap">
+   <div class="section-head">
+    <span class="eyebrow">O que fazemos</span>
+    <h2>Especialidades para todas as fases do tratamento</h2>
+    <p>Da limpeza de rotina à reabilitação completa. Todo plano começa com avaliação clínica, radiografia quando necessária e um orçamento explicado item a item.</p>
+   </div>
+   <div class="svc-grid">
+    <article class="svc">
+     <div class="ic"><svg width="28" height="28"><use href="#i-sparkle"/></svg></div>
+     <h3>Prevenção e limpeza</h3>
+     <p>Profilaxia, raspagem, aplicação de flúor e orientação de higiene para manter o tratamento estável entre as consultas.</p>
+     <ul><li>Consulta de 30 a 60 minutos</li><li>Retorno sugerido a cada 6 meses</li></ul>
+    </article>
+    <article class="svc">
+     <div class="ic"><svg width="28" height="28"><use href="#i-tooth"/></svg></div>
+     <h3>Estética e clareamento</h3>
+     <p>Clareamento em consultório ou supervisionado em casa, lentes de contato dental e restaurações em resina com escala de cor.</p>
+     <ul><li>Avaliação de sensibilidade antes de iniciar</li><li>Registro fotográfico de cada sessão</li></ul>
+    </article>
+    <article class="svc">
+     <div class="ic"><svg width="28" height="28"><use href="#i-shield"/></svg></div>
+     <h3>Implantes e próteses</h3>
+     <p>Planejamento guiado por tomografia, implantes unitários ou múltiplos, coroas e próteses fixas e removíveis.</p>
+     <ul><li>Acompanhamento de osseointegração</li><li>Ajustes inclusos no plano</li></ul>
+    </article>
+    <article class="svc">
+     <div class="ic"><svg width="28" height="28"><use href="#i-check"/></svg></div>
+     <h3>Ortodontia</h3>
+     <p>Aparelho fixo metálico ou estético e alinhadores transparentes, com manutenção mensal marcada pelo próprio portal.</p>
+     <ul><li>Documentação ortodôntica completa</li><li>Manutenção a cada 30 dias</li></ul>
+    </article>
+    <article class="svc">
+     <div class="ic"><svg width="28" height="28"><use href="#i-heart"/></svg></div>
+     <h3>Odontopediatria</h3>
+     <p>Primeira consulta lúdica, controle de cárie, selante e acompanhamento da troca dos dentes com a família junto.</p>
+     <ul><li>Consultas em horário adaptado à rotina escolar</li><li>Sala preparada para crianças</li></ul>
+    </article>
+    <article class="svc">
+     <div class="ic"><svg width="28" height="28"><use href="#i-clock"/></svg></div>
+     <h3>Urgência e endodontia</h3>
+     <p>Dor, trauma ou restauração perdida: reservamos horários de encaixe diários para tratamento de canal e urgências.</p>
+     <ul><li>Encaixes diários às 08h e às 20h</li><li>Canal em 1 a 3 sessões</li></ul>
+    </article>
+   </div>
+  </div>
+ </section>
+
+ <section class="section alt" id="clinica">
+  <div class="wrap">
+   <div class="section-head">
+    <span class="eyebrow">A clínica</span>
+    <h2>Um ambiente pensado para reduzir a ansiedade da consulta</h2>
+    <p>Recepção silenciosa, salas com luz natural e equipamentos revisados semanalmente. Todo o material crítico passa por esterilização rastreada por lote.</p>
+   </div>
+   <div class="env-grid">
+    <figure class="env-card" style="margin:0">
+     <svg viewBox="0 0 640 420" role="img" aria-label="Recepção da clínica com atendente"><use href="#art-reception"/></svg>
+     <figcaption>Recepção e acolhimento<span>Check-in em menos de 5 minutos, com confirmação da consulta no dia anterior.</span></figcaption>
+    </figure>
+    <div class="env-col">
+     <figure class="env-card" style="margin:0">
+      <svg viewBox="0 0 640 420" role="img" aria-label="Sala de tratamento com cadeira odontológica e monitor"><use href="#art-room"/></svg>
+      <figcaption>Sala de tratamento<span>Câmera intraoral ligada ao monitor: você vê o que a dentista vê.</span></figcaption>
+     </figure>
+     <figure class="env-card" style="margin:0">
+      <svg viewBox="0 0 400 300" role="img" aria-label="Ilustração de sorriso saudável"><use href="#art-smile"/></svg>
+      <figcaption>Acompanhamento contínuo<span>Histórico, evolução e próximos passos registrados a cada visita.</span></figcaption>
+     </figure>
+    </div>
+   </div>
+  </div>
+ </section>
+
+ <section class="section">
+  <div class="wrap">
+   <div class="section-head">
+    <span class="eyebrow">Por que a OdontoCare</span>
+    <h2>Menos espera, mais clareza</h2>
+   </div>
+   <div class="benefits">
+    <div class="benefit"><div class="ic"><svg width="22" height="22"><use href="#i-calendar"/></svg></div>
+     <h3>Agenda on-line real</h3><p>Você escolhe o horário livre na hora: o portal só mostra o que ainda está disponível.</p></div>
+    <div class="benefit"><div class="ic"><svg width="22" height="22"><use href="#i-clock"/></svg></div>
+     <h3>Horário estendido</h3><p>Segunda a sábado até as 22h, para encaixar a consulta depois do trabalho.</p></div>
+    <div class="benefit"><div class="ic"><svg width="22" height="22"><use href="#i-shield"/></svg></div>
+     <h3>Biossegurança</h3><p>Instrumental esterilizado por lote, com registro e validade conferidos antes de cada uso.</p></div>
+    <div class="benefit"><div class="ic"><svg width="22" height="22"><use href="#i-users"/></svg></div>
+     <h3>Histórico acessível</h3><p>Consultas, motivos e observações ficam registrados e disponíveis no seu portal.</p></div>
+   </div>
+  </div>
+ </section>
+
+ <section class="section" style="padding-top:0">
+  <div class="wrap">
+   <div class="cta-banner">
+    <div class="copy">
+     <h2>Sua próxima consulta leva menos de um minuto para marcar</h2>
+     <p>Informe seus dados, escolha o dia e o horário disponível. A confirmação aparece na hora e a clínica recebe o pedido imediatamente.</p>
+     <button class="btn btn-gold" data-nav="/cliente/agendar">
+      <svg width="18" height="18"><use href="#i-calendar"/></svg> Agendar agora</button>
+    </div>
+    <div class="art"><svg viewBox="0 0 520 260" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><use href="#art-client"/></svg></div>
+   </div>
+  </div>
+ </section>
+
+ <section class="section alt" id="horarios">
+  <div class="wrap info-grid">
+   <div class="panel">
+    <span class="eyebrow">Horário de funcionamento</span>
+    <h3 style="font-size:23px;margin-top:8px">Aberto de segunda a sábado</h3>
+    <div class="hours" id="hours-list"></div>
+    <div class="banner-note" style="margin-top:16px">
+     <svg width="18" height="18" style="flex:none;color:var(--gold)"><use href="#i-clock"/></svg>
+     <span>A última consulta do dia começa às <b id="last-slot">21:30</b>. Domingos a clínica não atende.</span>
+    </div>
+   </div>
+   <div class="panel" id="contato">
+    <span class="eyebrow">Contato</span>
+    <h3 style="font-size:23px;margin-top:8px">Fale com a recepção</h3>
+    <div class="contact-list">
+     <div><div class="ic"><svg width="18" height="18"><use href="#i-phone"/></svg></div>
+      <div><b id="ct-phone">(11) 4002-8922</b><br><span class="muted">Telefone e WhatsApp da recepção</span></div></div>
+     <div><div class="ic"><svg width="18" height="18"><use href="#i-mail"/></svg></div>
+      <div><b id="ct-mail">contato@odontocare.com.br</b><br><span class="muted">Resposta em até 1 dia útil</span></div></div>
+     <div><div class="ic"><svg width="18" height="18"><use href="#i-pin"/></svg></div>
+      <div><b id="ct-addr">Av. das Acácias, 1200 - Jardim Paulista, São Paulo - SP</b><br><span class="muted">Estacionamento conveniado no mesmo quarteirão</span></div></div>
+     <div><div class="ic"><svg width="18" height="18"><use href="#i-user"/></svg></div>
+      <div><b id="ct-dentist">Dra. Helena Vasconcelos</b><br><span class="muted" id="ct-cro">CRO-SP 54.120</span></div></div>
+    </div>
+   </div>
+  </div>
+ </section>
+
+ <footer class="site-footer">
+  <div class="wrap">
+   <div class="footer-grid">
+    <div>
+     <div class="brand" style="color:#fff">
+      <svg width="38" height="38" viewBox="0 0 48 48"><use href="#art-logo"/></svg>
+      <span style="color:#fff">OdontoCare<small style="color:#89A5A4">Odontologia integrada</small></span>
+     </div>
+     <p style="margin-top:14px;max-width:38ch">Clínica fictícia criada para demonstrar o sistema de gestão odontológica: site público, portal do paciente e painel do dentista compartilhando a mesma base de dados.</p>
+    </div>
+    <div><h4>Navegação</h4><div class="links">
+     <a href="#servicos">Serviços</a><a href="#clinica">A clínica</a><a href="#horarios">Horários</a>
+     <a data-nav="/cliente" style="cursor:pointer">Portal do paciente</a></div></div>
+    <div><h4>Atendimento</h4><div class="links">
+     <span id="ft-phone">(11) 4002-8922</span><span id="ft-mail">contato@odontocare.com.br</span>
+     <span>Seg. a sáb., 08:00 às 22:00</span>
+     <a data-action="dentist-login" style="cursor:pointer">Acesso do Dentista</a></div></div>
+   </div>
+   <div class="footer-bottom">
+    <span>© 2026 OdontoCare · Sistema de demonstração com dados fictícios</span>
+    <span>Dados armazenados na base do próprio artefato</span>
+   </div>
+  </div>
+ </footer>
+</div>
+
+<!-- ===================== PORTAL DO CLIENTE ===================== -->
+<div class="app" id="app-client">
+ <div class="app-shell">
+  <aside class="side">
+   <a class="brand" data-nav="/">
+    <svg width="38" height="38" viewBox="0 0 48 48"><use href="#art-logo"/></svg>
+    <span>OdontoCare<small>Portal do paciente</small></span>
+   </a>
+   <div class="side-label">Menu</div>
+   <a data-nav="/cliente" data-match="/cliente"><span class="ic"><svg width="19" height="19"><use href="#i-home"/></svg></span>Início</a>
+   <a data-nav="/cliente/agendar" data-match="/cliente/agendar"><span class="ic"><svg width="19" height="19"><use href="#i-plus"/></svg></span>Agendar consulta</a>
+   <a data-nav="/cliente/consultas" data-match="/cliente/consultas"><span class="ic"><svg width="19" height="19"><use href="#i-calendar"/></svg></span>Minhas consultas</a>
+   <a data-nav="/cliente/perfil" data-match="/cliente/perfil"><span class="ic"><svg width="19" height="19"><use href="#i-user"/></svg></span>Meu perfil</a>
+   <div class="spacer"></div>
+   <div class="who" id="client-who"></div>
+   <a data-nav="/"><span class="ic"><svg width="19" height="19"><use href="#i-left"/></svg></span>Voltar ao site</a>
+  </aside>
+  <main class="main" id="client-main"></main>
+ </div>
+ <nav class="mobile-nav">
+  <a data-nav="/cliente" data-match="/cliente"><svg width="21" height="21"><use href="#i-home"/></svg>Início</a>
+  <a data-nav="/cliente/agendar" data-match="/cliente/agendar"><svg width="21" height="21"><use href="#i-plus"/></svg>Agendar</a>
+  <a data-nav="/cliente/consultas" data-match="/cliente/consultas"><svg width="21" height="21"><use href="#i-calendar"/></svg>Consultas</a>
+  <a data-nav="/cliente/perfil" data-match="/cliente/perfil"><svg width="21" height="21"><use href="#i-user"/></svg>Perfil</a>
+ </nav>
+</div>
+
+<!-- ===================== PAINEL DO DENTISTA ===================== -->
+<div class="app" id="app-dentist">
+ <div class="app-shell">
+  <aside class="side">
+   <a class="brand" data-nav="/dentista">
+    <svg width="38" height="38" viewBox="0 0 48 48"><use href="#art-logo"/></svg>
+    <span>OdontoCare<small>Painel clínico</small></span>
+   </a>
+   <div class="side-label">Gestão</div>
+   <a data-nav="/dentista" data-match="/dentista"><span class="ic"><svg width="19" height="19"><use href="#i-home"/></svg></span>Dashboard</a>
+   <a data-nav="/dentista/agenda" data-match="/dentista/agenda"><span class="ic"><svg width="19" height="19"><use href="#i-calendar"/></svg></span>Agenda</a>
+   <a data-nav="/dentista/pacientes" data-match="/dentista/pacientes"><span class="ic"><svg width="19" height="19"><use href="#i-users"/></svg></span>Pacientes</a>
+   <a data-nav="/dentista/novo-agendamento" data-match="/dentista/novo-agendamento"><span class="ic"><svg width="19" height="19"><use href="#i-plus"/></svg></span>Novo agendamento</a>
+   <div class="side-label">Clínica</div>
+   <a data-nav="/dentista/configuracoes" data-match="/dentista/configuracoes"><span class="ic"><svg width="19" height="19"><use href="#i-gear"/></svg></span>Configurações</a>
+   <div class="spacer"></div>
+   <div class="who" id="dentist-who"></div>
+   <a data-action="logout"><span class="ic"><svg width="19" height="19"><use href="#i-logout"/></svg></span>Sair</a>
+  </aside>
+  <main class="main" id="dentist-main"></main>
+ </div>
+ <nav class="mobile-nav">
+  <a data-nav="/dentista" data-match="/dentista"><svg width="21" height="21"><use href="#i-home"/></svg>Painel</a>
+  <a data-nav="/dentista/agenda" data-match="/dentista/agenda"><svg width="21" height="21"><use href="#i-calendar"/></svg>Agenda</a>
+  <a data-nav="/dentista/pacientes" data-match="/dentista/pacientes"><svg width="21" height="21"><use href="#i-users"/></svg>Pacientes</a>
+  <a data-nav="/dentista/novo-agendamento" data-match="/dentista/novo-agendamento"><svg width="21" height="21"><use href="#i-plus"/></svg>Novo</a>
+ </nav>
+</div>
+
+<div id="modal-root"></div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ============================ utilidades ============================ */
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+const DOW = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+const DOW_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho',
+  'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+const pad = (n) => String(n).padStart(2, '0');
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const nowHM = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const isISODate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || '') && !Number.isNaN(Date.parse(v + 'T00:00:00'));
+const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+const fromMin = (n) => `${pad(Math.floor(n / 60))}:${pad(n % 60)}`;
+const dowOf = (iso) => { const [y, m, d] = iso.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
+const addDays = (iso, n) => { const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d)); dt.setUTCDate(dt.getUTCDate() + n); return dt.toISOString().slice(0, 10); };
+const fmtDate = (iso) => { const [y, m, d] = String(iso).split('-'); return `${d}/${m}/${y}`; };
+const fmtLong = (iso) => { const [y, m, d] = iso.split('-').map(Number);
+  return `${DOW[dowOf(iso)]}, ${d} de ${MONTHS[m - 1]} de ${y}`; };
+const fmtShort = (iso) => { const [, m, d] = iso.split('-').map(Number); return `${pad(d)}/${pad(m)}`; };
+const relTime = (ts) => {
+  const diff = (Date.now() - new Date(ts).getTime()) / 60000;
+  if (diff < 1) return 'agora mesmo';
+  if (diff < 60) return `há ${Math.floor(diff)} min`;
+  if (diff < 1440) return `há ${Math.floor(diff / 60)} h`;
+  return `há ${Math.floor(diff / 1440)} d`;
+};
+
+/** Idade exata: trata bissextos, meses de tamanhos diferentes e datas antes/depois do aniversário. */
+function calcAge(birth, ref = todayISO()) {
+  if (!isISODate(birth)) return { years: 0, months: 0, days: 0, label: '—' };
+  const [by, bm, bd] = birth.split('-').map(Number);
+  const [ry, rm, rd] = ref.split('-').map(Number);
+  let years = ry - by, months = rm - bm, days = rd - bd;
+  if (days < 0) { months -= 1; days += new Date(Date.UTC(ry, rm - 1, 0)).getUTCDate(); }
+  if (months < 0) { years -= 1; months += 12; }
+  if (years < 0) return { years: 0, months: 0, days: 0, label: 'Data inválida' };
+  return { years, months, days,
+    label: `${years} ${years === 1 ? 'ano' : 'anos'} e ${months} ${months === 1 ? 'mês' : 'meses'}` };
+}
+
+const initials = (name) => {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '??';
+  return (parts.length === 1 ? parts[0].slice(0, 2) : parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+const clean = (v, max = 400) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
+const isMail = (v) => /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(v);
+const isPhone = (v) => { const d = String(v).replace(/\D/g, ''); return d.length >= 10 && d.length <= 13; };
+
+const STATUS = {
+  aguardando: 'Aguardando', confirmada: 'Confirmada', em_atendimento: 'Em atendimento',
+  atendida: 'Atendida', cancelada: 'Cancelada'
+};
+const ACTIVE_STATUS = ['aguardando', 'confirmada', 'em_atendimento'];
+const SEX_LABEL = { feminino: 'Feminino', masculino: 'Masculino', outro: 'Outro' };
+
+const MSG = {
+  sunday: 'Não é possível agendar consultas aos domingos. A clínica não funciona neste dia.',
+  closed: 'A clínica não atende no dia selecionado. Escolha outra data.',
+  past: 'Não é possível agendar uma consulta para uma data passada.',
+  occupied: 'Este horário já está ocupado. Escolha outro horário.',
+  invalidDate: 'Informe uma data válida.',
+  invalidTime: 'Informe um horário válido.'
+};
+
+/* ============================ estado ============================ */
+const DEFAULT_SETTINGS = {
+  clinicName: 'OdontoCare - Clínica Odontológica',
+  phone: '(11) 4002-8922',
+  email: 'contato@odontocare.com.br',
+  address: 'Av. das Acácias, 1200 - Jardim Paulista, São Paulo - SP',
+  openingTime: '08:00', closingTime: '22:00', closedWeekdays: [0], slotInterval: 30,
+  dentistName: 'Dra. Helena Vasconcelos',
+  dentistTitle: 'Cirurgiã-Dentista · Estética e Implantes',
+  dentistCro: 'CRO-SP 54.120'
+};
+
+const state = {
+  patients: [], appointments: [], notifications: [],
+  settings: { ...DEFAULT_SETTINGS },
+  ready: false, offline: false, route: '/', dentist: false, me: null,
+  view: {}
+};
+
+const LS = 'odontocare.v1';
+const lsGet = (k, fb) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sem storage */ } };
+
+/* ============================ camada de dados ============================ */
+/* Usa a capability `db` (persistente e compartilhada entre os visitantes).
+   Sem ela, o portal continua funcionando com armazenamento local do navegador. */
+let DB = null;
+const COLLS = ['patients', 'appointments', 'notifications'];
+
+async function initData() {
+  try { DB = await window.claude?.use?.('db') ?? null; } catch { DB = null; }
+  if (!DB) {
+    state.offline = true;
+    const local = lsGet(LS, null);
+    if (local) {
+      state.patients = local.patients || []; state.appointments = local.appointments || [];
+      state.notifications = local.notifications || [];
+      state.settings = { ...DEFAULT_SETTINGS, ...(local.settings || {}) };
+    }
+    if (!state.patients.length) seed();
+    state.ready = true; render();
+    return;
+  }
+  const first = { patients: false, appointments: false, notifications: false, settings: false };
+  const done = () => { if (Object.values(first).every(Boolean) && !state.ready) { state.ready = true; maybeSeed(); render(); } };
+
+  for (const coll of COLLS) {
+    DB.collection(coll).onSnapshot((snap) => {
+      state[coll] = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      first[coll] = true;
+      if (state.ready) render(); else done();
+    }, (err) => { console.warn('db', coll, err.code); first[coll] = true; done(); });
+  }
+  DB.doc('config/clinic').onSnapshot((snap) => {
+    state.settings = { ...DEFAULT_SETTINGS, ...(snap.exists ? snap.data() : {}) };
+    first.settings = true;
+    if (state.ready) render(); else done();
+  }, () => { first.settings = true; done(); });
+
+  setTimeout(() => { if (!state.ready) { state.ready = true; render(); } }, 9000);
+}
+
+function persistLocal() {
+  if (!state.offline) return;
+  lsSet(LS, { patients: state.patients, appointments: state.appointments,
+    notifications: state.notifications, settings: state.settings });
+}
+
+async function put(coll, id, data) {
+  const doc = { ...data, updatedAt: new Date().toISOString() };
+  if (DB) { await DB.collection(coll).doc(id).set(doc); }
+  else {
+    const i = state[coll].findIndex((x) => x.id === id);
+    if (i >= 0) state[coll][i] = { id, ...doc }; else state[coll].push({ id, ...doc });
+    persistLocal(); render();
+  }
+  return { id, ...doc };
+}
+async function remove(coll, id) {
+  if (DB) await DB.collection(coll).doc(id).delete();
+  else { state[coll] = state[coll].filter((x) => x.id !== id); persistLocal(); render(); }
+}
+async function saveSettings(next) {
+  state.settings = { ...state.settings, ...next };
+  if (DB) await DB.doc('config/clinic').set(state.settings);
+  else { persistLocal(); render(); }
+}
+async function notify(type, title, message, extra = {}) {
+  const id = uid();
+  const doc = { type, title, message, read: false, createdAt: new Date().toISOString(), ...extra };
+  if (DB) await DB.collection('notifications').doc(id).set(doc);
+  else { state.notifications.push({ id, ...doc }); persistLocal(); }
+  // mantém a coleção enxuta
+  const old = [...state.notifications].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(60);
+  for (const n of old) remove('notifications', n.id).catch(() => {});
+}
+
+/* ============================ regras de negócio ============================ */
+function isOpenDay(iso) { return !(state.settings.closedWeekdays || [0]).includes(dowOf(iso)); }
+
+function slotTaken(date, time, ignoreId) {
+  return state.appointments.some((a) => a.date === date && a.time === time &&
+    a.status !== 'cancelada' && a.id !== ignoreId);
+}
+
+/** Mesma validação usada pelo portal do paciente e pelo painel do dentista. */
+function validateSchedule(date, time, ignoreId) {
+  const s = state.settings;
+  if (!isISODate(date)) return { field: 'date', message: MSG.invalidDate };
+  if (!/^\d{2}:\d{2}$/.test(time || '')) return { field: 'time', message: MSG.invalidTime };
+  if (date < todayISO()) return { field: 'date', message: MSG.past };
+  if (date === todayISO() && toMin(time) < toMin(nowHM()))
+    return { field: 'time', message: 'Este horário já passou. Escolha outro horário.' };
+  if (!isOpenDay(date)) return { field: 'date', message: dowOf(date) === 0 ? MSG.sunday : MSG.closed };
+  const min = toMin(time);
+  if (min < toMin(s.openingTime) || min >= toMin(s.closingTime))
+    return { field: 'time', message: `Selecione um horário entre ${s.openingTime} e ${s.closingTime}.` };
+  if (slotTaken(date, time, ignoreId)) return { field: 'time', message: MSG.occupied };
+  return null;
+}
+
+/** Gera os horários do dia conforme o intervalo configurado. */
+function slotsFor(date, opts = {}) {
+  const s = state.settings;
+  if (!isISODate(date)) return { open: false, message: MSG.invalidDate, slots: [] };
+  if (date < todayISO() && !opts.allowPast) return { open: false, message: MSG.past, slots: [] };
+  if (!isOpenDay(date)) return { open: false, message: dowOf(date) === 0 ? MSG.sunday : MSG.closed, slots: [] };
+  const out = [];
+  const now = date === todayISO() ? toMin(nowHM()) : -1;
+  for (let m = toMin(s.openingTime); m < toMin(s.closingTime); m += s.slotInterval) {
+    const time = fromMin(m);
+    const taken = slotTaken(date, time, opts.ignoreId);
+    const past = m < now;
+    if ((taken || past) && !opts.includeOccupied) continue;
+    out.push({ time, available: !taken && !past, reason: taken ? 'Ocupado' : past ? 'Já passou' : '' });
+  }
+  return { open: true, slots: out };
+}
+
+const patientById = (id) => state.patients.find((p) => p.id === id) || null;
+const apptsOf = (pid) => state.appointments.filter((a) => a.patientId === pid);
+const sortAppts = (list) => [...list].sort((a, b) => (a.date + a.time < b.date + b.time ? -1 : 1));
+
+function patientStats(p) {
+  const list = apptsOf(p.id).filter((a) => a.status !== 'cancelada');
+  const today = todayISO();
+  const past = sortAppts(list.filter((a) => a.date <= today));
+  const next = sortAppts(list.filter((a) => a.date >= today && ACTIVE_STATUS.includes(a.status)));
+  return { total: list.length, last: past.length ? past[past.length - 1] : null, next: next[0] || null };
+}
+
+/* ============================ dados de demonstração ============================ */
+const DEMO_PATIENTS = [
+  ['Mariana Alves Ribeiro', '1991-04-12', 'feminino', '(11) 98812-4477', 'mariana.ribeiro@exemplo.com.br', 'Sensibilidade no molar superior direito.'],
+  ['Carlos Eduardo Nunes', '1984-11-03', 'masculino', '(11) 99741-2093', 'carlos.nunes@exemplo.com.br', 'Aparelho ortodôntico desde 2024.'],
+  ['Beatriz Carvalho Lima', '2000-02-29', 'feminino', '(11) 99123-8876', 'beatriz.lima@exemplo.com.br', 'Nascida em 29/02 — teste de ano bissexto.'],
+  ['João Pedro Meireles', '2016-08-21', 'masculino', '(11) 98444-1120', '', 'Odontopediatria, acompanhado pela mãe.'],
+  ['Sofia Nakamura', '1978-06-09', 'feminino', '(11) 97555-3321', 'sofia.nakamura@exemplo.com.br', 'Implante inferior concluído.'],
+  ['Rodrigo Teixeira Braga', '1995-12-30', 'masculino', '(11) 98090-7766', 'rodrigo.braga@exemplo.com.br', ''],
+  ['Helena Duarte Campos', '1966-03-17', 'feminino', '(11) 99688-4512', 'helena.campos@exemplo.com.br', 'Controle periodontal semestral.'],
+  ['Lucas Andrade Figueiredo', '2003-09-05', 'masculino', '(11) 98237-6644', 'lucas.figueiredo@exemplo.com.br', 'Extração de sisos programada.'],
+  ['Patrícia Moreira SantAnna', '1988-07-24', 'feminino', '(11) 99012-3345', 'patricia.santanna@exemplo.com.br', 'Prefere atendimento noturno.'],
+  ['Antônio Vieira Lopes', '1959-01-08', 'masculino', '(11) 97441-9987', '', 'Prótese total superior em acompanhamento.']
+];
+const DEMO_REASONS = ['Limpeza e profilaxia', 'Avaliação de clareamento dental', 'Restauração em resina',
+  'Manutenção de aparelho ortodôntico', 'Tratamento de canal — sessão 2', 'Avaliação para implante',
+  'Extração de siso inferior', 'Consulta de rotina e raio-x', 'Aplicação de flúor (odontopediatria)', 'Ajuste de prótese'];
+
+function buildDemo() {
+  const now = new Date().toISOString();
+  const patients = DEMO_PATIENTS.map(([name, birthDate, sex, phone, email, notes]) => ({
+    id: uid(), name, birthDate, sex, phone, email, notes, createdAt: now, updatedAt: now
+  }));
+  const openDay = (offset) => { let d = addDays(todayISO(), offset); 
+    while (!isOpenDay(d)) d = addDays(d, offset < 0 ? -1 : 1); return d; };
+  const appts = [];
+  const add = (date, time, pi, ri, status, origin, notes = '') => {
+    if (appts.some((a) => a.date === date && a.time === time)) return;
+    appts.push({ id: uid(), patientId: patients[pi].id, date, time, reason: DEMO_REASONS[ri],
+      notes, status, origin, createdAt: now, updatedAt: now });
+  };
+  const t = todayISO();
+  if (isOpenDay(t)) {
+    add(t, '08:00', 0, 0, 'atendida', 'clinica', 'Paciente compareceu no horário.');
+    add(t, '09:30', 1, 3, 'confirmada', 'portal');
+    add(t, '11:00', 2, 1, 'aguardando', 'portal', 'Pediu orçamento de clareamento a laser.');
+    add(t, '14:00', 4, 5, 'confirmada', 'clinica');
+    add(t, '19:30', 8, 7, 'aguardando', 'portal', 'Prefere horário noturno.');
+  }
+  [[1, 3, 2, 'confirmada', 'portal', '09:00'], [1, 5, 4, 'aguardando', 'clinica', '15:00'],
+   [2, 6, 6, 'confirmada', 'clinica', '10:30'], [3, 7, 8, 'aguardando', 'portal', '16:30'],
+   [4, 9, 9, 'confirmada', 'clinica', '08:30'], [5, 0, 0, 'aguardando', 'portal', '11:30'],
+   [6, 2, 1, 'confirmada', 'portal', '20:00'], [8, 4, 5, 'aguardando', 'clinica', '14:30']]
+    .forEach(([off, pi, ri, st, or, time]) => add(openDay(off), time, pi, ri, st, or));
+  [[-3, 0, 0, 'atendida', '09:00'], [-5, 1, 3, 'atendida', '10:00'], [-8, 3, 8, 'atendida', '16:00'],
+   [-12, 6, 7, 'cancelada', '11:00'], [-15, 5, 2, 'atendida', '18:30'], [-21, 9, 9, 'atendida', '08:30'],
+   [-28, 7, 6, 'cancelada', '14:00'], [-35, 2, 1, 'atendida', '20:30']]
+    .forEach(([off, pi, ri, st, time]) => add(openDay(off), time, pi, ri, st, 'clinica'));
+
+  const notifications = [
+    { id: uid(), type: 'novo_agendamento', title: 'Novo agendamento pelo portal',
+      message: 'Beatriz Carvalho Lima solicitou uma avaliação de clareamento.', read: false,
+      createdAt: new Date(Date.now() - 25 * 60000).toISOString() },
+    { id: uid(), type: 'consulta_proxima', title: 'Consulta próxima',
+      message: 'Carlos Eduardo Nunes tem manutenção ortodôntica hoje às 09:30.', read: false,
+      createdAt: new Date(Date.now() - 2 * 3600000).toISOString() }
+  ];
+  return { patients, appts, notifications };
+}
+
+function seed() {
+  const demo = buildDemo();
+  state.patients = demo.patients;
+  state.appointments = demo.appts;
+  state.notifications = demo.notifications;
+  persistLocal();
+}
+
+async function maybeSeed() {
+  if (!DB || state.patients.length || state.appointments.length) return;
+  let lease;
+  try { lease = await DB.doc('config/seed').acquire({ holder: 'seed', ttlMs: 20000 }); }
+  catch { return; }
+  if (!lease.acquired) return;
+  try {
+    const flag = await DB.doc('config/seed').get();
+    if (flag.exists && flag.data().seeded) return;
+    const demo = buildDemo();
+    for (const p of demo.patients) { const { id, ...rest } = p; await DB.collection('patients').doc(id).set(rest); }
+    for (const a of demo.appts) { const { id, ...rest } = a; await DB.collection('appointments').doc(id).set(rest); }
+    for (const n of demo.notifications) { const { id, ...rest } = n; await DB.collection('notifications').doc(id).set(rest); }
+    await DB.doc('config/clinic').set(state.settings);
+    await DB.doc('config/seed').set({ seeded: true, at: new Date().toISOString() });
+  } catch (e) { console.warn('seed', e); }
+}
+
+/* ============================ toasts / modais ============================ */
+function toast(title, message = '', kind = '') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.innerHTML = `<b>${esc(title)}</b>${message ? `<span>${esc(message)}</span>` : ''}`;
+  $('#toasts').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(6px)';
+    setTimeout(() => el.remove(), 250); }, 4200);
+}
+
+let modalCleanup = null;
+function openModal(html, onMount) {
+  closeModal();
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg';
+  bg.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${html}</div>`;
+  bg.addEventListener('mousedown', (e) => { if (e.target === bg) closeModal(); });
+  $('#modal-root').appendChild(bg);
+  document.body.style.overflow = 'hidden';
+  $$('[data-close]', bg).forEach((b) => b.addEventListener('click', closeModal));
+  modalCleanup = () => { bg.remove(); document.body.style.overflow = ''; };
+  if (onMount) onMount(bg);
+  const focusable = $('input,select,textarea,button', bg);
+  if (focusable) focusable.focus();
+  return bg;
+}
+function closeModal() { if (modalCleanup) { modalCleanup(); modalCleanup = null; } }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+function confirmDialog(title, message, confirmLabel, onConfirm, danger = true) {
+  openModal(`
+    <div class="modal-head"><h3>${esc(title)}</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body"><p class="lede">${esc(message)}</p></div>
+    <div class="modal-foot"><button class="btn btn-ghost" data-close>Voltar</button>
+      <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="confirm-yes">${esc(confirmLabel)}</button></div>`,
+    (bg) => { $('#confirm-yes', bg).addEventListener('click', async () => { closeModal(); await onConfirm(); }); });
+}
+
+/* ============================ navegação ============================ */
+const ROUTES = ['/', '/cliente', '/cliente/agendar', '/cliente/consultas', '/cliente/perfil',
+  '/dentista', '/dentista/agenda', '/dentista/pacientes', '/dentista/novo-agendamento', '/dentista/configuracoes'];
+
+function currentRoute() {
+  const raw = (location.hash || '#/').replace(/^#/, '');
+  const path = raw.split('?')[0] || '/';
+  return ROUTES.includes(path) ? path : '/';
+}
+function go(path) {
+  if (path.startsWith('/dentista') && !state.dentist) { openLogin(path); return; }
+  if (location.hash.replace(/^#/, '') === path) { render(); return; }
+  location.hash = path;
+}
+window.addEventListener('hashchange', () => {
+  const next = currentRoute();
+  if (next.startsWith('/dentista') && !state.dentist) { location.replace('#/'); openLogin(next); return; }
+  state.route = next;
+  window.scrollTo({ top: 0, behavior: 'auto' });
+  render();
+});
+
+document.addEventListener('click', (e) => {
+  const nav = e.target.closest('[data-nav]');
+  if (nav) { e.preventDefault(); go(nav.getAttribute('data-nav')); return; }
+  const act = e.target.closest('[data-action]');
+  if (!act) return;
+  const action = act.getAttribute('data-action');
+  if (action === 'dentist-login') { e.preventDefault(); openLogin('/dentista'); }
+  if (action === 'logout') {
+    e.preventDefault(); state.dentist = false;
+    try { sessionStorage.removeItem('odontocare.dentist'); } catch {}
+    toast('Sessão encerrada', 'Você saiu do painel clínico.');
+    go('/');
+  }
+});
+
+/* ============================ acesso do dentista ============================ */
+/* Demonstração local: a senha fica isolada da interface pública e a checagem
+   é o único ponto a trocar por autenticação real (API + hash no servidor). */
+const DEMO_PASSWORD = '123';
+
+function openLogin(target = '/dentista') {
+  openModal(`
+    <div class="modal-head">
+      <span class="avatar" style="background:var(--teal-soft);color:var(--teal-deep)">
+        <svg width="18" height="18"><use href="#i-lock"/></svg></span>
+      <h3>Acesso do Dentista</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p class="lede" style="margin-bottom:16px">Área restrita à equipe clínica: agenda completa, prontuário dos pacientes e configurações da clínica.</p>
+      <form class="form" id="login-form">
+        <div class="field" id="pw-field">
+          <label for="login-password">Senha de acesso <span class="req">*</span></label>
+          <input type="password" id="login-password" autocomplete="current-password" placeholder="Digite sua senha">
+          <span class="err" id="login-error" hidden></span>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Entrar no painel</button>
+      </form>
+    </div>`, (bg) => {
+    $('#login-form', bg).addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const value = $('#login-password', bg).value;
+      if (value !== DEMO_PASSWORD) {
+        $('#pw-field', bg).classList.add('bad');
+        const err = $('#login-error', bg);
+        err.textContent = 'Senha incorreta. Verifique suas credenciais.';
+        err.hidden = false;
+        $('#login-password', bg).select();
+        return;
+      }
+      state.dentist = true;
+      try { sessionStorage.setItem('odontocare.dentist', '1'); } catch {}
+      closeModal();
+      toast('Bem-vinda de volta', state.settings.dentistName, 'ok');
+      location.hash = target;
+      if (currentRoute() === target) { state.route = target; render(); }
+    });
+  });
+}
+
+/* ============================ site público ============================ */
+function renderSite() {
+  const s = state.settings;
+  $('#brand-sub').textContent = 'Odontologia integrada';
+  $('#ct-phone').textContent = s.phone; $('#ft-phone').textContent = s.phone;
+  $('#ct-mail').textContent = s.email; $('#ft-mail').textContent = s.email;
+  $('#ct-addr').textContent = s.address;
+  $('#ct-dentist').textContent = s.dentistName;
+  $('#ct-cro').textContent = `${s.dentistTitle} · ${s.dentistCro}`;
+  $('#last-slot').textContent = fromMin(toMin(s.closingTime) - s.slotInterval);
+  const today = new Date().getDay();
+  $('#hours-list').innerHTML = DOW.map((name, i) => {
+    const closed = (s.closedWeekdays || [0]).includes(i);
+    return `<div class="${i === today ? 'today' : ''}"><span>${name}</span>
+      <span class="${closed ? 'closed' : 'num'}">${closed ? 'Fechado' : `${s.openingTime} às ${s.closingTime}`}</span></div>`;
+  }).join('');
+}
+
+/* ============================ componentes compartilhados ============================ */
+const avatar = (p, size = 38) => `<span class="avatar ${p.sex === 'feminino' ? 'f' : p.sex === 'masculino' ? 'm' : ''}"
+  style="width:${size}px;height:${size}px;font-size:${Math.round(size / 2.7)}px">${esc(initials(p.name))}</span>`;
+const chip = (status) => `<span class="chip s-${status}">${esc(STATUS[status] || status)}</span>`;
+const emptyState = (art, title, text, action = '') => `<div class="empty">
+  <svg viewBox="0 0 260 200" aria-hidden="true"><use href="#${art}"/></svg>
+  <b>${esc(title)}</b><p>${esc(text)}</p>${action}</div>`;
+const loading = (text = 'Carregando dados da clínica…') =>
+  `<div class="loading-line"><span class="spinner"></span>${esc(text)}</div>`;
+
+function apptRow(a) {
+  const p = patientById(a.patientId);
+  if (!p) return '';
+  return `<div class="list-row" data-appt="${a.id}">
+    <div class="row-avatar">${avatar(p, 40)}</div>
+    <div class="tl-main"><b>${esc(p.name)}</b><span>${esc(a.reason)}</span></div>
+    <div class="when"><b>${fmtDate(a.date)}</b>${esc(a.time)}</div>
+    ${chip(a.status)}</div>`;
+}
+
+function fieldErrors(form, errors) {
+  $$('.field', form).forEach((f) => { f.classList.remove('bad'); const e = $('.err', f); if (e) e.remove(); });
+  Object.entries(errors).forEach(([name, message]) => {
+    const input = form.querySelector(`[name="${name}"]`);
+    const field = input?.closest('.field');
+    if (!field) return;
+    field.classList.add('bad');
+    const span = document.createElement('span');
+    span.className = 'err'; span.textContent = message;
+    field.appendChild(span);
+  });
+  const firstBad = $('.field.bad input,.field.bad select,.field.bad textarea', form);
+  if (firstBad) firstBad.focus();
+}
+
+/** Campos de identificação do paciente compartilhados pelos dois portais. */
+function patientFields(values = {}, opts = {}) {
+  const v = (k) => esc(values[k] ?? '');
+  return `
+  <div class="form-row">
+    <div class="field"><label for="${opts.prefix || ''}name">Nome completo <span class="req">*</span></label>
+      <input id="${opts.prefix || ''}name" name="name" value="${v('name')}" placeholder="Nome e sobrenome" autocomplete="name"></div>
+    <div class="field"><label for="${opts.prefix || ''}birthDate">Data de nascimento <span class="req">*</span></label>
+      <input id="${opts.prefix || ''}birthDate" name="birthDate" type="date" max="${todayISO()}" value="${v('birthDate')}"></div>
+  </div>
+  <div class="age-badge" data-age-out hidden><svg width="18" height="18"><use href="#i-user"/></svg>
+    <span>Idade calculada: <b data-age-label>—</b></span></div>
+  <div class="form-row three">
+    <div class="field"><label for="${opts.prefix || ''}sex">Sexo <span class="req">*</span></label>
+      <select id="${opts.prefix || ''}sex" name="sex">
+        <option value="">Selecione…</option>
+        ${Object.entries(SEX_LABEL).map(([k, l]) =>
+          `<option value="${k}" ${values.sex === k ? 'selected' : ''}>${l}</option>`).join('')}
+      </select></div>
+    <div class="field"><label for="${opts.prefix || ''}phone">Telefone</label>
+      <input id="${opts.prefix || ''}phone" name="phone" value="${v('phone')}" placeholder="(11) 99999-0000" inputmode="tel" autocomplete="tel"></div>
+    <div class="field"><label for="${opts.prefix || ''}email">E-mail</label>
+      <input id="${opts.prefix || ''}email" name="email" type="email" value="${v('email')}" placeholder="voce@exemplo.com" autocomplete="email"></div>
+  </div>`;
+}
+
+/** Liga o cálculo automático de idade ao campo de nascimento. */
+function bindAge(form) {
+  const input = form.querySelector('[name="birthDate"]');
+  const box = $('[data-age-out]', form);
+  if (!input || !box) return;
+  const update = () => {
+    const value = input.value;
+    if (!isISODate(value) || value > todayISO()) { box.hidden = true; return; }
+    box.hidden = false;
+    $('[data-age-label]', box).textContent = calcAge(value).label;
+  };
+  input.addEventListener('input', update); input.addEventListener('change', update);
+  update();
+}
+
+function validatePatientInput(data) {
+  const errors = {};
+  if (clean(data.name).length < 3) errors.name = 'Informe o nome completo.';
+  if (!isISODate(data.birthDate)) errors.birthDate = 'Informe uma data de nascimento válida.';
+  else if (data.birthDate > todayISO()) errors.birthDate = 'A data não pode estar no futuro.';
+  else if (calcAge(data.birthDate).years > 120) errors.birthDate = 'Verifique a data informada.';
+  if (!SEX_LABEL[data.sex]) errors.sex = 'Selecione o sexo.';
+  if (data.phone && !isPhone(data.phone)) errors.phone = 'Telefone inválido — inclua o DDD.';
+  if (data.email && !isMail(data.email)) errors.email = 'E-mail inválido.';
+  return errors;
+}
+
+const formData = (form) => Object.fromEntries(
+  Array.from(new FormData(form).entries()).map(([k, v]) => [k, clean(v, 1200)]));
+
+/* ============================ operações de consulta ============================ */
+async function findOrCreatePatient(data) {
+  const match = state.patients.find((p) =>
+    p.name.toLowerCase() === clean(data.name).toLowerCase() && p.birthDate === data.birthDate);
+  if (match) {
+    await put('patients', match.id, { ...match,
+      phone: data.phone || match.phone, email: data.email || match.email, sex: data.sex || match.sex });
+    return match.id;
+  }
+  const id = uid();
+  await put('patients', id, {
+    name: clean(data.name, 120), birthDate: data.birthDate, sex: data.sex,
+    phone: clean(data.phone, 30), email: clean(data.email, 120), notes: clean(data.notes || '', 1000),
+    createdAt: new Date().toISOString()
+  });
+  return id;
+}
+
+async function createAppointment({ patientId, date, time, reason, notes, origin }) {
+  const id = uid();
+  await put('appointments', id, {
+    patientId, date, time, reason: clean(reason, 300), notes: clean(notes || '', 1000),
+    status: 'aguardando', origin, createdAt: new Date().toISOString()
+  });
+  const p = patientById(patientId);
+  await notify(origin === 'portal' ? 'novo_agendamento' : 'consulta_criada',
+    origin === 'portal' ? 'Novo agendamento pelo portal' : 'Consulta criada',
+    `${p ? p.name : 'Paciente'} — ${fmtDate(date)} às ${time}.`, { appointmentId: id, patientId });
+  return id;
+}
+
+async function setStatus(appt, status) {
+  if (appt.status === status) return;
+  await put('appointments', appt.id, { ...appt, status });
+  const p = patientById(appt.patientId);
+  await notify(status === 'cancelada' ? 'cancelamento' : 'status_alterado',
+    status === 'cancelada' ? 'Consulta cancelada' : 'Status da consulta alterado',
+    `${p ? p.name : 'Paciente'} — ${fmtDate(appt.date)} às ${appt.time}: ${STATUS[status]}.`,
+    { appointmentId: appt.id, patientId: appt.patientId });
+}
+
+/* ---------- detalhes da consulta (painel do dentista) ---------- */
+function openAppointment(id) {
+  const a = state.appointments.find((x) => x.id === id);
+  if (!a) return;
+  const p = patientById(a.patientId);
+  if (!p) return;
+  const age = calcAge(p.birthDate, a.date);
+  const row = (label, value) => `<div><span>${esc(label)}</span><b>${esc(value || '—')}</b></div>`;
+  openModal(`
+    <div class="modal-head">${avatar(p, 42)}
+      <h3 style="flex:1">${esc(p.name)}</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body" style="display:grid;gap:18px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        ${chip(a.status)}
+        <span class="tag"><svg width="14" height="14"><use href="#i-calendar"/></svg>${fmtLong(a.date)}</span>
+        <span class="tag"><svg width="14" height="14"><use href="#i-clock"/></svg>${esc(a.time)}</span>
+        <span class="tag">${a.origin === 'portal' ? 'Agendado pelo portal' : 'Agendado na clínica'}</span>
+      </div>
+      <div class="detail-grid">
+        ${row('Data de nascimento', fmtDate(p.birthDate))}
+        ${row('Idade na consulta', age.label)}
+        ${row('Sexo', SEX_LABEL[p.sex])}
+        ${row('Telefone', p.phone)}
+        ${row('E-mail', p.email)}
+        ${row('Total de consultas', String(patientStats(p).total))}
+        <div class="full"><span>Motivo da consulta</span><b>${esc(a.reason)}</b></div>
+        <div class="full"><span>Observações</span><b>${esc(a.notes || 'Sem observações registradas.')}</b></div>
+        ${row('Criada em', new Date(a.createdAt).toLocaleString('pt-BR'))}
+        ${row('Atualizada em', new Date(a.updatedAt || a.createdAt).toLocaleString('pt-BR'))}
+      </div>
+      <div class="field"><label for="ap-status">Alterar status</label>
+        <select id="ap-status">${Object.entries(STATUS).map(([k, l]) =>
+          `<option value="${k}" ${a.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger btn-sm" id="ap-delete"><svg width="15" height="15"><use href="#i-trash"/></svg> Excluir</button>
+      <button class="btn btn-ghost btn-sm" id="ap-edit"><svg width="15" height="15"><use href="#i-edit"/></svg> Reagendar</button>
+      <button class="btn btn-primary btn-sm" id="ap-save">Salvar status</button>
+    </div>`, (bg) => {
+    $('#ap-save', bg).addEventListener('click', async () => {
+      await setStatus(a, $('#ap-status', bg).value);
+      closeModal(); toast('Consulta atualizada', `${p.name} — ${STATUS[$('#ap-status', bg).value] || ''}`, 'ok');
+    });
+    $('#ap-edit', bg).addEventListener('click', () => openReschedule(a));
+    $('#ap-delete', bg).addEventListener('click', () => {
+      closeModal();
+      confirmDialog('Excluir consulta', `A consulta de ${p.name} em ${fmtDate(a.date)} às ${a.time} será removida definitivamente.`,
+        'Excluir consulta', async () => { await remove('appointments', a.id); toast('Consulta excluída', '', 'bad'); });
+    });
+  });
+}
+
+function openReschedule(a) {
+  const p = patientById(a.patientId);
+  openModal(`
+    <div class="modal-head"><h3>Reagendar consulta</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body">
+      <p class="lede" style="margin-bottom:16px">${esc(p ? p.name : '')} · atualmente em ${fmtDate(a.date)} às ${esc(a.time)}</p>
+      <form class="form" id="resched-form">
+        <div class="form-row">
+          <div class="field"><label for="rs-date">Nova data <span class="req">*</span></label>
+            <input id="rs-date" name="date" type="date" min="${todayISO()}" value="${esc(a.date)}"></div>
+          <div class="field"><label for="rs-time">Novo horário <span class="req">*</span></label>
+            <select id="rs-time" name="time"></select></div>
+        </div>
+        <div class="field"><label for="rs-reason">Motivo <span class="req">*</span></label>
+          <input id="rs-reason" name="reason" value="${esc(a.reason)}"></div>
+        <div class="field"><label for="rs-notes">Observações</label>
+          <textarea id="rs-notes" name="notes">${esc(a.notes || '')}</textarea></div>
+        <button class="btn btn-primary btn-block" type="submit">Salvar alterações</button>
+      </form>
+    </div>`, (bg) => {
+    const form = $('#resched-form', bg);
+    const dateInput = $('#rs-date', bg), timeSelect = $('#rs-time', bg);
+    const fillTimes = () => {
+      const res = slotsFor(dateInput.value, { ignoreId: a.id });
+      const times = res.slots.map((s) => s.time);
+      if (dateInput.value === a.date && !times.includes(a.time)) times.unshift(a.time);
+      timeSelect.innerHTML = times.length
+        ? times.map((t) => `<option value="${t}" ${t === a.time ? 'selected' : ''}>${t}</option>`).join('')
+        : `<option value="">Nenhum horário livre</option>`;
+      if (!res.open) timeSelect.innerHTML = `<option value="">${esc(res.message)}</option>`;
+    };
+    dateInput.addEventListener('change', fillTimes); fillTimes();
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const data = formData(form);
+      const errors = {};
+      if (clean(data.reason).length < 3) errors.reason = 'Descreva o motivo da consulta.';
+      const rule = validateSchedule(data.date, data.time, a.id);
+      if (rule) errors[rule.field] = rule.message;
+      if (Object.keys(errors).length) { fieldErrors(form, errors); return; }
+      await put('appointments', a.id, { ...a, date: data.date, time: data.time,
+        reason: data.reason, notes: data.notes });
+      closeModal(); toast('Consulta reagendada', `${fmtDate(data.date)} às ${data.time}`, 'ok');
+    });
+  });
+}
+
+/* ============================ painel do dentista ============================ */
+function dashboardData() {
+  const t = todayISO();
+  const active = state.appointments.filter((a) => a.status !== 'cancelada');
+  return {
+    today: active.filter((a) => a.date === t).length,
+    upcoming: active.filter((a) => a.date > t && ACTIVE_STATUS.includes(a.status)).length,
+    patients: state.patients.length,
+    pending: state.appointments.filter((a) => a.status === 'aguardando' && a.date >= t).length,
+    confirmed: state.appointments.filter((a) => a.status === 'confirmada' && a.date >= t).length,
+    cancelled: state.appointments.filter((a) => a.status === 'cancelada').length,
+    todayList: sortAppts(state.appointments.filter((a) => a.date === t)),
+    nextList: sortAppts(state.appointments.filter((a) => a.date > t && ACTIVE_STATUS.includes(a.status))).slice(0, 5),
+    week: Array.from({ length: 7 }, (_, i) => {
+      const date = addDays(t, i);
+      return { date, total: active.filter((a) => a.date === date).length };
+    })
+  };
+}
+
+function renderDashboard(main) {
+  const d = dashboardData();
+  const s = state.settings;
+  const max = Math.max(1, ...d.week.map((w) => w.total));
+  const unread = state.notifications.filter((n) => !n.read).length;
+  const notifs = [...state.notifications].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, 6);
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
+
+  main.innerHTML = `
+  <section class="portal-banner">
+    <div class="copy">
+      <span class="pill"><svg width="15" height="15"><use href="#i-calendar"/></svg>${fmtLong(todayISO())}</span>
+      <h2>${greet}, ${esc(s.dentistName.replace(/^Dra?\.\s*/, '').split(' ')[0])}</h2>
+      <p>${d.today ? `Você tem <b>${d.today}</b> consulta${d.today > 1 ? 's' : ''} hoje e ${d.pending} aguardando confirmação.`
+        : 'Nenhuma consulta marcada para hoje. Um bom momento para revisar a agenda da semana.'}</p>
+    </div>
+    <div class="art"><svg viewBox="0 0 520 260" preserveAspectRatio="xMaxYMax slice" aria-hidden="true"><use href="#art-banner"/></svg></div>
+  </section>
+
+  <div class="topbar">
+    <h1>Dashboard</h1><div class="grow"></div>
+    <button class="btn btn-ghost btn-sm bell" id="btn-notifs">
+      <svg width="17" height="17"><use href="#i-bell"/></svg> Notificações
+      ${unread ? `<span class="dot">${unread}</span>` : ''}</button>
+    <button class="btn btn-primary btn-sm" data-nav="/dentista/novo-agendamento">
+      <svg width="16" height="16"><use href="#i-plus"/></svg> Nova consulta</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat accent"><div class="ic"><svg width="18" height="18"><use href="#i-calendar"/></svg></div>
+      <b class="num">${d.today}</b><span>Consultas de hoje</span></div>
+    <div class="stat"><div class="ic"><svg width="18" height="18"><use href="#i-clock"/></svg></div>
+      <b class="num">${d.upcoming}</b><span>Próximas consultas</span></div>
+    <div class="stat"><div class="ic"><svg width="18" height="18"><use href="#i-users"/></svg></div>
+      <b class="num">${d.patients}</b><span>Pacientes cadastrados</span></div>
+    <div class="stat warn"><div class="ic"><svg width="18" height="18"><use href="#i-bell"/></svg></div>
+      <b class="num">${d.pending}</b><span>Consultas pendentes</span></div>
+    <div class="stat ok"><div class="ic"><svg width="18" height="18"><use href="#i-check"/></svg></div>
+      <b class="num">${d.confirmed}</b><span>Consultas confirmadas</span></div>
+    <div class="stat bad"><div class="ic"><svg width="18" height="18"><use href="#i-x"/></svg></div>
+      <b class="num">${d.cancelled}</b><span>Consultas canceladas</span></div>
+  </div>
+
+  <div class="grid-2">
+    <div style="display:grid;gap:20px">
+      <section class="card">
+        <div class="card-head"><h3>Agenda de hoje</h3><div class="grow"></div>
+          <button class="btn btn-quiet btn-sm" data-nav="/dentista/agenda">Ver agenda completa</button></div>
+        <div class="card-body flush">
+          ${d.todayList.length ? `<div class="timeline">${d.todayList.map((a) => {
+            const p = patientById(a.patientId); if (!p) return '';
+            return `<div class="tl-item" data-appt="${a.id}">
+              <span class="tl-time num">${esc(a.time)}</span>
+              <div style="display:flex;gap:12px;align-items:center;min-width:0">${avatar(p, 38)}
+                <div class="tl-main"><b>${esc(p.name)}</b><span>${esc(a.reason)}</span></div></div>
+              ${chip(a.status)}</div>`; }).join('')}</div>`
+            : emptyState('art-empty-cal', 'Nenhuma consulta agendada', 'Não há atendimentos marcados para hoje. Use "Nova consulta" para encaixar um paciente.',
+              `<button class="btn btn-primary btn-sm" data-nav="/dentista/novo-agendamento">Nova consulta</button>`)}
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3>Carga da semana</h3><div class="grow"></div>
+          <span class="muted" style="font-size:13px">Consultas ativas por dia</span></div>
+        <div class="card-body">
+          <div class="chart">${d.week.map((w, i) => {
+            const h = Math.round((w.total / max) * 100);
+            return `<div class="bar"><span class="val num">${w.total}</span>
+              <div class="col ${i === 0 ? 'today' : w.total ? 'has' : ''}" style="height:${w.total ? Math.max(h, 8) : 4}%"></div>
+              <span class="lbl">${DOW_SHORT[dowOf(w.date)]}<br>${fmtShort(w.date)}</span></div>`; }).join('')}</div>
+        </div>
+      </section>
+    </div>
+
+    <div style="display:grid;gap:20px">
+      <section class="card">
+        <div class="card-head"><h3>Ações rápidas</h3></div>
+        <div class="card-body" style="display:grid;gap:10px">
+          <button class="btn btn-primary btn-block" data-nav="/dentista/novo-agendamento">
+            <svg width="16" height="16"><use href="#i-plus"/></svg> Nova consulta</button>
+          <button class="btn btn-ghost btn-block" id="qa-new-patient">
+            <svg width="16" height="16"><use href="#i-user"/></svg> Novo paciente</button>
+          <button class="btn btn-ghost btn-block" data-nav="/dentista/agenda">
+            <svg width="16" height="16"><use href="#i-calendar"/></svg> Ver agenda</button>
+          <button class="btn btn-ghost btn-block" data-nav="/dentista/pacientes">
+            <svg width="16" height="16"><use href="#i-users"/></svg> Ver pacientes</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3>Próximas consultas</h3></div>
+        <div class="card-body flush">
+          ${d.nextList.length ? `<div class="list">${d.nextList.map(apptRow).join('')}</div>`
+            : emptyState('art-empty-cal', 'Agenda livre', 'Nenhuma consulta futura marcada até o momento.')}
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3>Notificações</h3><div class="grow"></div>
+          ${unread ? `<button class="btn btn-quiet btn-sm" id="mark-read">Marcar como lidas</button>` : ''}</div>
+        <div class="card-body flush">
+          ${notifs.length ? notifs.map((n) => `<div class="notif ${n.read ? '' : 'unread'}">
+            <b>${esc(n.title)}</b><span>${esc(n.message)}</span><time>${relTime(n.createdAt)}</time></div>`).join('')
+            : `<div class="empty" style="padding:28px"><b>Tudo em dia</b><p>Nenhuma notificação por enquanto.</p></div>`}
+        </div>
+      </section>
+    </div>
+  </div>`;
+
+  $('#qa-new-patient', main)?.addEventListener('click', () => openPatientForm());
+  $('#mark-read', main)?.addEventListener('click', async () => {
+    for (const n of state.notifications.filter((x) => !x.read)) await put('notifications', n.id, { ...n, read: true });
+    toast('Notificações lidas');
+  });
+  $('#btn-notifs', main)?.addEventListener('click', () => {
+    const list = [...state.notifications].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    openModal(`<div class="modal-head"><h3>Central de notificações</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+      <div class="modal-body" style="padding:0">${list.length ? list.map((n) => `<div class="notif ${n.read ? '' : 'unread'}">
+        <b>${esc(n.title)}</b><span>${esc(n.message)}</span><time>${relTime(n.createdAt)}</time></div>`).join('')
+        : `<div class="empty"><b>Sem notificações</b><p>As movimentações da agenda aparecem aqui.</p></div>`}</div>`);
+  });
+}
+
+/* ---------- agenda ---------- */
+function renderAgenda(main) {
+  const v = state.view.agenda ||= { mode: 'dia', date: todayISO(), status: '', month: todayISO().slice(0, 7) };
+  const dayList = (date) => sortAppts(state.appointments.filter((a) => a.date === date &&
+    (!v.status || a.status === v.status)));
+
+  let body = '';
+  if (v.mode === 'dia') {
+    const list = dayList(v.date);
+    const closed = !isOpenDay(v.date);
+    body = `<section class="card">
+      <div class="card-head"><h3 style="text-transform:capitalize">${fmtLong(v.date)}</h3><div class="grow"></div>
+        <span class="tag">${list.length} consulta${list.length === 1 ? '' : 's'}</span></div>
+      <div class="card-body flush">
+        ${closed ? emptyState('art-empty-cal', 'Clínica fechada', dowOf(v.date) === 0 ? MSG.sunday : MSG.closed)
+          : list.length ? `<div class="timeline">${list.map((a) => {
+            const p = patientById(a.patientId); if (!p) return '';
+            return `<div class="tl-item" data-appt="${a.id}">
+              <span class="tl-time num">${esc(a.time)}</span>
+              <div style="display:flex;gap:12px;align-items:center;min-width:0">${avatar(p, 38)}
+                <div class="tl-main"><b>${esc(p.name)}</b><span>${esc(a.reason)} · ${calcAge(p.birthDate, a.date).label}</span></div></div>
+              ${chip(a.status)}</div>`; }).join('')}</div>`
+          : emptyState('art-empty-cal', 'Nenhuma consulta encontrada', 'Este dia ainda não tem atendimentos marcados.',
+            `<button class="btn btn-primary btn-sm" data-nav="/dentista/novo-agendamento">Agendar consulta</button>`)}
+      </div></section>`;
+  } else if (v.mode === 'semana') {
+    const start = addDays(v.date, -((dowOf(v.date) + 6) % 7));
+    body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+      ${Array.from({ length: 7 }, (_, i) => {
+        const date = addDays(start, i);
+        const list = dayList(date);
+        const isToday = date === todayISO();
+        return `<section class="card" style="${isToday ? 'border-color:var(--teal)' : ''}">
+          <div class="card-head" style="padding:13px 16px">
+            <div><h3 style="font-size:15px">${DOW_SHORT[dowOf(date)]} ${fmtShort(date)}</h3>
+            <span class="muted" style="font-size:12px">${isOpenDay(date) ? `${list.length} consulta(s)` : 'Fechado'}</span></div></div>
+          <div class="card-body" style="padding:10px 12px;display:grid;gap:7px">
+            ${list.length ? list.map((a) => { const p = patientById(a.patientId); if (!p) return '';
+              return `<button class="slot" style="text-align:left;padding:8px 10px;font-size:12.5px" data-appt="${a.id}">
+                <b class="num">${esc(a.time)}</b> · ${esc(p.name.split(' ')[0])}<br>
+                <span class="muted" style="font-weight:500">${esc(STATUS[a.status])}</span></button>`; }).join('')
+              : `<p class="muted" style="font-size:12.5px;padding:6px 2px">${isOpenDay(date) ? 'Sem consultas' : 'Clínica fechada'}</p>`}
+          </div></section>`; }).join('')}</div>`;
+  } else if (v.mode === 'mes') {
+    const [y, m] = v.month.split('-').map(Number);
+    const first = `${y}-${pad(m)}-01`;
+    const lead = dowOf(first);
+    const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const cells = [];
+    for (let i = 0; i < lead; i += 1) cells.push(null);
+    for (let d = 1; d <= days; d += 1) cells.push(`${y}-${pad(m)}-${pad(d)}`);
+    body = `<section class="card"><div class="card-head">
+        <button class="icon-btn" data-month="-1"><svg width="15" height="15"><use href="#i-left"/></svg></button>
+        <h3 style="flex:1;text-align:center;text-transform:capitalize">${MONTHS[m - 1]} de ${y}</h3>
+        <button class="icon-btn" data-month="1"><svg width="15" height="15"><use href="#i-right"/></svg></button></div>
+      <div class="card-body">
+        <div class="cal-month" style="margin-bottom:6px">${DOW_SHORT.map((d) => `<div class="cal-dow">${d}</div>`).join('')}</div>
+        <div class="cal-month">${cells.map((date) => {
+          if (!date) return `<div class="cal-cell out"></div>`;
+          const list = dayList(date);
+          return `<div class="cal-cell ${date === todayISO() ? 'today' : ''} ${isOpenDay(date) ? '' : 'out'}">
+            <span class="d">${Number(date.slice(-2))}</span>
+            ${list.slice(0, 3).map((a) => { const p = patientById(a.patientId);
+              return `<span class="ev s-${a.status}" data-appt="${a.id}">${esc(a.time)} ${esc(p ? p.name.split(' ')[0] : '')}</span>`; }).join('')}
+            ${list.length > 3 ? `<span class="muted" style="font-size:10.5px">+${list.length - 3} mais</span>` : ''}
+          </div>`; }).join('')}</div>
+      </div></section>`;
+  } else {
+    const list = sortAppts(state.appointments.filter((a) => !v.status || a.status === v.status));
+    body = `<section class="card"><div class="card-head"><h3>Todas as consultas</h3><div class="grow"></div>
+        <span class="tag">${list.length} registro${list.length === 1 ? '' : 's'}</span></div>
+      <div class="card-body flush">${list.length ? `<div class="list">${list.map(apptRow).join('')}</div>`
+        : emptyState('art-empty-cal', 'Nenhuma consulta encontrada', 'Ajuste o filtro de status ou crie um novo agendamento.')}</div></section>`;
+  }
+
+  main.innerHTML = `
+    <div class="topbar"><h1>Agenda</h1><div class="grow"></div>
+      <button class="btn btn-primary btn-sm" data-nav="/dentista/novo-agendamento">
+        <svg width="16" height="16"><use href="#i-plus"/></svg> Nova consulta</button></div>
+    <div class="toolbar">
+      <div class="seg">${[['dia', 'Dia'], ['semana', 'Semana'], ['mes', 'Mês'], ['lista', 'Lista']]
+        .map(([k, l]) => `<button data-mode="${k}" class="${v.mode === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      ${v.mode === 'dia' || v.mode === 'semana' ? `
+        <button class="icon-btn" data-step="-1"><svg width="15" height="15"><use href="#i-left"/></svg></button>
+        <input type="date" id="agenda-date" value="${v.date}">
+        <button class="icon-btn" data-step="1"><svg width="15" height="15"><use href="#i-right"/></svg></button>
+        <button class="btn btn-quiet btn-sm" id="agenda-today">Hoje</button>` : ''}
+      <select id="agenda-status">
+        <option value="">Todos os status</option>
+        ${Object.entries(STATUS).map(([k, l]) => `<option value="${k}" ${v.status === k ? 'selected' : ''}>${l}</option>`).join('')}
+      </select>
+    </div>
+    ${body}`;
+
+  $$('[data-mode]', main).forEach((b) => b.addEventListener('click', () => { v.mode = b.dataset.mode; render(); }));
+  $$('[data-step]', main).forEach((b) => b.addEventListener('click', () => {
+    v.date = addDays(v.date, Number(b.dataset.step) * (v.mode === 'semana' ? 7 : 1)); render(); }));
+  $$('[data-month]', main).forEach((b) => b.addEventListener('click', () => {
+    const [y, m] = v.month.split('-').map(Number);
+    const next = new Date(Date.UTC(y, m - 1 + Number(b.dataset.month), 1));
+    v.month = `${next.getUTCFullYear()}-${pad(next.getUTCMonth() + 1)}`; render(); }));
+  $('#agenda-date', main)?.addEventListener('change', (e) => { v.date = e.target.value || todayISO(); render(); });
+  $('#agenda-today', main)?.addEventListener('click', () => { v.date = todayISO(); render(); });
+  $('#agenda-status', main)?.addEventListener('change', (e) => { v.status = e.target.value; render(); });
+}
+
+/* ---------- pacientes ---------- */
+function renderPatients(main) {
+  const v = state.view.patients ||= { search: '', sex: '', sort: 'name' };
+  const term = v.search.trim().toLowerCase();
+  let list = state.patients.filter((p) => {
+    const matchTerm = !term || [p.name, p.phone, p.email].some((f) => String(f || '').toLowerCase().includes(term));
+    return matchTerm && (!v.sex || p.sex === v.sex);
+  });
+  const sorters = {
+    name: (a, b) => a.name.localeCompare(b.name, 'pt-BR'),
+    recent: (a, b) => (a.createdAt < b.createdAt ? 1 : -1),
+    age_desc: (a, b) => (a.birthDate < b.birthDate ? -1 : 1),
+    age_asc: (a, b) => (a.birthDate > b.birthDate ? -1 : 1)
+  };
+  list = [...list].sort(sorters[v.sort] || sorters.name);
+
+  main.innerHTML = `
+    <div class="topbar"><h1>Pacientes</h1><div class="grow"></div>
+      <button class="btn btn-primary btn-sm" id="new-patient">
+        <svg width="16" height="16"><use href="#i-plus"/></svg> Novo paciente</button></div>
+    <div class="toolbar">
+      <input type="search" id="pt-search" placeholder="Buscar por nome, telefone ou e-mail" value="${esc(v.search)}">
+      <select id="pt-sex"><option value="">Todos os sexos</option>
+        ${Object.entries(SEX_LABEL).map(([k, l]) => `<option value="${k}" ${v.sex === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <select id="pt-sort">
+        <option value="name" ${v.sort === 'name' ? 'selected' : ''}>Ordenar por nome</option>
+        <option value="recent" ${v.sort === 'recent' ? 'selected' : ''}>Cadastro mais recente</option>
+        <option value="age_desc" ${v.sort === 'age_desc' ? 'selected' : ''}>Maior idade</option>
+        <option value="age_asc" ${v.sort === 'age_asc' ? 'selected' : ''}>Menor idade</option>
+      </select>
+      <span class="muted" style="font-size:13.5px">${list.length} de ${state.patients.length}</span>
+    </div>
+    ${list.length ? `<div class="pt-grid">${list.map((p) => {
+      const st = patientStats(p);
+      return `<article class="pt-card">
+        <div class="top">${avatar(p, 46)}
+          <div style="min-width:0"><b>${esc(p.name)}</b>
+            <span>${calcAge(p.birthDate).label} · ${SEX_LABEL[p.sex] || '—'}</span></div></div>
+        <div class="pt-meta">
+          <div><span>Consultas</span><b class="num">${st.total}</b></div>
+          <div><span>Cadastro</span><b class="num">${fmtDate((p.createdAt || '').slice(0, 10) || todayISO())}</b></div>
+          <div><span>Última</span><b class="num">${st.last ? fmtDate(st.last.date) : '—'}</b></div>
+          <div><span>Próxima</span><b class="num">${st.next ? fmtDate(st.next.date) : '—'}</b></div>
+        </div>
+        <div class="pt-actions">
+          <button class="btn btn-ghost btn-sm" data-view="${p.id}">Ver ficha</button>
+          <button class="btn btn-quiet btn-sm" data-edit="${p.id}"><svg width="14" height="14"><use href="#i-edit"/></svg> Editar</button>
+          <button class="btn btn-quiet btn-sm" data-del="${p.id}" style="color:var(--bad)"><svg width="14" height="14"><use href="#i-trash"/></svg></button>
+        </div></article>`; }).join('')}</div>`
+      : emptyState('art-empty-users', 'Nenhum paciente encontrado',
+          term || v.sex ? 'Nenhum registro corresponde ao filtro aplicado. Ajuste a busca para ver outros pacientes.'
+            : 'Cadastre o primeiro paciente para começar a montar a agenda.',
+          `<button class="btn btn-primary btn-sm" id="empty-new-patient">Cadastrar paciente</button>`)}`;
+
+  const search = $('#pt-search', main);
+  search?.addEventListener('input', (e) => {
+    v.search = e.target.value; render();
+    const el = $('#pt-search'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  });
+  $('#pt-sex', main)?.addEventListener('change', (e) => { v.sex = e.target.value; render(); });
+  $('#pt-sort', main)?.addEventListener('change', (e) => { v.sort = e.target.value; render(); });
+  $('#new-patient', main)?.addEventListener('click', () => openPatientForm());
+  $('#empty-new-patient', main)?.addEventListener('click', () => openPatientForm());
+  $$('[data-view]', main).forEach((b) => b.addEventListener('click', () => openPatientCard(b.dataset.view)));
+  $$('[data-edit]', main).forEach((b) => b.addEventListener('click', () => openPatientForm(patientById(b.dataset.edit))));
+  $$('[data-del]', main).forEach((b) => b.addEventListener('click', () => {
+    const p = patientById(b.dataset.del); if (!p) return;
+    const count = apptsOf(p.id).length;
+    confirmDialog('Excluir paciente',
+      `${p.name} será removido da base${count ? ` junto com ${count} consulta(s) vinculada(s)` : ''}. Esta ação não pode ser desfeita.`,
+      'Excluir paciente', async () => {
+        for (const a of apptsOf(p.id)) await remove('appointments', a.id);
+        await remove('patients', p.id);
+        toast('Paciente excluído', p.name, 'bad');
+      });
+  }));
+}
+
+function openPatientForm(patient = null) {
+  const editing = Boolean(patient);
+  openModal(`
+    <div class="modal-head"><h3>${editing ? 'Editar paciente' : 'Novo paciente'}</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body">
+      <form class="form" id="patient-form">
+        ${patientFields(patient || {}, { prefix: 'pf-' })}
+        <div class="field"><label for="pf-notes">Observações clínicas</label>
+          <textarea id="pf-notes" name="notes" placeholder="Alergias, histórico, preferências de atendimento…">${esc(patient?.notes || '')}</textarea></div>
+        <button class="btn btn-primary btn-block" type="submit">${editing ? 'Salvar alterações' : 'Cadastrar paciente'}</button>
+      </form>
+    </div>`, (bg) => {
+    const form = $('#patient-form', bg);
+    bindAge(form);
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const data = formData(form);
+      const errors = validatePatientInput(data);
+      const dup = state.patients.find((p) => p.id !== patient?.id &&
+        p.name.toLowerCase() === data.name.toLowerCase() && p.birthDate === data.birthDate);
+      if (dup) errors.name = 'Já existe um paciente com este nome e data de nascimento.';
+      if (Object.keys(errors).length) { fieldErrors(form, errors); return; }
+      if (editing) {
+        await put('patients', patient.id, { ...patient, ...data });
+        toast('Paciente atualizado', data.name, 'ok');
+      } else {
+        const id = uid();
+        await put('patients', id, { ...data, createdAt: new Date().toISOString() });
+        await notify('paciente_criado', 'Novo paciente cadastrado', `${data.name} foi adicionado à base.`, { patientId: id });
+        toast('Paciente cadastrado', data.name, 'ok');
+      }
+      closeModal();
+    });
+  });
+}
+
+function openPatientCard(id) {
+  const p = patientById(id);
+  if (!p) return;
+  const st = patientStats(p);
+  const history = sortAppts(apptsOf(p.id)).reverse();
+  openModal(`
+    <div class="modal-head">${avatar(p, 44)}
+      <div style="flex:1"><h3>${esc(p.name)}</h3>
+        <span class="muted" style="font-size:13px">${calcAge(p.birthDate).label} · ${SEX_LABEL[p.sex] || '—'}</span></div>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body" style="display:grid;gap:18px">
+      <div class="detail-grid">
+        <div><span>Data de nascimento</span><b>${fmtDate(p.birthDate)}</b></div>
+        <div><span>Telefone</span><b>${esc(p.phone || '—')}</b></div>
+        <div><span>E-mail</span><b>${esc(p.email || '—')}</b></div>
+        <div><span>Cadastrado em</span><b>${fmtDate((p.createdAt || '').slice(0, 10) || todayISO())}</b></div>
+        <div><span>Total de consultas</span><b class="num">${st.total}</b></div>
+        <div><span>Próxima consulta</span><b>${st.next ? `${fmtDate(st.next.date)} · ${st.next.time}` : '—'}</b></div>
+        <div class="full"><span>Observações</span><b>${esc(p.notes || 'Sem observações registradas.')}</b></div>
+      </div>
+      <div>
+        <h4 style="font-size:15px;margin-bottom:10px">Histórico de consultas</h4>
+        ${history.length ? `<div class="list" style="border:1px solid var(--line);border-radius:14px;overflow:hidden">
+          ${history.map((a) => `<div class="list-row" data-appt="${a.id}">
+            <span class="tl-time num">${esc(a.time)}</span>
+            <div class="tl-main"><b>${esc(a.reason)}</b><span>${esc(a.notes || 'Sem observações')}</span></div>
+            <div class="when"><b>${fmtDate(a.date)}</b>${DOW_SHORT[dowOf(a.date)]}</div>
+            ${chip(a.status)}</div>`).join('')}</div>`
+          : `<div class="empty" style="padding:26px"><b>Nenhuma consulta registrada</b><p>Este paciente ainda não passou por atendimento.</p></div>`}
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" id="pc-edit"><svg width="15" height="15"><use href="#i-edit"/></svg> Editar ficha</button>
+      <button class="btn btn-primary btn-sm" id="pc-schedule"><svg width="15" height="15"><use href="#i-calendar"/></svg> Agendar consulta</button>
+    </div>`, (bg) => {
+    $('#pc-edit', bg).addEventListener('click', () => openPatientForm(p));
+    $('#pc-schedule', bg).addEventListener('click', () => {
+      closeModal();
+      state.view.newAppt = { patientId: p.id };
+      go('/dentista/novo-agendamento');
+    });
+  });
+}
+
+/* ---------- seletor de data e horário (usado nos dois portais) ---------- */
+function calendarHTML(month, selected) {
+  const [y, m] = month.split('-').map(Number);
+  const first = `${y}-${pad(m)}-01`;
+  const lead = dowOf(first);
+  const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const cells = Array.from({ length: lead }, () => '<span></span>');
+  for (let d = 1; d <= days; d += 1) {
+    const date = `${y}-${pad(m)}-${pad(d)}`;
+    const disabled = date < todayISO() || !isOpenDay(date);
+    const busy = state.appointments.some((a) => a.date === date && a.status !== 'cancelada');
+    cells.push(`<button type="button" class="cal-day ${selected === date ? 'sel' : ''} ${date === todayISO() ? 'today' : ''}"
+      data-date="${date}" ${disabled ? 'disabled' : ''}>${d}${busy && !disabled ? '<span class="dot"></span>' : ''}</button>`);
+  }
+  return `<div class="cal">
+    <div class="cal-head">
+      <button type="button" class="icon-btn" data-cal="-1" aria-label="Mês anterior"><svg width="15" height="15"><use href="#i-left"/></svg></button>
+      <b>${MONTHS[m - 1]} de ${y}</b>
+      <button type="button" class="icon-btn" data-cal="1" aria-label="Próximo mês"><svg width="15" height="15"><use href="#i-right"/></svg></button>
+    </div>
+    <div class="cal-grid">${DOW_SHORT.map((d) => `<span class="cal-dow">${d}</span>`).join('')}</div>
+    <div class="cal-grid">${cells.join('')}</div>
+    <p class="muted" style="font-size:12.5px">Dias em cinza estão fechados ou já passaram. O ponto indica dias com consultas marcadas.</p>
+  </div>`;
+}
+
+function slotsHTML(date, selected, opts = {}) {
+  if (!date) return `<p class="muted" style="font-size:14px">Escolha primeiro um dia no calendário.</p>`;
+  const res = slotsFor(date, opts);
+  if (!res.open) return `<div class="banner-note"><svg width="18" height="18" style="flex:none;color:var(--gold)"><use href="#i-clock"/></svg>
+    <span>${esc(res.message)}</span></div>`;
+  if (!res.slots.length) return emptyState('art-empty-cal', 'Nenhum horário disponível',
+    'Todos os horários deste dia já foram preenchidos. Escolha outra data.');
+  return `<div class="slots">${res.slots.map((s) => `<button type="button" class="slot ${selected === s.time ? 'sel' : ''}"
+    data-slot="${s.time}" ${s.available ? '' : 'disabled title="' + esc(s.reason) + '"'}>${s.time}</button>`).join('')}</div>`;
+}
+
+function bindPicker(root, v, onChange) {
+  $$('[data-cal]', root).forEach((b) => b.addEventListener('click', () => {
+    const [y, m] = v.month.split('-').map(Number);
+    const next = new Date(Date.UTC(y, m - 1 + Number(b.dataset.cal), 1));
+    v.month = `${next.getUTCFullYear()}-${pad(next.getUTCMonth() + 1)}`;
+    onChange();
+  }));
+  $$('[data-date]', root).forEach((b) => b.addEventListener('click', () => {
+    v.date = b.dataset.date; v.time = ''; onChange();
+  }));
+  $$('[data-slot]', root).forEach((b) => b.addEventListener('click', () => { v.time = b.dataset.slot; onChange(); }));
+}
+
+/* ---------- novo agendamento (dentista) ---------- */
+function renderNewAppointment(main) {
+  const v = state.view.newAppt ||= { month: todayISO().slice(0, 7), date: todayISO(), time: '', patientId: '', mode: 'existing' };
+  if (!v.month) v.month = (v.date || todayISO()).slice(0, 7);
+  const patients = [...state.patients].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
+  main.innerHTML = `
+    <div class="topbar"><h1>Novo agendamento</h1></div>
+    <form id="appt-form" style="display:grid;gap:20px">
+      <div class="grid-2 even">
+        <fieldset class="fieldset"><legend>1. Paciente</legend>
+          <div class="seg" style="width:fit-content">
+            <button type="button" data-pmode="existing" class="${v.mode === 'existing' ? 'on' : ''}">Paciente cadastrado</button>
+            <button type="button" data-pmode="new" class="${v.mode === 'new' ? 'on' : ''}">Novo paciente</button>
+          </div>
+          ${v.mode === 'existing' ? `
+            <div class="field"><label for="ap-patient">Selecione o paciente <span class="req">*</span></label>
+              <select id="ap-patient" name="patientId">
+                <option value="">Selecione…</option>
+                ${patients.map((p) => `<option value="${p.id}" ${v.patientId === p.id ? 'selected' : ''}>
+                  ${esc(p.name)} — ${calcAge(p.birthDate).years} anos</option>`).join('')}
+              </select>
+              ${patients.length ? '' : '<span class="hint">Nenhum paciente cadastrado ainda: use a aba "Novo paciente".</span>'}</div>
+            <div id="patient-preview"></div>`
+            : `${patientFields({}, { prefix: 'na-' })}`}
+        </fieldset>
+
+        <fieldset class="fieldset"><legend>2. Data e horário</legend>
+          <div id="appt-cal">${calendarHTML(v.month, v.date)}</div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:var(--ink-soft)">Horários disponíveis
+              ${v.date ? `— ${fmtLong(v.date)}` : ''}</label>
+            <div id="appt-slots" style="margin-top:8px">${slotsHTML(v.date, v.time)}</div>
+          </div>
+        </fieldset>
+      </div>
+
+      <fieldset class="fieldset"><legend>3. Detalhes do atendimento</legend>
+        <div class="field"><label for="ap-reason">Motivo da consulta <span class="req">*</span></label>
+          <input id="ap-reason" name="reason" list="reason-list" placeholder="Ex.: limpeza, avaliação de clareamento, dor no molar">
+          <datalist id="reason-list">${DEMO_REASONS.map((r) => `<option value="${esc(r)}"></option>`).join('')}</datalist></div>
+        <div class="field"><label for="ap-notes">Observações</label>
+          <textarea id="ap-notes" name="notes" placeholder="Informações úteis para o atendimento"></textarea></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" type="submit"><svg width="16" height="16"><use href="#i-check"/></svg> Confirmar agendamento</button>
+          <button class="btn btn-ghost" type="button" data-nav="/dentista/agenda">Cancelar</button>
+        </div>
+      </fieldset>
+    </form>`;
+
+  const form = $('#appt-form', main);
+  if (v.mode === 'new') bindAge(form);
+  const refreshPicker = () => {
+    $('#appt-cal', main).innerHTML = calendarHTML(v.month, v.date);
+    $('#appt-slots', main).innerHTML = slotsHTML(v.date, v.time);
+    bindPicker(main, v, refreshPicker);
+  };
+  bindPicker(main, v, refreshPicker);
+  $$('[data-pmode]', main).forEach((b) => b.addEventListener('click', () => { v.mode = b.dataset.pmode; render(); }));
+
+  const select = $('#ap-patient', main);
+  const preview = $('#patient-preview', main);
+  const showPreview = () => {
+    if (!preview) return;
+    const p = patientById(select.value);
+    preview.innerHTML = p ? `<div class="care-card" style="padding:14px">
+      ${avatar(p, 42)}<div><h3>${esc(p.name)}</h3>
+      <p>${calcAge(p.birthDate).label} · ${SEX_LABEL[p.sex]} · ${esc(p.phone || 'sem telefone')}</p>
+      <p class="muted" style="font-size:12.5px">${patientStats(p).total} consulta(s) no histórico</p></div></div>` : '';
+  };
+  select?.addEventListener('change', () => { v.patientId = select.value; showPreview(); });
+  showPreview();
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const data = formData(form);
+    const errors = {};
+    if (clean(data.reason).length < 3) errors.reason = 'Descreva o motivo da consulta.';
+    let patientId = v.mode === 'existing' ? select?.value : null;
+    if (v.mode === 'existing' && !patientId) errors.patientId = 'Selecione o paciente.';
+    if (v.mode === 'new') Object.assign(errors, validatePatientInput(data));
+    const rule = validateSchedule(v.date, v.time);
+    if (rule) errors[rule.field] = rule.message;
+    if (!v.time) errors.time = 'Selecione um horário disponível.';
+    if (Object.keys(errors).length) {
+      fieldErrors(form, errors);
+      const msg = errors.date || errors.time;
+      if (msg) toast('Não foi possível agendar', msg, 'bad');
+      return;
+    }
+    if (v.mode === 'new') patientId = await findOrCreatePatient(data);
+    await createAppointment({ patientId, date: v.date, time: v.time,
+      reason: data.reason, notes: data.notes, origin: 'clinica' });
+    const p = patientById(patientId);
+    toast('Consulta agendada', `${p ? p.name : ''} — ${fmtDate(v.date)} às ${v.time}`, 'ok');
+    state.view.newAppt = { month: v.date.slice(0, 7), date: v.date, time: '', patientId: '', mode: 'existing' };
+    state.view.agenda = { ...(state.view.agenda || {}), mode: 'dia', date: v.date, status: '' };
+    go('/dentista/agenda');
+  });
+}
+
+/* ---------- configurações ---------- */
+function renderSettings(main) {
+  const s = state.settings;
+  main.innerHTML = `
+    <div class="topbar"><h1>Configurações</h1></div>
+    <div class="grid-2">
+      <form id="settings-form" class="card"><div class="card-body" style="display:grid;gap:18px">
+        <fieldset class="fieldset"><legend>Clínica</legend>
+          <div class="field"><label for="st-name">Nome da clínica</label>
+            <input id="st-name" name="clinicName" value="${esc(s.clinicName)}"></div>
+          <div class="form-row">
+            <div class="field"><label for="st-phone">Telefone</label><input id="st-phone" name="phone" value="${esc(s.phone)}"></div>
+            <div class="field"><label for="st-email">E-mail</label><input id="st-email" name="email" type="email" value="${esc(s.email)}"></div>
+          </div>
+          <div class="field"><label for="st-addr">Endereço</label><input id="st-addr" name="address" value="${esc(s.address)}"></div>
+        </fieldset>
+        <fieldset class="fieldset"><legend>Funcionamento</legend>
+          <div class="form-row three">
+            <div class="field"><label for="st-open">Abertura</label><input id="st-open" name="openingTime" type="time" value="${esc(s.openingTime)}"></div>
+            <div class="field"><label for="st-close">Fechamento</label><input id="st-close" name="closingTime" type="time" value="${esc(s.closingTime)}"></div>
+            <div class="field"><label for="st-interval">Intervalo entre consultas</label>
+              <select id="st-interval" name="slotInterval">${[15, 30, 45, 60].map((n) =>
+                `<option value="${n}" ${s.slotInterval === n ? 'selected' : ''}>${n} minutos</option>`).join('')}</select></div>
+          </div>
+          <div class="field"><label>Dias sem atendimento</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">${DOW.map((d, i) =>
+              `<label class="slot" style="cursor:pointer;display:flex;gap:7px;align-items:center;width:auto;padding:9px 13px">
+                <input type="checkbox" name="closed" value="${i}" ${(s.closedWeekdays || []).includes(i) ? 'checked' : ''}
+                  style="width:auto;margin:0">${DOW_SHORT[i]}</label>`).join('')}</div>
+            <span class="hint">Os dias marcados ficam bloqueados na agenda e no portal do paciente.</span></div>
+        </fieldset>
+        <fieldset class="fieldset"><legend>Dentista responsável</legend>
+          <div class="field"><label for="st-dent">Nome</label><input id="st-dent" name="dentistName" value="${esc(s.dentistName)}"></div>
+          <div class="form-row">
+            <div class="field"><label for="st-title">Especialidade</label><input id="st-title" name="dentistTitle" value="${esc(s.dentistTitle)}"></div>
+            <div class="field"><label for="st-cro">CRO</label><input id="st-cro" name="dentistCro" value="${esc(s.dentistCro)}"></div>
+          </div>
+        </fieldset>
+        <button class="btn btn-primary" type="submit">Salvar configurações</button>
+      </div></form>
+
+      <div style="display:grid;gap:20px">
+        <section class="card"><div class="card-head"><h3>Como fica a agenda</h3></div>
+          <div class="card-body" style="display:grid;gap:12px">
+            <p class="muted" style="font-size:14px">Com o intervalo atual, o dia de atendimento gera os horários abaixo:</p>
+            <div class="slots" id="preview-slots"></div>
+          </div></section>
+        <section class="card"><div class="card-head"><h3>Base de dados</h3></div>
+          <div class="card-body" style="display:grid;gap:10px;font-size:14px">
+            <div style="display:flex;justify-content:space-between"><span>Pacientes</span><b class="num">${state.patients.length}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>Consultas</span><b class="num">${state.appointments.length}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>Notificações</span><b class="num">${state.notifications.length}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>Armazenamento</span>
+              <b>${state.offline ? 'Local (este navegador)' : 'Base do artefato'}</b></div>
+            <button class="btn btn-danger btn-sm" id="reset-demo" style="margin-top:6px">Remover dados de demonstração</button>
+          </div></section>
+      </div>
+    </div>`;
+
+  const previewSlots = () => {
+    const open = $('#st-open', main).value || s.openingTime;
+    const close = $('#st-close', main).value || s.closingTime;
+    const step = Number($('#st-interval', main).value) || s.slotInterval;
+    const out = [];
+    for (let m = toMin(open); m < toMin(close) && out.length < 40; m += step) out.push(fromMin(m));
+    $('#preview-slots', main).innerHTML = out.length
+      ? out.map((t) => `<span class="slot" style="cursor:default">${t}</span>`).join('')
+      : '<p class="muted">Horário de fechamento precisa ser depois da abertura.</p>';
+  };
+  ['#st-open', '#st-close', '#st-interval'].forEach((sel) =>
+    $(sel, main).addEventListener('change', previewSlots));
+  previewSlots();
+
+  $('#settings-form', main).addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const form = ev.target;
+    const data = formData(form);
+    const errors = {};
+    if (clean(data.clinicName).length < 3) errors.clinicName = 'Informe o nome da clínica.';
+    if (!isPhone(data.phone)) errors.phone = 'Telefone inválido.';
+    if (!isMail(data.email)) errors.email = 'E-mail inválido.';
+    if (clean(data.address).length < 5) errors.address = 'Informe o endereço.';
+    if (toMin(data.openingTime) >= toMin(data.closingTime)) errors.closingTime = 'O fechamento deve ser depois da abertura.';
+    if (clean(data.dentistName).length < 3) errors.dentistName = 'Informe o nome do dentista.';
+    if (Object.keys(errors).length) { fieldErrors(form, errors); toast('Verifique os campos', '', 'bad'); return; }
+    const closedWeekdays = $$('[name="closed"]:checked', form).map((c) => Number(c.value));
+    await saveSettings({ ...data, slotInterval: Number(data.slotInterval), closedWeekdays });
+    toast('Configurações salvas', 'A agenda e o site foram atualizados.', 'ok');
+  });
+
+  $('#reset-demo', main).addEventListener('click', () => {
+    confirmDialog('Remover dados de demonstração',
+      'Todos os pacientes, consultas e notificações serão apagados. As configurações da clínica são mantidas.',
+      'Apagar tudo', async () => {
+        for (const a of [...state.appointments]) await remove('appointments', a.id);
+        for (const p of [...state.patients]) await remove('patients', p.id);
+        for (const n of [...state.notifications]) await remove('notifications', n.id);
+        if (DB) await DB.doc('config/seed').set({ seeded: true, at: new Date().toISOString() });
+        toast('Base limpa', 'Os dados fictícios foram removidos.', 'ok');
+      });
+  });
+}
+
+/* ============================ portal do cliente ============================ */
+const ME_KEY = 'odontocare.me';
+function myPatient() {
+  if (!state.me) return null;
+  return state.patients.find((p) =>
+    p.name.toLowerCase() === String(state.me.name).toLowerCase() && p.birthDate === state.me.birthDate) || null;
+}
+function setMe(me) { state.me = me; lsSet(ME_KEY, me); }
+
+function myAppointments() {
+  const p = myPatient();
+  if (!p) return { upcoming: [], history: [] };
+  const all = sortAppts(apptsOf(p.id));
+  const t = todayISO();
+  return {
+    upcoming: all.filter((a) => a.date >= t && ACTIVE_STATUS.includes(a.status)),
+    history: all.filter((a) => a.date < t || !ACTIVE_STATUS.includes(a.status)).reverse()
+  };
+}
+
+function identifyCard(title, text) {
+  return `<section class="card"><div class="card-head"><h3>${esc(title)}</h3></div>
+    <div class="card-body">
+      <p class="lede" style="margin-bottom:16px">${esc(text)}</p>
+      <form class="form" id="identify-form">
+        <div class="form-row">
+          <div class="field"><label for="id-name">Nome completo <span class="req">*</span></label>
+            <input id="id-name" name="name" placeholder="Como consta no seu cadastro" autocomplete="name"></div>
+          <div class="field"><label for="id-birth">Data de nascimento <span class="req">*</span></label>
+            <input id="id-birth" name="birthDate" type="date" max="${todayISO()}"></div>
+        </div>
+        <button class="btn btn-primary" type="submit">Acessar minhas informações</button>
+      </form>
+    </div></section>`;
+}
+
+function bindIdentify(root) {
+  const form = $('#identify-form', root);
+  if (!form) return;
+  form.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const data = formData(form);
+    const errors = {};
+    if (clean(data.name).length < 3) errors.name = 'Informe seu nome completo.';
+    if (!isISODate(data.birthDate)) errors.birthDate = 'Informe sua data de nascimento.';
+    if (Object.keys(errors).length) { fieldErrors(form, errors); return; }
+    setMe({ name: clean(data.name, 120), birthDate: data.birthDate });
+    if (!myPatient()) {
+      toast('Cadastro não encontrado', 'Não localizamos consultas com esses dados. Agende a primeira consulta.', 'warn');
+      go('/cliente/agendar');
+      return;
+    }
+    render();
+  });
+}
+
+function renderClientHome(main) {
+  const s = state.settings;
+  const p = myPatient();
+  const { upcoming } = myAppointments();
+  const next = upcoming[0];
+  main.innerHTML = `
+    <section class="portal-banner">
+      <div class="copy">
+        <span class="pill"><svg width="15" height="15"><use href="#i-heart"/></svg>Portal do paciente</span>
+        <h2>${p ? `Olá, ${esc(p.name.split(' ')[0])}` : 'Cuide do seu sorriso sem sair do celular'}</h2>
+        <p>${next ? `Sua próxima consulta é <b>${fmtLong(next.date)}</b> às <b>${esc(next.time)}</b> — ${esc(next.reason)}.`
+          : 'Agende, acompanhe e cancele suas consultas em poucos toques. Atendimento de segunda a sábado, das ' + esc(s.openingTime) + ' às ' + esc(s.closingTime) + '.'}</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+          <button class="btn btn-gold btn-sm" data-nav="/cliente/agendar">
+            <svg width="16" height="16"><use href="#i-calendar"/></svg> Agendar consulta</button>
+          ${next ? `<button class="btn btn-sm" style="background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.3)"
+            data-nav="/cliente/consultas">Ver minhas consultas</button>` : ''}
+        </div>
+      </div>
+      <div class="art"><svg viewBox="0 0 520 260" preserveAspectRatio="xMaxYMax slice" aria-hidden="true"><use href="#art-client"/></svg></div>
+    </section>
+
+    <div class="grid-2">
+      <div style="display:grid;gap:20px">
+        <section class="card">
+          <div class="card-head"><h3>Próximas consultas</h3><div class="grow"></div>
+            ${p ? `<button class="btn btn-quiet btn-sm" data-nav="/cliente/consultas">Ver todas</button>` : ''}</div>
+          <div class="card-body flush">
+            ${!p ? `<div class="card-body">${emptyState('art-empty-cal', 'Identifique-se para ver sua agenda',
+                'Informe seu nome e data de nascimento em "Meu perfil" ou agende sua primeira consulta.',
+                `<button class="btn btn-primary btn-sm" data-nav="/cliente/perfil">Informar meus dados</button>`)}</div>`
+              : upcoming.length ? `<div class="list">${upcoming.map((a) => `<div class="list-row" data-cappt="${a.id}">
+                  <span class="tl-time num">${esc(a.time)}</span>
+                  <div class="tl-main"><b>${esc(a.reason)}</b><span>${fmtLong(a.date)}</span></div>
+                  <div class="when"><b>${fmtDate(a.date)}</b>${DOW_SHORT[dowOf(a.date)]}</div>
+                  ${chip(a.status)}</div>`).join('')}</div>`
+              : `<div class="card-body">${emptyState('art-empty-cal', 'Nenhuma consulta agendada',
+                  'Você não tem consultas marcadas. Escolha o melhor dia e horário para sua avaliação.',
+                  `<button class="btn btn-primary btn-sm" data-nav="/cliente/agendar">Agendar agora</button>`)}</div>`}
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><h3>Cuidados entre as consultas</h3></div>
+          <div class="card-body" style="display:grid;gap:12px">
+            <div class="care-card"><svg viewBox="0 0 200 160" aria-hidden="true"><use href="#art-care"/></svg>
+              <div><h3>Escovação e fio dental</h3>
+                <p>Escove por 2 minutos após as refeições e use fio dental antes de dormir — é o que mais reduz o risco de cárie entre as visitas.</p></div></div>
+            <div class="care-card"><svg viewBox="0 0 400 300" aria-hidden="true"><use href="#art-smile"/></svg>
+              <div><h3>Sensibilidade ou dor?</h3>
+                <p>Não espere a próxima consulta de rotina: reservamos encaixes diários de urgência às ${esc(s.openingTime)} e às 20:00.</p></div></div>
+          </div>
+        </section>
+      </div>
+
+      <div style="display:grid;gap:20px">
+        <section class="card">
+          <div class="card-head"><h3>A clínica</h3></div>
+          <figure style="margin:0"><svg viewBox="0 0 640 420" aria-label="Recepção da clínica"><use href="#art-reception"/></svg></figure>
+          <div class="card-body" style="display:grid;gap:12px;font-size:14px">
+            <div style="display:flex;gap:10px"><span class="ic" style="color:var(--teal-deep)"><svg width="18" height="18"><use href="#i-pin"/></svg></span>
+              <span>${esc(s.address)}</span></div>
+            <div style="display:flex;gap:10px"><span class="ic" style="color:var(--teal-deep)"><svg width="18" height="18"><use href="#i-phone"/></svg></span>
+              <span>${esc(s.phone)}</span></div>
+            <div style="display:flex;gap:10px"><span class="ic" style="color:var(--teal-deep)"><svg width="18" height="18"><use href="#i-clock"/></svg></span>
+              <span>Seg. a sáb., ${esc(s.openingTime)} às ${esc(s.closingTime)} · Domingo fechado</span></div>
+            <div style="display:flex;gap:10px"><span class="ic" style="color:var(--teal-deep)"><svg width="18" height="18"><use href="#i-user"/></svg></span>
+              <span>${esc(s.dentistName)} · ${esc(s.dentistCro)}</span></div>
+          </div>
+        </section>
+        <div class="banner-note">
+          <svg width="18" height="18" style="flex:none;color:var(--gold)"><use href="#i-bell"/></svg>
+          <span>Chegue com 10 minutos de antecedência. Cancelamentos pelo portal ajudam a liberar o horário para outro paciente.</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderClientSchedule(main) {
+  const v = state.view.book ||= { month: todayISO().slice(0, 7), date: '', time: '' };
+  const success = state.view.success;
+  if (success) {
+    const a = state.appointments.find((x) => x.id === success);
+    const p = a ? patientById(a.patientId) : null;
+    if (a && p) {
+      main.innerHTML = `<section class="card"><div class="card-body">
+        <div class="success-hero">
+          <svg viewBox="0 0 300 220" aria-hidden="true"><use href="#art-success"/></svg>
+          <h2>Consulta agendada com sucesso!</h2>
+          <p class="lede">Enviamos seu pedido para a recepção. A clínica confirma o horário pelo telefone informado.</p>
+        </div>
+        <div class="detail-grid" style="margin-top:20px">
+          <div><span>Paciente</span><b>${esc(p.name)}</b></div>
+          <div><span>Data</span><b>${fmtLong(a.date)}</b></div>
+          <div><span>Horário</span><b class="num">${esc(a.time)}</b></div>
+          <div><span>Status</span><b>${esc(STATUS[a.status])}</b></div>
+          <div class="full"><span>Motivo</span><b>${esc(a.reason)}</b></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px">
+          <button class="btn btn-primary" data-nav="/cliente/consultas">Ver minhas consultas</button>
+          <button class="btn btn-ghost" id="book-again">Agendar outra consulta</button>
+        </div>
+      </div></section>`;
+      $('#book-again', main).addEventListener('click', () => {
+        state.view.success = null;
+        state.view.book = { month: todayISO().slice(0, 7), date: '', time: '' };
+        render();
+      });
+      return;
+    }
+    state.view.success = null;
+  }
+
+  const me = myPatient();
+  main.innerHTML = `
+    <div class="topbar"><h1>Agendar consulta</h1></div>
+    <section class="portal-banner" style="grid-template-columns:1fr">
+      <div class="copy" style="padding:22px 26px">
+        <h2 style="font-size:22px">Escolha o dia e o horário que cabem na sua rotina</h2>
+        <p>A agenda mostra apenas horários realmente livres, de segunda a sábado, das ${esc(state.settings.openingTime)} às ${esc(state.settings.closingTime)}.</p>
+      </div>
+    </section>
+    <form id="book-form" style="display:grid;gap:20px">
+      <fieldset class="fieldset"><legend>1. Seus dados</legend>
+        ${patientFields(me || state.me || {}, { prefix: 'bk-' })}
+      </fieldset>
+      <div class="grid-2 even">
+        <fieldset class="fieldset"><legend>2. Dia desejado</legend>
+          <div id="book-cal">${calendarHTML(v.month, v.date)}</div>
+        </fieldset>
+        <fieldset class="fieldset"><legend>3. Horário desejado</legend>
+          <div id="book-slots">${slotsHTML(v.date, v.time)}</div>
+          <input type="hidden" name="time" value="${esc(v.time)}">
+          <input type="hidden" name="date" value="${esc(v.date)}">
+        </fieldset>
+      </div>
+      <fieldset class="fieldset"><legend>4. O que você precisa</legend>
+        <div class="field"><label for="bk-reason">O que deseja fazer no dente / motivo da consulta <span class="req">*</span></label>
+          <input id="bk-reason" name="reason" list="reason-list-c" placeholder="Ex.: dor no dente do siso, limpeza, avaliação de clareamento">
+          <datalist id="reason-list-c">${DEMO_REASONS.map((r) => `<option value="${esc(r)}"></option>`).join('')}</datalist></div>
+        <div class="field"><label for="bk-notes">Observações adicionais</label>
+          <textarea id="bk-notes" name="notes" placeholder="Algo que a equipe deva saber antes do atendimento"></textarea></div>
+        <button class="btn btn-primary btn-block" type="submit">
+          <svg width="17" height="17"><use href="#i-check"/></svg> Confirmar agendamento</button>
+      </fieldset>
+    </form>`;
+
+  const form = $('#book-form', main);
+  bindAge(form);
+  const refresh = () => {
+    $('#book-cal', main).innerHTML = calendarHTML(v.month, v.date);
+    $('#book-slots', main).innerHTML = slotsHTML(v.date, v.time);
+    form.querySelector('[name="time"]').value = v.time;
+    form.querySelector('[name="date"]').value = v.date;
+    bindPicker(main, v, refresh);
+  };
+  bindPicker(main, v, refresh);
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const data = formData(form);
+    const errors = validatePatientInput(data);
+    if (clean(data.reason).length < 3) errors.reason = 'Conte para a equipe o motivo da consulta.';
+    if (!v.date) errors.birthDate = errors.birthDate || '';
+    const rule = validateSchedule(v.date, v.time);
+    if (!v.date) { toast('Escolha um dia', 'Selecione uma data no calendário.', 'warn'); }
+    else if (!v.time) { toast('Escolha um horário', 'Selecione um dos horários disponíveis.', 'warn'); }
+    else if (rule) { toast('Não foi possível agendar', rule.message, 'bad'); }
+    if (Object.keys(errors).filter((k) => errors[k]).length) { fieldErrors(form, errors); return; }
+    if (!v.date || !v.time || rule) return;
+
+    const patientId = await findOrCreatePatient(data);
+    setMe({ name: clean(data.name, 120), birthDate: data.birthDate });
+    const id = await createAppointment({ patientId, date: v.date, time: v.time,
+      reason: data.reason, notes: data.notes, origin: 'portal' });
+    state.view.success = id;
+    toast('Consulta agendada!', `${fmtDate(v.date)} às ${v.time}`, 'ok');
+    render();
+  });
+}
+
+function renderClientAppointments(main) {
+  const p = myPatient();
+  if (!p) {
+    main.innerHTML = `<div class="topbar"><h1>Minhas consultas</h1></div>
+      ${identifyCard('Identifique-se', 'Informe o nome completo e a data de nascimento usados no agendamento para ver suas consultas.')}`;
+    bindIdentify(main);
+    return;
+  }
+  const { upcoming, history } = myAppointments();
+  const card = (a, cancellable) => `<div class="list-row" data-cappt="${a.id}">
+    <span class="tl-time num">${esc(a.time)}</span>
+    <div class="tl-main"><b>${esc(a.reason)}</b><span>${fmtLong(a.date)}</span></div>
+    <div class="when"><b>${fmtDate(a.date)}</b>${DOW_SHORT[dowOf(a.date)]}</div>
+    <div style="display:flex;gap:8px;align-items:center">${chip(a.status)}
+      ${cancellable ? `<button class="btn btn-quiet btn-sm" data-cancel="${a.id}" style="color:var(--bad)">Cancelar</button>` : ''}</div></div>`;
+
+  main.innerHTML = `
+    <div class="topbar"><h1>Minhas consultas</h1><div class="grow"></div>
+      <button class="btn btn-primary btn-sm" data-nav="/cliente/agendar">
+        <svg width="16" height="16"><use href="#i-plus"/></svg> Nova consulta</button></div>
+    <section class="card"><div class="card-head"><h3>Próximas consultas</h3><div class="grow"></div>
+        <span class="tag">${upcoming.length}</span></div>
+      <div class="card-body flush">${upcoming.length ? `<div class="list">${upcoming.map((a) => card(a, true)).join('')}</div>`
+        : `<div class="card-body">${emptyState('art-empty-cal', 'Nenhuma consulta agendada',
+          'Quando você marcar uma consulta, ela aparece aqui com data, horário e status.',
+          `<button class="btn btn-primary btn-sm" data-nav="/cliente/agendar">Agendar consulta</button>`)}</div>`}</div></section>
+    <section class="card"><div class="card-head"><h3>Histórico</h3><div class="grow"></div>
+        <span class="tag">${history.length}</span></div>
+      <div class="card-body flush">${history.length ? `<div class="list">${history.map((a) => card(a, false)).join('')}</div>`
+        : `<div class="card-body">${emptyState('art-empty-users', 'Ainda sem histórico',
+          'Suas consultas atendidas e canceladas ficam registradas nesta área.')}</div>`}</div></section>`;
+
+  $$('[data-cancel]', main).forEach((b) => b.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    const a = state.appointments.find((x) => x.id === b.dataset.cancel);
+    if (!a) return;
+    confirmDialog('Cancelar consulta',
+      `Sua consulta de ${fmtDate(a.date)} às ${a.time} será cancelada e o horário liberado para outro paciente.`,
+      'Cancelar consulta', async () => { await setStatus(a, 'cancelada'); toast('Consulta cancelada', '', 'warn'); });
+  }));
+}
+
+function renderClientProfile(main) {
+  const p = myPatient();
+  main.innerHTML = `<div class="topbar"><h1>Meu perfil</h1></div>` + (p ? '' :
+    identifyCard('Identifique-se', 'Informe o nome completo e a data de nascimento usados no agendamento para acessar seu perfil.'));
+  if (!p) { bindIdentify(main); return; }
+  const st = patientStats(p);
+  const extra = document.createElement('div');
+  extra.style.display = 'grid'; extra.style.gap = '20px';
+  extra.innerHTML = `
+    <section class="card">
+      <div class="card-head">${avatar(p, 46)}<div style="flex:1"><h3>${esc(p.name)}</h3>
+        <span class="muted" style="font-size:13px">${calcAge(p.birthDate).label} · ${SEX_LABEL[p.sex] || '—'}</span></div>
+        <button class="btn btn-quiet btn-sm" id="switch-me">Trocar de paciente</button></div>
+      <div class="card-body">
+        <div class="detail-grid">
+          <div><span>Data de nascimento</span><b>${fmtDate(p.birthDate)}</b></div>
+          <div><span>Idade</span><b>${calcAge(p.birthDate).label}</b></div>
+          <div><span>Total de consultas</span><b class="num">${st.total}</b></div>
+          <div><span>Última consulta</span><b>${st.last ? fmtDate(st.last.date) : '—'}</b></div>
+          <div><span>Próxima consulta</span><b>${st.next ? `${fmtDate(st.next.date)} · ${st.next.time}` : '—'}</b></div>
+          <div><span>Paciente desde</span><b>${fmtDate((p.createdAt || '').slice(0, 10) || todayISO())}</b></div>
+        </div>
+      </div>
+    </section>
+    <section class="card"><div class="card-head"><h3>Dados de contato</h3></div>
+      <div class="card-body">
+        <form class="form" id="profile-form">
+          <div class="form-row">
+            <div class="field"><label for="pr-phone">Telefone</label>
+              <input id="pr-phone" name="phone" value="${esc(p.phone || '')}" placeholder="(11) 99999-0000"></div>
+            <div class="field"><label for="pr-email">E-mail</label>
+              <input id="pr-email" name="email" type="email" value="${esc(p.email || '')}" placeholder="voce@exemplo.com"></div>
+          </div>
+          <div class="field"><label for="pr-notes">Observações para a equipe</label>
+            <textarea id="pr-notes" name="notes" placeholder="Alergias, medicações em uso, preferências de horário">${esc(p.notes || '')}</textarea></div>
+          <button class="btn btn-primary" type="submit">Salvar meus dados</button>
+        </form>
+      </div></section>`;
+  main.appendChild(extra);
+
+  $('#switch-me', main).addEventListener('click', () => {
+    setMe(null); toast('Dados removidos deste dispositivo'); render();
+  });
+  $('#profile-form', main).addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const form = ev.target;
+    const data = formData(form);
+    const errors = {};
+    if (data.phone && !isPhone(data.phone)) errors.phone = 'Telefone inválido — inclua o DDD.';
+    if (data.email && !isMail(data.email)) errors.email = 'E-mail inválido.';
+    if (Object.keys(errors).length) { fieldErrors(form, errors); return; }
+    await put('patients', p.id, { ...p, ...data });
+    toast('Dados atualizados', 'A clínica já enxerga suas informações novas.', 'ok');
+  });
+}
+
+/* ============================ render ============================ */
+function setActiveNav(root, route) {
+  $$('[data-match]', root).forEach((a) => a.classList.toggle('active', a.dataset.match === route));
+}
+
+function render() {
+  const route = state.route;
+  const isClient = route.startsWith('/cliente');
+  const isDentist = route.startsWith('/dentista');
+  $('#app-site').classList.toggle('on', !isClient && !isDentist);
+  $('#app-client').classList.toggle('on', isClient);
+  $('#app-dentist').classList.toggle('on', isDentist);
+
+  renderSite();
+
+  if (isClient) {
+    const main = $('#client-main');
+    setActiveNav($('#app-client'), route);
+    const p = myPatient();
+    $('#client-who').innerHTML = p
+      ? `<b>${esc(p.name)}</b><span class="muted">${calcAge(p.birthDate).label}</span>`
+      : `<b>Visitante</b><span class="muted">Identifique-se no perfil</span>`;
+    if (!state.ready) { main.innerHTML = `<div class="card">${loading()}</div>`; return; }
+    if (route === '/cliente') renderClientHome(main);
+    else if (route === '/cliente/agendar') renderClientSchedule(main);
+    else if (route === '/cliente/consultas') renderClientAppointments(main);
+    else renderClientProfile(main);
+    return;
+  }
+
+  if (isDentist) {
+    if (!state.dentist) { location.replace('#/'); state.route = '/'; render(); return; }
+    const main = $('#dentist-main');
+    setActiveNav($('#app-dentist'), route);
+    $('#dentist-who').innerHTML = `<b>${esc(state.settings.dentistName)}</b>
+      <span class="muted">${esc(state.settings.dentistCro)}</span>`;
+    if (!state.ready) { main.innerHTML = `<div class="card">${loading()}</div>`; return; }
+    if (route === '/dentista') renderDashboard(main);
+    else if (route === '/dentista/agenda') renderAgenda(main);
+    else if (route === '/dentista/pacientes') renderPatients(main);
+    else if (route === '/dentista/novo-agendamento') renderNewAppointment(main);
+    else renderSettings(main);
+  }
+}
+
+/* abre os detalhes ao clicar em qualquer cartão de consulta */
+document.addEventListener('click', (e) => {
+  const dent = e.target.closest('[data-appt]');
+  if (dent && state.dentist) { openAppointment(dent.getAttribute('data-appt')); return; }
+  const cli = e.target.closest('[data-cappt]');
+  if (!cli || e.target.closest('[data-cancel]')) return;
+  const a = state.appointments.find((x) => x.id === cli.getAttribute('data-cappt'));
+  if (!a) return;
+  const p = patientById(a.patientId);
+  openModal(`<div class="modal-head"><h3>Detalhes da consulta</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body" style="display:grid;gap:16px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">${chip(a.status)}
+        <span class="tag"><svg width="14" height="14"><use href="#i-calendar"/></svg>${fmtLong(a.date)}</span>
+        <span class="tag"><svg width="14" height="14"><use href="#i-clock"/></svg>${esc(a.time)}</span></div>
+      <div class="detail-grid">
+        <div><span>Paciente</span><b>${esc(p ? p.name : '—')}</b></div>
+        <div><span>Idade na consulta</span><b>${p ? calcAge(p.birthDate, a.date).label : '—'}</b></div>
+        <div class="full"><span>Motivo</span><b>${esc(a.reason)}</b></div>
+        <div class="full"><span>Observações</span><b>${esc(a.notes || 'Sem observações.')}</b></div>
+        <div class="full"><span>Onde</span><b>${esc(state.settings.address)}</b></div>
+      </div>
+    </div>`);
+});
+
+/* ============================ inicialização ============================ */
+function boot() {
+  try { state.dentist = sessionStorage.getItem('odontocare.dentist') === '1'; } catch { state.dentist = false; }
+  state.me = lsGet(ME_KEY, null);
+  state.route = currentRoute();
+  if (state.route.startsWith('/dentista') && !state.dentist) { location.replace('#/'); state.route = '/'; }
+  render();
+  initData();
+}
+boot();
+})();
+</script>
