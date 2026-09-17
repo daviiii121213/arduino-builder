@@ -32,8 +32,12 @@ export interface PatientRow {
 export interface AppointmentRow {
   id: number;
   patient_id: number;
+  service_id: number | null;
   date: string;
-  time: string;
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+  price: number;
   reason: string;
   notes: string | null;
   status: AppointmentStatus;
@@ -67,4 +71,16 @@ export interface NotificationRow {
   patient_id: number | null;
   read: number;
   created_at: string;
+}
+
+export interface ServiceRow {
+  id: number;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  duration_minutes: number;
+  active: number;
+  created_at: string;
+  updated_at: string;
 }

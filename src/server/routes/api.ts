@@ -8,6 +8,9 @@ import {
   createPatient, deletePatient, getPatient, listPatients, updatePatient
 } from '../services/patients';
 import { generateSlots } from '../services/scheduling';
+import {
+  createService, deleteService, getService, listServices, updateService
+} from '../services/catalog';
 import { getSettings, updateSettings } from '../services/settings';
 import { listNotifications, markAllRead, markRead } from '../services/notifications';
 import { calculateAge, todayIso } from '../utils/dates';
@@ -42,9 +45,18 @@ api.get('/public/settings', (_req, res) => {
   }));
 });
 
+api.get('/public/services', (_req, res) => res.json(ok(listServices(true))));
+
+api.get('/public/services/:id', (req, res) => res.json(ok(getService(id(req.params.id)))));
+
+/** Horários do dia já filtrados pela duração do serviço escolhido. */
 api.get('/public/slots', (req, res) => {
   const date = String(req.query.date || todayIso());
-  res.json(ok(generateSlots(date)));
+  const serviceId = Number(req.query.serviceId);
+  const duration = Number.isInteger(serviceId) && serviceId > 0
+    ? getService(serviceId).durationMinutes
+    : undefined;
+  res.json(ok(generateSlots(date, duration)));
 });
 
 api.get('/public/age', (req, res) => {
@@ -128,8 +140,20 @@ api.delete('/dentist/appointments/:id', (req, res) => {
 
 api.get('/dentist/slots', (req, res) => {
   const date = String(req.query.date || todayIso());
-  const includeOccupied = String(req.query.includeOccupied || '') === 'true';
-  res.json(ok(generateSlots(date, includeOccupied)));
+  const serviceId = Number(req.query.serviceId);
+  const duration = Number.isInteger(serviceId) && serviceId > 0
+    ? getService(serviceId).durationMinutes
+    : undefined;
+  res.json(ok(generateSlots(date, duration)));
+});
+
+api.get('/dentist/services', (_req, res) => res.json(ok(listServices())));
+api.post('/dentist/services', (req, res) => res.status(201).json(ok(createService(req.body ?? {}))));
+api.put('/dentist/services/:id', (req, res) =>
+  res.json(ok(updateService(id(req.params.id), req.body ?? {}))));
+api.delete('/dentist/services/:id', (req, res) => {
+  deleteService(id(req.params.id));
+  res.json(ok({ deleted: true }));
 });
 
 api.get('/dentist/settings', (_req, res) => res.json(ok(getSettings())));

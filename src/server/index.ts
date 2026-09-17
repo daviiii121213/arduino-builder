@@ -1,6 +1,6 @@
 import express from 'express';
 import path from 'path';
-import { db, ensureDefaultSettings, migrate } from './db';
+import { db, ensureDefaultServices, ensureDefaultSettings, migrate } from './db';
 import { errorHandler, parseCookies, requireDentist } from './middleware';
 import { api } from './routes/api';
 import { authRoutes } from './routes/auth';
@@ -11,6 +11,7 @@ const PUBLIC_DIR = path.resolve(__dirname, '..', '..', 'public');
 
 migrate();
 ensureDefaultSettings();
+ensureDefaultServices();
 ensureDentistUser();
 
 export const app = express();

@@ -44,17 +44,33 @@ export function migrate(): void {
       updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS services (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      name             TEXT NOT NULL UNIQUE,
+      description      TEXT NOT NULL DEFAULT '',
+      category         TEXT NOT NULL DEFAULT 'Geral',
+      price            REAL NOT NULL CHECK (price >= 0),
+      duration_minutes INTEGER NOT NULL CHECK (duration_minutes IN (30, 60, 90)),
+      active           INTEGER NOT NULL DEFAULT 1,
+      created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS appointments (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      patient_id  INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
-      date        TEXT NOT NULL,
-      time        TEXT NOT NULL,
-      reason      TEXT NOT NULL,
-      notes       TEXT,
-      status      TEXT NOT NULL DEFAULT 'aguardando',
-      origin      TEXT NOT NULL DEFAULT 'clinica',
-      created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      patient_id       INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+      service_id       INTEGER REFERENCES services(id) ON DELETE RESTRICT,
+      date             TEXT NOT NULL,
+      start_time       TEXT NOT NULL,
+      end_time         TEXT NOT NULL,
+      duration_minutes INTEGER NOT NULL,
+      price            REAL NOT NULL DEFAULT 0,
+      reason           TEXT NOT NULL,
+      notes            TEXT,
+      status           TEXT NOT NULL DEFAULT 'aguardando',
+      origin           TEXT NOT NULL DEFAULT 'clinica',
+      created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS clinic_settings (
@@ -85,12 +101,37 @@ export function migrate(): void {
     );
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_appointments_slot
-      ON appointments(date, time) WHERE status <> 'cancelada';
+      ON appointments(date, start_time) WHERE status <> 'cancelada';
     CREATE INDEX IF NOT EXISTS idx_appointments_patient ON appointments(patient_id);
     CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(date);
+    CREATE INDEX IF NOT EXISTS idx_services_active ON services(active);
     CREATE INDEX IF NOT EXISTS idx_patients_name ON patients(name);
     CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
   `);
+}
+
+/** Serviços iniciais: preço e duração são a fonte do orçamento e da agenda. */
+const DEFAULT_SERVICES: [string, string, string, number, number][] = [
+  ['Avaliação odontológica', 'Prevenção', 'Exame clínico inicial, radiografia quando necessária e plano de tratamento.', 80, 30],
+  ['Limpeza dental', 'Prevenção', 'Profilaxia, raspagem supragengival, polimento e aplicação de flúor.', 150, 60],
+  ['Restauração dentária', 'Dentística', 'Remoção do tecido cariado e restauração em resina composta.', 220, 60],
+  ['Clareamento dental', 'Estética', 'Clareamento em consultório com controle de sensibilidade.', 650, 90],
+  ['Extração dentária', 'Cirurgia', 'Extração com anestesia local e orientação pós-operatória.', 350, 90],
+  ['Aplicação de flúor', 'Prevenção', 'Flúor em moldeira, indicado no controle de cárie.', 90, 30],
+  ['Tratamento de canal (por sessão)', 'Endodontia', 'Endodontia com isolamento absoluto e instrumentação.', 650, 90],
+  ['Manutenção ortodôntica', 'Ortodontia', 'Ativação do arco e troca de elásticos.', 220, 30],
+  ['Raspagem periodontal (por quadrante)', 'Periodontia', 'Raspagem subgengival e alisamento radicular.', 380, 60],
+  ['Atendimento de urgência', 'Urgência', 'Alívio de dor, curativo ou recolagem provisória.', 200, 30]
+];
+
+export function ensureDefaultServices(): void {
+  const row = db.prepare('SELECT COUNT(*) AS total FROM services').get() as { total: number };
+  if (row.total > 0) return;
+  const insert = db.prepare(`
+    INSERT INTO services (name, category, description, price, duration_minutes)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+  db.transaction(() => { DEFAULT_SERVICES.forEach((s) => insert.run(...s)); })();
 }
 
 export function settingsRowExists(): boolean {

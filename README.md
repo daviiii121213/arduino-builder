@@ -86,6 +86,52 @@ Erros de banco e stack traces nunca são expostos ao cliente.
   ocupação por faixa de horário, novos pacientes por mês, recall de pacientes sem retorno há
   6 meses e aniversariantes do mês.
 
+## Serviços, orçamento e duração
+
+Cada serviço tem **preço e duração próprios** (30, 60 ou 90 minutos) cadastrados no banco.
+Eles são a única fonte do orçamento e do tempo reservado na agenda:
+
+| Serviço | Preço | Duração |
+|---|---|---|
+| Avaliação odontológica | R$ 80,00 | 30 minutos |
+| Limpeza dental | R$ 150,00 | 1 hora |
+| Restauração dentária | R$ 220,00 | 1 hora |
+| Clareamento dental | R$ 650,00 | 1 hora e 30 minutos |
+| Extração dentária | R$ 350,00 | 1 hora e 30 minutos |
+
+- **Orçamento automático** — ao escolher o serviço, o portal mostra na hora o preço, a duração,
+  o início e o término. O cliente não edita o preço; ele é gravado junto com o agendamento e
+  aparece nos detalhes da consulta para o dentista.
+- **Duração define o término** — `end_time = start_time + duration_minutes`, calculado no servidor.
+- **Grade de 30 minutos** — uma consulta ocupa quantas faixas forem necessárias: 1h30 iniciando
+  às 14:00 bloqueia 14:00, 14:30 e 15:00, e o próximo horário livre é 15:30.
+- **Conflitos** — a checagem é por sobreposição de períodos (`início_A < fim_B e início_B < fim_A`),
+  não por igualdade de horário, então uma consulta não pode começar no meio de outra.
+- **Regra de fechamento** — com fechamento às 22:00, o último início é 21:30 (30 min),
+  21:00 (1 hora) e 20:30 (1h30). Horários sem tempo suficiente aparecem como indisponíveis.
+- **Agenda proporcional** — na visão de dia, a consulta ocupa visualmente o tempo que dura:
+  30 min = 1 faixa, 1 hora = 2 faixas, 1h30 = 3 faixas.
+
+### Garantias do backend (`npm test`)
+
+O servidor nunca confia no que o formulário envia: busca o serviço no banco, obtém preço e
+duração de lá, calcula o término e refaz a verificação de conflito **dentro da transação que
+grava a consulta** — como as transações do better-sqlite3 são serializadas, dois pedidos
+simultâneos para o mesmo período não criam consultas conflitantes. São 15 testes cobrindo
+essas regras, incluindo a tentativa de forçar preço e duração pelo corpo da requisição.
+
+Endpoints relacionados:
+
+```
+GET    /api/public/services              catálogo ativo (preço, duração, descrição)
+GET    /api/public/slots?date=&serviceId= horários já filtrados pela duração do serviço
+POST   /api/public/appointments          agendamento do portal (preço/duração vêm do banco)
+GET    /api/dentist/services             catálogo completo
+POST   /api/dentist/services             cadastro (duração restrita a 30, 60 ou 90)
+PUT    /api/dentist/services/:id         edição
+DELETE /api/dentist/services/:id         remove, ou desativa se já houver consultas
+```
+
 ## Dados de demonstração
 
 Fictícios e removíveis: `npm run seed -- --reset` (ou apagar `data/clinic.db`).

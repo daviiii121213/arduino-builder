@@ -3,13 +3,14 @@
  * Todos os dados são inventados; basta apagar o arquivo data/clinic.db
  * (ou rodar `npm run seed -- --reset`) para remover a demonstração.
  */
-import { db, ensureDefaultSettings, migrate } from './db';
+import { db, ensureDefaultServices, ensureDefaultSettings, migrate } from './db';
 import { ensureDentistUser } from './services/auth';
 import { addDays, todayIso, weekdayOf } from './utils/dates';
 import { AppointmentStatus } from './types';
 
 migrate();
 ensureDefaultSettings();
+ensureDefaultServices();
 ensureDentistUser();
 
 const reset = process.argv.includes('--reset');
@@ -48,18 +49,31 @@ db.transaction(() => {
   }
 })();
 
-const reasons = [
-  'Limpeza e profilaxia',
-  'Avaliação de clareamento dental',
-  'Restauração em resina',
-  'Manutenção de aparelho ortodôntico',
-  'Tratamento de canal - sessão 2',
-  'Avaliação para implante',
-  'Extração de siso inferior',
-  'Consulta de rotina e raio-x',
-  'Aplicação de flúor (odontopediatria)',
-  'Ajuste de prótese'
+/** Cada motivo aponta para um serviço do catálogo: é ele que define preço e duração. */
+const reasons: [string, string][] = [
+  ['Limpeza e profilaxia', 'Limpeza dental'],
+  ['Avaliação de clareamento dental', 'Clareamento dental'],
+  ['Restauração no molar superior', 'Restauração dentária'],
+  ['Manutenção de aparelho ortodôntico', 'Manutenção ortodôntica'],
+  ['Tratamento de canal - sessão 2', 'Tratamento de canal (por sessão)'],
+  ['Avaliação inicial', 'Avaliação odontológica'],
+  ['Extração de siso inferior', 'Extração dentária'],
+  ['Consulta de rotina e raio-x', 'Avaliação odontológica'],
+  ['Aplicação de flúor (odontopediatria)', 'Aplicação de flúor'],
+  ['Raspagem periodontal', 'Raspagem periodontal (por quadrante)']
 ];
+
+interface SeedService { id: number; name: string; price: number; duration_minutes: number }
+const services = db.prepare('SELECT id, name, price, duration_minutes FROM services')
+  .all() as SeedService[];
+const serviceByName = new Map(services.map((s) => [s.name, s]));
+
+const toMinutes = (t: string) => {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+};
+const fromMinutes = (total: number) =>
+  `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 
 /** Próximo dia útil (a clínica não atende aos domingos). */
 function nextOpenDay(from: string, offset: number): string {
@@ -72,22 +86,32 @@ const today = todayIso();
 const slots = ['08:00', '09:00', '09:30', '10:30', '11:00', '14:00', '15:00', '16:30', '18:00', '19:30', '20:00'];
 
 const insertAppointment = db.prepare(`
-  INSERT INTO appointments (patient_id, date, time, reason, notes, status, origin, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+  INSERT INTO appointments
+    (patient_id, service_id, date, start_time, end_time, duration_minutes, price,
+     reason, notes, status, origin, created_at, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
 `);
 
-const used = new Set<string>();
+/** Guarda os períodos já ocupados por dia para não gerar sobreposição. */
+const busy = new Map<string, [number, number][]>();
 function book(date: string, time: string, patientIndex: number, reasonIndex: number,
               status: AppointmentStatus, origin: string, notes: string | null) {
-  const key = `${date} ${time}`;
-  if (used.has(key)) return;
-  used.add(key);
+  const [reason, serviceName] = reasons[reasonIndex % reasons.length];
+  const service = serviceByName.get(serviceName);
+  if (!service) return;
+
+  const start = toMinutes(time);
+  const end = start + service.duration_minutes;
+  const ranges = busy.get(date) ?? [];
+  if (status !== 'cancelada' && ranges.some(([s0, e0]) => start < e0 && s0 < end)) return;
+  ranges.push([start, end]);
+  busy.set(date, ranges);
+
   insertAppointment.run(
     patientIds[patientIndex % patientIds.length],
-    date, time,
-    reasons[reasonIndex % reasons.length],
-    notes,
-    status, origin
+    service.id,
+    date, time, fromMinutes(end), service.duration_minutes, service.price,
+    reason, notes, status, origin
   );
 }
 
@@ -145,6 +169,7 @@ db.prepare(`
 
 const totals = db.prepare(`
   SELECT (SELECT COUNT(*) FROM patients) AS pacientes,
-         (SELECT COUNT(*) FROM appointments) AS consultas
+         (SELECT COUNT(*) FROM appointments) AS consultas,
+         (SELECT COUNT(*) FROM services) AS servicos
 `).get();
 console.log('Dados de demonstração criados:', totals);

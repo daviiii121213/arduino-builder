@@ -36,9 +36,9 @@ export function mapPatient(row: PatientRow): Patient {
   const stats = db.prepare(`
     SELECT
       (SELECT COUNT(*) FROM appointments WHERE patient_id = @id AND status <> 'cancelada') AS total,
-      (SELECT MAX(date || ' ' || time) FROM appointments
+      (SELECT MAX(date || ' ' || start_time) FROM appointments
          WHERE patient_id = @id AND status <> 'cancelada' AND date <= @today) AS last,
-      (SELECT MIN(date || ' ' || time) FROM appointments
+      (SELECT MIN(date || ' ' || start_time) FROM appointments
          WHERE patient_id = @id AND status IN ('aguardando','confirmada','em_atendimento')
            AND date >= @today) AS next
   `).get({ id: row.id, today: todayIso() }) as { total: number; last: string | null; next: string | null };

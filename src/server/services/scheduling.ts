@@ -25,7 +25,24 @@ export function hoursMessage(openingTime: string, closingTime: string): string {
  * Regras de negócio de agendamento aplicadas SEMPRE no servidor
  * (o mesmo conjunto é espelhado no cliente apenas para feedback imediato).
  */
-export function validateSchedule(date: string, time: string, ignoreAppointmentId?: number): void {
+export function endTimeOf(start: string, durationMinutes: number): string {
+  return fromMinutes(toMinutes(start) + durationMinutes);
+}
+
+export function overflowMessage(duration: number, closingTime: string): string {
+  return `Este serviço leva ${duration} minutos e não cabe antes do fechamento às ${closingTime}.`;
+}
+
+/**
+ * Regras de agendamento aplicadas SEMPRE no servidor, considerando a duração
+ * completa do serviço (o cliente nunca define duração nem horário de término).
+ */
+export function validateSchedule(
+  date: string,
+  time: string,
+  durationMinutes: number,
+  ignoreAppointmentId?: number
+): void {
   const settings = getSettings();
 
   if (!isValidIsoDate(date)) throw badRequest(MESSAGES.invalidDate, { date: MESSAGES.invalidDate });
@@ -49,42 +66,69 @@ export function validateSchedule(date: string, time: string, ignoreAppointmentId
   const message = hoursMessage(settings.openingTime, settings.closingTime);
   if (minutes < opening || minutes >= closing) throw badRequest(message, { time: message });
 
-  if (isSlotTaken(date, time, ignoreAppointmentId)) {
+  if (minutes + durationMinutes > closing) {
+    const overflow = overflowMessage(durationMinutes, settings.closingTime);
+    throw badRequest(overflow, { time: overflow });
+  }
+
+  if (isSlotTaken(date, time, durationMinutes, ignoreAppointmentId)) {
     throw conflict(MESSAGES.occupied);
   }
 }
 
-export function isSlotTaken(date: string, time: string, ignoreAppointmentId?: number): boolean {
+/**
+ * Conflito por SOBREPOSIÇÃO de períodos: duas consultas colidem quando
+ * início_A < fim_B e início_B < fim_A. Comparar apenas o horário inicial
+ * deixaria passar uma consulta começando no meio de outra.
+ */
+export function isSlotTaken(
+  date: string,
+  time: string,
+  durationMinutes: number,
+  ignoreAppointmentId?: number
+): boolean {
   const row = db.prepare(`
     SELECT id FROM appointments
-    WHERE date = ? AND time = ? AND status <> 'cancelada' AND id <> ?
+    WHERE date = @date
+      AND status <> 'cancelada'
+      AND id <> @ignore
+      AND @start < end_time
+      AND start_time < @end
     LIMIT 1
-  `).get(date, time, ignoreAppointmentId ?? -1);
+  `).get({
+    date,
+    start: time,
+    end: endTimeOf(time, durationMinutes),
+    ignore: ignoreAppointmentId ?? -1
+  });
   return Boolean(row);
 }
 
 export interface SlotInfo {
   time: string;
+  endTime: string;
   available: boolean;
   reason?: string;
 }
 
 /** Gera dinamicamente os horários do dia com base nas configurações da clínica. */
-export function generateSlots(date: string, includeOccupied = false): {
+export function generateSlots(date: string, durationMinutes?: number): {
   date: string;
   open: boolean;
   message?: string;
   interval: number;
+  duration: number;
   slots: SlotInfo[];
 } {
   const settings = getSettings();
+  const duration = durationMinutes && durationMinutes > 0 ? durationMinutes : settings.slotInterval;
   if (!isValidIsoDate(date)) throw badRequest(MESSAGES.invalidDate, { date: MESSAGES.invalidDate });
 
   const weekday = weekdayOf(date);
   const today = todayIso();
 
   if (date < today) {
-    return { date, open: false, message: MESSAGES.pastDate, interval: settings.slotInterval, slots: [] };
+    return { date, open: false, message: MESSAGES.pastDate, interval: settings.slotInterval, duration, slots: [] };
   }
   if (settings.closedWeekdays.includes(weekday)) {
     return {
@@ -92,15 +136,14 @@ export function generateSlots(date: string, includeOccupied = false): {
       open: false,
       message: weekday === 0 ? MESSAGES.sunday : MESSAGES.closedDay,
       interval: settings.slotInterval,
+      duration,
       slots: []
     };
   }
 
-  const taken = new Set(
-    (db.prepare(
-      `SELECT time FROM appointments WHERE date = ? AND status <> 'cancelada'`
-    ).all(date) as { time: string }[]).map((r) => r.time)
-  );
+  const booked = db.prepare(
+    `SELECT start_time, end_time FROM appointments WHERE date = ? AND status <> 'cancelada'`
+  ).all(date) as { start_time: string; end_time: string }[];
 
   const opening = toMinutes(settings.openingTime);
   const closing = toMinutes(settings.closingTime);
@@ -109,15 +152,22 @@ export function generateSlots(date: string, includeOccupied = false): {
   const slots: SlotInfo[] = [];
   for (let m = opening; m < closing; m += settings.slotInterval) {
     const time = fromMinutes(m);
+    const end = m + duration;
     const isPast = m < nowMinutes;
-    const isTaken = taken.has(time);
-    if ((isTaken || isPast) && !includeOccupied) continue;
+    const overflows = end > closing;
+    const isTaken = booked.some((b) =>
+      m < toMinutes(b.end_time) && toMinutes(b.start_time) < end);
+
     slots.push({
       time,
-      available: !isTaken && !isPast,
-      reason: isTaken ? 'Horário ocupado' : isPast ? 'Horário já passou' : undefined
+      endTime: fromMinutes(end),
+      available: !isTaken && !isPast && !overflows,
+      reason: isTaken ? MESSAGES.occupied
+        : isPast ? 'Horário já passou'
+        : overflows ? overflowMessage(duration, settings.closingTime)
+        : undefined
     });
   }
 
-  return { date, open: true, interval: settings.slotInterval, slots };
+  return { date, open: true, interval: settings.slotInterval, duration, slots };
 }
