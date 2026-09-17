@@ -32,7 +32,8 @@ export function currentSession(req: Request): { userId: number } | null {
 export function requireDentist(req: Request, res: Response, next: NextFunction): void {
   const session = currentSession(req);
   if (!session) {
-    if (req.path.startsWith('/api')) {
+    // dentro de um Router, req.path é relativo ao mount: usar a URL original
+    if ((req.originalUrl || req.path).startsWith('/api')) {
       res.status(401).json({
         ok: false,
         error: { code: 'unauthorized', message: 'Sessão expirada. Faça login novamente.' }

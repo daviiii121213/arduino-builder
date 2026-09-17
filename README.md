@@ -132,6 +132,63 @@ PUT    /api/dentist/services/:id         edição
 DELETE /api/dentist/services/:id         remove, ou desativa se já houver consultas
 ```
 
+## Módulos clínicos no backend (API + SQLite)
+
+Os mesmos módulos da versão Artifact existem na versão Node, com a regra rodando
+no servidor e persistência em SQLite:
+
+| Módulo | Tabelas | Garantias do servidor |
+|---|---|---|
+| Odontograma | `odontograms` | numeração FDI validada (11-48 e 51-85), condições e faces restritas ao vocabulário do sistema, dente hígido sem marcação não ocupa espaço |
+| Anamnese | `anamneses` | exige as 12 respostas, aceita apenas sim/não, e os **alertas de risco são derivados no servidor** (o cliente não envia alertas) |
+| Prontuário | `clinical_records` | título e descrição mínimos, data não futura, e a consulta vinculada precisa ser do próprio paciente |
+| Planos de tratamento | `treatment_plans`, `treatment_plan_items` | nome e preço do item vêm do catálogo de serviços, **total recalculado a partir dos itens** (valor enviado pelo cliente é ignorado), desconto não pode superar o total |
+| Financeiro | `payments` | status (pago/pendente/vencido) derivado da data e da baixa, data do pagamento definida pelo servidor, parcelamento fecha o centavo exato e não permite cobrar duas vezes o mesmo plano |
+| Relatórios | agregações | faturamento por mês, serviços mais realizados, situação das consultas, ocupação por faixa, novos pacientes, recall e aniversariantes |
+
+Excluir um paciente remove odontograma, anamnese, prontuário, planos, itens e
+lançamentos em cascata.
+
+### Endpoints
+
+```
+# odontograma
+GET    /api/dentist/patients/:id/odontogram
+PUT    /api/dentist/patients/:id/odontogram          substitui o mapa inteiro
+PUT    /api/dentist/patients/:id/odontogram/:tooth   grava um dente
+DELETE /api/dentist/patients/:id/odontogram/:tooth   limpa o registro do dente
+
+# anamnese, prontuário
+GET    /api/dentist/patients/:id/anamnesis
+PUT    /api/dentist/patients/:id/anamnesis
+GET    /api/dentist/patients/:id/records
+POST   /api/dentist/patients/:id/records
+PUT    /api/dentist/records/:id
+DELETE /api/dentist/records/:id
+
+# planos e financeiro
+GET    /api/dentist/plans?patientId=&status=
+POST   /api/dentist/patients/:id/plans
+PUT    /api/dentist/plans/:id
+PUT    /api/dentist/plans/:id/items/:itemId          conclui ou reabre um item
+GET    /api/dentist/plans/:id/billing                total, lançado e restante
+POST   /api/dentist/plans/:id/billing                gera as parcelas
+GET    /api/dentist/payments?status=&patientId=
+POST   /api/dentist/patients/:id/payments
+POST   /api/dentist/payments/:id/settle              baixa ou estorno
+GET    /api/dentist/payments/summary?from=&to=
+GET    /api/dentist/reports
+
+# portal do paciente (exige nome + data de nascimento no corpo)
+GET    /api/public/anamnesis/questions
+POST   /api/public/anamnesis        salva as respostas do próprio paciente
+POST   /api/public/anamnesis/read   lê a própria ficha de saúde
+POST   /api/public/plans            orçamentos e pagamentos do próprio paciente
+POST   /api/public/plans/:id/accept aceita o próprio orçamento
+```
+
+`npm test` roda 32 testes: 15 de serviços/agendamento e 17 dos módulos clínicos.
+
 ## Dados de demonstração
 
 Fictícios e removíveis: `npm run seed -- --reset` (ou apagar `data/clinic.db`).

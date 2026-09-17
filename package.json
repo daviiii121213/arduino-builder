@@ -11,7 +11,7 @@
     "seed": "node dist/server/seed.js",
     "start": "node dist/server/index.js",
     "dev": "npm run build && npm start",
-    "test": "node tests/api.test.js"
+    "test": "node tests/api.test.js && node tests/clinical.test.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",

@@ -89,6 +89,71 @@ export function migrate(): void {
       updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- ---------- módulos clínicos ----------
+
+    CREATE TABLE IF NOT EXISTS odontograms (
+      patient_id  INTEGER PRIMARY KEY REFERENCES patients(id) ON DELETE CASCADE,
+      teeth       TEXT NOT NULL DEFAULT '{}',
+      created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS anamneses (
+      patient_id  INTEGER PRIMARY KEY REFERENCES patients(id) ON DELETE CASCADE,
+      answers     TEXT NOT NULL DEFAULT '{}',
+      filled_by   TEXT NOT NULL DEFAULT 'clinica',
+      created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS clinical_records (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      patient_id     INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+      appointment_id INTEGER REFERENCES appointments(id) ON DELETE SET NULL,
+      service_id     INTEGER REFERENCES services(id) ON DELETE SET NULL,
+      date           TEXT NOT NULL,
+      title          TEXT NOT NULL,
+      description    TEXT NOT NULL,
+      teeth          TEXT NOT NULL DEFAULT '',
+      created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS treatment_plans (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      patient_id  INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+      title       TEXT NOT NULL,
+      status      TEXT NOT NULL DEFAULT 'proposto',
+      discount    REAL NOT NULL DEFAULT 0 CHECK (discount >= 0),
+      created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS treatment_plan_items (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      plan_id     INTEGER NOT NULL REFERENCES treatment_plans(id) ON DELETE CASCADE,
+      service_id  INTEGER REFERENCES services(id) ON DELETE SET NULL,
+      name        TEXT NOT NULL,
+      tooth       TEXT NOT NULL DEFAULT '',
+      price       REAL NOT NULL CHECK (price >= 0),
+      status      TEXT NOT NULL DEFAULT 'pendente',
+      position    INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS payments (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      patient_id  INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+      plan_id     INTEGER REFERENCES treatment_plans(id) ON DELETE SET NULL,
+      description TEXT NOT NULL,
+      amount      REAL NOT NULL CHECK (amount >= 0),
+      method      TEXT NOT NULL DEFAULT 'pix',
+      installment TEXT NOT NULL DEFAULT '',
+      due_date    TEXT NOT NULL,
+      paid_at     TEXT,
+      created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS notifications (
       id             INTEGER PRIMARY KEY AUTOINCREMENT,
       type           TEXT NOT NULL,
@@ -105,6 +170,11 @@ export function migrate(): void {
     CREATE INDEX IF NOT EXISTS idx_appointments_patient ON appointments(patient_id);
     CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(date);
     CREATE INDEX IF NOT EXISTS idx_services_active ON services(active);
+    CREATE INDEX IF NOT EXISTS idx_records_patient ON clinical_records(patient_id, date DESC);
+    CREATE INDEX IF NOT EXISTS idx_plans_patient ON treatment_plans(patient_id);
+    CREATE INDEX IF NOT EXISTS idx_plan_items_plan ON treatment_plan_items(plan_id);
+    CREATE INDEX IF NOT EXISTS idx_payments_patient ON payments(patient_id);
+    CREATE INDEX IF NOT EXISTS idx_payments_due ON payments(due_date);
     CREATE INDEX IF NOT EXISTS idx_patients_name ON patients(name);
     CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
   `);

@@ -160,7 +160,8 @@ export function listPatients(query: PatientQuery): Patient[] {
   const where: string[] = [];
   const params: Record<string, unknown> = {};
   if (search) {
-    where.push('(name LIKE @search OR IFNULL(phone, "") LIKE @search OR IFNULL(email, "") LIKE @search)');
+    // aspas simples: no SQLite, "" é identificador e quebra a consulta
+    where.push(`(name LIKE @search OR IFNULL(phone, '') LIKE @search OR IFNULL(email, '') LIKE @search)`);
     params.search = `%${search}%`;
   }
   if (SEXES.includes(sex as Sex)) {

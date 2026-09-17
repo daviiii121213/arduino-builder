@@ -15,7 +15,17 @@ ensureDentistUser();
 
 const reset = process.argv.includes('--reset');
 if (reset) {
-  db.exec('DELETE FROM notifications; DELETE FROM appointments; DELETE FROM patients;');
+  db.exec(`
+    DELETE FROM payments;
+    DELETE FROM treatment_plan_items;
+    DELETE FROM treatment_plans;
+    DELETE FROM clinical_records;
+    DELETE FROM anamneses;
+    DELETE FROM odontograms;
+    DELETE FROM notifications;
+    DELETE FROM appointments;
+    DELETE FROM patients;
+  `);
 }
 
 const existing = db.prepare('SELECT COUNT(*) AS total FROM patients').get() as { total: number };
@@ -156,6 +166,124 @@ db.transaction(() => {
   });
 })();
 
+/* ---------------------------------------------------------------- odontogramas */
+const setChart = db.prepare(`
+  INSERT INTO odontograms (patient_id, teeth) VALUES (?, ?)
+  ON CONFLICT(patient_id) DO UPDATE SET teeth = excluded.teeth, updated_at = datetime('now')
+`);
+setChart.run(patientIds[0], JSON.stringify({
+  16: { status: 'restaurado', faces: { O: 'restaurado' }, note: 'Resina em bom estado.' },
+  26: { status: 'cariado', faces: { O: 'cariado', M: 'cariado' }, note: 'Cárie oclusal profunda.' },
+  36: { status: 'canal', faces: {}, note: 'Canal tratado em 2024.' },
+  47: { status: 'higido', faces: { D: 'restaurado' }, note: '' }
+}));
+setChart.run(patientIds[4], JSON.stringify({
+  46: { status: 'implante', faces: {}, note: 'Implante instalado, osseointegrado.' },
+  45: { status: 'coroa', faces: {}, note: 'Coroa de porcelana.' },
+  18: { status: 'ausente', faces: {}, note: 'Extraído em 2019.' },
+  28: { status: 'ausente', faces: {}, note: 'Extraído em 2019.' }
+}));
+setChart.run(patientIds[7], JSON.stringify({
+  38: { status: 'extrair', faces: {}, note: 'Siso incluso, extração programada.' },
+  48: { status: 'extrair', faces: {}, note: 'Siso incluso, extração programada.' }
+}));
+
+/* ------------------------------------------------------------------- anamneses */
+const yes = (detail = '') => ({ value: 'sim', detail });
+const no = () => ({ value: 'nao', detail: '' });
+const setAnamnesis = db.prepare(`
+  INSERT INTO anamneses (patient_id, answers, filled_by) VALUES (?, ?, ?)
+  ON CONFLICT(patient_id) DO UPDATE SET answers = excluded.answers, updated_at = datetime('now')
+`);
+setAnamnesis.run(patientIds[0], JSON.stringify({
+  saude_geral: no(), alergia: yes('Dipirona'), medicacao: no(), anticoagulante: no(),
+  diabetes: no(), pressao: no(), gestante: no(), hemorragia: no(), fumante: no(),
+  bruxismo: yes('À noite'), anestesia: no(), cirurgia: no()
+}), 'paciente');
+setAnamnesis.run(patientIds[6], JSON.stringify({
+  saude_geral: yes('Acompanhamento cardiológico'), alergia: no(), medicacao: yes('Losartana 50mg'),
+  anticoagulante: yes('AAS 100mg'), diabetes: yes(), pressao: yes('Hipertensão controlada'),
+  gestante: no(), hemorragia: no(), fumante: no(), bruxismo: no(), anestesia: no(), cirurgia: no()
+}), 'clinica');
+setAnamnesis.run(patientIds[4], JSON.stringify({
+  saude_geral: no(), alergia: no(), medicacao: no(), anticoagulante: no(), diabetes: no(),
+  pressao: no(), gestante: no(), hemorragia: no(), fumante: yes('10 cigarros/dia'),
+  bruxismo: no(), anestesia: no(), cirurgia: yes('Implante em 2025')
+}), 'paciente');
+
+/* ------------------------------------------------------- evolução clínica */
+const attended = db.prepare(`
+  SELECT id, patient_id, service_id, date FROM appointments
+  WHERE status = 'atendida' ORDER BY date DESC LIMIT 5
+`).all() as { id: number; patient_id: number; service_id: number | null; date: string }[];
+
+const evolutions: [string, string][] = [
+  ['Profilaxia realizada', 'Raspagem supragengival, polimento e aplicação de flúor. Orientada quanto ao uso de fio dental.'],
+  ['Manutenção ortodôntica', 'Troca de elásticos e ativação do arco superior. Sem intercorrências.'],
+  ['Restauração concluída', 'Remoção de tecido cariado no 26, isolamento absoluto e restauração em resina composta A2.'],
+  ['Consulta de rotina', 'Exame clínico e radiografia interproximal. Nenhuma lesão nova identificada.'],
+  ['Aplicação de flúor', 'Profilaxia e flúor em moldeira. Paciente colaborativo durante o atendimento.']
+];
+const insertRecord = db.prepare(`
+  INSERT INTO clinical_records (patient_id, appointment_id, service_id, date, title, description, teeth)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
+`);
+attended.forEach((a, i) => {
+  const [title, description] = evolutions[i % evolutions.length];
+  insertRecord.run(a.patient_id, a.id, a.service_id, a.date, title, description, i === 2 ? '26' : '');
+});
+
+/* ------------------------------------------------- planos de tratamento */
+const serviceByNameSeed = new Map(services.map((s) => [s.name, s]));
+const insertPlan = db.prepare(`
+  INSERT INTO treatment_plans (patient_id, title, status, discount) VALUES (?, ?, ?, ?)
+`);
+const insertItem = db.prepare(`
+  INSERT INTO treatment_plan_items (plan_id, service_id, name, tooth, price, status, position)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
+`);
+
+function addPlan(patientIndex: number, title: string, status: string, discount: number,
+                 items: [string, string, string][]) {
+  const planId = Number(insertPlan.run(patientIds[patientIndex], title, status, discount).lastInsertRowid);
+  items.forEach(([serviceName, tooth, itemStatus], position) => {
+    const service = serviceByNameSeed.get(serviceName);
+    if (!service) return;
+    insertItem.run(planId, service.id, service.name, tooth, service.price, itemStatus, position);
+  });
+  return planId;
+}
+
+const plan1 = addPlan(0, 'Reabilitação dos molares superiores', 'em_andamento', 100, [
+  ['Restauração dentária', '26', 'concluido'],
+  ['Tratamento de canal (por sessão)', '26', 'pendente'],
+  ['Limpeza dental', '', 'concluido']
+]);
+const plan2 = addPlan(4, 'Prótese sobre implante — inferior direito', 'aprovado', 0, [
+  ['Restauração dentária', '46', 'concluido'],
+  ['Clareamento dental', '', 'pendente']
+]);
+addPlan(7, 'Extração dos sisos inclusos', 'proposto', 150, [
+  ['Extração dentária', '38', 'pendente'],
+  ['Extração dentária', '48', 'pendente']
+]);
+
+/* ------------------------------------------------------------- financeiro */
+const insertPayment = db.prepare(`
+  INSERT INTO payments (patient_id, plan_id, description, amount, method, installment, due_date, paid_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`);
+const dueIn = (offset: number) => addDays(today, offset);
+
+insertPayment.run(patientIds[0], plan1, 'Entrada — reabilitação', 500, 'pix', '1/3', dueIn(-20), dueIn(-20));
+insertPayment.run(patientIds[0], plan1, 'Parcela 2/3 — reabilitação', 400, 'credito', '2/3', dueIn(-2), null);
+insertPayment.run(patientIds[0], plan1, 'Parcela 3/3 — reabilitação', 370, 'credito', '3/3', dueIn(28), null);
+insertPayment.run(patientIds[4], plan2, 'Entrada — prótese sobre implante', 500, 'pix', '1/2', dueIn(-45), dueIn(-45));
+insertPayment.run(patientIds[4], plan2, 'Parcela 2/2 — prótese sobre implante', 370, 'boleto', '2/2', dueIn(12), null);
+insertPayment.run(patientIds[1], null, 'Manutenção ortodôntica — mês corrente', 220, 'debito', '', dueIn(-6), dueIn(-6));
+insertPayment.run(patientIds[5], null, 'Limpeza dental', 150, 'dinheiro', '', dueIn(-12), dueIn(-12));
+insertPayment.run(patientIds[9], null, 'Avaliação odontológica', 80, 'pix', '', dueIn(-30), null);
+
 db.prepare(`
   INSERT INTO notifications (type, title, message, created_at)
   VALUES ('novo_agendamento', 'Novo agendamento pelo portal',
@@ -170,6 +298,11 @@ db.prepare(`
 const totals = db.prepare(`
   SELECT (SELECT COUNT(*) FROM patients) AS pacientes,
          (SELECT COUNT(*) FROM appointments) AS consultas,
-         (SELECT COUNT(*) FROM services) AS servicos
+         (SELECT COUNT(*) FROM services) AS servicos,
+         (SELECT COUNT(*) FROM odontograms) AS odontogramas,
+         (SELECT COUNT(*) FROM anamneses) AS anamneses,
+         (SELECT COUNT(*) FROM clinical_records) AS evolucoes,
+         (SELECT COUNT(*) FROM treatment_plans) AS planos,
+         (SELECT COUNT(*) FROM payments) AS lancamentos
 `).get();
 console.log('Dados de demonstração criados:', totals);
