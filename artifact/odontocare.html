@@ -20,6 +20,8 @@
   --display:"Fraunces",Georgia,"Times New Roman",serif;
   --body:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --maxw:1180px;
+  --chart-1:#0E9488; --chart-grid:#D8E4E1;
+  --st-ok:#2F8F5B; --st-warn:#D9A017; --st-bad:#A8332A; --st-neutral:#8AA3A5;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -35,6 +37,8 @@
     --shadow-sm:0 1px 2px rgba(0,0,0,.4);
     --shadow-md:0 4px 14px rgba(0,0,0,.45);
     --shadow-lg:0 18px 44px rgba(0,0,0,.55);
+    --chart-1:#37B8A8; --chart-grid:#1E4351;
+    --st-ok:#5BC286; --st-warn:#E0B45A; --st-bad:#E0776B; --st-neutral:#7F9BA0;
   }
 }
 :root[data-theme="dark"]{
@@ -50,6 +54,8 @@
   --shadow-sm:0 1px 2px rgba(0,0,0,.4);
   --shadow-md:0 4px 14px rgba(0,0,0,.45);
   --shadow-lg:0 18px 44px rgba(0,0,0,.55);
+  --chart-1:#37B8A8; --chart-grid:#1E4351;
+  --st-ok:#5BC286; --st-warn:#E0B45A; --st-bad:#E0776B; --st-neutral:#7F9BA0;
 }
 *{box-sizing:border-box}
 body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
@@ -406,6 +412,121 @@ button,input,select,textarea{font:inherit;color:inherit}
 .care-card svg{width:88px;height:auto}
 .care-card h3{font-size:16px;font-family:var(--body);font-weight:700}
 .care-card p{font-size:13.5px;color:var(--ink-soft)}
+
+/* ---------- odontograma ---------- */
+.odo{display:grid;gap:14px}
+.odo-arch{display:grid;gap:10px;justify-items:center}
+.odo-row{display:flex;gap:3px;flex-wrap:nowrap;justify-content:center;overflow-x:auto;padding-bottom:4px;max-width:100%}
+.tooth{display:grid;gap:3px;justify-items:center;cursor:pointer;flex:none}
+.tooth svg{display:block;border-radius:6px}
+.tooth span{font-size:10px;font-weight:700;color:var(--ink-mute);font-variant-numeric:tabular-nums}
+.tooth.sel span{color:var(--teal-deep)}
+.tooth.sel svg{outline:2.5px solid var(--teal);outline-offset:2px}
+.tooth:hover svg{outline:2px solid var(--line-strong);outline-offset:2px}
+.odo-mid{width:16px;flex:none;border-left:2px dashed var(--line-strong);margin:0 4px;align-self:stretch}
+.odo-legend{display:flex;flex-wrap:wrap;gap:8px}
+.odo-legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);
+  background:var(--surface-2);border-radius:999px;padding:4px 10px}
+.odo-legend i{width:11px;height:11px;border-radius:3px;display:block;border:1px solid rgba(0,0,0,.12)}
+.odo-panel{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;display:grid;gap:14px}
+@media (max-width:760px){.odo-panel{grid-template-columns:1fr!important}}
+.odo-faces{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.odo-faces button{padding:8px 4px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);
+  font-size:11.5px;font-weight:600;cursor:pointer;display:grid;gap:3px;justify-items:center}
+.odo-faces button.on{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-soft)}
+.odo-faces i{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.12)}
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:7px}
+.pick{display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:10px;border:1px solid var(--line-strong);
+  background:var(--surface);font-size:12.5px;font-weight:600;cursor:pointer;text-align:left}
+.pick i{width:12px;height:12px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.12)}
+.pick.on{border-color:var(--teal);background:var(--teal-soft);color:var(--teal-deep)}
+
+/* ---------- prontuário / anamnese ---------- */
+.evo{display:grid;gap:0}
+.evo-item{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.evo-item:last-child{border-bottom:0}
+.evo-mark{width:34px;height:34px;border-radius:50%;background:var(--teal-soft);color:var(--teal-deep);
+  display:grid;place-items:center;position:relative}
+.evo-mark::after{content:"";position:absolute;top:38px;bottom:-22px;width:2px;background:var(--line)}
+.evo-item:last-child .evo-mark::after{display:none}
+.evo-body b{font-size:14.5px;display:block}
+.evo-body time{font-size:12px;color:var(--ink-mute)}
+.evo-body p{font-size:13.5px;color:var(--ink-soft);margin-top:5px}
+.alert-flags{display:flex;flex-wrap:wrap;gap:7px}
+.flag{display:inline-flex;align-items:center;gap:6px;background:var(--bad-soft);color:var(--bad);
+  border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:700}
+.flag.warn{background:var(--warn-soft);color:var(--warn)}
+.q-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.q-row:last-child{border-bottom:0}
+.q-row p{font-size:14px}
+.q-row .hint{font-size:12px;color:var(--ink-mute)}
+.yn{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.yn button{border:0;background:none;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--ink-mute);cursor:pointer}
+.yn button.on{background:var(--surface);color:var(--teal-deep);box-shadow:var(--shadow-sm)}
+.yn button.on.no{color:var(--ink-soft)}
+
+/* ---------- planos e financeiro ---------- */
+.plan-card{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-sm);overflow:hidden}
+.plan-head{display:flex;gap:12px;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.plan-head b{font-size:16px}
+.plan-total{margin-left:auto;text-align:right}
+.plan-total b{font-family:var(--display);font-size:22px;font-variant-numeric:tabular-nums;display:block}
+.plan-total span{font-size:11.5px;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.plan-items{display:grid}
+.plan-item{display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);font-size:14px}
+.plan-item:last-child{border-bottom:0}
+.plan-item .tooth-tag{background:var(--surface-2);border-radius:8px;padding:4px 9px;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.money{font-variant-numeric:tabular-nums;font-weight:600}
+.money.in{color:var(--ok)}
+.money.out{color:var(--bad)}
+.s-pago{background:var(--ok-soft);color:var(--ok)}
+.s-pendente{background:var(--warn-soft);color:var(--warn)}
+.s-vencido{background:var(--bad-soft);color:var(--bad)}
+.s-proposto{background:var(--info-soft);color:var(--info)}
+.s-aprovado{background:var(--teal-soft);color:var(--teal-deep)}
+.s-em_andamento{background:var(--warn-soft);color:var(--warn)}
+.s-concluido{background:var(--ok-soft);color:var(--ok)}
+.s-recusado{background:var(--bad-soft);color:var(--bad)}
+.table-wrap{overflow-x:auto}
+table.data{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+table.data th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-mute);
+  font-weight:700;padding:11px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.data td{padding:12px 16px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.data tr:last-child td{border-bottom:0}
+table.data tbody tr:hover{background:var(--surface-2)}
+table.data td.num,table.data th.num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- gráficos dos relatórios ---------- */
+.fig{display:grid;gap:4px}
+.fig h4{font-size:15px;font-family:var(--body);font-weight:700}
+.fig .sub{font-size:12.5px;color:var(--ink-mute);margin-bottom:10px}
+.plot{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:10px;
+  height:200px;border-bottom:1px solid var(--line)}
+.plot .gl{position:absolute;left:0;right:0;height:1px;background:var(--chart-grid);pointer-events:none}
+.plot .cbar{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:5px}
+.plot .cbar .fillc{width:100%;max-width:24px;background:var(--chart-1);border-radius:4px 4px 0 0;min-height:3px;
+  transition:height .4s ease;cursor:pointer}
+.plot .cbar .cap{font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-soft);
+  white-space:nowrap;flex:none}
+.plot-x{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:10px;margin-top:7px}
+.plot-x span{font-size:11px;color:var(--ink-mute);text-align:center;line-height:1.25}
+.hbars{display:grid;gap:9px}
+.hbar{display:grid;grid-template-columns:150px 1fr auto;gap:12px;align-items:center;font-size:13px}
+.hbar .track{height:14px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.hbar .fillh{height:100%;background:var(--chart-1);border-radius:0 4px 4px 0;cursor:pointer}
+.hbar .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-soft)}
+.hbar .v{font-variant-numeric:tabular-nums;font-weight:700;font-size:13px}
+@media (max-width:620px){.hbar{grid-template-columns:110px 1fr auto}}
+.stackbar{display:flex;gap:2px;height:26px;border-radius:5px;overflow:hidden;background:var(--surface-2)}
+.stackbar div{position:relative;cursor:pointer}
+.stack-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:11px}
+.stack-legend span{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft)}
+.stack-legend i{width:11px;height:11px;border-radius:3px}
+.chart-tip{position:fixed;z-index:95;background:var(--ink);color:var(--ground);border-radius:9px;padding:7px 11px;
+  font-size:12.5px;font-weight:600;pointer-events:none;box-shadow:var(--shadow-lg);white-space:nowrap}
+.hero-num{display:grid;gap:3px}
+.hero-num b{font-family:var(--display);font-size:38px;line-height:1;font-variant-numeric:tabular-nums}
+.hero-num span{font-size:12.5px;color:var(--ink-mute)}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -851,6 +972,8 @@ button,input,select,textarea{font:inherit;color:inherit}
    <a data-nav="/cliente" data-match="/cliente"><span class="ic"><svg width="19" height="19"><use href="#i-home"/></svg></span>Início</a>
    <a data-nav="/cliente/agendar" data-match="/cliente/agendar"><span class="ic"><svg width="19" height="19"><use href="#i-plus"/></svg></span>Agendar consulta</a>
    <a data-nav="/cliente/consultas" data-match="/cliente/consultas"><span class="ic"><svg width="19" height="19"><use href="#i-calendar"/></svg></span>Minhas consultas</a>
+   <a data-nav="/cliente/orcamentos" data-match="/cliente/orcamentos"><span class="ic"><svg width="19" height="19"><use href="#i-sparkle"/></svg></span>Meus orçamentos</a>
+   <a data-nav="/cliente/saude" data-match="/cliente/saude"><span class="ic"><svg width="19" height="19"><use href="#i-shield"/></svg></span>Minha saúde</a>
    <a data-nav="/cliente/perfil" data-match="/cliente/perfil"><span class="ic"><svg width="19" height="19"><use href="#i-user"/></svg></span>Meu perfil</a>
    <div class="spacer"></div>
    <div class="who" id="client-who"></div>
@@ -862,6 +985,7 @@ button,input,select,textarea{font:inherit;color:inherit}
   <a data-nav="/cliente" data-match="/cliente"><svg width="21" height="21"><use href="#i-home"/></svg>Início</a>
   <a data-nav="/cliente/agendar" data-match="/cliente/agendar"><svg width="21" height="21"><use href="#i-plus"/></svg>Agendar</a>
   <a data-nav="/cliente/consultas" data-match="/cliente/consultas"><svg width="21" height="21"><use href="#i-calendar"/></svg>Consultas</a>
+  <a data-nav="/cliente/orcamentos" data-match="/cliente/orcamentos"><svg width="21" height="21"><use href="#i-sparkle"/></svg>Orçamentos</a>
   <a data-nav="/cliente/perfil" data-match="/cliente/perfil"><svg width="21" height="21"><use href="#i-user"/></svg>Perfil</a>
  </nav>
 </div>
@@ -879,7 +1003,11 @@ button,input,select,textarea{font:inherit;color:inherit}
    <a data-nav="/dentista/agenda" data-match="/dentista/agenda"><span class="ic"><svg width="19" height="19"><use href="#i-calendar"/></svg></span>Agenda</a>
    <a data-nav="/dentista/pacientes" data-match="/dentista/pacientes"><span class="ic"><svg width="19" height="19"><use href="#i-users"/></svg></span>Pacientes</a>
    <a data-nav="/dentista/novo-agendamento" data-match="/dentista/novo-agendamento"><span class="ic"><svg width="19" height="19"><use href="#i-plus"/></svg></span>Novo agendamento</a>
+   <div class="side-label">Gestão financeira</div>
+   <a data-nav="/dentista/financeiro" data-match="/dentista/financeiro"><span class="ic"><svg width="19" height="19"><use href="#i-sparkle"/></svg></span>Financeiro</a>
+   <a data-nav="/dentista/relatorios" data-match="/dentista/relatorios"><span class="ic"><svg width="19" height="19"><use href="#i-list"/></svg></span>Relatórios</a>
    <div class="side-label">Clínica</div>
+   <a data-nav="/dentista/procedimentos" data-match="/dentista/procedimentos"><span class="ic"><svg width="19" height="19"><use href="#i-tooth"/></svg></span>Procedimentos</a>
    <a data-nav="/dentista/configuracoes" data-match="/dentista/configuracoes"><span class="ic"><svg width="19" height="19"><use href="#i-gear"/></svg></span>Configurações</a>
    <div class="spacer"></div>
    <div class="who" id="dentist-who"></div>
@@ -891,7 +1019,8 @@ button,input,select,textarea{font:inherit;color:inherit}
   <a data-nav="/dentista" data-match="/dentista"><svg width="21" height="21"><use href="#i-home"/></svg>Painel</a>
   <a data-nav="/dentista/agenda" data-match="/dentista/agenda"><svg width="21" height="21"><use href="#i-calendar"/></svg>Agenda</a>
   <a data-nav="/dentista/pacientes" data-match="/dentista/pacientes"><svg width="21" height="21"><use href="#i-users"/></svg>Pacientes</a>
-  <a data-nav="/dentista/novo-agendamento" data-match="/dentista/novo-agendamento"><svg width="21" height="21"><use href="#i-plus"/></svg>Novo</a>
+  <a data-nav="/dentista/financeiro" data-match="/dentista/financeiro"><svg width="21" height="21"><use href="#i-sparkle"/></svg>Financeiro</a>
+  <a data-nav="/dentista/relatorios" data-match="/dentista/relatorios"><svg width="21" height="21"><use href="#i-list"/></svg>Relatórios</a>
  </nav>
 </div>
 
@@ -987,6 +1116,7 @@ const DEFAULT_SETTINGS = {
 
 const state = {
   patients: [], appointments: [], notifications: [],
+  procedures: [], plans: [], payments: [], records: [], odontograms: [], anamneses: [],
   settings: { ...DEFAULT_SETTINGS },
   ready: false, offline: false, route: '/', dentist: false, me: null,
   view: {}
@@ -1000,7 +1130,8 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } ca
 /* Usa a capability `db` (persistente e compartilhada entre os visitantes).
    Sem ela, o portal continua funcionando com armazenamento local do navegador. */
 let DB = null;
-const COLLS = ['patients', 'appointments', 'notifications'];
+const COLLS = ['patients', 'appointments', 'notifications', 'procedures', 'plans',
+  'payments', 'records', 'odontograms', 'anamneses'];
 
 async function initData() {
   try { DB = await window.claude?.use?.('db') ?? null; } catch { DB = null; }
@@ -1008,15 +1139,14 @@ async function initData() {
     state.offline = true;
     const local = lsGet(LS, null);
     if (local) {
-      state.patients = local.patients || []; state.appointments = local.appointments || [];
-      state.notifications = local.notifications || [];
+      COLLS.forEach((c) => { state[c] = local[c] || []; });
       state.settings = { ...DEFAULT_SETTINGS, ...(local.settings || {}) };
     }
     if (!state.patients.length) seed();
     state.ready = true; render();
     return;
   }
-  const first = { patients: false, appointments: false, notifications: false, settings: false };
+  const first = Object.fromEntries([...COLLS, 'settings'].map((k) => [k, false]));
   const done = () => { if (Object.values(first).every(Boolean) && !state.ready) { state.ready = true; maybeSeed(); render(); } };
 
   for (const coll of COLLS) {
@@ -1037,8 +1167,9 @@ async function initData() {
 
 function persistLocal() {
   if (!state.offline) return;
-  lsSet(LS, { patients: state.patients, appointments: state.appointments,
-    notifications: state.notifications, settings: state.settings });
+  const snapshot = { settings: state.settings };
+  COLLS.forEach((c) => { snapshot[c] = state[c]; });
+  lsSet(LS, snapshot);
 }
 
 async function put(coll, id, data) {
@@ -1073,14 +1204,23 @@ async function notify(type, title, message, extra = {}) {
 /* ============================ regras de negócio ============================ */
 function isOpenDay(iso) { return !(state.settings.closedWeekdays || [0]).includes(dowOf(iso)); }
 
-function slotTaken(date, time, ignoreId) {
-  return state.appointments.some((a) => a.date === date && a.time === time &&
-    a.status !== 'cancelada' && a.id !== ignoreId);
+const apptDuration = (a) => Number(a?.durationMin) || state.settings.slotInterval;
+
+/** Ocupação por sobreposição de intervalos: respeita a duração de cada procedimento. */
+function slotTaken(date, time, ignoreId, duration) {
+  const start = toMin(time);
+  const end = start + (Number(duration) || state.settings.slotInterval);
+  return state.appointments.some((a) => {
+    if (a.date !== date || a.status === 'cancelada' || a.id === ignoreId) return false;
+    const aStart = toMin(a.time);
+    return start < aStart + apptDuration(a) && aStart < end;
+  });
 }
 
 /** Mesma validação usada pelo portal do paciente e pelo painel do dentista. */
-function validateSchedule(date, time, ignoreId) {
+function validateSchedule(date, time, ignoreId, duration) {
   const s = state.settings;
+  const span = Number(duration) || s.slotInterval;
   if (!isISODate(date)) return { field: 'date', message: MSG.invalidDate };
   if (!/^\d{2}:\d{2}$/.test(time || '')) return { field: 'time', message: MSG.invalidTime };
   if (date < todayISO()) return { field: 'date', message: MSG.past };
@@ -1090,7 +1230,9 @@ function validateSchedule(date, time, ignoreId) {
   const min = toMin(time);
   if (min < toMin(s.openingTime) || min >= toMin(s.closingTime))
     return { field: 'time', message: `Selecione um horário entre ${s.openingTime} e ${s.closingTime}.` };
-  if (slotTaken(date, time, ignoreId)) return { field: 'time', message: MSG.occupied };
+  if (min + span > toMin(s.closingTime))
+    return { field: 'time', message: `Este procedimento leva ${span} min e ultrapassa o fechamento às ${s.closingTime}.` };
+  if (slotTaken(date, time, ignoreId, span)) return { field: 'time', message: MSG.occupied };
   return null;
 }
 
@@ -1102,12 +1244,15 @@ function slotsFor(date, opts = {}) {
   if (!isOpenDay(date)) return { open: false, message: dowOf(date) === 0 ? MSG.sunday : MSG.closed, slots: [] };
   const out = [];
   const now = date === todayISO() ? toMin(nowHM()) : -1;
+  const span = Number(opts.duration) || s.slotInterval;
   for (let m = toMin(s.openingTime); m < toMin(s.closingTime); m += s.slotInterval) {
     const time = fromMin(m);
-    const taken = slotTaken(date, time, opts.ignoreId);
+    const taken = slotTaken(date, time, opts.ignoreId, span);
     const past = m < now;
-    if ((taken || past) && !opts.includeOccupied) continue;
-    out.push({ time, available: !taken && !past, reason: taken ? 'Ocupado' : past ? 'Já passou' : '' });
+    const overflow = m + span > toMin(s.closingTime);
+    if ((taken || past || overflow) && !opts.includeOccupied) continue;
+    out.push({ time, available: !taken && !past && !overflow,
+      reason: taken ? 'Ocupado' : past ? 'Já passou' : overflow ? 'Sem tempo até o fechamento' : '' });
   }
   return { open: true, slots: out };
 }
@@ -1149,10 +1294,15 @@ function buildDemo() {
   const openDay = (offset) => { let d = addDays(todayISO(), offset); 
     while (!isOpenDay(d)) d = addDays(d, offset < 0 ? -1 : 1); return d; };
   const appts = [];
+  const procs = DEMO_PROCEDURES.map(([name, category, durationMin, price]) =>
+    ({ id: uid(), name, category, durationMin, price, active: true, createdAt: now }));
+  const REASON_PROC = [1, 7, 3, 13, 4, 0, 6, 0, 2, 10];
   const add = (date, time, pi, ri, status, origin, notes = '') => {
     if (appts.some((a) => a.date === date && a.time === time)) return;
+    const proc = procs[REASON_PROC[ri % REASON_PROC.length]];
     appts.push({ id: uid(), patientId: patients[pi].id, date, time, reason: DEMO_REASONS[ri],
-      notes, status, origin, createdAt: now, updatedAt: now });
+      notes, status, origin, procedureId: proc.id, durationMin: proc.durationMin, price: proc.price,
+      createdAt: now, updatedAt: now });
   };
   const t = todayISO();
   if (isOpenDay(t)) {
@@ -1180,7 +1330,96 @@ function buildDemo() {
       message: 'Carlos Eduardo Nunes tem manutenção ortodôntica hoje às 09:30.', read: false,
       createdAt: new Date(Date.now() - 2 * 3600000).toISOString() }
   ];
-  return { patients, appts, notifications };
+  /* --- odontogramas --- */
+  const chart = (patientId, teeth) => ({ id: patientId, teeth, updatedAt: now });
+  const odontograms = [
+    chart(patients[0].id, {
+      16: { status: 'restaurado', faces: { O: 'restaurado' }, note: 'Resina em bom estado.' },
+      26: { status: 'cariado', faces: { O: 'cariado', M: 'cariado' }, note: 'Cárie oclusal profunda.' },
+      36: { status: 'canal', faces: {}, note: 'Canal tratado em 2024.' },
+      47: { status: 'higido', faces: { D: 'restaurado' }, note: '' }
+    }),
+    chart(patients[4].id, {
+      46: { status: 'implante', faces: {}, note: 'Implante instalado, osseointegrado.' },
+      45: { status: 'coroa', faces: {}, note: 'Coroa de porcelana.' },
+      18: { status: 'ausente', faces: {}, note: 'Extraído em 2019.' },
+      28: { status: 'ausente', faces: {}, note: 'Extraído em 2019.' }
+    }),
+    chart(patients[7].id, {
+      38: { status: 'extrair', faces: {}, note: 'Siso incluso, extração programada.' },
+      48: { status: 'extrair', faces: {}, note: 'Siso incluso, extração programada.' }
+    })
+  ];
+
+  /* --- anamneses --- */
+  const answer = (map) => ({ answers: map, updatedAt: now, filledBy: 'paciente' });
+  const yes = (detail = '') => ({ value: 'sim', detail });
+  const no = () => ({ value: 'nao', detail: '' });
+  const anamneses = [
+    { id: patients[0].id, ...answer({ saude_geral: no(), alergia: yes('Dipirona'), medicacao: no(),
+      anticoagulante: no(), diabetes: no(), pressao: no(), gestante: no(), hemorragia: no(),
+      fumante: no(), bruxismo: yes('À noite'), anestesia: no(), cirurgia: no() }) },
+    { id: patients[6].id, ...answer({ saude_geral: yes('Acompanhamento cardiológico'), alergia: no(),
+      medicacao: yes('Losartana 50mg'), anticoagulante: yes('AAS 100mg'), diabetes: yes(),
+      pressao: yes('Hipertensão controlada'), gestante: no(), hemorragia: no(), fumante: no(),
+      bruxismo: no(), anestesia: no(), cirurgia: no() }) },
+    { id: patients[4].id, ...answer({ saude_geral: no(), alergia: no(), medicacao: no(),
+      anticoagulante: no(), diabetes: no(), pressao: no(), gestante: no(), hemorragia: no(),
+      fumante: yes('10 cigarros/dia'), bruxismo: no(), anestesia: no(), cirurgia: yes('Implante em 2025') }) }
+  ];
+
+  /* --- planos de tratamento --- */
+  const item = (proc, tooth, status = 'pendente') =>
+    ({ id: uid(), procedureId: proc.id, name: proc.name, tooth, price: proc.price, status });
+  const plans = [
+    { id: uid(), patientId: patients[0].id, title: 'Reabilitação dos molares superiores',
+      status: 'em_andamento', discount: 100, createdAt: now, updatedAt: now,
+      items: [item(procs[3], '26', 'concluido'), item(procs[4], '26'), item(procs[1], '', 'concluido')] },
+    { id: uid(), patientId: patients[4].id, title: 'Prótese sobre implante — inferior direito',
+      status: 'aprovado', discount: 0, createdAt: now, updatedAt: now,
+      items: [item(procs[11], '46', 'concluido'), item(procs[9], '46'), item(procs[14], '')] },
+    { id: uid(), patientId: patients[7].id, title: 'Extração dos sisos inclusos',
+      status: 'proposto', discount: 150, createdAt: now, updatedAt: now,
+      items: [item(procs[6], '38'), item(procs[6], '48')] }
+  ];
+
+  /* --- lançamentos financeiros --- */
+  const iso = (offset) => addDays(todayISO(), offset);
+  const payments = [
+    { id: uid(), patientId: patients[0].id, planId: plans[0].id, description: 'Entrada — reabilitação',
+      amount: 500, method: 'pix', dueDate: iso(-20), paidAt: iso(-20), installment: '1/3', createdAt: now },
+    { id: uid(), patientId: patients[0].id, planId: plans[0].id, description: 'Parcela 2/3 — reabilitação',
+      amount: 400, method: 'credito', dueDate: iso(-2), paidAt: null, installment: '2/3', createdAt: now },
+    { id: uid(), patientId: patients[0].id, planId: plans[0].id, description: 'Parcela 3/3 — reabilitação',
+      amount: 370, method: 'credito', dueDate: iso(28), paidAt: null, installment: '3/3', createdAt: now },
+    { id: uid(), patientId: patients[4].id, planId: plans[1].id, description: 'Implante unitário 46',
+      amount: 3200, method: 'pix', dueDate: iso(-45), paidAt: iso(-45), installment: '1/2', createdAt: now },
+    { id: uid(), patientId: patients[4].id, planId: plans[1].id, description: 'Coroa de porcelana 46',
+      amount: 1900, method: 'boleto', dueDate: iso(12), paidAt: null, installment: '2/2', createdAt: now },
+    { id: uid(), patientId: patients[1].id, planId: null, description: 'Manutenção ortodôntica — setembro',
+      amount: 220, method: 'debito', dueDate: iso(-6), paidAt: iso(-6), installment: '', createdAt: now },
+    { id: uid(), patientId: patients[5].id, planId: null, description: 'Limpeza e profilaxia',
+      amount: 180, method: 'dinheiro', dueDate: iso(-12), paidAt: iso(-12), installment: '', createdAt: now },
+    { id: uid(), patientId: patients[9].id, planId: null, description: 'Ajuste de prótese total',
+      amount: 240, method: 'pix', dueDate: iso(-30), paidAt: null, installment: '', createdAt: now }
+  ];
+
+  /* --- evolução clínica --- */
+  const attended = appts.filter((a) => a.status === 'atendida').slice(0, 5);
+  const evoText = [
+    ['Profilaxia realizada', 'Raspagem supragengival, polimento e aplicação de flúor. Orientada quanto ao uso de fio dental.'],
+    ['Manutenção ortodôntica', 'Troca de elásticos e ativação do arco superior. Sem intercorrências.'],
+    ['Aplicação de flúor', 'Profilaxia e flúor em moldeira. Paciente colaborativo durante o atendimento.'],
+    ['Restauração concluída', 'Remoção de tecido cariado no 26, isolamento absoluto e restauração em resina composta A2.'],
+    ['Consulta de rotina', 'Exame clínico e radiografia interproximal. Nenhuma lesão nova identificada.']
+  ];
+  const records = attended.map((a, i) => ({
+    id: uid(), patientId: a.patientId, appointmentId: a.id, date: a.date,
+    title: evoText[i % evoText.length][0], description: evoText[i % evoText.length][1],
+    procedureId: a.procedureId, teeth: '', createdAt: now
+  }));
+
+  return { patients, appts, notifications, procedures: procs, odontograms, anamneses, plans, payments, records };
 }
 
 function seed() {
@@ -1188,11 +1427,17 @@ function seed() {
   state.patients = demo.patients;
   state.appointments = demo.appts;
   state.notifications = demo.notifications;
+  state.procedures = demo.procedures;
+  state.odontograms = demo.odontograms;
+  state.anamneses = demo.anamneses;
+  state.plans = demo.plans;
+  state.payments = demo.payments;
+  state.records = demo.records;
   persistLocal();
 }
 
 async function maybeSeed() {
-  if (!DB || state.patients.length || state.appointments.length) return;
+  if (!DB || state.patients.length || state.appointments.length || state.procedures.length) return;
   let lease;
   try { lease = await DB.doc('config/seed').acquire({ holder: 'seed', ttlMs: 20000 }); }
   catch { return; }
@@ -1201,9 +1446,12 @@ async function maybeSeed() {
     const flag = await DB.doc('config/seed').get();
     if (flag.exists && flag.data().seeded) return;
     const demo = buildDemo();
-    for (const p of demo.patients) { const { id, ...rest } = p; await DB.collection('patients').doc(id).set(rest); }
-    for (const a of demo.appts) { const { id, ...rest } = a; await DB.collection('appointments').doc(id).set(rest); }
-    for (const n of demo.notifications) { const { id, ...rest } = n; await DB.collection('notifications').doc(id).set(rest); }
+    const batches = { patients: demo.patients, appointments: demo.appts, notifications: demo.notifications,
+      procedures: demo.procedures, odontograms: demo.odontograms, anamneses: demo.anamneses,
+      plans: demo.plans, payments: demo.payments, records: demo.records };
+    for (const [coll, rows] of Object.entries(batches)) {
+      for (const row of rows) { const { id, ...rest } = row; await DB.collection(coll).doc(id).set(rest); }
+    }
     await DB.doc('config/clinic').set(state.settings);
     await DB.doc('config/seed').set({ seeded: true, at: new Date().toISOString() });
   } catch (e) { console.warn('seed', e); }
@@ -1250,7 +1498,9 @@ function confirmDialog(title, message, confirmLabel, onConfirm, danger = true) {
 
 /* ============================ navegação ============================ */
 const ROUTES = ['/', '/cliente', '/cliente/agendar', '/cliente/consultas', '/cliente/perfil',
-  '/dentista', '/dentista/agenda', '/dentista/pacientes', '/dentista/novo-agendamento', '/dentista/configuracoes'];
+  '/cliente/saude', '/cliente/orcamentos',
+  '/dentista', '/dentista/agenda', '/dentista/pacientes', '/dentista/novo-agendamento',
+  '/dentista/financeiro', '/dentista/relatorios', '/dentista/procedimentos', '/dentista/configuracoes'];
 
 function currentRoute() {
   const raw = (location.hash || '#/').replace(/^#/, '');
@@ -1457,11 +1707,14 @@ async function findOrCreatePatient(data) {
   return id;
 }
 
-async function createAppointment({ patientId, date, time, reason, notes, origin }) {
+async function createAppointment({ patientId, date, time, reason, notes, origin,
+  procedureId, durationMin, price }) {
   const id = uid();
   await put('appointments', id, {
     patientId, date, time, reason: clean(reason, 300), notes: clean(notes || '', 1000),
-    status: 'aguardando', origin, createdAt: new Date().toISOString()
+    status: 'aguardando', origin, procedureId: procedureId || null,
+    durationMin: Number(durationMin) || state.settings.slotInterval, price: Number(price) || 0,
+    createdAt: new Date().toISOString()
   });
   const p = patientById(patientId);
   await notify(origin === 'portal' ? 'novo_agendamento' : 'consulta_criada',
@@ -1487,6 +1740,9 @@ function openAppointment(id) {
   const p = patientById(a.patientId);
   if (!p) return;
   const age = calcAge(p.birthDate, a.date);
+  const proc = procById(a.procedureId);
+  const flags = riskFlags(p.id);
+  const record = state.records.find((r) => r.appointmentId === a.id);
   const row = (label, value) => `<div><span>${esc(label)}</span><b>${esc(value || '—')}</b></div>`;
   openModal(`
     <div class="modal-head">${avatar(p, 42)}
@@ -1499,7 +1755,11 @@ function openAppointment(id) {
         <span class="tag"><svg width="14" height="14"><use href="#i-calendar"/></svg>${fmtLong(a.date)}</span>
         <span class="tag"><svg width="14" height="14"><use href="#i-clock"/></svg>${esc(a.time)}</span>
         <span class="tag">${a.origin === 'portal' ? 'Agendado pelo portal' : 'Agendado na clínica'}</span>
+        <span class="tag">${apptDuration(a)} min</span>
       </div>
+      ${flags.length ? `<div class="alert-flags">${flags.map((f) =>
+        `<span class="flag"><svg width="13" height="13"><use href="#i-shield"/></svg>${esc(f.label)}${
+          f.detail ? ` — ${esc(f.detail)}` : ''}</span>`).join('')}</div>` : ''}
       <div class="detail-grid">
         ${row('Data de nascimento', fmtDate(p.birthDate))}
         ${row('Idade na consulta', age.label)}
@@ -1507,6 +1767,8 @@ function openAppointment(id) {
         ${row('Telefone', p.phone)}
         ${row('E-mail', p.email)}
         ${row('Total de consultas', String(patientStats(p).total))}
+        ${row('Procedimento', proc ? proc.name : 'Não definido')}
+        ${row('Valor', a.price ? money(a.price) : proc ? money(proc.price) : '—')}
         <div class="full"><span>Motivo da consulta</span><b>${esc(a.reason)}</b></div>
         <div class="full"><span>Observações</span><b>${esc(a.notes || 'Sem observações registradas.')}</b></div>
         ${row('Criada em', new Date(a.createdAt).toLocaleString('pt-BR'))}
@@ -1519,11 +1781,29 @@ function openAppointment(id) {
     <div class="modal-foot">
       <button class="btn btn-danger btn-sm" id="ap-delete"><svg width="15" height="15"><use href="#i-trash"/></svg> Excluir</button>
       <button class="btn btn-ghost btn-sm" id="ap-edit"><svg width="15" height="15"><use href="#i-edit"/></svg> Reagendar</button>
+      <button class="btn btn-ghost btn-sm" id="ap-record">
+        <svg width="15" height="15"><use href="#i-list"/></svg> ${record ? 'Ver evolução' : 'Registrar evolução'}</button>
       <button class="btn btn-primary btn-sm" id="ap-save">Salvar status</button>
     </div>`, (bg) => {
     $('#ap-save', bg).addEventListener('click', async () => {
-      await setStatus(a, $('#ap-status', bg).value);
-      closeModal(); toast('Consulta atualizada', `${p.name} — ${STATUS[$('#ap-status', bg).value] || ''}`, 'ok');
+      const next = $('#ap-status', bg).value;
+      await setStatus(a, next);
+      closeModal();
+      toast('Consulta atualizada', `${p.name} — ${STATUS[next] || ''}`, 'ok');
+      if (next === 'atendida' && !state.records.some((r) => r.appointmentId === a.id)) {
+        openRecordForm(p, { date: a.date, appointmentId: a.id, procedureId: a.procedureId,
+          title: proc ? proc.name : a.reason, description: '' });
+      }
+    });
+    $('#ap-record', bg).addEventListener('click', () => {
+      closeModal();
+      if (record) {
+        state.view.patients = { ...(state.view.patients || {}), selected: p.id, tab: 'evolucao' };
+        go('/dentista/pacientes');
+      } else {
+        openRecordForm(p, { date: a.date, appointmentId: a.id, procedureId: a.procedureId,
+          title: proc ? proc.name : a.reason, description: '' });
+      }
     });
     $('#ap-edit', bg).addEventListener('click', () => openReschedule(a));
     $('#ap-delete', bg).addEventListener('click', () => {
@@ -1558,7 +1838,7 @@ function openReschedule(a) {
     const form = $('#resched-form', bg);
     const dateInput = $('#rs-date', bg), timeSelect = $('#rs-time', bg);
     const fillTimes = () => {
-      const res = slotsFor(dateInput.value, { ignoreId: a.id });
+      const res = slotsFor(dateInput.value, { ignoreId: a.id, duration: apptDuration(a) });
       const times = res.slots.map((s) => s.time);
       if (dateInput.value === a.date && !times.includes(a.time)) times.unshift(a.time);
       timeSelect.innerHTML = times.length
@@ -1572,7 +1852,7 @@ function openReschedule(a) {
       const data = formData(form);
       const errors = {};
       if (clean(data.reason).length < 3) errors.reason = 'Descreva o motivo da consulta.';
-      const rule = validateSchedule(data.date, data.time, a.id);
+      const rule = validateSchedule(data.date, data.time, a.id, apptDuration(a));
       if (rule) errors[rule.field] = rule.message;
       if (Object.keys(errors).length) { fieldErrors(form, errors); return; }
       await put('appointments', a.id, { ...a, date: data.date, time: data.time,
@@ -1595,6 +1875,8 @@ function dashboardData() {
     cancelled: state.appointments.filter((a) => a.status === 'cancelada').length,
     todayList: sortAppts(state.appointments.filter((a) => a.date === t)),
     nextList: sortAppts(state.appointments.filter((a) => a.date > t && ACTIVE_STATUS.includes(a.status))).slice(0, 5),
+    finance: financeSummary(`${todayISO().slice(0, 7)}-01`, `${todayISO().slice(0, 7)}-31`),
+    activePlans: state.plans.filter((p) => ['aprovado', 'em_andamento'].includes(p.status)).length,
     week: Array.from({ length: 7 }, (_, i) => {
       const date = addDays(t, i);
       return { date, total: active.filter((a) => a.date === date).length };
@@ -1646,6 +1928,15 @@ function renderDashboard(main) {
       <b class="num">${d.cancelled}</b><span>Consultas canceladas</span></div>
   </div>
 
+  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat ok"><div class="ic"><svg width="18" height="18"><use href="#i-check"/></svg></div>
+      <b style="font-size:23px">${money(d.finance.received)}</b><span>Recebido neste mês</span></div>
+    <div class="stat warn"><div class="ic"><svg width="18" height="18"><use href="#i-clock"/></svg></div>
+      <b style="font-size:23px">${money(d.finance.open)}</b><span>Em aberto</span></div>
+    <div class="stat"><div class="ic"><svg width="18" height="18"><use href="#i-sparkle"/></svg></div>
+      <b style="font-size:23px">${d.activePlans}</b><span>Planos em andamento</span></div>
+  </div>
+
   <div class="grid-2">
     <div style="display:grid;gap:20px">
       <section class="card">
@@ -1689,6 +1980,10 @@ function renderDashboard(main) {
             <svg width="16" height="16"><use href="#i-calendar"/></svg> Ver agenda</button>
           <button class="btn btn-ghost btn-block" data-nav="/dentista/pacientes">
             <svg width="16" height="16"><use href="#i-users"/></svg> Ver pacientes</button>
+          <button class="btn btn-ghost btn-block" data-nav="/dentista/financeiro">
+            <svg width="16" height="16"><use href="#i-sparkle"/></svg> Financeiro</button>
+          <button class="btn btn-ghost btn-block" data-nav="/dentista/relatorios">
+            <svg width="16" height="16"><use href="#i-list"/></svg> Relatórios</button>
         </div>
       </section>
 
@@ -1835,7 +2130,12 @@ function renderAgenda(main) {
 
 /* ---------- pacientes ---------- */
 function renderPatients(main) {
-  const v = state.view.patients ||= { search: '', sex: '', sort: 'name' };
+  const v = state.view.patients ||= { search: '', sex: '', sort: 'name', selected: null, tab: 'ficha' };
+  if (v.selected) {
+    const selected = patientById(v.selected);
+    if (selected) { renderPatientDetail(main, selected); return; }
+    v.selected = null;
+  }
   const term = v.search.trim().toLowerCase();
   let list = state.patients.filter((p) => {
     const matchTerm = !term || [p.name, p.phone, p.email].some((f) => String(f || '').toLowerCase().includes(term));
@@ -1870,7 +2170,9 @@ function renderPatients(main) {
       return `<article class="pt-card">
         <div class="top">${avatar(p, 46)}
           <div style="min-width:0"><b>${esc(p.name)}</b>
-            <span>${calcAge(p.birthDate).label} · ${SEX_LABEL[p.sex] || '—'}</span></div></div>
+            <span>${calcAge(p.birthDate).label} · ${SEX_LABEL[p.sex] || '—'}</span></div>
+          ${riskFlags(p.id).length ? `<span class="flag" style="margin-left:auto" title="Alertas na anamnese">
+            <svg width="12" height="12"><use href="#i-shield"/></svg>${riskFlags(p.id).length}</span>` : ''}</div>
         <div class="pt-meta">
           <div><span>Consultas</span><b class="num">${st.total}</b></div>
           <div><span>Cadastro</span><b class="num">${fmtDate((p.createdAt || '').slice(0, 10) || todayISO())}</b></div>
@@ -1896,7 +2198,8 @@ function renderPatients(main) {
   $('#pt-sort', main)?.addEventListener('change', (e) => { v.sort = e.target.value; render(); });
   $('#new-patient', main)?.addEventListener('click', () => openPatientForm());
   $('#empty-new-patient', main)?.addEventListener('click', () => openPatientForm());
-  $$('[data-view]', main).forEach((b) => b.addEventListener('click', () => openPatientCard(b.dataset.view)));
+  $$('[data-view]', main).forEach((b) => b.addEventListener('click', () => {
+    v.selected = b.dataset.view; v.tab = 'ficha'; render(); }));
   $$('[data-edit]', main).forEach((b) => b.addEventListener('click', () => openPatientForm(patientById(b.dataset.edit))));
   $$('[data-del]', main).forEach((b) => b.addEventListener('click', () => {
     const p = patientById(b.dataset.del); if (!p) return;
@@ -1948,49 +2251,6 @@ function openPatientForm(patient = null) {
   });
 }
 
-function openPatientCard(id) {
-  const p = patientById(id);
-  if (!p) return;
-  const st = patientStats(p);
-  const history = sortAppts(apptsOf(p.id)).reverse();
-  openModal(`
-    <div class="modal-head">${avatar(p, 44)}
-      <div style="flex:1"><h3>${esc(p.name)}</h3>
-        <span class="muted" style="font-size:13px">${calcAge(p.birthDate).label} · ${SEX_LABEL[p.sex] || '—'}</span></div>
-      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
-    <div class="modal-body" style="display:grid;gap:18px">
-      <div class="detail-grid">
-        <div><span>Data de nascimento</span><b>${fmtDate(p.birthDate)}</b></div>
-        <div><span>Telefone</span><b>${esc(p.phone || '—')}</b></div>
-        <div><span>E-mail</span><b>${esc(p.email || '—')}</b></div>
-        <div><span>Cadastrado em</span><b>${fmtDate((p.createdAt || '').slice(0, 10) || todayISO())}</b></div>
-        <div><span>Total de consultas</span><b class="num">${st.total}</b></div>
-        <div><span>Próxima consulta</span><b>${st.next ? `${fmtDate(st.next.date)} · ${st.next.time}` : '—'}</b></div>
-        <div class="full"><span>Observações</span><b>${esc(p.notes || 'Sem observações registradas.')}</b></div>
-      </div>
-      <div>
-        <h4 style="font-size:15px;margin-bottom:10px">Histórico de consultas</h4>
-        ${history.length ? `<div class="list" style="border:1px solid var(--line);border-radius:14px;overflow:hidden">
-          ${history.map((a) => `<div class="list-row" data-appt="${a.id}">
-            <span class="tl-time num">${esc(a.time)}</span>
-            <div class="tl-main"><b>${esc(a.reason)}</b><span>${esc(a.notes || 'Sem observações')}</span></div>
-            <div class="when"><b>${fmtDate(a.date)}</b>${DOW_SHORT[dowOf(a.date)]}</div>
-            ${chip(a.status)}</div>`).join('')}</div>`
-          : `<div class="empty" style="padding:26px"><b>Nenhuma consulta registrada</b><p>Este paciente ainda não passou por atendimento.</p></div>`}
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost btn-sm" id="pc-edit"><svg width="15" height="15"><use href="#i-edit"/></svg> Editar ficha</button>
-      <button class="btn btn-primary btn-sm" id="pc-schedule"><svg width="15" height="15"><use href="#i-calendar"/></svg> Agendar consulta</button>
-    </div>`, (bg) => {
-    $('#pc-edit', bg).addEventListener('click', () => openPatientForm(p));
-    $('#pc-schedule', bg).addEventListener('click', () => {
-      closeModal();
-      state.view.newAppt = { patientId: p.id };
-      go('/dentista/novo-agendamento');
-    });
-  });
-}
 
 /* ---------- seletor de data e horário (usado nos dois portais) ---------- */
 function calendarHTML(month, selected) {
@@ -2019,6 +2279,7 @@ function calendarHTML(month, selected) {
 }
 
 function slotsHTML(date, selected, opts = {}) {
+  /* opts.duration ajusta a disponibilidade à duração do procedimento escolhido */
   if (!date) return `<p class="muted" style="font-size:14px">Escolha primeiro um dia no calendário.</p>`;
   const res = slotsFor(date, opts);
   if (!res.open) return `<div class="banner-note"><svg width="18" height="18" style="flex:none;color:var(--gold)"><use href="#i-clock"/></svg>
@@ -2044,7 +2305,9 @@ function bindPicker(root, v, onChange) {
 
 /* ---------- novo agendamento (dentista) ---------- */
 function renderNewAppointment(main) {
-  const v = state.view.newAppt ||= { month: todayISO().slice(0, 7), date: todayISO(), time: '', patientId: '', mode: 'existing' };
+  const v = state.view.newAppt ||= { month: todayISO().slice(0, 7), date: todayISO(), time: '',
+    patientId: '', mode: 'existing', procedureId: '', duration: state.settings.slotInterval };
+  if (!v.duration) v.duration = state.settings.slotInterval;
   if (!v.month) v.month = (v.date || todayISO()).slice(0, 7);
   const patients = [...state.patients].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
@@ -2074,12 +2337,23 @@ function renderNewAppointment(main) {
           <div>
             <label style="font-size:13px;font-weight:600;color:var(--ink-soft)">Horários disponíveis
               ${v.date ? `— ${fmtLong(v.date)}` : ''}</label>
-            <div id="appt-slots" style="margin-top:8px">${slotsHTML(v.date, v.time)}</div>
+            <div id="appt-slots" style="margin-top:8px">${slotsHTML(v.date, v.time, { duration: v.duration })}</div>
+            <p class="muted" style="font-size:12.5px;margin-top:8px" id="appt-span">Reservando <b>${v.duration} min</b> por consulta.</p>
           </div>
         </fieldset>
       </div>
 
       <fieldset class="fieldset"><legend>3. Detalhes do atendimento</legend>
+        <div class="form-row">
+          <div class="field"><label for="ap-proc">Procedimento</label>
+            <select id="ap-proc" name="procedureId"><option value="">Definir depois (${state.settings.slotInterval} min)</option>
+              ${activeProcedures().map((pr) => `<option value="${pr.id}" ${v.procedureId === pr.id ? 'selected' : ''}>
+                ${esc(pr.name)} — ${pr.durationMin} min · ${money(pr.price)}</option>`).join('')}</select>
+            <span class="hint">Define a duração reservada na agenda e o valor sugerido.</span></div>
+          <div class="field"><label for="ap-price">Valor (R$)</label>
+            <input id="ap-price" name="price" type="number" min="0" step="10"
+              value="${esc(String(procById(v.procedureId)?.price ?? ''))}" placeholder="Usar tabela"></div>
+        </div>
         <div class="field"><label for="ap-reason">Motivo da consulta <span class="req">*</span></label>
           <input id="ap-reason" name="reason" list="reason-list" placeholder="Ex.: limpeza, avaliação de clareamento, dor no molar">
           <datalist id="reason-list">${DEMO_REASONS.map((r) => `<option value="${esc(r)}"></option>`).join('')}</datalist></div>
@@ -2096,11 +2370,27 @@ function renderNewAppointment(main) {
   if (v.mode === 'new') bindAge(form);
   const refreshPicker = () => {
     $('#appt-cal', main).innerHTML = calendarHTML(v.month, v.date);
-    $('#appt-slots', main).innerHTML = slotsHTML(v.date, v.time);
+    $('#appt-slots', main).innerHTML = slotsHTML(v.date, v.time, { duration: v.duration });
+    const span = $('#appt-span', main);
+    if (span) span.innerHTML = `Reservando <b>${v.duration} min</b> por consulta.`;
     bindPicker(main, v, refreshPicker);
   };
   bindPicker(main, v, refreshPicker);
   $$('[data-pmode]', main).forEach((b) => b.addEventListener('click', () => { v.mode = b.dataset.pmode; render(); }));
+
+  const procSelect = $('#ap-proc', main);
+  procSelect?.addEventListener('change', () => {
+    const proc = procById(procSelect.value);
+    v.procedureId = procSelect.value;
+    v.duration = proc ? proc.durationMin : state.settings.slotInterval;
+    v.time = '';
+    const reasonInput = $('#ap-reason', main);
+    if (proc && (!reasonInput.value || activeProcedures().some((x) => x.name === reasonInput.value))) {
+      reasonInput.value = proc.name;
+    }
+    $('#ap-price', main).value = proc ? proc.price : '';
+    refreshPicker();
+  });
 
   const select = $('#ap-patient', main);
   const preview = $('#patient-preview', main);
@@ -2123,7 +2413,7 @@ function renderNewAppointment(main) {
     let patientId = v.mode === 'existing' ? select?.value : null;
     if (v.mode === 'existing' && !patientId) errors.patientId = 'Selecione o paciente.';
     if (v.mode === 'new') Object.assign(errors, validatePatientInput(data));
-    const rule = validateSchedule(v.date, v.time);
+    const rule = validateSchedule(v.date, v.time, undefined, v.duration);
     if (rule) errors[rule.field] = rule.message;
     if (!v.time) errors.time = 'Selecione um horário disponível.';
     if (Object.keys(errors).length) {
@@ -2133,11 +2423,15 @@ function renderNewAppointment(main) {
       return;
     }
     if (v.mode === 'new') patientId = await findOrCreatePatient(data);
+    const proc = procById(v.procedureId);
     await createAppointment({ patientId, date: v.date, time: v.time,
-      reason: data.reason, notes: data.notes, origin: 'clinica' });
+      reason: data.reason, notes: data.notes, origin: 'clinica',
+      procedureId: v.procedureId || null, durationMin: v.duration,
+      price: data.price === '' ? (proc ? proc.price : 0) : Number(data.price) });
     const p = patientById(patientId);
     toast('Consulta agendada', `${p ? p.name : ''} — ${fmtDate(v.date)} às ${v.time}`, 'ok');
-    state.view.newAppt = { month: v.date.slice(0, 7), date: v.date, time: '', patientId: '', mode: 'existing' };
+    state.view.newAppt = { month: v.date.slice(0, 7), date: v.date, time: '', patientId: '',
+      mode: 'existing', procedureId: '', duration: state.settings.slotInterval };
     state.view.agenda = { ...(state.view.agenda || {}), mode: 'dia', date: v.date, status: '' };
     go('/dentista/agenda');
   });
@@ -2194,6 +2488,11 @@ function renderSettings(main) {
           <div class="card-body" style="display:grid;gap:10px;font-size:14px">
             <div style="display:flex;justify-content:space-between"><span>Pacientes</span><b class="num">${state.patients.length}</b></div>
             <div style="display:flex;justify-content:space-between"><span>Consultas</span><b class="num">${state.appointments.length}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>Procedimentos</span><b class="num">${state.procedures.length}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>Planos de tratamento</span><b class="num">${state.plans.length}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>Lançamentos financeiros</span><b class="num">${state.payments.length}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>Registros de evolução</span><b class="num">${state.records.length}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>Odontogramas</span><b class="num">${state.odontograms.length}</b></div>
             <div style="display:flex;justify-content:space-between"><span>Notificações</span><b class="num">${state.notifications.length}</b></div>
             <div style="display:flex;justify-content:space-between"><span>Armazenamento</span>
               <b>${state.offline ? 'Local (este navegador)' : 'Base do artefato'}</b></div>
@@ -2235,11 +2534,11 @@ function renderSettings(main) {
 
   $('#reset-demo', main).addEventListener('click', () => {
     confirmDialog('Remover dados de demonstração',
-      'Todos os pacientes, consultas e notificações serão apagados. As configurações da clínica são mantidas.',
+      'Pacientes, consultas, prontuários, odontogramas, planos, lançamentos e o catálogo de procedimentos serão apagados. As configurações da clínica são mantidas.',
       'Apagar tudo', async () => {
-        for (const a of [...state.appointments]) await remove('appointments', a.id);
-        for (const p of [...state.patients]) await remove('patients', p.id);
-        for (const n of [...state.notifications]) await remove('notifications', n.id);
+        for (const coll of COLLS) {
+          for (const row of [...state[coll]]) await remove(coll, row.id);
+        }
         if (DB) await DB.doc('config/seed').set({ seeded: true, at: new Date().toISOString() });
         toast('Base limpa', 'Os dados fictícios foram removidos.', 'ok');
       });
@@ -2381,7 +2680,9 @@ function renderClientHome(main) {
 }
 
 function renderClientSchedule(main) {
-  const v = state.view.book ||= { month: todayISO().slice(0, 7), date: '', time: '' };
+  const v = state.view.book ||= { month: todayISO().slice(0, 7), date: '', time: '',
+    procedureId: '', duration: state.settings.slotInterval };
+  if (!v.duration) v.duration = state.settings.slotInterval;
   const success = state.view.success;
   if (success) {
     const a = state.appointments.find((x) => x.id === success);
@@ -2407,7 +2708,8 @@ function renderClientSchedule(main) {
       </div></section>`;
       $('#book-again', main).addEventListener('click', () => {
         state.view.success = null;
-        state.view.book = { month: todayISO().slice(0, 7), date: '', time: '' };
+        state.view.book = { month: todayISO().slice(0, 7), date: '', time: '',
+          procedureId: '', duration: state.settings.slotInterval };
         render();
       });
       return;
@@ -2433,12 +2735,18 @@ function renderClientSchedule(main) {
           <div id="book-cal">${calendarHTML(v.month, v.date)}</div>
         </fieldset>
         <fieldset class="fieldset"><legend>3. Horário desejado</legend>
-          <div id="book-slots">${slotsHTML(v.date, v.time)}</div>
+          <div id="book-slots">${slotsHTML(v.date, v.time, { duration: v.duration })}</div>
+          <p class="muted" style="font-size:12.5px;margin-top:8px" id="book-span">Tempo reservado: <b>${v.duration} min</b>.</p>
           <input type="hidden" name="time" value="${esc(v.time)}">
           <input type="hidden" name="date" value="${esc(v.date)}">
         </fieldset>
       </div>
       <fieldset class="fieldset"><legend>4. O que você precisa</legend>
+        <div class="field"><label for="bk-proc">Procedimento desejado</label>
+          <select id="bk-proc" name="procedureId"><option value="">Não sei / quero avaliar (${state.settings.slotInterval} min)</option>
+            ${activeProcedures().map((pr) => `<option value="${pr.id}" ${v.procedureId === pr.id ? 'selected' : ''}>
+              ${esc(pr.name)} — ${pr.durationMin} min · a partir de ${money(pr.price)}</option>`).join('')}</select>
+          <span class="hint">Valores de referência: o orçamento final é confirmado pela dentista na avaliação.</span></div>
         <div class="field"><label for="bk-reason">O que deseja fazer no dente / motivo da consulta <span class="req">*</span></label>
           <input id="bk-reason" name="reason" list="reason-list-c" placeholder="Ex.: dor no dente do siso, limpeza, avaliação de clareamento">
           <datalist id="reason-list-c">${DEMO_REASONS.map((r) => `<option value="${esc(r)}"></option>`).join('')}</datalist></div>
@@ -2453,12 +2761,27 @@ function renderClientSchedule(main) {
   bindAge(form);
   const refresh = () => {
     $('#book-cal', main).innerHTML = calendarHTML(v.month, v.date);
-    $('#book-slots', main).innerHTML = slotsHTML(v.date, v.time);
+    $('#book-slots', main).innerHTML = slotsHTML(v.date, v.time, { duration: v.duration });
+    const bspan = $('#book-span', main);
+    if (bspan) bspan.innerHTML = `Tempo reservado: <b>${v.duration} min</b>.`;
     form.querySelector('[name="time"]').value = v.time;
     form.querySelector('[name="date"]').value = v.date;
     bindPicker(main, v, refresh);
   };
   bindPicker(main, v, refresh);
+
+  const bkProc = $('#bk-proc', main);
+  bkProc?.addEventListener('change', () => {
+    const proc = procById(bkProc.value);
+    v.procedureId = bkProc.value;
+    v.duration = proc ? proc.durationMin : state.settings.slotInterval;
+    v.time = '';
+    const reasonInput = $('#bk-reason', main);
+    if (proc && (!reasonInput.value || activeProcedures().some((x) => x.name === reasonInput.value))) {
+      reasonInput.value = proc.name;
+    }
+    refresh();
+  });
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -2466,7 +2789,7 @@ function renderClientSchedule(main) {
     const errors = validatePatientInput(data);
     if (clean(data.reason).length < 3) errors.reason = 'Conte para a equipe o motivo da consulta.';
     if (!v.date) errors.birthDate = errors.birthDate || '';
-    const rule = validateSchedule(v.date, v.time);
+    const rule = validateSchedule(v.date, v.time, undefined, v.duration);
     if (!v.date) { toast('Escolha um dia', 'Selecione uma data no calendário.', 'warn'); }
     else if (!v.time) { toast('Escolha um horário', 'Selecione um dos horários disponíveis.', 'warn'); }
     else if (rule) { toast('Não foi possível agendar', rule.message, 'bad'); }
@@ -2475,8 +2798,10 @@ function renderClientSchedule(main) {
 
     const patientId = await findOrCreatePatient(data);
     setMe({ name: clean(data.name, 120), birthDate: data.birthDate });
+    const proc = procById(v.procedureId);
     const id = await createAppointment({ patientId, date: v.date, time: v.time,
-      reason: data.reason, notes: data.notes, origin: 'portal' });
+      reason: data.reason, notes: data.notes, origin: 'portal',
+      procedureId: v.procedureId || null, durationMin: v.duration, price: proc ? proc.price : 0 });
     state.view.success = id;
     toast('Consulta agendada!', `${fmtDate(v.date)} às ${v.time}`, 'ok');
     render();
@@ -2581,6 +2906,1229 @@ function renderClientProfile(main) {
   });
 }
 
+/* ============================ catálogo de procedimentos ============================ */
+const PROC_CATEGORIES = ['Prevenção', 'Dentística', 'Endodontia', 'Cirurgia', 'Estética',
+  'Prótese', 'Implante', 'Ortodontia', 'Periodontia', 'Odontopediatria', 'Urgência'];
+
+const DEMO_PROCEDURES = [
+  ['Consulta de avaliação', 'Prevenção', 30, 120],
+  ['Limpeza e profilaxia', 'Prevenção', 45, 180],
+  ['Aplicação de flúor', 'Prevenção', 30, 90],
+  ['Restauração em resina', 'Dentística', 60, 320],
+  ['Tratamento de canal (por sessão)', 'Endodontia', 90, 650],
+  ['Extração simples', 'Cirurgia', 45, 280],
+  ['Extração de siso', 'Cirurgia', 60, 750],
+  ['Clareamento em consultório', 'Estética', 60, 890],
+  ['Faceta de resina', 'Estética', 90, 980],
+  ['Coroa de porcelana', 'Prótese', 90, 1900],
+  ['Prótese total (por arcada)', 'Prótese', 90, 2400],
+  ['Implante unitário', 'Implante', 90, 3200],
+  ['Instalação de aparelho fixo', 'Ortodontia', 90, 1600],
+  ['Manutenção ortodôntica', 'Ortodontia', 30, 220],
+  ['Raspagem periodontal (por quadrante)', 'Periodontia', 60, 380],
+  ['Selante (odontopediatria)', 'Odontopediatria', 30, 140],
+  ['Atendimento de urgência', 'Urgência', 30, 200]
+];
+
+const money = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const procById = (id) => state.procedures.find((p) => p.id === id) || null;
+const activeProcedures = () => [...state.procedures].filter((p) => p.active !== false)
+  .sort((a, b) => a.category.localeCompare(b.category, 'pt-BR') || a.name.localeCompare(b.name, 'pt-BR'));
+
+/* ============================ odontograma ============================ */
+const TOOTH_STATUS = {
+  higido: { label: 'Hígido', color: 'var(--surface)' },
+  cariado: { label: 'Cárie', color: '#A8332A' },
+  restaurado: { label: 'Restaurado', color: '#2D6E9E' },
+  canal: { label: 'Canal tratado', color: '#D9A017' },
+  coroa: { label: 'Coroa/prótese', color: '#7A5AA8' },
+  implante: { label: 'Implante', color: '#0E9488' },
+  ausente: { label: 'Ausente', color: '#9AA9AE' },
+  extrair: { label: 'Extração indicada', color: '#E0776B' }
+};
+const FACE_STATUS = { livre: 'Sem alteração', cariado: 'Cárie', restaurado: 'Restaurada' };
+const FACE_COLOR = { livre: 'var(--surface)', cariado: '#A8332A', restaurado: '#2D6E9E' };
+const FACE_NAMES = { O: 'Oclusal/Incisal', M: 'Mesial', D: 'Distal', V: 'Vestibular', L: 'Lingual/Palatina' };
+
+const UPPER_PERM = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+const LOWER_PERM = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
+const UPPER_DEC = [55, 54, 53, 52, 51, 61, 62, 63, 64, 65];
+const LOWER_DEC = [85, 84, 83, 82, 81, 71, 72, 73, 74, 75];
+
+const odontogramOf = (patientId) => state.odontograms.find((o) => o.id === patientId) || null;
+const toothState = (chart, code) => (chart?.teeth || {})[code] || { status: 'higido', faces: {}, note: '' };
+
+/** Desenha um dente com as 5 faces clicáveis, orientadas conforme o quadrante. */
+function toothSVG(code, data, size = 30) {
+  const quad = Math.floor(code / 10);
+  const upper = quad === 1 || quad === 2 || quad === 5 || quad === 6;
+  const rightSide = quad === 1 || quad === 4 || quad === 5 || quad === 8;
+  const top = upper ? 'V' : 'L';
+  const bottom = upper ? 'L' : 'V';
+  const left = rightSide ? 'D' : 'M';
+  const right = rightSide ? 'M' : 'D';
+  const fill = (face) => FACE_COLOR[(data.faces || {})[face] || 'livre'];
+  const whole = data.status && data.status !== 'higido';
+  const wholeColor = TOOTH_STATUS[data.status]?.color;
+  const body = whole && ['ausente', 'coroa', 'implante', 'extrair'].includes(data.status);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 34 34" aria-hidden="true">
+    <rect x="1" y="1" width="32" height="32" rx="5" fill="var(--surface-2)"/>
+    ${body ? `<rect x="2" y="2" width="30" height="30" rx="4" fill="${wholeColor}" opacity="${data.status === 'ausente' ? '.45' : '.85'}"/>
+       ${data.status === 'ausente' || data.status === 'extrair'
+        ? `<path d="M8 8l18 18M26 8 8 26" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>` : ''}`
+      : `<polygon points="2,2 32,2 24,11 10,11" fill="${fill(top)}" stroke="var(--line-strong)" stroke-width=".8" data-face="${top}"/>
+         <polygon points="2,32 32,32 24,23 10,23" fill="${fill(bottom)}" stroke="var(--line-strong)" stroke-width=".8" data-face="${bottom}"/>
+         <polygon points="2,2 10,11 10,23 2,32" fill="${fill(left)}" stroke="var(--line-strong)" stroke-width=".8" data-face="${left}"/>
+         <polygon points="32,2 24,11 24,23 32,32" fill="${fill(right)}" stroke="var(--line-strong)" stroke-width=".8" data-face="${right}"/>
+         <rect x="10" y="11" width="14" height="12" fill="${fill('O')}" stroke="var(--line-strong)" stroke-width=".8" data-face="O"/>
+         ${whole && !body ? `<circle cx="17" cy="17" r="5.4" fill="${wholeColor}"/>` : ''}`}
+  </svg>`;
+}
+
+/* ============================ anamnese ============================ */
+const ANAMNESIS_QUESTIONS = [
+  { id: 'saude_geral', text: 'Está em tratamento médico no momento?', risk: false, detail: 'Qual tratamento?' },
+  { id: 'alergia', text: 'Tem alergia a algum medicamento ou anestésico?', risk: true, detail: 'A quê?' },
+  { id: 'medicacao', text: 'Usa medicação contínua?', risk: false, detail: 'Quais medicamentos?' },
+  { id: 'anticoagulante', text: 'Usa anticoagulante (ex.: varfarina, AAS)?', risk: true },
+  { id: 'diabetes', text: 'Tem diabetes?', risk: true },
+  { id: 'pressao', text: 'Tem pressão alta ou problema cardíaco?', risk: true },
+  { id: 'gestante', text: 'Está grávida ou amamentando?', risk: true, detail: 'Semanas de gestação' },
+  { id: 'hemorragia', text: 'Já teve sangramento excessivo após extração ou cirurgia?', risk: true },
+  { id: 'fumante', text: 'Fuma?', risk: false },
+  { id: 'bruxismo', text: 'Range ou aperta os dentes (bruxismo)?', risk: false },
+  { id: 'anestesia', text: 'Já teve reação ruim à anestesia odontológica?', risk: true, detail: 'O que aconteceu?' },
+  { id: 'cirurgia', text: 'Fez alguma cirurgia nos últimos 12 meses?', risk: false, detail: 'Qual?' }
+];
+const anamnesisOf = (patientId) => state.anamneses.find((a) => a.id === patientId) || null;
+function riskFlags(patientId) {
+  const a = anamnesisOf(patientId);
+  if (!a) return [];
+  return ANAMNESIS_QUESTIONS.filter((q) => q.risk && a.answers?.[q.id]?.value === 'sim')
+    .map((q) => ({ id: q.id, label: q.text.replace(/\?$/, ''), detail: a.answers[q.id].detail || '' }));
+}
+
+/* ============================ planos e financeiro ============================ */
+const PLAN_STATUS = { proposto: 'Proposto', aprovado: 'Aprovado', em_andamento: 'Em andamento',
+  concluido: 'Concluído', recusado: 'Recusado' };
+const PAY_METHODS = { dinheiro: 'Dinheiro', pix: 'PIX', debito: 'Cartão de débito',
+  credito: 'Cartão de crédito', convenio: 'Convênio', boleto: 'Boleto' };
+
+const planTotal = (plan) => (plan.items || []).reduce((sum, i) => sum + Number(i.price || 0), 0)
+  - Number(plan.discount || 0);
+const plansOf = (patientId) => state.plans.filter((p) => p.patientId === patientId);
+const paymentsOf = (patientId) => state.payments.filter((p) => p.patientId === patientId);
+
+function payStatus(pay) {
+  if (pay.paidAt) return 'pago';
+  return pay.dueDate < todayISO() ? 'vencido' : 'pendente';
+}
+const PAY_STATUS_LABEL = { pago: 'Pago', pendente: 'Pendente', vencido: 'Vencido' };
+
+function financeSummary(from, to) {
+  const inRange = (d) => (!from || d >= from) && (!to || d <= to);
+  const received = state.payments.filter((p) => p.paidAt && inRange(p.paidAt.slice(0, 10)))
+    .reduce((s, p) => s + Number(p.amount || 0), 0);
+  const open = state.payments.filter((p) => !p.paidAt).reduce((s, p) => s + Number(p.amount || 0), 0);
+  const overdue = state.payments.filter((p) => payStatus(p) === 'vencido')
+    .reduce((s, p) => s + Number(p.amount || 0), 0);
+  const expected = state.payments.filter((p) => !p.paidAt && inRange(p.dueDate))
+    .reduce((s, p) => s + Number(p.amount || 0), 0);
+  return { received, open, overdue, expected };
+}
+
+/* ============================ ficha completa do paciente ============================ */
+const PATIENT_TABS = [['ficha', 'Ficha', 'i-user'], ['odontograma', 'Odontograma', 'i-tooth'],
+  ['evolucao', 'Evolução', 'i-list'], ['anamnese', 'Anamnese', 'i-shield'],
+  ['tratamentos', 'Tratamentos', 'i-check'], ['financeiro', 'Financeiro', 'i-sparkle']];
+
+function renderPatientDetail(main, p) {
+  const v = state.view.patients;
+  const tab = v.tab || 'ficha';
+  const st = patientStats(p);
+  const flags = riskFlags(p.id);
+
+  main.innerHTML = `
+    <div class="topbar">
+      <button class="icon-btn" id="back-patients" aria-label="Voltar"><svg width="16" height="16"><use href="#i-left"/></svg></button>
+      <h1 style="font-size:24px">${esc(p.name)}</h1><div class="grow"></div>
+      <button class="btn btn-ghost btn-sm" id="pd-edit"><svg width="15" height="15"><use href="#i-edit"/></svg> Editar ficha</button>
+      <button class="btn btn-primary btn-sm" id="pd-schedule"><svg width="15" height="15"><use href="#i-calendar"/></svg> Agendar</button>
+    </div>
+
+    <section class="card"><div class="card-body" style="display:grid;gap:14px">
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        ${avatar(p, 54)}
+        <div style="flex:1;min-width:180px">
+          <b style="font-size:17px">${esc(p.name)}</b>
+          <div class="muted" style="font-size:13.5px">${calcAge(p.birthDate).label} · ${SEX_LABEL[p.sex] || '—'}
+            · nasc. ${fmtDate(p.birthDate)}</div>
+        </div>
+        <div class="pt-meta" style="grid-template-columns:repeat(4,minmax(86px,1fr));flex:1">
+          <div><span>Consultas</span><b class="num">${st.total}</b></div>
+          <div><span>Última</span><b class="num">${st.last ? fmtDate(st.last.date) : '—'}</b></div>
+          <div><span>Próxima</span><b class="num">${st.next ? fmtDate(st.next.date) : '—'}</b></div>
+          <div><span>Em aberto</span><b class="num">${money(paymentsOf(p.id).filter((x) => !x.paidAt)
+            .reduce((s2, x) => s2 + Number(x.amount || 0), 0))}</b></div>
+        </div>
+      </div>
+      ${flags.length ? `<div class="alert-flags">${flags.map((f) =>
+        `<span class="flag" title="${esc(f.detail)}"><svg width="13" height="13"><use href="#i-shield"/></svg>
+          ${esc(f.label)}${f.detail ? ` — ${esc(f.detail)}` : ''}</span>`).join('')}</div>` : ''}
+    </div></section>
+
+    <div class="toolbar"><div class="seg" style="flex-wrap:wrap">${PATIENT_TABS.map(([k, l, ic]) =>
+      `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">
+        <svg width="14" height="14" style="vertical-align:-2px"><use href="#${ic}"/></svg> ${l}</button>`).join('')}</div></div>
+    <div id="tab-body"></div>`;
+
+  $('#back-patients', main).addEventListener('click', () => { v.selected = null; render(); });
+  $('#pd-edit', main).addEventListener('click', () => openPatientForm(p));
+  $('#pd-schedule', main).addEventListener('click', () => {
+    state.view.newAppt = { month: todayISO().slice(0, 7), date: todayISO(), time: '', patientId: p.id, mode: 'existing' };
+    go('/dentista/novo-agendamento');
+  });
+  $$('[data-tab]', main).forEach((b) => b.addEventListener('click', () => { v.tab = b.dataset.tab; render(); }));
+
+  const body = $('#tab-body', main);
+  if (tab === 'ficha') renderTabFicha(body, p);
+  else if (tab === 'odontograma') renderTabOdontograma(body, p);
+  else if (tab === 'evolucao') renderTabEvolucao(body, p);
+  else if (tab === 'anamnese') renderTabAnamnese(body, p, true);
+  else if (tab === 'tratamentos') renderTabTratamentos(body, p);
+  else renderTabFinanceiro(body, p);
+}
+
+function renderTabFicha(body, p) {
+  const history = sortAppts(apptsOf(p.id)).reverse();
+  body.innerHTML = `<div class="grid-2">
+    <section class="card"><div class="card-head"><h3>Histórico de consultas</h3></div>
+      <div class="card-body flush">${history.length ? `<div class="list">${history.map((a) => `
+        <div class="list-row" data-appt="${a.id}">
+          <span class="tl-time num">${esc(a.time)}</span>
+          <div class="tl-main"><b>${esc(a.reason)}</b><span>${esc(a.notes || 'Sem observações')}</span></div>
+          <div class="when"><b>${fmtDate(a.date)}</b>${DOW_SHORT[dowOf(a.date)]}</div>
+          ${chip(a.status)}</div>`).join('')}</div>`
+        : `<div class="card-body">${emptyState('art-empty-cal', 'Nenhuma consulta registrada',
+            'Este paciente ainda não passou por atendimento.')}</div>`}</div></section>
+    <section class="card"><div class="card-head"><h3>Dados cadastrais</h3></div>
+      <div class="card-body"><div class="detail-grid">
+        <div><span>Telefone</span><b>${esc(p.phone || '—')}</b></div>
+        <div><span>E-mail</span><b>${esc(p.email || '—')}</b></div>
+        <div><span>Cadastrado em</span><b>${fmtDate((p.createdAt || '').slice(0, 10) || todayISO())}</b></div>
+        <div><span>Atualizado em</span><b>${fmtDate((p.updatedAt || '').slice(0, 10) || todayISO())}</b></div>
+        <div class="full"><span>Observações</span><b>${esc(p.notes || 'Sem observações registradas.')}</b></div>
+      </div></div></section>
+  </div>`;
+}
+
+/* ---------- aba: odontograma ---------- */
+function renderTabOdontograma(body, p) {
+  const v = state.view.odo ||= { tooth: null, dentition: 'permanente' };
+  const chart = odontogramOf(p.id);
+  const dec = v.dentition === 'decidua';
+  const upper = dec ? UPPER_DEC : UPPER_PERM;
+  const lower = dec ? LOWER_DEC : LOWER_PERM;
+  const marked = Object.entries(chart?.teeth || {})
+    .filter(([, t]) => t.status !== 'higido' || Object.values(t.faces || {}).some((f) => f && f !== 'livre'));
+
+  const toothBtn = (code) => {
+    const data = toothState(chart, code);
+    return `<button type="button" class="tooth ${v.tooth === code ? 'sel' : ''}" data-tooth="${code}"
+      title="Dente ${code} — ${TOOTH_STATUS[data.status]?.label || 'Hígido'}">
+      ${toothSVG(code, data, 27)}<span>${code}</span></button>`;
+  };
+  const row = (codes) => {
+    const half = codes.length / 2;
+    return `<div class="odo-row">${codes.slice(0, half).map(toothBtn).join('')}
+      <span class="odo-mid" aria-hidden="true"></span>
+      ${codes.slice(half).map(toothBtn).join('')}</div>`;
+  };
+
+  const sel = v.tooth ? toothState(chart, v.tooth) : null;
+  body.innerHTML = `<div style="display:grid;gap:18px">
+    <section class="card"><div class="card-head"><h3>Odontograma</h3><div class="grow"></div>
+      <div class="seg"><button data-dent="permanente" class="${dec ? '' : 'on'}">Permanente</button>
+        <button data-dent="decidua" class="${dec ? 'on' : ''}">Decídua</button></div></div>
+      <div class="card-body odo">
+        <div class="odo-arch">
+          <span class="muted" style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700">Arcada superior</span>
+          ${row(upper)}
+          ${row(lower)}
+          <span class="muted" style="font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700">Arcada inferior</span>
+        </div>
+        <div class="odo-legend">${Object.entries(TOOTH_STATUS).map(([k, t]) =>
+          `<span><i style="background:${t.color}"></i>${t.label}</span>`).join('')}</div>
+      </div></section>
+
+    <section class="card" id="odo-detail"><div class="card-head"><h3>${v.tooth ? `Dente ${v.tooth}` : 'Selecione um dente'}</h3></div>
+      <div class="card-body">${!v.tooth
+        ? `<p class="lede" style="font-size:14.5px">Clique em um dente para registrar a condição geral, marcar as faces
+            afetadas e anotar uma observação. As marcações ficam salvas na ficha do paciente.</p>
+           ${marked.length ? `<div style="margin-top:16px;display:grid;gap:8px">
+             <b style="font-size:13px">Dentes com registro</b>
+             <div style="display:flex;flex-wrap:wrap;gap:7px">${marked.map(([code, t]) =>
+               `<button class="pick" data-tooth="${code}" style="width:auto">
+                 <i style="background:${TOOTH_STATUS[t.status]?.color || 'var(--surface)'}"></i>
+                 ${code} · ${esc(TOOTH_STATUS[t.status]?.label || 'Faces')}</button>`).join('')}</div></div>` : ''}`
+        : `<div class="odo-panel" style="grid-template-columns:minmax(260px,1.2fr) minmax(220px,1fr);align-items:start">
+            <div><b style="font-size:13px">Condição do dente</b>
+              <div class="pick-grid" style="margin-top:8px">${Object.entries(TOOTH_STATUS).map(([k, t]) =>
+                `<button type="button" class="pick ${sel.status === k ? 'on' : ''}" data-status="${k}">
+                  <i style="background:${t.color}"></i>${t.label}</button>`).join('')}</div></div>
+            <div><b style="font-size:13px">Faces</b>
+              <div class="odo-faces" style="margin-top:8px">${Object.entries(FACE_NAMES).map(([f, name]) => {
+                const cur = (sel.faces || {})[f] || 'livre';
+                return `<button type="button" data-face-btn="${f}" class="${cur !== 'livre' ? 'on' : ''}" title="${esc(name)}">
+                  <i style="background:${FACE_COLOR[cur]}"></i>${f}</button>`; }).join('')}</div>
+              <span class="hint" style="font-size:12px;color:var(--ink-mute)">Clique na face para alternar entre
+                sem alteração → cárie → restaurada.</span></div>
+            <div class="field" style="grid-column:1/-1"><label for="odo-note">Observação</label>
+              <textarea id="odo-note" style="min-height:70px">${esc(sel.note || '')}</textarea></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;grid-column:1/-1">
+              <button class="btn btn-primary btn-sm" id="odo-save">Salvar dente ${v.tooth}</button>
+              <button class="btn btn-ghost btn-sm" id="odo-clear">Limpar registro</button>
+              <button class="btn btn-quiet btn-sm" id="odo-plan">Adicionar ao tratamento</button>
+            </div>
+          </div>`}
+      </div></section>
+  </div>`;
+
+  $$('[data-dent]', body).forEach((b) => b.addEventListener('click', () => {
+    v.dentition = b.dataset.dent; v.tooth = null; render(); }));
+  $$('[data-tooth]', body).forEach((b) => b.addEventListener('click', () => {
+    v.tooth = Number(b.dataset.tooth); render(); }));
+
+  if (!v.tooth) return;
+  const teeth = { ...(chart?.teeth || {}) };
+  const current = { status: sel.status, faces: { ...(sel.faces || {}) }, note: sel.note || '' };
+  const persist = async (next) => {
+    teeth[v.tooth] = next;
+    await put('odontograms', p.id, { teeth, updatedAt: new Date().toISOString() });
+  };
+  $$('[data-status]', body).forEach((b) => b.addEventListener('click', async () => {
+    current.status = b.dataset.status;
+    current.note = $('#odo-note', body).value;
+    await persist(current);
+    toast('Odontograma atualizado', `Dente ${v.tooth}: ${TOOTH_STATUS[current.status].label}`, 'ok');
+  }));
+  $$('[data-face-btn]', body).forEach((b) => b.addEventListener('click', async () => {
+    const f = b.dataset.faceBtn;
+    const order = ['livre', 'cariado', 'restaurado'];
+    const next = order[(order.indexOf(current.faces[f] || 'livre') + 1) % order.length];
+    current.faces[f] = next;
+    current.note = $('#odo-note', body).value;
+    await persist(current);
+  }));
+  $('#odo-save', body).addEventListener('click', async () => {
+    current.note = $('#odo-note', body).value;
+    await persist(current);
+    toast('Dente salvo', `Registro do dente ${v.tooth} atualizado.`, 'ok');
+  });
+  $('#odo-clear', body).addEventListener('click', async () => {
+    delete teeth[v.tooth];
+    await put('odontograms', p.id, { teeth, updatedAt: new Date().toISOString() });
+    toast('Registro removido', `Dente ${v.tooth} voltou a hígido.`);
+  });
+  $('#odo-plan', body).addEventListener('click', () => openPlanForm(p, { tooth: String(v.tooth) }));
+}
+
+/* ---------- aba: evolução clínica ---------- */
+function renderTabEvolucao(body, p) {
+  const list = state.records.filter((r) => r.patientId === p.id)
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
+  body.innerHTML = `<section class="card">
+    <div class="card-head"><h3>Evolução clínica</h3><div class="grow"></div>
+      <button class="btn btn-primary btn-sm" id="new-record">
+        <svg width="15" height="15"><use href="#i-plus"/></svg> Nova evolução</button></div>
+    <div class="card-body flush">${list.length ? `<div class="evo">${list.map((r) => {
+      const proc = procById(r.procedureId);
+      return `<div class="evo-item">
+        <span class="evo-mark"><svg width="16" height="16"><use href="#i-tooth"/></svg></span>
+        <div class="evo-body">
+          <b>${esc(r.title)}</b>
+          <time>${fmtLong(r.date)}${proc ? ` · ${esc(proc.name)}` : ''}${r.teeth ? ` · dente(s) ${esc(r.teeth)}` : ''}</time>
+          <p>${esc(r.description)}</p>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-quiet btn-sm" data-edit-rec="${r.id}">Editar</button>
+            <button class="btn btn-quiet btn-sm" data-del-rec="${r.id}" style="color:var(--bad)">Excluir</button>
+          </div>
+        </div></div>`; }).join('')}</div>`
+      : `<div class="card-body">${emptyState('art-empty-users', 'Prontuário em branco',
+          'Registre o que foi feito em cada atendimento para acompanhar a evolução do tratamento.',
+          `<button class="btn btn-primary btn-sm" id="empty-record">Registrar evolução</button>`)}</div>`}
+    </div></section>`;
+  $('#new-record', body)?.addEventListener('click', () => openRecordForm(p));
+  $('#empty-record', body)?.addEventListener('click', () => openRecordForm(p));
+  $$('[data-edit-rec]', body).forEach((b) => b.addEventListener('click', () =>
+    openRecordForm(p, state.records.find((r) => r.id === b.dataset.editRec))));
+  $$('[data-del-rec]', body).forEach((b) => b.addEventListener('click', () => {
+    confirmDialog('Excluir evolução', 'Este registro do prontuário será removido definitivamente.',
+      'Excluir', async () => { await remove('records', b.dataset.delRec); toast('Registro excluído', '', 'bad'); });
+  }));
+}
+
+function openRecordForm(p, record = null) {
+  const procs = activeProcedures();
+  const linkable = sortAppts(apptsOf(p.id).filter((a) => a.status === 'atendida')).reverse().slice(0, 12);
+  openModal(`
+    <div class="modal-head"><h3>${record ? 'Editar evolução' : 'Nova evolução clínica'}</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body">
+      <p class="lede" style="margin-bottom:14px">${esc(p.name)} · ${calcAge(p.birthDate).label}</p>
+      <form class="form" id="record-form">
+        <div class="form-row">
+          <div class="field"><label for="rc-date">Data do atendimento <span class="req">*</span></label>
+            <input id="rc-date" name="date" type="date" max="${todayISO()}" value="${esc(record?.date || todayISO())}"></div>
+          <div class="field"><label for="rc-proc">Procedimento</label>
+            <select id="rc-proc" name="procedureId"><option value="">Selecione…</option>
+              ${procs.map((pr) => `<option value="${pr.id}" ${record?.procedureId === pr.id ? 'selected' : ''}>
+                ${esc(pr.name)}</option>`).join('')}</select></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label for="rc-title">Título <span class="req">*</span></label>
+            <input id="rc-title" name="title" value="${esc(record?.title || '')}" placeholder="Ex.: Restauração concluída"></div>
+          <div class="field"><label for="rc-teeth">Dente(s)</label>
+            <input id="rc-teeth" name="teeth" value="${esc(record?.teeth || '')}" placeholder="Ex.: 26, 27"></div>
+        </div>
+        <div class="field"><label for="rc-desc">Descrição do atendimento <span class="req">*</span></label>
+          <textarea id="rc-desc" name="description" placeholder="Materiais, técnica, intercorrências e conduta">${esc(record?.description || '')}</textarea></div>
+        ${linkable.length ? `<div class="field"><label for="rc-appt">Vincular à consulta</label>
+          <select id="rc-appt" name="appointmentId"><option value="">Não vincular</option>
+            ${linkable.map((a) => `<option value="${a.id}" ${record?.appointmentId === a.id ? 'selected' : ''}>
+              ${fmtDate(a.date)} ${a.time} — ${esc(a.reason)}</option>`).join('')}</select></div>` : ''}
+        <button class="btn btn-primary btn-block" type="submit">Salvar no prontuário</button>
+      </form>
+    </div>`, (bg) => {
+    const form = $('#record-form', bg);
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const data = formData(form);
+      const errors = {};
+      if (clean(data.title).length < 3) errors.title = 'Informe um título para o registro.';
+      if (clean(data.description).length < 10) errors.description = 'Descreva o que foi realizado (mínimo 10 caracteres).';
+      if (!isISODate(data.date) || data.date > todayISO()) errors.date = 'Informe uma data válida (não futura).';
+      if (Object.keys(errors).length) { fieldErrors(form, errors); return; }
+      const id = record?.id || uid();
+      await put('records', id, { ...(record || {}), patientId: p.id, ...data,
+        appointmentId: data.appointmentId || record?.appointmentId || null,
+        createdAt: record?.createdAt || new Date().toISOString() });
+      closeModal();
+      toast('Prontuário atualizado', data.title, 'ok');
+    });
+  });
+}
+
+/* ---------- aba: anamnese ---------- */
+function renderTabAnamnese(body, p, clinical) {
+  const record = anamnesisOf(p.id);
+  const answers = { ...(record?.answers || {}) };
+  const flags = riskFlags(p.id);
+  body.innerHTML = `<section class="card">
+    <div class="card-head"><h3>Anamnese</h3><div class="grow"></div>
+      ${record ? `<span class="muted" style="font-size:12.5px">Atualizada em ${fmtDate((record.updatedAt || '').slice(0, 10))}
+        ${record.filledBy === 'paciente' ? '· preenchida pelo paciente' : '· preenchida na clínica'}</span>` : ''}</div>
+    <div class="card-body">
+      ${flags.length ? `<div class="alert-flags" style="margin-bottom:16px">${flags.map((f) =>
+        `<span class="flag"><svg width="13" height="13"><use href="#i-shield"/></svg>${esc(f.label)}</span>`).join('')}</div>`
+        : record ? `<div class="banner-note" style="margin-bottom:16px;background:var(--ok-soft);border-color:transparent">
+          <svg width="18" height="18" style="flex:none;color:var(--ok)"><use href="#i-check"/></svg>
+          <span>Nenhum alerta de risco identificado nas respostas.</span></div>` : ''}
+      <form id="anam-form">
+        ${ANAMNESIS_QUESTIONS.map((q) => {
+          const cur = answers[q.id]?.value || '';
+          return `<div class="q-row">
+            <div><p>${esc(q.text)}${q.risk ? ' <span class="flag warn" style="font-size:10.5px;padding:2px 7px">alerta</span>' : ''}</p>
+              ${q.detail ? `<input class="detail-input" data-detail="${q.id}" placeholder="${esc(q.detail)}"
+                value="${esc(answers[q.id]?.detail || '')}" style="margin-top:7px;padding:7px 11px;border-radius:9px;
+                border:1px solid var(--line-strong);background:var(--surface);font-size:13.5px;width:100%;max-width:340px"
+                ${cur === 'sim' ? '' : 'hidden'}>` : ''}</div>
+            <div class="yn" data-q="${q.id}">
+              <button type="button" data-val="sim" class="${cur === 'sim' ? 'on' : ''}">Sim</button>
+              <button type="button" data-val="nao" class="${cur === 'nao' ? 'on no' : ''}">Não</button>
+            </div></div>`; }).join('')}
+        <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+          <button class="btn btn-primary" type="submit">Salvar anamnese</button>
+          ${clinical ? '' : `<span class="muted" style="font-size:13px;align-self:center">Suas respostas ficam visíveis para a equipe clínica.</span>`}
+        </div>
+      </form>
+    </div></section>`;
+
+  $$('.yn', body).forEach((group) => {
+    const qid = group.dataset.q;
+    $$('button', group).forEach((b) => b.addEventListener('click', () => {
+      answers[qid] = { value: b.dataset.val, detail: answers[qid]?.detail || '' };
+      $$('button', group).forEach((x) => x.classList.remove('on', 'no'));
+      b.classList.add('on');
+      if (b.dataset.val === 'nao') b.classList.add('no');
+      const detail = body.querySelector(`[data-detail="${qid}"]`);
+      if (detail) detail.hidden = b.dataset.val !== 'sim';
+    }));
+  });
+  $$('[data-detail]', body).forEach((input) => input.addEventListener('input', () => {
+    const qid = input.dataset.detail;
+    answers[qid] = { value: answers[qid]?.value || 'sim', detail: input.value };
+  }));
+  $('#anam-form', body).addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const missing = ANAMNESIS_QUESTIONS.filter((q) => !answers[q.id]?.value);
+    if (missing.length) { toast('Responda todas as perguntas', `Faltam ${missing.length} resposta(s).`, 'warn'); return; }
+    await put('anamneses', p.id, { answers, filledBy: clinical ? 'clinica' : 'paciente',
+      updatedAt: new Date().toISOString() });
+    toast('Anamnese salva', riskFlags(p.id).length ? 'Alertas de risco destacados na ficha.' : 'Sem alertas de risco.', 'ok');
+  });
+}
+
+/* ---------- aba: planos de tratamento ---------- */
+function renderTabTratamentos(body, p) {
+  const list = plansOf(p.id).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  body.innerHTML = `<div style="display:grid;gap:16px">
+    <div class="toolbar"><button class="btn btn-primary btn-sm" id="new-plan">
+      <svg width="15" height="15"><use href="#i-plus"/></svg> Novo plano de tratamento</button></div>
+    ${list.length ? list.map((plan) => planCardHTML(plan)).join('')
+      : `<section class="card"><div class="card-body">${emptyState('art-empty-users', 'Nenhum plano de tratamento',
+          'Monte um orçamento com os procedimentos indicados e acompanhe a aprovação do paciente.',
+          `<button class="btn btn-primary btn-sm" id="empty-plan">Criar plano</button>`)}</div></section>`}
+  </div>`;
+  $('#new-plan', body)?.addEventListener('click', () => openPlanForm(p));
+  $('#empty-plan', body)?.addEventListener('click', () => openPlanForm(p));
+  bindPlanActions(body);
+}
+
+function planCardHTML(plan, showPatient = false) {
+  const p = patientById(plan.patientId);
+  const total = planTotal(plan);
+  const done = (plan.items || []).filter((i) => i.status === 'concluido').length;
+  return `<section class="plan-card">
+    <div class="plan-head">
+      <b>${esc(plan.title)}</b>
+      <span class="chip s-${plan.status}">${esc(PLAN_STATUS[plan.status] || plan.status)}</span>
+      ${showPatient && p ? `<span class="tag">${esc(p.name)}</span>` : ''}
+      <span class="muted" style="font-size:12.5px">${done}/${(plan.items || []).length} concluídos</span>
+      <div class="plan-total"><b>${money(total)}</b><span>Total do plano</span></div>
+    </div>
+    <div class="plan-items">${(plan.items || []).map((item) => `
+      <div class="plan-item">
+        <span class="tooth-tag">${esc(item.tooth || '—')}</span>
+        <span>${esc(item.name)}</span>
+        <span class="chip s-${item.status === 'concluido' ? 'atendida' : 'aguardando'}">
+          ${item.status === 'concluido' ? 'Concluído' : 'Pendente'}</span>
+        <span class="money">${money(item.price)}</span>
+      </div>`).join('')}
+      ${Number(plan.discount) ? `<div class="plan-item"><span class="tooth-tag">—</span>
+        <span>Desconto concedido</span><span></span>
+        <span class="money out">− ${money(plan.discount)}</span></div>` : ''}
+    </div>
+    <div class="modal-foot" style="border-top:1px solid var(--line);justify-content:flex-start;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" data-plan-edit="${plan.id}">
+        <svg width="14" height="14"><use href="#i-edit"/></svg> Editar</button>
+      <button class="btn btn-ghost btn-sm" data-plan-status="${plan.id}">Alterar status</button>
+      <button class="btn btn-ghost btn-sm" data-plan-bill="${plan.id}">
+        <svg width="14" height="14"><use href="#i-sparkle"/></svg> Gerar cobrança</button>
+      <button class="btn btn-quiet btn-sm" data-plan-del="${plan.id}" style="color:var(--bad);margin-left:auto">
+        <svg width="14" height="14"><use href="#i-trash"/></svg></button>
+    </div></section>`;
+}
+
+function bindPlanActions(root) {
+  const find = (id) => state.plans.find((x) => x.id === id);
+  $$('[data-plan-edit]', root).forEach((b) => b.addEventListener('click', () => {
+    const plan = find(b.dataset.planEdit);
+    openPlanForm(patientById(plan.patientId), null, plan);
+  }));
+  $$('[data-plan-del]', root).forEach((b) => b.addEventListener('click', () => {
+    confirmDialog('Excluir plano', 'O plano de tratamento e seus itens serão removidos. As cobranças já geradas continuam no financeiro.',
+      'Excluir plano', async () => { await remove('plans', b.dataset.planDel); toast('Plano excluído', '', 'bad'); });
+  }));
+  $$('[data-plan-status]', root).forEach((b) => b.addEventListener('click', () => {
+    const plan = find(b.dataset.planStatus);
+    openModal(`<div class="modal-head"><h3>Status do plano</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+      <div class="modal-body"><div class="pick-grid">${Object.entries(PLAN_STATUS).map(([k, l]) =>
+        `<button class="pick ${plan.status === k ? 'on' : ''}" data-set-status="${k}">${l}</button>`).join('')}</div>
+        <div style="margin-top:18px"><b style="font-size:13px">Itens concluídos</b>
+          <div style="display:grid;gap:7px;margin-top:8px">${(plan.items || []).map((i) =>
+            `<label class="pick" style="width:auto"><input type="checkbox" data-item="${i.id}"
+              ${i.status === 'concluido' ? 'checked' : ''} style="width:auto;margin:0">
+              ${esc(i.name)}${i.tooth ? ` · ${esc(i.tooth)}` : ''}</label>`).join('')}</div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-primary btn-sm" id="plan-status-save">Salvar</button></div>`, (bg) => {
+      let next = plan.status;
+      $$('[data-set-status]', bg).forEach((btn) => btn.addEventListener('click', () => {
+        next = btn.dataset.setStatus;
+        $$('[data-set-status]', bg).forEach((x) => x.classList.remove('on'));
+        btn.classList.add('on');
+      }));
+      $('#plan-status-save', bg).addEventListener('click', async () => {
+        const items = (plan.items || []).map((i) => ({ ...i,
+          status: $(`[data-item="${i.id}"]`, bg)?.checked ? 'concluido' : 'pendente' }));
+        await put('plans', plan.id, { ...plan, status: next, items });
+        closeModal(); toast('Plano atualizado', PLAN_STATUS[next], 'ok');
+      });
+    });
+  }));
+  $$('[data-plan-bill]', root).forEach((b) => b.addEventListener('click', () => {
+    const plan = find(b.dataset.planBill);
+    openBillingForm(plan);
+  }));
+}
+
+function openPlanForm(patient, preset = null, plan = null) {
+  const procs = activeProcedures();
+  let items = plan ? (plan.items || []).map((i) => ({ ...i })) : [];
+  if (preset?.tooth && !plan) items = [];
+  openModal(`
+    <div class="modal-head"><h3>${plan ? 'Editar plano' : 'Novo plano de tratamento'}</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body">
+      <p class="lede" style="margin-bottom:14px">${esc(patient.name)}</p>
+      <form class="form" id="plan-form">
+        <div class="field"><label for="pl-title">Título do plano <span class="req">*</span></label>
+          <input id="pl-title" name="title" value="${esc(plan?.title || '')}" placeholder="Ex.: Reabilitação dos molares superiores"></div>
+        <fieldset class="fieldset"><legend>Itens do orçamento</legend>
+          <div class="form-row three">
+            <div class="field"><label for="pl-proc">Procedimento</label>
+              <select id="pl-proc">${procs.map((pr) =>
+                `<option value="${pr.id}">${esc(pr.name)} — ${money(pr.price)}</option>`).join('')}</select></div>
+            <div class="field"><label for="pl-tooth">Dente</label>
+              <input id="pl-tooth" placeholder="Ex.: 26" value="${esc(preset?.tooth || '')}"></div>
+            <div class="field"><label for="pl-price">Valor (R$)</label>
+              <input id="pl-price" type="number" min="0" step="10" placeholder="Usar tabela"></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" type="button" id="pl-add" style="width:fit-content">
+            <svg width="15" height="15"><use href="#i-plus"/></svg> Adicionar item</button>
+          <div id="pl-items"></div>
+        </fieldset>
+        <div class="form-row">
+          <div class="field"><label for="pl-discount">Desconto (R$)</label>
+            <input id="pl-discount" name="discount" type="number" min="0" step="10" value="${esc(String(plan?.discount || 0))}"></div>
+          <div class="field"><label for="pl-status">Status</label>
+            <select id="pl-status" name="status">${Object.entries(PLAN_STATUS).map(([k, l]) =>
+              `<option value="${k}" ${plan?.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">${plan ? 'Salvar plano' : 'Criar plano'}</button>
+      </form>
+    </div>`, (bg) => {
+    const form = $('#plan-form', bg);
+    const listEl = $('#pl-items', bg);
+    const paint = () => {
+      const total = items.reduce((s2, i) => s2 + Number(i.price || 0), 0) - Number($('#pl-discount', bg).value || 0);
+      listEl.innerHTML = items.length ? `<div class="plan-items" style="border:1px solid var(--line);border-radius:12px">
+        ${items.map((i, idx) => `<div class="plan-item">
+          <span class="tooth-tag">${esc(i.tooth || '—')}</span><span>${esc(i.name)}</span>
+          <span class="money">${money(i.price)}</span>
+          <button type="button" class="icon-btn" data-rm="${idx}" aria-label="Remover">
+            <svg width="14" height="14"><use href="#i-x"/></svg></button></div>`).join('')}
+        <div class="plan-item" style="background:var(--surface-2)"><span class="tooth-tag">Σ</span>
+          <span><b>Total do plano</b></span><span class="money">${money(total)}</span><span></span></div></div>`
+        : `<p class="muted" style="font-size:13.5px">Nenhum item adicionado ainda.</p>`;
+      $$('[data-rm]', listEl).forEach((b) => b.addEventListener('click', () => {
+        items.splice(Number(b.dataset.rm), 1); paint(); }));
+    };
+    paint();
+    $('#pl-discount', bg).addEventListener('input', paint);
+    $('#pl-proc', bg).addEventListener('change', () => { $('#pl-price', bg).value = ''; });
+    $('#pl-add', bg).addEventListener('click', () => {
+      const proc = procById($('#pl-proc', bg).value);
+      if (!proc) return;
+      const price = $('#pl-price', bg).value === '' ? proc.price : Number($('#pl-price', bg).value);
+      items.push({ id: uid(), procedureId: proc.id, name: proc.name,
+        tooth: clean($('#pl-tooth', bg).value, 20), price, status: 'pendente' });
+      $('#pl-tooth', bg).value = ''; $('#pl-price', bg).value = '';
+      paint();
+    });
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const data = formData(form);
+      const errors = {};
+      if (clean(data.title).length < 3) errors.title = 'Dê um nome ao plano.';
+      if (!items.length) { toast('Adicione pelo menos um item', 'Escolha um procedimento e clique em "Adicionar item".', 'warn'); return; }
+      if (Object.keys(errors).length) { fieldErrors(form, errors); return; }
+      const id = plan?.id || uid();
+      await put('plans', id, { ...(plan || {}), patientId: patient.id, title: data.title,
+        status: data.status || 'proposto', discount: Number(data.discount || 0), items,
+        createdAt: plan?.createdAt || new Date().toISOString() });
+      closeModal();
+      toast(plan ? 'Plano atualizado' : 'Plano criado', `${data.title} — ${money(planTotal({ items, discount: data.discount }))}`, 'ok');
+    });
+  });
+}
+
+function openBillingForm(plan) {
+  const patient = patientById(plan.patientId);
+  const total = planTotal(plan);
+  const billed = paymentsOf(plan.patientId).filter((p) => p.planId === plan.id)
+    .reduce((s2, p) => s2 + Number(p.amount || 0), 0);
+  const remaining = Math.max(total - billed, 0);
+  openModal(`
+    <div class="modal-head"><h3>Gerar cobrança</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body">
+      <div class="detail-grid" style="margin-bottom:16px">
+        <div><span>Plano</span><b>${esc(plan.title)}</b></div>
+        <div><span>Paciente</span><b>${esc(patient ? patient.name : '—')}</b></div>
+        <div><span>Total do plano</span><b>${money(total)}</b></div>
+        <div><span>Já lançado</span><b>${money(billed)}</b></div>
+      </div>
+      <form class="form" id="bill-form">
+        <div class="form-row three">
+          <div class="field"><label for="bl-amount">Valor a lançar (R$) <span class="req">*</span></label>
+            <input id="bl-amount" name="amount" type="number" min="0" step="10" value="${remaining}"></div>
+          <div class="field"><label for="bl-parts">Parcelas</label>
+            <select id="bl-parts" name="parts">${[1, 2, 3, 4, 6, 10, 12].map((n) =>
+              `<option value="${n}">${n}x</option>`).join('')}</select></div>
+          <div class="field"><label for="bl-method">Forma de pagamento</label>
+            <select id="bl-method" name="method">${Object.entries(PAY_METHODS).map(([k, l]) =>
+              `<option value="${k}">${l}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label for="bl-due">Primeiro vencimento</label>
+          <input id="bl-due" name="dueDate" type="date" value="${todayISO()}"></div>
+        <button class="btn btn-primary btn-block" type="submit">Lançar no financeiro</button>
+      </form>
+    </div>`, (bg) => {
+    $('#bill-form', bg).addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const form = ev.target;
+      const data = formData(form);
+      const amount = Number(data.amount || 0);
+      const parts = Number(data.parts || 1);
+      if (!(amount > 0)) { fieldErrors(form, { amount: 'Informe um valor maior que zero.' }); return; }
+      if (!isISODate(data.dueDate)) { fieldErrors(form, { dueDate: 'Informe a data de vencimento.' }); return; }
+      const each = Math.round((amount / parts) * 100) / 100;
+      for (let i = 0; i < parts; i += 1) {
+        const [y, m, d] = data.dueDate.split('-').map(Number);
+        const due = new Date(Date.UTC(y, m - 1 + i, d)).toISOString().slice(0, 10);
+        await put('payments', uid(), { patientId: plan.patientId, planId: plan.id,
+          description: `${plan.title}${parts > 1 ? ` — parcela ${i + 1}/${parts}` : ''}`,
+          amount: each, method: data.method, dueDate: due, paidAt: null,
+          installment: parts > 1 ? `${i + 1}/${parts}` : '', createdAt: new Date().toISOString() });
+      }
+      closeModal();
+      toast('Cobrança lançada', `${parts}x de ${money(each)}`, 'ok');
+    });
+  });
+}
+
+/* ---------- aba: financeiro do paciente ---------- */
+function renderTabFinanceiro(body, p) {
+  const list = paymentsOf(p.id).sort((a, b) => (a.dueDate < b.dueDate ? 1 : -1));
+  const open = list.filter((x) => !x.paidAt).reduce((s2, x) => s2 + Number(x.amount || 0), 0);
+  const paid = list.filter((x) => x.paidAt).reduce((s2, x) => s2 + Number(x.amount || 0), 0);
+  body.innerHTML = `<div style="display:grid;gap:16px">
+    <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat ok"><div class="ic"><svg width="18" height="18"><use href="#i-check"/></svg></div>
+        <b style="font-size:23px">${money(paid)}</b><span>Total pago</span></div>
+      <div class="stat warn"><div class="ic"><svg width="18" height="18"><use href="#i-clock"/></svg></div>
+        <b style="font-size:23px">${money(open)}</b><span>Em aberto</span></div>
+      <div class="stat"><div class="ic"><svg width="18" height="18"><use href="#i-list"/></svg></div>
+        <b style="font-size:23px">${list.length}</b><span>Lançamentos</span></div>
+    </div>
+    <section class="card"><div class="card-head"><h3>Lançamentos</h3><div class="grow"></div>
+      <button class="btn btn-primary btn-sm" id="new-pay"><svg width="15" height="15"><use href="#i-plus"/></svg> Novo lançamento</button></div>
+      <div class="card-body flush">${list.length ? paymentsTableHTML(list, false)
+        : `<div class="card-body">${emptyState('art-empty-users', 'Nenhum lançamento',
+            'Cobranças geradas a partir dos planos de tratamento aparecem aqui.')}</div>`}</div></section>
+  </div>`;
+  $('#new-pay', body).addEventListener('click', () => openPaymentForm(p));
+  bindPaymentActions(body);
+}
+
+function paymentsTableHTML(list, showPatient = true) {
+  return `<div class="table-wrap"><table class="data">
+    <thead><tr>${showPatient ? '<th>Paciente</th>' : ''}<th>Descrição</th><th>Vencimento</th>
+      <th>Forma</th><th>Status</th><th class="num">Valor</th><th></th></tr></thead>
+    <tbody>${list.map((pay) => {
+      const st = payStatus(pay);
+      const patient = patientById(pay.patientId);
+      return `<tr>
+        ${showPatient ? `<td>${esc(patient ? patient.name : '—')}</td>` : ''}
+        <td>${esc(pay.description)}${pay.installment ? ` <span class="muted">(${esc(pay.installment)})</span>` : ''}</td>
+        <td class="num">${fmtDate(pay.dueDate)}</td>
+        <td>${esc(PAY_METHODS[pay.method] || pay.method || '—')}</td>
+        <td><span class="chip s-${st}">${PAY_STATUS_LABEL[st]}</span></td>
+        <td class="num money ${st === 'pago' ? 'in' : ''}">${money(pay.amount)}</td>
+        <td class="num" style="white-space:nowrap">
+          ${pay.paidAt ? `<button class="btn btn-quiet btn-sm" data-unpay="${pay.id}">Estornar</button>`
+            : `<button class="btn btn-ghost btn-sm" data-pay="${pay.id}">Receber</button>`}
+          <button class="icon-btn" data-del-pay="${pay.id}" aria-label="Excluir" style="display:inline-grid;vertical-align:middle">
+            <svg width="13" height="13"><use href="#i-trash"/></svg></button></td>
+      </tr>`; }).join('')}</tbody></table></div>`;
+}
+
+function bindPaymentActions(root) {
+  const find = (id) => state.payments.find((x) => x.id === id);
+  $$('[data-pay]', root).forEach((b) => b.addEventListener('click', async () => {
+    const pay = find(b.dataset.pay);
+    await put('payments', pay.id, { ...pay, paidAt: todayISO() });
+    toast('Pagamento recebido', money(pay.amount), 'ok');
+  }));
+  $$('[data-unpay]', root).forEach((b) => b.addEventListener('click', async () => {
+    const pay = find(b.dataset.unpay);
+    await put('payments', pay.id, { ...pay, paidAt: null });
+    toast('Pagamento estornado', money(pay.amount), 'warn');
+  }));
+  $$('[data-del-pay]', root).forEach((b) => b.addEventListener('click', () => {
+    confirmDialog('Excluir lançamento', 'O lançamento será removido do financeiro.',
+      'Excluir', async () => { await remove('payments', b.dataset.delPay); toast('Lançamento excluído', '', 'bad'); });
+  }));
+}
+
+function openPaymentForm(patient = null) {
+  const patients = [...state.patients].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  openModal(`
+    <div class="modal-head"><h3>Novo lançamento</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body"><form class="form" id="pay-form">
+      ${patient ? '' : `<div class="field"><label for="py-patient">Paciente <span class="req">*</span></label>
+        <select id="py-patient" name="patientId"><option value="">Selecione…</option>
+          ${patients.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></div>`}
+      <div class="field"><label for="py-desc">Descrição <span class="req">*</span></label>
+        <input id="py-desc" name="description" placeholder="Ex.: Limpeza e profilaxia"></div>
+      <div class="form-row three">
+        <div class="field"><label for="py-amount">Valor (R$) <span class="req">*</span></label>
+          <input id="py-amount" name="amount" type="number" min="0" step="10"></div>
+        <div class="field"><label for="py-method">Forma</label>
+          <select id="py-method" name="method">${Object.entries(PAY_METHODS).map(([k, l]) =>
+            `<option value="${k}">${l}</option>`).join('')}</select></div>
+        <div class="field"><label for="py-due">Vencimento</label>
+          <input id="py-due" name="dueDate" type="date" value="${todayISO()}"></div>
+      </div>
+      <label class="pick" style="width:fit-content"><input type="checkbox" id="py-paid" style="width:auto;margin:0"> Já recebido</label>
+      <button class="btn btn-primary btn-block" type="submit">Lançar</button>
+    </form></div>`, (bg) => {
+    $('#pay-form', bg).addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const form = ev.target;
+      const data = formData(form);
+      const errors = {};
+      const patientId = patient ? patient.id : data.patientId;
+      if (!patientId) errors.patientId = 'Selecione o paciente.';
+      if (clean(data.description).length < 3) errors.description = 'Descreva o lançamento.';
+      if (!(Number(data.amount) > 0)) errors.amount = 'Informe um valor maior que zero.';
+      if (!isISODate(data.dueDate)) errors.dueDate = 'Informe o vencimento.';
+      if (Object.keys(errors).length) { fieldErrors(form, errors); return; }
+      await put('payments', uid(), { patientId, planId: null, description: data.description,
+        amount: Number(data.amount), method: data.method, dueDate: data.dueDate,
+        paidAt: $('#py-paid', bg).checked ? todayISO() : null, installment: '',
+        createdAt: new Date().toISOString() });
+      closeModal(); toast('Lançamento criado', money(Number(data.amount)), 'ok');
+    });
+  });
+}
+
+/* ============================ gráficos ============================ */
+let tipEl = null;
+function chartTip(text, x, y) {
+  if (!tipEl) { tipEl = document.createElement('div'); tipEl.className = 'chart-tip'; document.body.appendChild(tipEl); }
+  tipEl.textContent = text;
+  tipEl.style.left = `${Math.min(x + 12, window.innerWidth - tipEl.offsetWidth - 12)}px`;
+  tipEl.style.top = `${y - 38}px`;
+  tipEl.hidden = false;
+}
+function hideTip() { if (tipEl) tipEl.hidden = true; }
+function bindTips(root) {
+  $$('[data-tip]', root).forEach((el) => {
+    el.addEventListener('mousemove', (e) => chartTip(el.dataset.tip, e.clientX, e.clientY));
+    el.addEventListener('mouseleave', hideTip);
+    el.addEventListener('focus', (e) => {
+      const r = el.getBoundingClientRect();
+      chartTip(el.dataset.tip, r.left, r.top);
+    });
+    el.addEventListener('blur', hideTip);
+  });
+}
+
+/** Colunas: uma série, sem legenda; rótulo direto só no maior e no último valor. */
+function columnChart(title, subtitle, data, fmt = (v) => String(v)) {
+  const max = Math.max(1, ...data.map((d) => d.value));
+  const peak = Math.max(...data.map((d) => d.value));
+  const maxIdx = data.findIndex((d) => d.value === peak);
+  /* a barra ocupa no máximo 86% da altura para o rótulo direto caber acima dela */
+  const h = (value) => (value ? Math.max((value / max) * 86, 2) : 0.8);
+  return `<div class="fig"><h4>${esc(title)}</h4><p class="sub">${esc(subtitle)}</p>
+    <div class="plot">
+      ${[0.25, 0.5, 0.75].map((f) => `<span class="gl" style="bottom:${f * 86}%"></span>`).join('')}
+      ${data.map((d, i) => `<div class="cbar">
+        ${i === maxIdx || (i === data.length - 1 && i !== maxIdx) ? `<span class="cap">${esc(fmt(d.value))}</span>` : ''}
+        <div class="fillc" style="height:${h(d.value)}%"
+          tabindex="0" role="img" data-tip="${esc(d.label)}: ${esc(fmt(d.value))}"
+          aria-label="${esc(d.label)}: ${esc(fmt(d.value))}"></div></div>`).join('')}
+    </div>
+    <div class="plot-x">${data.map((d) => `<span>${esc(d.label)}</span>`).join('')}</div></div>`;
+}
+
+/** Barras horizontais para rankings: rótulo e valor sempre visíveis ao lado da barra. */
+function rankChart(title, subtitle, data, fmt = (v) => String(v)) {
+  const max = Math.max(1, ...data.map((d) => d.value));
+  return `<div class="fig"><h4>${esc(title)}</h4><p class="sub">${esc(subtitle)}</p>
+    <div class="hbars">${data.map((d) => `<div class="hbar">
+      <span class="lbl" title="${esc(d.label)}">${esc(d.label)}</span>
+      <div class="track"><div class="fillh" style="width:${Math.max((d.value / max) * 100, 2)}%"
+        tabindex="0" role="img" data-tip="${esc(d.label)}: ${esc(fmt(d.value))}"
+        aria-label="${esc(d.label)}: ${esc(fmt(d.value))}"></div></div>
+      <span class="v">${esc(fmt(d.value))}</span></div>`).join('')}</div></div>`;
+}
+
+/** Barra empilhada de estados: cada fatia tem cor de status E rótulo no legend. */
+function statusBar(title, subtitle, parts, total) {
+  return `<div class="fig"><h4>${esc(title)}</h4><p class="sub">${esc(subtitle)}</p>
+    <div class="stackbar">${parts.filter((p) => p.value > 0).map((p) => `
+      <div style="flex:${p.value};background:${p.color}" tabindex="0" role="img"
+        data-tip="${esc(p.label)}: ${p.value} (${Math.round((p.value / Math.max(total, 1)) * 100)}%)"
+        aria-label="${esc(p.label)}: ${p.value}"></div>`).join('')}</div>
+    <div class="stack-legend">${parts.map((p) => `<span><i style="background:${p.color}"></i>
+      ${esc(p.label)} · <b class="num">${p.value}</b> (${Math.round((p.value / Math.max(total, 1)) * 100)}%)</span>`).join('')}</div></div>`;
+}
+
+const monthLabel = (ym) => { const [y, m] = ym.split('-').map(Number); return `${MONTHS[m - 1].slice(0, 3)}/${String(y).slice(2)}`; };
+function lastMonths(n) {
+  const out = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i -= 1) {
+    const d = new Date(Date.UTC(now.getFullYear(), now.getMonth() - i, 1));
+    out.push(`${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`);
+  }
+  return out;
+}
+
+/* ============================ financeiro da clínica ============================ */
+function renderFinance(main) {
+  const v = state.view.finance ||= { status: '', month: todayISO().slice(0, 7) };
+  const monthStart = `${v.month}-01`;
+  const [fy, fm] = v.month.split('-').map(Number);
+  const monthEnd = `${v.month}-${pad(new Date(Date.UTC(fy, fm, 0)).getUTCDate())}`;
+  const sum = financeSummary(monthStart, monthEnd);
+  const all = [...state.payments].sort((a, b) => (a.dueDate < b.dueDate ? 1 : -1));
+  const list = all.filter((p) => !v.status || payStatus(p) === v.status);
+
+  const byMethod = Object.entries(PAY_METHODS).map(([k, label]) => ({
+    label, value: state.payments.filter((p) => p.paidAt && p.method === k)
+      .reduce((s2, p) => s2 + Number(p.amount || 0), 0)
+  })).filter((d) => d.value > 0).sort((a, b) => b.value - a.value);
+
+  main.innerHTML = `
+    <div class="topbar"><h1>Financeiro</h1><div class="grow"></div>
+      <button class="btn btn-primary btn-sm" id="fin-new">
+        <svg width="16" height="16"><use href="#i-plus"/></svg> Novo lançamento</button></div>
+
+    <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat ok"><div class="ic"><svg width="18" height="18"><use href="#i-check"/></svg></div>
+        <b style="font-size:24px">${money(sum.received)}</b><span>Recebido no mês</span></div>
+      <div class="stat accent"><div class="ic"><svg width="18" height="18"><use href="#i-clock"/></svg></div>
+        <b style="font-size:24px">${money(sum.expected)}</b><span>A receber no mês</span></div>
+      <div class="stat warn"><div class="ic"><svg width="18" height="18"><use href="#i-list"/></svg></div>
+        <b style="font-size:24px">${money(sum.open)}</b><span>Em aberto (total)</span></div>
+      <div class="stat bad"><div class="ic"><svg width="18" height="18"><use href="#i-bell"/></svg></div>
+        <b style="font-size:24px">${money(sum.overdue)}</b><span>Vencido</span></div>
+    </div>
+
+    <div class="grid-2">
+      <section class="card"><div class="card-head"><h3>Lançamentos</h3><div class="grow"></div>
+          <div class="seg">${[['', 'Todos'], ['pendente', 'Pendentes'], ['vencido', 'Vencidos'], ['pago', 'Pagos']]
+            .map(([k, l]) => `<button data-fst="${k}" class="${v.status === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+        <div class="card-body flush">${list.length ? paymentsTableHTML(list)
+          : `<div class="card-body">${emptyState('art-empty-users', 'Nenhum lançamento encontrado',
+              'Ajuste o filtro ou gere cobranças a partir de um plano de tratamento.')}</div>`}</div></section>
+
+      <div style="display:grid;gap:20px">
+        <section class="card"><div class="card-body">
+          <div class="toolbar" style="margin-bottom:14px">
+            <label for="fin-month" style="font-size:13px;font-weight:600;color:var(--ink-soft)">Mês de referência</label>
+            <input type="month" id="fin-month" value="${v.month}" style="padding:8px 12px;border-radius:999px;
+              border:1px solid var(--line-strong);background:var(--surface);font-size:14px"></div>
+          ${columnChart('Recebimentos por mês', 'Valores efetivamente pagos nos últimos 6 meses',
+            lastMonths(6).map((ym) => ({ label: monthLabel(ym),
+              value: state.payments.filter((p) => p.paidAt && p.paidAt.slice(0, 7) === ym)
+                .reduce((s2, p) => s2 + Number(p.amount || 0), 0) })), money)}
+        </div></section>
+        <section class="card"><div class="card-body">
+          ${byMethod.length ? rankChart('Recebido por forma de pagamento', 'Soma dos lançamentos já pagos', byMethod, money)
+            : `<div class="empty" style="padding:24px"><b>Sem recebimentos</b><p>Registre um pagamento para ver a distribuição.</p></div>`}
+        </div></section>
+      </div>
+    </div>`;
+
+  $('#fin-new', main).addEventListener('click', () => openPaymentForm());
+  $$('[data-fst]', main).forEach((b) => b.addEventListener('click', () => { v.status = b.dataset.fst; render(); }));
+  $('#fin-month', main).addEventListener('change', (e) => { v.month = e.target.value || todayISO().slice(0, 7); render(); });
+  bindPaymentActions(main);
+  bindTips(main);
+}
+
+/* ============================ relatórios ============================ */
+function renderReports(main) {
+  const months = lastMonths(6);
+  const revenue = months.map((ym) => ({ label: monthLabel(ym),
+    value: state.payments.filter((p) => p.paidAt && p.paidAt.slice(0, 7) === ym)
+      .reduce((s2, p) => s2 + Number(p.amount || 0), 0) }));
+  const newPatients = months.map((ym) => ({ label: monthLabel(ym),
+    value: state.patients.filter((p) => (p.createdAt || '').slice(0, 7) === ym).length }));
+
+  const procCount = new Map();
+  state.appointments.filter((a) => a.status !== 'cancelada').forEach((a) => {
+    const proc = procById(a.procedureId);
+    const key = proc ? proc.name : a.reason;
+    procCount.set(key, (procCount.get(key) || 0) + 1);
+  });
+  const topProcs = [...procCount.entries()].map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value).slice(0, 8);
+
+  const total = state.appointments.length;
+  const byStatus = [
+    { label: 'Atendidas', value: state.appointments.filter((a) => a.status === 'atendida').length, color: 'var(--st-ok)' },
+    { label: 'Confirmadas', value: state.appointments.filter((a) => a.status === 'confirmada').length, color: 'var(--chart-1)' },
+    { label: 'Aguardando', value: state.appointments.filter((a) => a.status === 'aguardando').length, color: 'var(--st-warn)' },
+    { label: 'Canceladas', value: state.appointments.filter((a) => a.status === 'cancelada').length, color: 'var(--st-bad)' }
+  ];
+  const cancelRate = total ? Math.round((byStatus[3].value / total) * 100) : 0;
+
+  const bands = [['08:00', '11:00', 'Manhã'], ['11:00', '14:00', 'Meio-dia'],
+    ['14:00', '18:00', 'Tarde'], ['18:00', '22:00', 'Noite']];
+  const occupancy = bands.map(([from, to, label]) => ({ label,
+    value: state.appointments.filter((a) => a.status !== 'cancelada' &&
+      toMin(a.time) >= toMin(from) && toMin(a.time) < toMin(to)).length }));
+
+  const planValue = state.plans.reduce((s2, p) => s2 + planTotal(p), 0);
+  const approved = state.plans.filter((p) => ['aprovado', 'em_andamento', 'concluido'].includes(p.status));
+  const approvalRate = state.plans.length ? Math.round((approved.length / state.plans.length) * 100) : 0;
+  const recallLimit = addDays(todayISO(), -180);
+  const recall = state.patients.filter((p) => {
+    const last = patientStats(p).last;
+    return !last || last.date < recallLimit;
+  });
+  const birthdays = state.patients.filter((p) => p.birthDate.slice(5, 7) === todayISO().slice(5, 7))
+    .sort((a, b) => a.birthDate.slice(8) .localeCompare(b.birthDate.slice(8)));
+
+  main.innerHTML = `
+    <div class="topbar"><h1>Relatórios</h1><div class="grow"></div>
+      <span class="muted" style="font-size:13px">Base atual: ${state.patients.length} pacientes ·
+        ${state.appointments.length} consultas</span></div>
+
+    <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat accent"><div class="hero-num"><b>${money(revenue[revenue.length - 1].value)}</b>
+        <span>Faturamento do mês corrente</span></div></div>
+      <div class="stat"><div class="hero-num"><b>${money(planValue)}</b><span>Valor total em planos de tratamento</span></div></div>
+      <div class="stat ${cancelRate > 15 ? 'bad' : 'ok'}"><div class="hero-num"><b>${cancelRate}%</b>
+        <span>Taxa de cancelamento das consultas</span></div></div>
+      <div class="stat"><div class="hero-num"><b>${approvalRate}%</b><span>Planos aprovados pelos pacientes</span></div></div>
+    </div>
+
+    <div class="grid-2 even">
+      <section class="card"><div class="card-body">${columnChart('Faturamento por mês',
+        'Somatório dos pagamentos recebidos nos últimos 6 meses', revenue, money)}</div></section>
+      <section class="card"><div class="card-body">${topProcs.length
+        ? rankChart('Procedimentos mais realizados', 'Consultas não canceladas, por procedimento', topProcs,
+            (v) => `${v}×`)
+        : `<div class="empty" style="padding:24px"><b>Sem dados</b><p>Ainda não há consultas registradas.</p></div>`}</div></section>
+      <section class="card"><div class="card-body">${statusBar('Situação das consultas',
+        `Distribuição de todos os ${total} registros da agenda`, byStatus, total)}</div></section>
+      <section class="card"><div class="card-body">${columnChart('Ocupação por faixa de horário',
+        'Consultas ativas distribuídas ao longo do dia', occupancy, (v) => `${v}`)}</div></section>
+      <section class="card"><div class="card-body">${columnChart('Novos pacientes por mês',
+        'Cadastros criados no período', newPatients, (v) => `${v}`)}</div></section>
+      <section class="card">
+        <div class="card-head"><h3>Recall — sem retorno há 6 meses</h3><div class="grow"></div>
+          <span class="tag">${recall.length}</span></div>
+        <div class="card-body flush">${recall.length ? `<div class="list">${recall.slice(0, 8).map((p) => `
+          <div class="list-row" data-recall="${p.id}">
+            <div class="row-avatar">${avatar(p, 38)}</div>
+            <div class="tl-main"><b>${esc(p.name)}</b>
+              <span>${patientStats(p).last ? `Última consulta em ${fmtDate(patientStats(p).last.date)}`
+                : 'Nunca compareceu a uma consulta'}</span></div>
+            <div class="when"><b>${esc(p.phone || '—')}</b>${esc(p.email ? 'com e-mail' : 'sem e-mail')}</div>
+          </div>`).join('')}</div>`
+          : `<div class="card-body">${emptyState('art-empty-users', 'Todos em dia',
+              'Nenhum paciente está há mais de 6 meses sem retorno.')}</div>`}</div></section>
+    </div>
+
+    <section class="card"><div class="card-head"><h3>Aniversariantes de ${MONTHS[Number(todayISO().slice(5, 7)) - 1]}</h3>
+      <div class="grow"></div><span class="tag">${birthdays.length}</span></div>
+      <div class="card-body flush">${birthdays.length ? `<div class="list">${birthdays.map((p) => `
+        <div class="list-row" data-recall="${p.id}">
+          <div class="row-avatar">${avatar(p, 38)}</div>
+          <div class="tl-main"><b>${esc(p.name)}</b><span>Faz ${calcAge(p.birthDate).years + 1} anos</span></div>
+          <div class="when"><b>${fmtDate(p.birthDate).slice(0, 5)}</b>${esc(p.phone || 'sem telefone')}</div>
+        </div>`).join('')}</div>`
+        : `<div class="card-body">${emptyState('art-empty-users', 'Nenhum aniversariante',
+            'Nenhum paciente faz aniversário neste mês.')}</div>`}</div></section>`;
+
+  $$('[data-recall]', main).forEach((el) => el.addEventListener('click', () => {
+    state.view.patients = { ...(state.view.patients || {}), selected: el.dataset.recall, tab: 'ficha' };
+    go('/dentista/pacientes');
+  }));
+  bindTips(main);
+}
+
+/* ============================ catálogo de procedimentos ============================ */
+function renderProcedures(main) {
+  const v = state.view.procs ||= { category: '' };
+  const list = activeProcedures().filter((p) => !v.category || p.category === v.category);
+  const usage = (id) => state.appointments.filter((a) => a.procedureId === id && a.status !== 'cancelada').length;
+
+  main.innerHTML = `
+    <div class="topbar"><h1>Procedimentos</h1><div class="grow"></div>
+      <button class="btn btn-primary btn-sm" id="new-proc">
+        <svg width="16" height="16"><use href="#i-plus"/></svg> Novo procedimento</button></div>
+    <div class="banner-note">
+      <svg width="18" height="18" style="flex:none;color:var(--gold)"><use href="#i-clock"/></svg>
+      <span>A duração definida aqui reserva o tempo real na agenda: um canal de 90 min bloqueia três faixas de 30 min,
+        e o portal do paciente só oferece horários em que o procedimento cabe até o fechamento.</span></div>
+    <div class="toolbar">
+      <select id="proc-cat"><option value="">Todas as categorias</option>
+        ${PROC_CATEGORIES.map((c) => `<option value="${c}" ${v.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
+      <span class="muted" style="font-size:13.5px">${list.length} procedimento(s)</span>
+    </div>
+    <section class="card"><div class="card-body flush">${list.length ? `<div class="table-wrap"><table class="data">
+      <thead><tr><th>Procedimento</th><th>Categoria</th><th class="num">Duração</th>
+        <th class="num">Valor</th><th class="num">Realizados</th><th></th></tr></thead>
+      <tbody>${list.map((p) => `<tr>
+        <td><b>${esc(p.name)}</b></td>
+        <td><span class="tag">${esc(p.category)}</span></td>
+        <td class="num">${p.durationMin} min</td>
+        <td class="num money">${money(p.price)}</td>
+        <td class="num">${usage(p.id)}</td>
+        <td class="num" style="white-space:nowrap">
+          <button class="btn btn-quiet btn-sm" data-proc-edit="${p.id}">Editar</button>
+          <button class="icon-btn" data-proc-del="${p.id}" aria-label="Excluir" style="display:inline-grid;vertical-align:middle">
+            <svg width="13" height="13"><use href="#i-trash"/></svg></button></td>
+      </tr>`).join('')}</tbody></table></div>`
+      : `<div class="card-body">${emptyState('art-empty-users', 'Nenhum procedimento',
+          'Cadastre os procedimentos da clínica com duração e valor para usá-los na agenda e nos orçamentos.',
+          `<button class="btn btn-primary btn-sm" id="empty-proc">Cadastrar procedimento</button>`)}</div>`}
+    </div></section>`;
+
+  $('#proc-cat', main).addEventListener('change', (e) => { v.category = e.target.value; render(); });
+  $('#new-proc', main).addEventListener('click', () => openProcedureForm());
+  $('#empty-proc', main)?.addEventListener('click', () => openProcedureForm());
+  $$('[data-proc-edit]', main).forEach((b) => b.addEventListener('click', () => openProcedureForm(procById(b.dataset.procEdit))));
+  $$('[data-proc-del]', main).forEach((b) => b.addEventListener('click', () => {
+    const proc = procById(b.dataset.procDel);
+    confirmDialog('Excluir procedimento', `"${proc.name}" sai do catálogo. Consultas e planos já criados não são alterados.`,
+      'Excluir', async () => { await remove('procedures', proc.id); toast('Procedimento excluído', '', 'bad'); });
+  }));
+}
+
+function openProcedureForm(proc = null) {
+  openModal(`
+    <div class="modal-head"><h3>${proc ? 'Editar procedimento' : 'Novo procedimento'}</h3>
+      <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body"><form class="form" id="proc-form">
+      <div class="field"><label for="pc-name">Nome <span class="req">*</span></label>
+        <input id="pc-name" name="name" value="${esc(proc?.name || '')}" placeholder="Ex.: Restauração em resina"></div>
+      <div class="form-row three">
+        <div class="field"><label for="pc-cat">Categoria</label>
+          <select id="pc-cat" name="category">${PROC_CATEGORIES.map((c) =>
+            `<option value="${c}" ${proc?.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+        <div class="field"><label for="pc-dur">Duração (min) <span class="req">*</span></label>
+          <select id="pc-dur" name="durationMin">${[15, 30, 45, 60, 90, 120].map((n) =>
+            `<option value="${n}" ${proc?.durationMin === n ? 'selected' : ''}>${n} min</option>`).join('')}</select></div>
+        <div class="field"><label for="pc-price">Valor (R$) <span class="req">*</span></label>
+          <input id="pc-price" name="price" type="number" min="0" step="10" value="${esc(String(proc?.price ?? ''))}"></div>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">${proc ? 'Salvar' : 'Cadastrar'}</button>
+    </form></div>`, (bg) => {
+    $('#proc-form', bg).addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const form = ev.target;
+      const data = formData(form);
+      const errors = {};
+      if (clean(data.name).length < 3) errors.name = 'Informe o nome do procedimento.';
+      if (!(Number(data.price) >= 0) || data.price === '') errors.price = 'Informe o valor (use 0 para cortesia).';
+      if (Object.keys(errors).length) { fieldErrors(form, errors); return; }
+      const id = proc?.id || uid();
+      await put('procedures', id, { ...(proc || {}), name: data.name, category: data.category,
+        durationMin: Number(data.durationMin), price: Number(data.price), active: true,
+        createdAt: proc?.createdAt || new Date().toISOString() });
+      closeModal(); toast(proc ? 'Procedimento atualizado' : 'Procedimento cadastrado', data.name, 'ok');
+    });
+  });
+}
+
+/* ---------- portal do cliente: anamnese e orçamentos ---------- */
+function renderClientHealth(main) {
+  const p = myPatient();
+  main.innerHTML = `<div class="topbar"><h1>Minha saúde</h1></div>`;
+  if (!p) {
+    main.insertAdjacentHTML('beforeend',
+      identifyCard('Identifique-se', 'Informe seu nome completo e data de nascimento para preencher a ficha de saúde.'));
+    bindIdentify(main);
+    return;
+  }
+  const record = anamnesisOf(p.id);
+  main.insertAdjacentHTML('beforeend', `
+    <section class="portal-banner" style="grid-template-columns:1fr">
+      <div class="copy" style="padding:22px 26px">
+        <h2 style="font-size:21px">Ficha de saúde</h2>
+        <p>${record ? 'Revise suas respostas sempre que algo mudar — a equipe consulta esta ficha antes de cada procedimento.'
+          : 'Responder leva 2 minutos e deixa o atendimento mais seguro: alergias, medicações e condições que mudam a conduta clínica.'}</p>
+      </div></section>
+    <div id="anam-host"></div>`);
+  renderTabAnamnese($('#anam-host', main), p, false);
+}
+
+function renderClientPlans(main) {
+  const p = myPatient();
+  main.innerHTML = `<div class="topbar"><h1>Meus orçamentos</h1></div>`;
+  if (!p) {
+    main.insertAdjacentHTML('beforeend',
+      identifyCard('Identifique-se', 'Informe seu nome completo e data de nascimento para ver seus orçamentos.'));
+    bindIdentify(main);
+    return;
+  }
+  const plans = plansOf(p.id).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const pays = paymentsOf(p.id).sort((a, b) => (a.dueDate < b.dueDate ? 1 : -1));
+  const open = pays.filter((x) => !x.paidAt).reduce((s2, x) => s2 + Number(x.amount || 0), 0);
+
+  main.insertAdjacentHTML('beforeend', `
+    <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat accent"><div class="hero-num"><b style="font-size:26px">${plans.length}</b>
+        <span>Planos de tratamento</span></div></div>
+      <div class="stat warn"><div class="hero-num"><b style="font-size:26px">${money(open)}</b>
+        <span>Em aberto</span></div></div>
+      <div class="stat ok"><div class="hero-num"><b style="font-size:26px">${money(pays.filter((x) => x.paidAt)
+        .reduce((s2, x) => s2 + Number(x.amount || 0), 0))}</b><span>Já pago</span></div></div>
+    </div>
+    <div style="display:grid;gap:16px">
+      ${plans.length ? plans.map((plan) => `<section class="plan-card">
+        <div class="plan-head"><b>${esc(plan.title)}</b>
+          <span class="chip s-${plan.status}">${esc(PLAN_STATUS[plan.status] || plan.status)}</span>
+          <div class="plan-total"><b>${money(planTotal(plan))}</b><span>Total</span></div></div>
+        <div class="plan-items">${(plan.items || []).map((i) => `<div class="plan-item">
+          <span class="tooth-tag">${esc(i.tooth || '—')}</span><span>${esc(i.name)}</span>
+          <span class="chip s-${i.status === 'concluido' ? 'atendida' : 'aguardando'}">
+            ${i.status === 'concluido' ? 'Concluído' : 'A realizar'}</span>
+          <span class="money">${money(i.price)}</span></div>`).join('')}
+          ${Number(plan.discount) ? `<div class="plan-item"><span class="tooth-tag">—</span>
+            <span>Desconto</span><span></span><span class="money out">− ${money(plan.discount)}</span></div>` : ''}</div>
+        ${plan.status === 'proposto' ? `<div class="modal-foot" style="border-top:1px solid var(--line);justify-content:flex-start">
+          <button class="btn btn-primary btn-sm" data-accept="${plan.id}">Aceitar orçamento</button>
+          <span class="muted" style="font-size:12.5px;align-self:center">A equipe entra em contato para agendar as etapas.</span>
+        </div>` : ''}</section>`).join('')
+        : `<section class="card"><div class="card-body">${emptyState('art-empty-users', 'Nenhum orçamento',
+            'Quando a dentista montar um plano de tratamento para você, ele aparece aqui com os valores detalhados.')}</div></section>`}
+      <section class="card"><div class="card-head"><h3>Meus pagamentos</h3></div>
+        <div class="card-body flush">${pays.length ? `<div class="table-wrap"><table class="data">
+          <thead><tr><th>Descrição</th><th>Vencimento</th><th>Status</th><th class="num">Valor</th></tr></thead>
+          <tbody>${pays.map((pay) => { const st = payStatus(pay);
+            return `<tr><td>${esc(pay.description)}</td><td class="num">${fmtDate(pay.dueDate)}</td>
+              <td><span class="chip s-${st}">${PAY_STATUS_LABEL[st]}</span></td>
+              <td class="num money">${money(pay.amount)}</td></tr>`; }).join('')}</tbody></table></div>`
+          : `<div class="card-body">${emptyState('art-empty-cal', 'Nenhum pagamento registrado',
+              'Seus lançamentos financeiros aparecem aqui assim que houver um tratamento em andamento.')}</div>`}</div></section>
+    </div>`);
+
+  $$('[data-accept]', main).forEach((b) => b.addEventListener('click', () => {
+    const plan = state.plans.find((x) => x.id === b.dataset.accept);
+    confirmDialog('Aceitar orçamento', `Você confirma o plano "${plan.title}" no valor de ${money(planTotal(plan))}?
+      A clínica será avisada para agendar as etapas.`, 'Aceitar orçamento', async () => {
+      await put('plans', plan.id, { ...plan, status: 'aprovado' });
+      await notify('status_alterado', 'Orçamento aprovado pelo paciente',
+        `${p.name} aceitou o plano "${plan.title}" (${money(planTotal(plan))}).`, { patientId: p.id });
+      toast('Orçamento aceito', 'A clínica foi notificada.', 'ok');
+    }, false);
+  }));
+}
+
 /* ============================ render ============================ */
 function setActiveNav(root, route) {
   $$('[data-match]', root).forEach((a) => a.classList.toggle('active', a.dataset.match === route));
@@ -2607,6 +4155,8 @@ function render() {
     if (route === '/cliente') renderClientHome(main);
     else if (route === '/cliente/agendar') renderClientSchedule(main);
     else if (route === '/cliente/consultas') renderClientAppointments(main);
+    else if (route === '/cliente/saude') renderClientHealth(main);
+    else if (route === '/cliente/orcamentos') renderClientPlans(main);
     else renderClientProfile(main);
     return;
   }
@@ -2622,6 +4172,9 @@ function render() {
     else if (route === '/dentista/agenda') renderAgenda(main);
     else if (route === '/dentista/pacientes') renderPatients(main);
     else if (route === '/dentista/novo-agendamento') renderNewAppointment(main);
+    else if (route === '/dentista/financeiro') renderFinance(main);
+    else if (route === '/dentista/relatorios') renderReports(main);
+    else if (route === '/dentista/procedimentos') renderProcedures(main);
     else renderSettings(main);
   }
 }

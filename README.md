@@ -56,6 +56,36 @@ src/server/
 Todas as respostas seguem `{ ok, data }` ou `{ ok: false, error: { code, message, details } }`.
 Erros de banco e stack traces nunca são expostos ao cliente.
 
+## Módulos clínicos e de gestão (versão Artifact)
+
+**Núcleo clínico**
+- **Odontograma interativo** — 32 dentes permanentes e 20 decíduos em SVG, notação FDI,
+  com as 5 faces (oclusal, mesial, distal, vestibular e lingual) clicáveis. Cada face alterna
+  entre sem alteração → cárie → restaurada; o dente inteiro recebe condição (hígido, cárie,
+  restaurado, canal, coroa, implante, ausente, extração indicada) e observação.
+  Um documento por paciente.
+- **Prontuário / evolução clínica** — registro por atendimento com título, procedimento,
+  dentes envolvidos e descrição. Ao marcar uma consulta como "Atendida", o formulário de
+  evolução abre já preenchido.
+- **Anamnese digital** — 12 perguntas de saúde preenchidas pelo paciente no portal
+  ("Minha saúde") ou pela clínica. As respostas de risco (alergia, anticoagulante, diabetes,
+  cardiopatia, gestação, hemorragia, reação à anestesia) viram alertas vermelhos na ficha,
+  no cartão do paciente e no detalhe da consulta.
+- **Planos de tratamento** — orçamento com itens por dente, valor por procedimento, desconto
+  e status (proposto, aprovado, em andamento, concluído, recusado). O paciente vê e aceita o
+  orçamento pelo portal, e a aprovação gera notificação para a clínica.
+
+**Gestão**
+- **Tabela de procedimentos** — 17 procedimentos com categoria, duração e valor. A duração
+  passa a reservar o tempo real na agenda: a verificação de horário ocupado usa sobreposição
+  de intervalos, e horários que não cabem até o fechamento são ocultados.
+- **Financeiro** — lançamentos com vencimento, forma de pagamento e parcelas; geração de
+  cobrança a partir de um plano aprovado; baixa e estorno de pagamentos; totais de recebido,
+  a receber, em aberto e vencido.
+- **Relatórios** — faturamento por mês, procedimentos mais realizados, situação das consultas,
+  ocupação por faixa de horário, novos pacientes por mês, recall de pacientes sem retorno há
+  6 meses e aniversariantes do mês.
+
 ## Dados de demonstração
 
 Fictícios e removíveis: `npm run seed -- --reset` (ou apagar `data/clinic.db`).
