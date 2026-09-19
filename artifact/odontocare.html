@@ -524,6 +524,32 @@ table.data td.num,table.data th.num{text-align:right;font-variant-numeric:tabula
 .stack-legend i{width:11px;height:11px;border-radius:3px}
 .chart-tip{position:fixed;z-index:95;background:var(--ink);color:var(--ground);border-radius:9px;padding:7px 11px;
   font-size:12.5px;font-weight:600;pointer-events:none;box-shadow:var(--shadow-lg);white-space:nowrap}
+.budget{display:grid;grid-template-columns:1.1fr 1.4fr;gap:16px;align-items:center;margin-top:14px;
+  background:var(--teal-soft);border:1px solid color-mix(in srgb,var(--teal) 30%,transparent);
+  border-radius:var(--r-md);padding:16px 18px}
+.budget-main b{display:block;font-family:var(--display);font-size:30px;line-height:1.1;color:var(--teal-deep);
+  font-variant-numeric:tabular-nums}
+.budget-main p{font-size:13px;color:var(--ink-soft);margin-top:4px}
+.budget-facts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.budget-facts div{background:var(--surface);border-radius:10px;padding:8px 11px}
+.budget-facts span{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--ink-mute);font-weight:700}
+.budget-facts b{font-size:14px;font-variant-numeric:tabular-nums}
+@media (max-width:640px){.budget{grid-template-columns:1fr}}
+.daygrid{display:grid;grid-template-columns:62px 1fr;gap:0 12px;padding:8px 20px 18px}
+.daygrid .hour{font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink-mute);font-weight:600;
+  border-top:1px solid var(--line);padding-top:3px}
+.daygrid .free{border-top:1px dashed var(--line);font-size:11.5px;color:var(--ink-mute);padding:4px 8px}
+.daygrid .block{border-radius:12px;padding:9px 12px;display:flex;flex-direction:column;gap:3px;justify-content:center;
+  background:var(--teal-soft);border-left:4px solid var(--teal);cursor:pointer;overflow:hidden;margin:1px 0}
+.daygrid .block:hover{filter:brightness(.97)}
+.daygrid .block b{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.daygrid .block span{font-size:11.5px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.daygrid .block.b-confirmada{background:var(--ok-soft);border-left-color:var(--ok)}
+.daygrid .block.b-aguardando{background:var(--warn-soft);border-left-color:var(--warn)}
+.daygrid .block.b-em_atendimento{background:var(--info-soft);border-left-color:var(--info)}
+.daygrid .block.b-atendida{background:var(--surface-2);border-left-color:var(--ink-mute)}
+.daygrid .block.b-cancelada{background:var(--bad-soft);border-left-color:var(--bad);opacity:.7}
 .hero-num{display:grid;gap:3px}
 .hero-num b{font-family:var(--display);font-size:38px;line-height:1;font-variant-numeric:tabular-nums}
 .hero-num span{font-size:12.5px;color:var(--ink-mute)}
@@ -1007,7 +1033,7 @@ table.data td.num,table.data th.num{text-align:right;font-variant-numeric:tabula
    <a data-nav="/dentista/financeiro" data-match="/dentista/financeiro"><span class="ic"><svg width="19" height="19"><use href="#i-sparkle"/></svg></span>Financeiro</a>
    <a data-nav="/dentista/relatorios" data-match="/dentista/relatorios"><span class="ic"><svg width="19" height="19"><use href="#i-list"/></svg></span>Relatórios</a>
    <div class="side-label">Clínica</div>
-   <a data-nav="/dentista/procedimentos" data-match="/dentista/procedimentos"><span class="ic"><svg width="19" height="19"><use href="#i-tooth"/></svg></span>Procedimentos</a>
+   <a data-nav="/dentista/procedimentos" data-match="/dentista/procedimentos"><span class="ic"><svg width="19" height="19"><use href="#i-tooth"/></svg></span>Serviços</a>
    <a data-nav="/dentista/configuracoes" data-match="/dentista/configuracoes"><span class="ic"><svg width="19" height="19"><use href="#i-gear"/></svg></span>Configurações</a>
    <div class="spacer"></div>
    <div class="who" id="dentist-who"></div>
@@ -1205,6 +1231,19 @@ async function notify(type, title, message, extra = {}) {
 function isOpenDay(iso) { return !(state.settings.closedWeekdays || [0]).includes(dowOf(iso)); }
 
 const apptDuration = (a) => Number(a?.durationMin) || state.settings.slotInterval;
+/** Término = início + duração do serviço (nunca informado pelo formulário). */
+const endOf = (time, duration) => fromMin(toMin(time) + (Number(duration) || state.settings.slotInterval));
+const apptEnd = (a) => a?.endTime || endOf(a.time, apptDuration(a));
+const apptRange = (a) => `${a.time}–${apptEnd(a)}`;
+/** Preço e duração vêm sempre do cadastro do serviço; o formulário nunca os define. */
+function serviceFacts(serviceId) {
+  const svc = procById(serviceId);
+  return {
+    service: svc,
+    duration: svc ? Number(svc.durationMin) : state.settings.slotInterval,
+    price: svc ? Number(svc.price) : 0
+  };
+}
 
 /** Ocupação por sobreposição de intervalos: respeita a duração de cada procedimento. */
 function slotTaken(date, time, ignoreId, duration) {
@@ -1250,9 +1289,9 @@ function slotsFor(date, opts = {}) {
     const taken = slotTaken(date, time, opts.ignoreId, span);
     const past = m < now;
     const overflow = m + span > toMin(s.closingTime);
-    if ((taken || past || overflow) && !opts.includeOccupied) continue;
-    out.push({ time, available: !taken && !past && !overflow,
-      reason: taken ? 'Ocupado' : past ? 'Já passou' : overflow ? 'Sem tempo até o fechamento' : '' });
+    out.push({ time, end: fromMin(m + span), available: !taken && !past && !overflow,
+      reason: taken ? 'Horário ocupado' : past ? 'Horário já passou'
+        : overflow ? `Não há ${span} min livres até o fechamento` : '' });
   }
   return { open: true, slots: out };
 }
@@ -1294,13 +1333,17 @@ function buildDemo() {
   const openDay = (offset) => { let d = addDays(todayISO(), offset); 
     while (!isOpenDay(d)) d = addDays(d, offset < 0 ? -1 : 1); return d; };
   const appts = [];
-  const procs = DEMO_PROCEDURES.map(([name, category, durationMin, price]) =>
-    ({ id: uid(), name, category, durationMin, price, active: true, createdAt: now }));
-  const REASON_PROC = [1, 7, 3, 13, 4, 0, 6, 0, 2, 10];
+  const procs = DEMO_PROCEDURES.map(([name, category, durationMin, price, description]) =>
+    ({ id: uid(), name, category, durationMin, price, description, active: true, createdAt: now, updatedAt: now }));
+  /* DEMO_REASONS -> serviço correspondente no catálogo */
+  const REASON_PROC = [1, 3, 2, 7, 6, 0, 4, 0, 5, 13];
   const add = (date, time, pi, ri, status, origin, notes = '') => {
     if (appts.some((a) => a.date === date && a.time === time)) return;
     const proc = procs[REASON_PROC[ri % REASON_PROC.length]];
-    appts.push({ id: uid(), patientId: patients[pi].id, date, time, reason: DEMO_REASONS[ri],
+    if (appts.some((a) => a.date === date &&
+      toMin(time) < toMin(a.time) + a.durationMin && toMin(a.time) < toMin(time) + proc.durationMin)) return;
+    appts.push({ id: uid(), patientId: patients[pi].id, date, time,
+      endTime: fromMin(toMin(time) + proc.durationMin), reason: DEMO_REASONS[ri],
       notes, status, origin, procedureId: proc.id, durationMin: proc.durationMin, price: proc.price,
       createdAt: now, updatedAt: now });
   };
@@ -1374,13 +1417,13 @@ function buildDemo() {
   const plans = [
     { id: uid(), patientId: patients[0].id, title: 'Reabilitação dos molares superiores',
       status: 'em_andamento', discount: 100, createdAt: now, updatedAt: now,
-      items: [item(procs[3], '26', 'concluido'), item(procs[4], '26'), item(procs[1], '', 'concluido')] },
+      items: [item(procs[2], '26', 'concluido'), item(procs[6], '26'), item(procs[1], '', 'concluido')] },
     { id: uid(), patientId: patients[4].id, title: 'Prótese sobre implante — inferior direito',
       status: 'aprovado', discount: 0, createdAt: now, updatedAt: now,
-      items: [item(procs[11], '46', 'concluido'), item(procs[9], '46'), item(procs[14], '')] },
+      items: [item(procs[14], '46', 'concluido'), item(procs[12], '46'), item(procs[9], '')] },
     { id: uid(), patientId: patients[7].id, title: 'Extração dos sisos inclusos',
       status: 'proposto', discount: 150, createdAt: now, updatedAt: now,
-      items: [item(procs[6], '38'), item(procs[6], '48')] }
+      items: [item(procs[4], '38'), item(procs[4], '48')] }
   ];
 
   /* --- lançamentos financeiros --- */
@@ -1611,10 +1654,12 @@ const loading = (text = 'Carregando dados da clínica…') =>
 function apptRow(a) {
   const p = patientById(a.patientId);
   if (!p) return '';
+  const svc = procById(a.procedureId);
   return `<div class="list-row" data-appt="${a.id}">
     <div class="row-avatar">${avatar(p, 40)}</div>
-    <div class="tl-main"><b>${esc(p.name)}</b><span>${esc(a.reason)}</span></div>
-    <div class="when"><b>${fmtDate(a.date)}</b>${esc(a.time)}</div>
+    <div class="tl-main"><b>${esc(p.name)}</b>
+      <span>${esc(svc ? svc.name : a.reason)} · ${durationLabel(apptDuration(a))} · ${money(a.price)}</span></div>
+    <div class="when"><b>${fmtDate(a.date)}</b>${apptRange(a)}</div>
     ${chip(a.status)}</div>`;
 }
 
@@ -1707,13 +1752,45 @@ async function findOrCreatePatient(data) {
   return id;
 }
 
-async function createAppointment({ patientId, date, time, reason, notes, origin,
-  procedureId, durationMin, price }) {
+/**
+ * Última verificação de conflito antes de gravar. Na base compartilhada relê as
+ * consultas do dia sob um lease, evitando que dois agendamentos simultâneos
+ * ocupem o mesmo período. Retorna a mensagem de erro ou null.
+ */
+async function recheckSlot(date, time, duration, ignoreId) {
+  const start = toMin(time);
+  const end = start + duration;
+  const overlaps = (list) => list.some((a) => {
+    if (a.date !== date || a.status === 'cancelada' || a.id === ignoreId) return false;
+    const aStart = toMin(a.time);
+    return start < aStart + (Number(a.durationMin) || state.settings.slotInterval) && aStart < end;
+  });
+  if (!DB) return overlaps(state.appointments) ? MSG.occupied : null;
+  try {
+    const lease = await DB.doc(`locks/day-${date}`).acquire({ holder: `slot-${time}`, ttlMs: 8000 });
+    if (!lease.acquired) return 'Outro agendamento está sendo confirmado para este dia. Tente novamente em instantes.';
+    const snap = await DB.collection('appointments').where('date', '==', date).get();
+    const fresh = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return overlaps(fresh) ? MSG.occupied : null;
+  } catch {
+    return overlaps(state.appointments) ? MSG.occupied : null;
+  }
+}
+
+async function createAppointment({ patientId, date, time, notes, origin, procedureId }) {
+  /* Serviço é a fonte do procedimento, do preço e da duração — nada disso é digitado. */
+  const { service, duration, price } = serviceFacts(procedureId);
+  const reason = service ? service.name : 'Consulta';
+  /* Reverificação imediatamente antes de gravar: com base compartilhada, toma um
+     lease no dia e relê a agenda, para que dois portais não criem conflito. */
+  const conflict = await recheckSlot(date, time, duration);
+  if (conflict) throw new Error(conflict);
   const id = uid();
   await put('appointments', id, {
-    patientId, date, time, reason: clean(reason, 300), notes: clean(notes || '', 1000),
+    patientId, date, time, endTime: endOf(time, duration),
+    reason: clean(reason, 300), notes: clean(notes || '', 1000),
     status: 'aguardando', origin, procedureId: procedureId || null,
-    durationMin: Number(durationMin) || state.settings.slotInterval, price: Number(price) || 0,
+    durationMin: duration, price,
     createdAt: new Date().toISOString()
   });
   const p = patientById(patientId);
@@ -1755,7 +1832,8 @@ function openAppointment(id) {
         <span class="tag"><svg width="14" height="14"><use href="#i-calendar"/></svg>${fmtLong(a.date)}</span>
         <span class="tag"><svg width="14" height="14"><use href="#i-clock"/></svg>${esc(a.time)}</span>
         <span class="tag">${a.origin === 'portal' ? 'Agendado pelo portal' : 'Agendado na clínica'}</span>
-        <span class="tag">${apptDuration(a)} min</span>
+        <span class="tag"><svg width="14" height="14"><use href="#i-clock"/></svg>${a.time} às ${apptEnd(a)}
+          · ${durationLabel(apptDuration(a))}</span>
       </div>
       ${flags.length ? `<div class="alert-flags">${flags.map((f) =>
         `<span class="flag"><svg width="13" height="13"><use href="#i-shield"/></svg>${esc(f.label)}${
@@ -1767,8 +1845,11 @@ function openAppointment(id) {
         ${row('Telefone', p.phone)}
         ${row('E-mail', p.email)}
         ${row('Total de consultas', String(patientStats(p).total))}
-        ${row('Procedimento', proc ? proc.name : 'Não definido')}
-        ${row('Valor', a.price ? money(a.price) : proc ? money(proc.price) : '—')}
+        ${row('Serviço', proc ? proc.name : 'Não definido')}
+        ${row('Orçamento', money(a.price ?? (proc ? proc.price : 0)))}
+        ${row('Início', a.time)}
+        ${row('Término', apptEnd(a))}
+        ${row('Duração', durationLabel(apptDuration(a)))}
         <div class="full"><span>Motivo da consulta</span><b>${esc(a.reason)}</b></div>
         <div class="full"><span>Observações</span><b>${esc(a.notes || 'Sem observações registradas.')}</b></div>
         ${row('Criada em', new Date(a.createdAt).toLocaleString('pt-BR'))}
@@ -1783,6 +1864,8 @@ function openAppointment(id) {
       <button class="btn btn-ghost btn-sm" id="ap-edit"><svg width="15" height="15"><use href="#i-edit"/></svg> Reagendar</button>
       <button class="btn btn-ghost btn-sm" id="ap-record">
         <svg width="15" height="15"><use href="#i-list"/></svg> ${record ? 'Ver evolução' : 'Registrar evolução'}</button>
+      <button class="btn btn-ghost btn-sm" id="ap-bill">
+        <svg width="15" height="15"><use href="#i-sparkle"/></svg> Lançar no financeiro</button>
       <button class="btn btn-primary btn-sm" id="ap-save">Salvar status</button>
     </div>`, (bg) => {
     $('#ap-save', bg).addEventListener('click', async () => {
@@ -1806,6 +1889,10 @@ function openAppointment(id) {
       }
     });
     $('#ap-edit', bg).addEventListener('click', () => openReschedule(a));
+    $('#ap-bill', bg).addEventListener('click', () => {
+      closeModal();
+      openPaymentForm(p, { procedureId: a.procedureId, appointmentId: a.id });
+    });
     $('#ap-delete', bg).addEventListener('click', () => {
       closeModal();
       confirmDialog('Excluir consulta', `A consulta de ${p.name} em ${fmtDate(a.date)} às ${a.time} será removida definitivamente.`,
@@ -1828,8 +1915,11 @@ function openReschedule(a) {
           <div class="field"><label for="rs-time">Novo horário <span class="req">*</span></label>
             <select id="rs-time" name="time"></select></div>
         </div>
-        <div class="field"><label for="rs-reason">Motivo <span class="req">*</span></label>
-          <input id="rs-reason" name="reason" value="${esc(a.reason)}"></div>
+        <div class="field"><label for="rs-service">Serviço <span class="req">*</span></label>
+          <select id="rs-service" name="procedureId">
+            ${activeProcedures().map((pr) => `<option value="${pr.id}" ${a.procedureId === pr.id ? 'selected' : ''}>
+              ${esc(serviceLabel(pr))}</option>`).join('')}</select>
+          <span class="hint">Trocar o serviço recalcula a duração, o término e o valor.</span></div>
         <div class="field"><label for="rs-notes">Observações</label>
           <textarea id="rs-notes" name="notes">${esc(a.notes || '')}</textarea></div>
         <button class="btn btn-primary btn-block" type="submit">Salvar alterações</button>
@@ -1837,8 +1927,10 @@ function openReschedule(a) {
     </div>`, (bg) => {
     const form = $('#resched-form', bg);
     const dateInput = $('#rs-date', bg), timeSelect = $('#rs-time', bg);
+    const serviceSelect = $('#rs-service', bg);
     const fillTimes = () => {
-      const res = slotsFor(dateInput.value, { ignoreId: a.id, duration: apptDuration(a) });
+      const duration = serviceFacts(serviceSelect.value).duration;
+      const res = slotsFor(dateInput.value, { ignoreId: a.id, duration });
       const times = res.slots.map((s) => s.time);
       if (dateInput.value === a.date && !times.includes(a.time)) times.unshift(a.time);
       timeSelect.innerHTML = times.length
@@ -1846,17 +1938,23 @@ function openReschedule(a) {
         : `<option value="">Nenhum horário livre</option>`;
       if (!res.open) timeSelect.innerHTML = `<option value="">${esc(res.message)}</option>`;
     };
-    dateInput.addEventListener('change', fillTimes); fillTimes();
+    dateInput.addEventListener('change', fillTimes);
+    serviceSelect.addEventListener('change', fillTimes);
+    fillTimes();
     form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const data = formData(form);
       const errors = {};
-      if (clean(data.reason).length < 3) errors.reason = 'Descreva o motivo da consulta.';
-      const rule = validateSchedule(data.date, data.time, a.id, apptDuration(a));
+      const { service, duration, price } = serviceFacts(data.procedureId || a.procedureId);
+      if (!service) errors.procedureId = 'Selecione o serviço da consulta.';
+      const rule = validateSchedule(data.date, data.time, a.id, duration);
       if (rule) errors[rule.field] = rule.message;
       if (Object.keys(errors).length) { fieldErrors(form, errors); return; }
+      const conflict = await recheckSlot(data.date, data.time, duration, a.id);
+      if (conflict) { fieldErrors(form, { time: conflict }); return; }
       await put('appointments', a.id, { ...a, date: data.date, time: data.time,
-        reason: data.reason, notes: data.notes });
+        endTime: endOf(data.time, duration), procedureId: service.id, durationMin: duration,
+        price, reason: service.name, notes: data.notes });
       closeModal(); toast('Consulta reagendada', `${fmtDate(data.date)} às ${data.time}`, 'ok');
     });
   });
@@ -1946,9 +2044,10 @@ function renderDashboard(main) {
           ${d.todayList.length ? `<div class="timeline">${d.todayList.map((a) => {
             const p = patientById(a.patientId); if (!p) return '';
             return `<div class="tl-item" data-appt="${a.id}">
-              <span class="tl-time num">${esc(a.time)}</span>
+              <span class="tl-time num" style="font-size:13.5px">${apptRange(a)}</span>
               <div style="display:flex;gap:12px;align-items:center;min-width:0">${avatar(p, 38)}
-                <div class="tl-main"><b>${esc(p.name)}</b><span>${esc(a.reason)}</span></div></div>
+                <div class="tl-main"><b>${esc(p.name)}</b>
+                  <span>${esc(procById(a.procedureId)?.name || a.reason)} · ${money(a.price)}</span></div></div>
               ${chip(a.status)}</div>`; }).join('')}</div>`
             : emptyState('art-empty-cal', 'Nenhuma consulta agendada', 'Não há atendimentos marcados para hoje. Use "Nova consulta" para encaixar um paciente.',
               `<button class="btn btn-primary btn-sm" data-nav="/dentista/novo-agendamento">Nova consulta</button>`)}
@@ -2032,22 +2131,42 @@ function renderAgenda(main) {
   if (v.mode === 'dia') {
     const list = dayList(v.date);
     const closed = !isOpenDay(v.date);
+    const step = state.settings.slotInterval;
+    const opening = toMin(state.settings.openingTime);
+    const closing = toMin(state.settings.closingTime);
+    const rows = Math.max(1, Math.ceil((closing - opening) / step));
+    /* Cada consulta ocupa visualmente o número de faixas correspondente à sua duração. */
+    const occupied = new Set();
+    const blocks = list.map((a) => {
+      const startRow = Math.max(0, Math.floor((toMin(a.time) - opening) / step));
+      const span = Math.max(1, Math.round(apptDuration(a) / step));
+      for (let i = startRow; i < startRow + span; i += 1) occupied.add(i);
+      const p = patientById(a.patientId);
+      const svc = procById(a.procedureId);
+      if (!p) return '';
+      return `<div class="block b-${a.status}" data-appt="${a.id}"
+        style="grid-column:2;grid-row:${startRow + 1} / span ${span}"
+        title="${esc(p.name)} — ${apptRange(a)}">
+        <b>${esc(a.time)}–${esc(apptEnd(a))} · ${esc(p.name)}</b>
+        <span>${esc(svc ? svc.name : a.reason)} · ${durationLabel(apptDuration(a))} · ${money(a.price)}</span>
+        <span>${esc(STATUS[a.status])}</span></div>`;
+    }).join('');
+    const hours = Array.from({ length: rows }, (_, i) =>
+      `<span class="hour" style="grid-column:1;grid-row:${i + 1}">${fromMin(opening + i * step)}</span>`).join('');
+    const frees = Array.from({ length: rows }, (_, i) => occupied.has(i) ? ''
+      : `<div class="free" style="grid-column:2;grid-row:${i + 1}">Livre</div>`).join('');
+
     body = `<section class="card">
       <div class="card-head"><h3 style="text-transform:capitalize">${fmtLong(v.date)}</h3><div class="grow"></div>
-        <span class="tag">${list.length} consulta${list.length === 1 ? '' : 's'}</span></div>
+        <span class="tag">${list.length} consulta${list.length === 1 ? '' : 's'}</span>
+        <span class="tag">${list.filter((a) => a.status !== 'cancelada')
+          .reduce((sum, a) => sum + apptDuration(a), 0)} min ocupados</span></div>
       <div class="card-body flush">
         ${closed ? emptyState('art-empty-cal', 'Clínica fechada', dowOf(v.date) === 0 ? MSG.sunday : MSG.closed)
-          : list.length ? `<div class="timeline">${list.map((a) => {
-            const p = patientById(a.patientId); if (!p) return '';
-            return `<div class="tl-item" data-appt="${a.id}">
-              <span class="tl-time num">${esc(a.time)}</span>
-              <div style="display:flex;gap:12px;align-items:center;min-width:0">${avatar(p, 38)}
-                <div class="tl-main"><b>${esc(p.name)}</b><span>${esc(a.reason)} · ${calcAge(p.birthDate, a.date).label}</span></div></div>
-              ${chip(a.status)}</div>`; }).join('')}</div>`
-          : emptyState('art-empty-cal', 'Nenhuma consulta encontrada', 'Este dia ainda não tem atendimentos marcados.',
-            `<button class="btn btn-primary btn-sm" data-nav="/dentista/novo-agendamento">Agendar consulta</button>`)}
+          : `<div class="daygrid" style="grid-auto-rows:${Math.max(38, Math.round(step * 1.35))}px">
+              ${hours}${frees}${blocks}</div>`}
       </div></section>`;
-  } else if (v.mode === 'semana') {
+    } else if (v.mode === 'semana') {
     const start = addDays(v.date, -((dowOf(v.date) + 6) % 7));
     body = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
       ${Array.from({ length: 7 }, (_, i) => {
@@ -2061,8 +2180,8 @@ function renderAgenda(main) {
           <div class="card-body" style="padding:10px 12px;display:grid;gap:7px">
             ${list.length ? list.map((a) => { const p = patientById(a.patientId); if (!p) return '';
               return `<button class="slot" style="text-align:left;padding:8px 10px;font-size:12.5px" data-appt="${a.id}">
-                <b class="num">${esc(a.time)}</b> · ${esc(p.name.split(' ')[0])}<br>
-                <span class="muted" style="font-weight:500">${esc(STATUS[a.status])}</span></button>`; }).join('')
+                <b class="num">${apptRange(a)}</b> · ${esc(p.name.split(' ')[0])}<br>
+                <span class="muted" style="font-weight:500">${esc(STATUS[a.status])} · ${money(a.price)}</span></button>`; }).join('')
               : `<p class="muted" style="font-size:12.5px;padding:6px 2px">${isOpenDay(date) ? 'Sem consultas' : 'Clínica fechada'}</p>`}
           </div></section>`; }).join('')}</div>`;
   } else if (v.mode === 'mes') {
@@ -2284,10 +2403,12 @@ function slotsHTML(date, selected, opts = {}) {
   const res = slotsFor(date, opts);
   if (!res.open) return `<div class="banner-note"><svg width="18" height="18" style="flex:none;color:var(--gold)"><use href="#i-clock"/></svg>
     <span>${esc(res.message)}</span></div>`;
-  if (!res.slots.length) return emptyState('art-empty-cal', 'Nenhum horário disponível',
-    'Todos os horários deste dia já foram preenchidos. Escolha outra data.');
+  if (!res.slots.some((x) => x.available)) return emptyState('art-empty-cal', 'Nenhum horário disponível',
+    'Todos os horários deste dia já estão ocupados para a duração deste serviço. Escolha outra data.');
   return `<div class="slots">${res.slots.map((s) => `<button type="button" class="slot ${selected === s.time ? 'sel' : ''}"
-    data-slot="${s.time}" ${s.available ? '' : 'disabled title="' + esc(s.reason) + '"'}>${s.time}</button>`).join('')}</div>`;
+    data-slot="${s.time}" ${s.available ? `title="${esc(s.time)} às ${esc(s.end)}"` : `disabled title="${esc(s.reason)}"`}>
+    ${s.time}</button>`).join('')}</div>
+    <p class="muted" style="font-size:12px;margin-top:9px">Horários riscados estão ocupados ou não comportam a duração do serviço.</p>`;
 }
 
 function bindPicker(root, v, onChange) {
@@ -2344,19 +2465,12 @@ function renderNewAppointment(main) {
       </div>
 
       <fieldset class="fieldset"><legend>3. Detalhes do atendimento</legend>
-        <div class="form-row">
-          <div class="field"><label for="ap-proc">Procedimento</label>
-            <select id="ap-proc" name="procedureId"><option value="">Definir depois (${state.settings.slotInterval} min)</option>
-              ${activeProcedures().map((pr) => `<option value="${pr.id}" ${v.procedureId === pr.id ? 'selected' : ''}>
-                ${esc(pr.name)} — ${pr.durationMin} min · ${money(pr.price)}</option>`).join('')}</select>
-            <span class="hint">Define a duração reservada na agenda e o valor sugerido.</span></div>
-          <div class="field"><label for="ap-price">Valor (R$)</label>
-            <input id="ap-price" name="price" type="number" min="0" step="10"
-              value="${esc(String(procById(v.procedureId)?.price ?? ''))}" placeholder="Usar tabela"></div>
-        </div>
-        <div class="field"><label for="ap-reason">Motivo da consulta <span class="req">*</span></label>
-          <input id="ap-reason" name="reason" list="reason-list" placeholder="Ex.: limpeza, avaliação de clareamento, dor no molar">
-          <datalist id="reason-list">${DEMO_REASONS.map((r) => `<option value="${esc(r)}"></option>`).join('')}</datalist></div>
+        <div class="field"><label for="ap-proc">Serviço <span class="req">*</span></label>
+          <select id="ap-proc" name="procedureId"><option value="">Selecione o serviço…</option>
+            ${activeProcedures().map((pr) => `<option value="${pr.id}" ${v.procedureId === pr.id ? 'selected' : ''}>
+              ${esc(serviceLabel(pr))}</option>`).join('')}</select>
+          <span class="hint">O serviço define o procedimento, a duração e o valor — não há digitação manual.</span></div>
+        <div id="ap-budget"></div>
         <div class="field"><label for="ap-notes">Observações</label>
           <textarea id="ap-notes" name="notes" placeholder="Informações úteis para o atendimento"></textarea></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -2372,25 +2486,40 @@ function renderNewAppointment(main) {
     $('#appt-cal', main).innerHTML = calendarHTML(v.month, v.date);
     $('#appt-slots', main).innerHTML = slotsHTML(v.date, v.time, { duration: v.duration });
     const span = $('#appt-span', main);
-    if (span) span.innerHTML = `Reservando <b>${v.duration} min</b> por consulta.`;
+    if (span) span.innerHTML = `Reservando <b>${durationLabel(v.duration)}</b>${
+      v.time ? ` · ${v.time} às ${endOf(v.time, v.duration)}` : ''}.`;
+    const budget = $('#ap-budget', main);
+    if (budget) paintApBudget();
     bindPicker(main, v, refreshPicker);
   };
   bindPicker(main, v, refreshPicker);
   $$('[data-pmode]', main).forEach((b) => b.addEventListener('click', () => { v.mode = b.dataset.pmode; render(); }));
 
   const procSelect = $('#ap-proc', main);
+  const apBudget = $('#ap-budget', main);
+  const paintApBudget = () => {
+    const { service, duration, price } = serviceFacts(v.procedureId);
+    if (!apBudget) return;
+    apBudget.innerHTML = service ? `<div class="budget">
+      <div class="budget-main"><span class="eyebrow">Orçamento</span><b>${money(price)}</b>
+        <p>${esc(service.name)}</p></div>
+      <div class="budget-facts">
+        <div><span>Duração</span><b>${durationLabel(duration)}</b></div>
+        <div><span>Início</span><b>${v.time || '—'}</b></div>
+        <div><span>Término</span><b>${v.time ? endOf(v.time, duration) : '—'}</b></div>
+      </div></div>`
+      : `<div class="banner-note"><svg width="18" height="18" style="flex:none;color:var(--gold)"><use href="#i-sparkle"/></svg>
+        <span>Escolha o serviço para calcular duração, término e orçamento.</span></div>`;
+  };
   procSelect?.addEventListener('change', () => {
     const proc = procById(procSelect.value);
     v.procedureId = procSelect.value;
     v.duration = proc ? proc.durationMin : state.settings.slotInterval;
     v.time = '';
-    const reasonInput = $('#ap-reason', main);
-    if (proc && (!reasonInput.value || activeProcedures().some((x) => x.name === reasonInput.value))) {
-      reasonInput.value = proc.name;
-    }
-    $('#ap-price', main).value = proc ? proc.price : '';
     refreshPicker();
+    paintApBudget();
   });
+  paintApBudget();
 
   const select = $('#ap-patient', main);
   const preview = $('#patient-preview', main);
@@ -2409,9 +2538,9 @@ function renderNewAppointment(main) {
     ev.preventDefault();
     const data = formData(form);
     const errors = {};
-    if (clean(data.reason).length < 3) errors.reason = 'Descreva o motivo da consulta.';
     let patientId = v.mode === 'existing' ? select?.value : null;
     if (v.mode === 'existing' && !patientId) errors.patientId = 'Selecione o paciente.';
+    if (!v.procedureId) errors.procedureId = 'Selecione o serviço da consulta.';
     if (v.mode === 'new') Object.assign(errors, validatePatientInput(data));
     const rule = validateSchedule(v.date, v.time, undefined, v.duration);
     if (rule) errors[rule.field] = rule.message;
@@ -2423,11 +2552,14 @@ function renderNewAppointment(main) {
       return;
     }
     if (v.mode === 'new') patientId = await findOrCreatePatient(data);
-    const proc = procById(v.procedureId);
-    await createAppointment({ patientId, date: v.date, time: v.time,
-      reason: data.reason, notes: data.notes, origin: 'clinica',
-      procedureId: v.procedureId || null, durationMin: v.duration,
-      price: data.price === '' ? (proc ? proc.price : 0) : Number(data.price) });
+    try {
+      await createAppointment({ patientId, date: v.date, time: v.time,
+        notes: data.notes, origin: 'clinica', procedureId: v.procedureId });
+    } catch (err) {
+      toast('Horário indisponível', err.message, 'bad');
+      v.time = ''; render();
+      return;
+    }
     const p = patientById(patientId);
     toast('Consulta agendada', `${p ? p.name : ''} — ${fmtDate(v.date)} às ${v.time}`, 'ok');
     state.view.newAppt = { month: v.date.slice(0, 7), date: v.date, time: '', patientId: '',
@@ -2488,7 +2620,7 @@ function renderSettings(main) {
           <div class="card-body" style="display:grid;gap:10px;font-size:14px">
             <div style="display:flex;justify-content:space-between"><span>Pacientes</span><b class="num">${state.patients.length}</b></div>
             <div style="display:flex;justify-content:space-between"><span>Consultas</span><b class="num">${state.appointments.length}</b></div>
-            <div style="display:flex;justify-content:space-between"><span>Procedimentos</span><b class="num">${state.procedures.length}</b></div>
+            <div style="display:flex;justify-content:space-between"><span>Serviços</span><b class="num">${state.procedures.length}</b></div>
             <div style="display:flex;justify-content:space-between"><span>Planos de tratamento</span><b class="num">${state.plans.length}</b></div>
             <div style="display:flex;justify-content:space-between"><span>Lançamentos financeiros</span><b class="num">${state.payments.length}</b></div>
             <div style="display:flex;justify-content:space-between"><span>Registros de evolução</span><b class="num">${state.records.length}</b></div>
@@ -2696,8 +2828,12 @@ function renderClientSchedule(main) {
         </div>
         <div class="detail-grid" style="margin-top:20px">
           <div><span>Paciente</span><b>${esc(p.name)}</b></div>
+          <div><span>Serviço</span><b>${esc(procById(a.procedureId)?.name || 'A definir')}</b></div>
           <div><span>Data</span><b>${fmtLong(a.date)}</b></div>
-          <div><span>Horário</span><b class="num">${esc(a.time)}</b></div>
+          <div><span>Duração</span><b>${durationLabel(apptDuration(a))}</b></div>
+          <div><span>Início</span><b class="num">${esc(a.time)}</b></div>
+          <div><span>Término</span><b class="num">${esc(apptEnd(a))}</b></div>
+          <div><span>Orçamento</span><b>${money(a.price)}</b></div>
           <div><span>Status</span><b>${esc(STATUS[a.status])}</b></div>
           <div class="full"><span>Motivo</span><b>${esc(a.reason)}</b></div>
         </div>
@@ -2742,16 +2878,14 @@ function renderClientSchedule(main) {
         </fieldset>
       </div>
       <fieldset class="fieldset"><legend>4. O que você precisa</legend>
-        <div class="field"><label for="bk-proc">Procedimento desejado</label>
-          <select id="bk-proc" name="procedureId"><option value="">Não sei / quero avaliar (${state.settings.slotInterval} min)</option>
+        <div class="field"><label for="bk-proc">Serviço <span class="req">*</span></label>
+          <select id="bk-proc" name="procedureId"><option value="">Selecione o serviço…</option>
             ${activeProcedures().map((pr) => `<option value="${pr.id}" ${v.procedureId === pr.id ? 'selected' : ''}>
-              ${esc(pr.name)} — ${pr.durationMin} min · a partir de ${money(pr.price)}</option>`).join('')}</select>
-          <span class="hint">Valores de referência: o orçamento final é confirmado pela dentista na avaliação.</span></div>
-        <div class="field"><label for="bk-reason">O que deseja fazer no dente / motivo da consulta <span class="req">*</span></label>
-          <input id="bk-reason" name="reason" list="reason-list-c" placeholder="Ex.: dor no dente do siso, limpeza, avaliação de clareamento">
-          <datalist id="reason-list-c">${DEMO_REASONS.map((r) => `<option value="${esc(r)}"></option>`).join('')}</datalist></div>
-        <div class="field"><label for="bk-notes">Observações adicionais</label>
-          <textarea id="bk-notes" name="notes" placeholder="Algo que a equipe deva saber antes do atendimento"></textarea></div>
+              ${esc(serviceLabel(pr))}</option>`).join('')}</select>
+          <span class="hint">O valor e a duração vêm da tabela da clínica e não podem ser alterados aqui.</span></div>
+        <div id="bk-budget"></div>
+        <div class="field"><label for="bk-notes">Observações — conte o que está sentindo</label>
+          <textarea id="bk-notes" name="notes" placeholder="Ex.: dor no dente do siso ao mastigar desde segunda-feira"></textarea></div>
         <button class="btn btn-primary btn-block" type="submit">
           <svg width="17" height="17"><use href="#i-check"/></svg> Confirmar agendamento</button>
       </fieldset>
@@ -2763,7 +2897,10 @@ function renderClientSchedule(main) {
     $('#book-cal', main).innerHTML = calendarHTML(v.month, v.date);
     $('#book-slots', main).innerHTML = slotsHTML(v.date, v.time, { duration: v.duration });
     const bspan = $('#book-span', main);
-    if (bspan) bspan.innerHTML = `Tempo reservado: <b>${v.duration} min</b>.`;
+    if (bspan) bspan.innerHTML = `Tempo reservado: <b>${durationLabel(v.duration)}</b>${
+      v.time ? ` · ${v.time} às ${endOf(v.time, v.duration)}` : ''}.`;
+    const budget = $('#bk-budget', main);
+    if (budget && typeof paintBudget === 'function') paintBudget();
     form.querySelector('[name="time"]').value = v.time;
     form.querySelector('[name="date"]').value = v.date;
     bindPicker(main, v, refresh);
@@ -2771,23 +2908,43 @@ function renderClientSchedule(main) {
   bindPicker(main, v, refresh);
 
   const bkProc = $('#bk-proc', main);
+  const budgetBox = $('#bk-budget', main);
+  const paintBudget = () => {
+    const { service, duration, price } = serviceFacts(v.procedureId);
+    if (!service) {
+      budgetBox.innerHTML = `<div class="banner-note" style="margin-top:14px">
+        <svg width="18" height="18" style="flex:none;color:var(--gold)"><use href="#i-sparkle"/></svg>
+        <span>Escolha um serviço para ver o orçamento e os horários com tempo suficiente.</span></div>`;
+      return;
+    }
+    budgetBox.innerHTML = `<div class="budget">
+      <div class="budget-main">
+        <span class="eyebrow">Orçamento</span>
+        <b>${money(price)}</b>
+        <p>${esc(service.name)}${service.description ? ` — ${esc(service.description)}` : ''}</p>
+      </div>
+      <div class="budget-facts">
+        <div><span>Duração</span><b>${durationLabel(duration)}</b></div>
+        <div><span>Início</span><b>${v.time || '—'}</b></div>
+        <div><span>Término</span><b>${v.time ? endOf(v.time, duration) : '—'}</b></div>
+        <div><span>Data</span><b>${v.date ? fmtDate(v.date) : '—'}</b></div>
+      </div></div>`;
+  };
   bkProc?.addEventListener('change', () => {
     const proc = procById(bkProc.value);
     v.procedureId = bkProc.value;
     v.duration = proc ? proc.durationMin : state.settings.slotInterval;
     v.time = '';
-    const reasonInput = $('#bk-reason', main);
-    if (proc && (!reasonInput.value || activeProcedures().some((x) => x.name === reasonInput.value))) {
-      reasonInput.value = proc.name;
-    }
     refresh();
+    paintBudget();
   });
+  paintBudget();
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const data = formData(form);
     const errors = validatePatientInput(data);
-    if (clean(data.reason).length < 3) errors.reason = 'Conte para a equipe o motivo da consulta.';
+    if (!v.procedureId) errors.procedureId = 'Escolha o serviço desejado.';
     if (!v.date) errors.birthDate = errors.birthDate || '';
     const rule = validateSchedule(v.date, v.time, undefined, v.duration);
     if (!v.date) { toast('Escolha um dia', 'Selecione uma data no calendário.', 'warn'); }
@@ -2798,10 +2955,15 @@ function renderClientSchedule(main) {
 
     const patientId = await findOrCreatePatient(data);
     setMe({ name: clean(data.name, 120), birthDate: data.birthDate });
-    const proc = procById(v.procedureId);
-    const id = await createAppointment({ patientId, date: v.date, time: v.time,
-      reason: data.reason, notes: data.notes, origin: 'portal',
-      procedureId: v.procedureId || null, durationMin: v.duration, price: proc ? proc.price : 0 });
+    let id;
+    try {
+      id = await createAppointment({ patientId, date: v.date, time: v.time,
+        notes: data.notes, origin: 'portal', procedureId: v.procedureId });
+    } catch (err) {
+      toast('Horário indisponível', err.message, 'bad');
+      v.time = ''; refresh();
+      return;
+    }
     state.view.success = id;
     toast('Consulta agendada!', `${fmtDate(v.date)} às ${v.time}`, 'ok');
     render();
@@ -2818,8 +2980,9 @@ function renderClientAppointments(main) {
   }
   const { upcoming, history } = myAppointments();
   const card = (a, cancellable) => `<div class="list-row" data-cappt="${a.id}">
-    <span class="tl-time num">${esc(a.time)}</span>
-    <div class="tl-main"><b>${esc(a.reason)}</b><span>${fmtLong(a.date)}</span></div>
+    <span class="tl-time num">${apptRange(a)}</span>
+    <div class="tl-main"><b>${esc(procById(a.procedureId)?.name || a.reason)}</b>
+      <span>${fmtLong(a.date)} · ${durationLabel(apptDuration(a))} · ${money(a.price)}</span></div>
     <div class="when"><b>${fmtDate(a.date)}</b>${DOW_SHORT[dowOf(a.date)]}</div>
     <div style="display:flex;gap:8px;align-items:center">${chip(a.status)}
       ${cancellable ? `<button class="btn btn-quiet btn-sm" data-cancel="${a.id}" style="color:var(--bad)">Cancelar</button>` : ''}</div></div>`;
@@ -2911,27 +3074,33 @@ const PROC_CATEGORIES = ['Prevenção', 'Dentística', 'Endodontia', 'Cirurgia',
   'Prótese', 'Implante', 'Ortodontia', 'Periodontia', 'Odontopediatria', 'Urgência'];
 
 const DEMO_PROCEDURES = [
-  ['Consulta de avaliação', 'Prevenção', 30, 120],
-  ['Limpeza e profilaxia', 'Prevenção', 45, 180],
-  ['Aplicação de flúor', 'Prevenção', 30, 90],
-  ['Restauração em resina', 'Dentística', 60, 320],
-  ['Tratamento de canal (por sessão)', 'Endodontia', 90, 650],
-  ['Extração simples', 'Cirurgia', 45, 280],
-  ['Extração de siso', 'Cirurgia', 60, 750],
-  ['Clareamento em consultório', 'Estética', 60, 890],
-  ['Faceta de resina', 'Estética', 90, 980],
-  ['Coroa de porcelana', 'Prótese', 90, 1900],
-  ['Prótese total (por arcada)', 'Prótese', 90, 2400],
-  ['Implante unitário', 'Implante', 90, 3200],
-  ['Instalação de aparelho fixo', 'Ortodontia', 90, 1600],
-  ['Manutenção ortodôntica', 'Ortodontia', 30, 220],
-  ['Raspagem periodontal (por quadrante)', 'Periodontia', 60, 380],
-  ['Selante (odontopediatria)', 'Odontopediatria', 30, 140],
-  ['Atendimento de urgência', 'Urgência', 30, 200]
+  ['Avaliação odontológica', 'Prevenção', 30, 80, 'Exame clínico inicial, radiografia quando necessária e plano de tratamento.'],
+  ['Limpeza dental', 'Prevenção', 60, 150, 'Profilaxia, raspagem supragengival, polimento e aplicação de flúor.'],
+  ['Restauração dentária', 'Dentística', 60, 220, 'Remoção do tecido cariado e restauração em resina composta.'],
+  ['Clareamento dental', 'Estética', 60, 650, 'Clareamento em consultório com controle de sensibilidade.'],
+  ['Extração dentária', 'Cirurgia', 90, 350, 'Extração com anestesia local e orientação pós-operatória.'],
+  ['Aplicação de flúor', 'Prevenção', 30, 90, 'Flúor em moldeira, indicado no controle de cárie.'],
+  ['Tratamento de canal (por sessão)', 'Endodontia', 90, 650, 'Endodontia com isolamento absoluto e instrumentação.'],
+  ['Manutenção ortodôntica', 'Ortodontia', 30, 220, 'Ativação do arco e troca de elásticos.'],
+  ['Instalação de aparelho fixo', 'Ortodontia', 90, 1600, 'Colagem de braquetes e instalação do arco inicial.'],
+  ['Raspagem periodontal (por quadrante)', 'Periodontia', 60, 380, 'Raspagem subgengival e alisamento radicular.'],
+  ['Selante (odontopediatria)', 'Odontopediatria', 30, 140, 'Selante oclusal em molares permanentes jovens.'],
+  ['Faceta de resina', 'Estética', 90, 980, 'Faceta direta em resina composta, por elemento.'],
+  ['Coroa de porcelana', 'Prótese', 90, 1900, 'Preparo, moldagem e instalação da coroa.'],
+  ['Prótese total (por arcada)', 'Prótese', 90, 2400, 'Moldagem, prova e instalação da prótese total.'],
+  ['Implante unitário', 'Implante', 90, 3200, 'Instalação do implante com planejamento guiado.'],
+  ['Atendimento de urgência', 'Urgência', 30, 200, 'Alívio de dor, curativo ou recolagem provisória.']
 ];
+const SERVICE_DURATIONS = [30, 60, 90];
+const DURATION_LABEL = { 30: '30 minutos', 60: '1 hora', 90: '1 hora e 30 minutos' };
+const durationLabel = (min) => DURATION_LABEL[min] || `${min} minutos`;
+/** Rótulo único do serviço, usado em todo o sistema: Nome • duração • preço. */
+const serviceLabel = (svc) => svc ? `${svc.name} • ${durationLabel(svc.durationMin)} • ${money(svc.price)}` : '';
 
 const money = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const procById = (id) => state.procedures.find((p) => p.id === id) || null;
+const allProcedures = () => [...state.procedures]
+  .sort((a, b) => a.category.localeCompare(b.category, 'pt-BR') || a.name.localeCompare(b.name, 'pt-BR'));
 const activeProcedures = () => [...state.procedures].filter((p) => p.active !== false)
   .sort((a, b) => a.category.localeCompare(b.category, 'pt-BR') || a.name.localeCompare(b.name, 'pt-BR'));
 
@@ -3105,8 +3274,9 @@ function renderTabFicha(body, p) {
     <section class="card"><div class="card-head"><h3>Histórico de consultas</h3></div>
       <div class="card-body flush">${history.length ? `<div class="list">${history.map((a) => `
         <div class="list-row" data-appt="${a.id}">
-          <span class="tl-time num">${esc(a.time)}</span>
-          <div class="tl-main"><b>${esc(a.reason)}</b><span>${esc(a.notes || 'Sem observações')}</span></div>
+          <span class="tl-time num" style="font-size:13px">${apptRange(a)}</span>
+          <div class="tl-main"><b>${esc(procById(a.procedureId)?.name || a.reason)}</b>
+            <span>${durationLabel(apptDuration(a))} · ${money(a.price)}</span></div>
           <div class="when"><b>${fmtDate(a.date)}</b>${DOW_SHORT[dowOf(a.date)]}</div>
           ${chip(a.status)}</div>`).join('')}</div>`
         : `<div class="card-body">${emptyState('art-empty-cal', 'Nenhuma consulta registrada',
@@ -3642,7 +3812,9 @@ function paymentsTableHTML(list, showPatient = true) {
       const patient = patientById(pay.patientId);
       return `<tr>
         ${showPatient ? `<td>${esc(patient ? patient.name : '—')}</td>` : ''}
-        <td>${esc(pay.description)}${pay.installment ? ` <span class="muted">(${esc(pay.installment)})</span>` : ''}</td>
+        <td>${esc(pay.description)}${pay.installment ? ` <span class="muted">(${esc(pay.installment)})</span>` : ''}
+          ${pay.procedureId ? `<br><span class="muted" style="font-size:12px">Serviço:
+            ${esc(procById(pay.procedureId)?.name || 'removido do catálogo')}</span>` : ''}</td>
         <td class="num">${fmtDate(pay.dueDate)}</td>
         <td>${esc(PAY_METHODS[pay.method] || pay.method || '—')}</td>
         <td><span class="chip s-${st}">${PAY_STATUS_LABEL[st]}</span></td>
@@ -3673,45 +3845,83 @@ function bindPaymentActions(root) {
   }));
 }
 
-function openPaymentForm(patient = null) {
+function openPaymentForm(patient = null, preset = {}) {
   const patients = [...state.patients].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  const servicesList = activeProcedures();
   openModal(`
-    <div class="modal-head"><h3>Novo lançamento</h3>
+    <div class="modal-head"><h3>Lançamento financeiro</h3>
       <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
     <div class="modal-body"><form class="form" id="pay-form">
-      ${patient ? '' : `<div class="field"><label for="py-patient">Paciente <span class="req">*</span></label>
-        <select id="py-patient" name="patientId"><option value="">Selecione…</option>
-          ${patients.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></div>`}
-      <div class="field"><label for="py-desc">Descrição <span class="req">*</span></label>
-        <input id="py-desc" name="description" placeholder="Ex.: Limpeza e profilaxia"></div>
-      <div class="form-row three">
-        <div class="field"><label for="py-amount">Valor (R$) <span class="req">*</span></label>
-          <input id="py-amount" name="amount" type="number" min="0" step="10"></div>
-        <div class="field"><label for="py-method">Forma</label>
+      ${patient ? `<div class="field"><label>Paciente</label>
+          <input value="${esc(patient.name)}" readonly style="background:var(--surface-2)"></div>`
+        : `<div class="field"><label for="py-patient">Paciente <span class="req">*</span></label>
+          <select id="py-patient" name="patientId"><option value="">Selecione…</option>
+            ${patients.map((p) => `<option value="${p.id}" ${preset.patientId === p.id ? 'selected' : ''}>
+              ${esc(p.name)}</option>`).join('')}</select></div>`}
+
+      <div class="field"><label for="py-service">Serviço <span class="req">*</span></label>
+        <select id="py-service" name="procedureId"><option value="">Selecione o serviço…</option>
+          ${servicesList.map((pr) => `<option value="${pr.id}" ${preset.procedureId === pr.id ? 'selected' : ''}>
+            ${esc(serviceLabel(pr))}</option>`).join('')}</select>
+        <span class="hint">O valor do lançamento vem do preço cadastrado para o serviço.</span></div>
+
+      <div id="py-value"></div>
+
+      <div class="form-row">
+        <div class="field"><label for="py-method">Forma de pagamento</label>
           <select id="py-method" name="method">${Object.entries(PAY_METHODS).map(([k, l]) =>
             `<option value="${k}">${l}</option>`).join('')}</select></div>
         <div class="field"><label for="py-due">Vencimento</label>
           <input id="py-due" name="dueDate" type="date" value="${todayISO()}"></div>
       </div>
+
       <label class="pick" style="width:fit-content"><input type="checkbox" id="py-paid" style="width:auto;margin:0"> Já recebido</label>
       <button class="btn btn-primary btn-block" type="submit">Lançar</button>
     </form></div>`, (bg) => {
-    $('#pay-form', bg).addEventListener('submit', async (ev) => {
+    const form = $('#pay-form', bg);
+    const serviceSelect = $('#py-service', bg);
+    const valueBox = $('#py-value', bg);
+
+    /** Valor somente leitura, sempre derivado do serviço selecionado. */
+    const paintValue = () => {
+      const { service, price } = serviceFacts(serviceSelect.value);
+      valueBox.innerHTML = service ? `<div class="budget" style="margin-top:0">
+          <div class="budget-main"><span class="eyebrow">Valor do lançamento</span><b>${money(price)}</b>
+            <p>${esc(service.name)} • ${durationLabel(service.durationMin)}</p></div>
+          <div class="budget-facts">
+            <div><span>Origem do valor</span><b>Tabela de serviços</b></div>
+            <div><span>Edição manual</span><b>Não permitida</b></div>
+          </div></div>`
+        : `<div class="banner-note"><svg width="18" height="18" style="flex:none;color:var(--gold)"><use href="#i-sparkle"/></svg>
+            <span>Escolha o serviço para o valor ser preenchido automaticamente.</span></div>`;
+    };
+    serviceSelect.addEventListener('change', paintValue);
+    paintValue();
+
+    form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
-      const form = ev.target;
       const data = formData(form);
       const errors = {};
       const patientId = patient ? patient.id : data.patientId;
+      const { service, price } = serviceFacts(data.procedureId);
       if (!patientId) errors.patientId = 'Selecione o paciente.';
-      if (clean(data.description).length < 3) errors.description = 'Descreva o lançamento.';
-      if (!(Number(data.amount) > 0)) errors.amount = 'Informe um valor maior que zero.';
+      if (!service) errors.procedureId = 'Selecione o serviço.';
       if (!isISODate(data.dueDate)) errors.dueDate = 'Informe o vencimento.';
       if (Object.keys(errors).length) { fieldErrors(form, errors); return; }
-      await put('payments', uid(), { patientId, planId: null, description: data.description,
-        amount: Number(data.amount), method: data.method, dueDate: data.dueDate,
+
+      await put('payments', uid(), {
+        patientId, planId: null, procedureId: service.id,
+        appointmentId: preset.appointmentId ?? null,
+        description: service.name,
+        /* valor congelado no momento do lançamento: mudar o preço do serviço
+           depois não altera os lançamentos já feitos */
+        amount: price,
+        method: data.method, dueDate: data.dueDate,
         paidAt: $('#py-paid', bg).checked ? todayISO() : null, installment: '',
-        createdAt: new Date().toISOString() });
-      closeModal(); toast('Lançamento criado', money(Number(data.amount)), 'ok');
+        createdAt: new Date().toISOString()
+      });
+      closeModal();
+      toast('Lançamento criado', `${service.name} — ${money(price)}`, 'ok');
     });
   });
 }
@@ -3961,70 +4171,92 @@ function renderReports(main) {
 
 /* ============================ catálogo de procedimentos ============================ */
 function renderProcedures(main) {
-  const v = state.view.procs ||= { category: '' };
-  const list = activeProcedures().filter((p) => !v.category || p.category === v.category);
+  const v = state.view.procs ||= { category: '', showInactive: true };
+  const list = allProcedures()
+    .filter((p) => !v.category || p.category === v.category)
+    .filter((p) => v.showInactive || p.active !== false);
   const usage = (id) => state.appointments.filter((a) => a.procedureId === id && a.status !== 'cancelada').length;
 
   main.innerHTML = `
-    <div class="topbar"><h1>Procedimentos</h1><div class="grow"></div>
+    <div class="topbar"><h1>Serviços</h1><div class="grow"></div>
       <button class="btn btn-primary btn-sm" id="new-proc">
-        <svg width="16" height="16"><use href="#i-plus"/></svg> Novo procedimento</button></div>
+        <svg width="16" height="16"><use href="#i-plus"/></svg> Novo serviço</button></div>
     <div class="banner-note">
       <svg width="18" height="18" style="flex:none;color:var(--gold)"><use href="#i-clock"/></svg>
-      <span>A duração definida aqui reserva o tempo real na agenda: um canal de 90 min bloqueia três faixas de 30 min,
-        e o portal do paciente só oferece horários em que o procedimento cabe até o fechamento.</span></div>
+      <span>Preço e duração cadastrados aqui são a única fonte do orçamento e do tempo reservado na agenda.
+        Um serviço de 1h30 ocupa três faixas de 30 min e só aparece em horários com os 90 minutos livres
+        até o fechamento.</span></div>
     <div class="toolbar">
       <select id="proc-cat"><option value="">Todas as categorias</option>
         ${PROC_CATEGORIES.map((c) => `<option value="${c}" ${v.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
       <span class="muted" style="font-size:13.5px">${list.length} procedimento(s)</span>
     </div>
     <section class="card"><div class="card-body flush">${list.length ? `<div class="table-wrap"><table class="data">
-      <thead><tr><th>Procedimento</th><th>Categoria</th><th class="num">Duração</th>
-        <th class="num">Valor</th><th class="num">Realizados</th><th></th></tr></thead>
-      <tbody>${list.map((p) => `<tr>
-        <td><b>${esc(p.name)}</b></td>
+      <thead><tr><th>Serviço</th><th>Categoria</th><th class="num">Duração</th>
+        <th class="num">Preço</th><th>Situação</th><th class="num">Realizados</th><th></th></tr></thead>
+      <tbody>${list.map((p) => `<tr style="${p.active === false ? 'opacity:.6' : ''}">
+        <td><b>${esc(p.name)}</b>${p.description ? `<br><span class="muted" style="font-size:12.5px">
+          ${esc(p.description)}</span>` : ''}</td>
         <td><span class="tag">${esc(p.category)}</span></td>
-        <td class="num">${p.durationMin} min</td>
+        <td class="num">${durationLabel(p.durationMin)}</td>
         <td class="num money">${money(p.price)}</td>
+        <td><span class="chip ${p.active === false ? 's-cancelada' : 's-confirmada'}">
+          ${p.active === false ? 'Inativo' : 'Ativo'}</span></td>
         <td class="num">${usage(p.id)}</td>
         <td class="num" style="white-space:nowrap">
+          <button class="btn btn-quiet btn-sm" data-proc-toggle="${p.id}">
+            ${p.active === false ? 'Reativar' : 'Desativar'}</button>
           <button class="btn btn-quiet btn-sm" data-proc-edit="${p.id}">Editar</button>
           <button class="icon-btn" data-proc-del="${p.id}" aria-label="Excluir" style="display:inline-grid;vertical-align:middle">
             <svg width="13" height="13"><use href="#i-trash"/></svg></button></td>
       </tr>`).join('')}</tbody></table></div>`
-      : `<div class="card-body">${emptyState('art-empty-users', 'Nenhum procedimento',
-          'Cadastre os procedimentos da clínica com duração e valor para usá-los na agenda e nos orçamentos.',
-          `<button class="btn btn-primary btn-sm" id="empty-proc">Cadastrar procedimento</button>`)}</div>`}
+      : `<div class="card-body">${emptyState('art-empty-users', 'Nenhum serviço cadastrado',
+          'Cadastre os serviços da clínica com preço e duração para usá-los na agenda e nos orçamentos.',
+          `<button class="btn btn-primary btn-sm" id="empty-proc">Cadastrar serviço</button>`)}</div>`}
     </div></section>`;
 
   $('#proc-cat', main).addEventListener('change', (e) => { v.category = e.target.value; render(); });
+  $('#proc-inactive', main)?.addEventListener('change', (e) => { v.showInactive = e.target.checked; render(); });
+  $$('[data-proc-toggle]', main).forEach((b) => b.addEventListener('click', async () => {
+    const proc = procById(b.dataset.procToggle);
+    const next = proc.active === false;
+    await put('procedures', proc.id, { ...proc, active: next });
+    toast(next ? 'Serviço reativado' : 'Serviço desativado',
+      next ? `${proc.name} volta a aparecer nos agendamentos.`
+        : `${proc.name} sai dos seletores, mas o histórico é mantido.`);
+  }));
   $('#new-proc', main).addEventListener('click', () => openProcedureForm());
   $('#empty-proc', main)?.addEventListener('click', () => openProcedureForm());
   $$('[data-proc-edit]', main).forEach((b) => b.addEventListener('click', () => openProcedureForm(procById(b.dataset.procEdit))));
   $$('[data-proc-del]', main).forEach((b) => b.addEventListener('click', () => {
     const proc = procById(b.dataset.procDel);
-    confirmDialog('Excluir procedimento', `"${proc.name}" sai do catálogo. Consultas e planos já criados não são alterados.`,
-      'Excluir', async () => { await remove('procedures', proc.id); toast('Procedimento excluído', '', 'bad'); });
+    confirmDialog('Excluir serviço', `"${proc.name}" sai do catálogo. Consultas e planos já criados não são alterados.`,
+      'Excluir', async () => { await remove('procedures', proc.id); toast('Serviço excluído', '', 'bad'); });
   }));
 }
 
 function openProcedureForm(proc = null) {
   openModal(`
-    <div class="modal-head"><h3>${proc ? 'Editar procedimento' : 'Novo procedimento'}</h3>
+    <div class="modal-head"><h3>${proc ? 'Editar serviço' : 'Novo serviço'}</h3>
       <button class="icon-btn" data-close aria-label="Fechar"><svg width="16" height="16"><use href="#i-x"/></svg></button></div>
     <div class="modal-body"><form class="form" id="proc-form">
       <div class="field"><label for="pc-name">Nome <span class="req">*</span></label>
-        <input id="pc-name" name="name" value="${esc(proc?.name || '')}" placeholder="Ex.: Restauração em resina"></div>
+        <input id="pc-name" name="name" value="${esc(proc?.name || '')}" placeholder="Ex.: Limpeza dental"></div>
+      <div class="field"><label for="pc-desc">Descrição</label>
+        <textarea id="pc-desc" name="description" style="min-height:70px"
+          placeholder="O que está incluso no serviço">${esc(proc?.description || '')}</textarea></div>
       <div class="form-row three">
         <div class="field"><label for="pc-cat">Categoria</label>
           <select id="pc-cat" name="category">${PROC_CATEGORIES.map((c) =>
             `<option value="${c}" ${proc?.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
-        <div class="field"><label for="pc-dur">Duração (min) <span class="req">*</span></label>
-          <select id="pc-dur" name="durationMin">${[15, 30, 45, 60, 90, 120].map((n) =>
-            `<option value="${n}" ${proc?.durationMin === n ? 'selected' : ''}>${n} min</option>`).join('')}</select></div>
-        <div class="field"><label for="pc-price">Valor (R$) <span class="req">*</span></label>
+        <div class="field"><label for="pc-dur">Duração <span class="req">*</span></label>
+          <select id="pc-dur" name="durationMin">${SERVICE_DURATIONS.map((n) =>
+            `<option value="${n}" ${proc?.durationMin === n ? 'selected' : ''}>${durationLabel(n)}</option>`).join('')}</select></div>
+        <div class="field"><label for="pc-price">Preço (R$) <span class="req">*</span></label>
           <input id="pc-price" name="price" type="number" min="0" step="10" value="${esc(String(proc?.price ?? ''))}"></div>
       </div>
+      <label class="pick" style="width:fit-content"><input type="checkbox" id="pc-active" name="active"
+        ${proc?.active === false ? '' : 'checked'} style="width:auto;margin:0"> Serviço ativo (aparece nos agendamentos)</label>
       <button class="btn btn-primary btn-block" type="submit">${proc ? 'Salvar' : 'Cadastrar'}</button>
     </form></div>`, (bg) => {
     $('#proc-form', bg).addEventListener('submit', async (ev) => {
@@ -4032,14 +4264,16 @@ function openProcedureForm(proc = null) {
       const form = ev.target;
       const data = formData(form);
       const errors = {};
-      if (clean(data.name).length < 3) errors.name = 'Informe o nome do procedimento.';
-      if (!(Number(data.price) >= 0) || data.price === '') errors.price = 'Informe o valor (use 0 para cortesia).';
+      if (clean(data.name).length < 3) errors.name = 'Informe o nome do serviço.';
+      if (!(Number(data.price) >= 0) || data.price === '') errors.price = 'Informe o preço (use 0 para cortesia).';
+      if (!SERVICE_DURATIONS.includes(Number(data.durationMin))) errors.durationMin = 'Duração deve ser 30, 60 ou 90 minutos.';
       if (Object.keys(errors).length) { fieldErrors(form, errors); return; }
       const id = proc?.id || uid();
       await put('procedures', id, { ...(proc || {}), name: data.name, category: data.category,
-        durationMin: Number(data.durationMin), price: Number(data.price), active: true,
+        description: data.description || '', durationMin: Number(data.durationMin),
+        price: Number(data.price), active: $('#pc-active', bg).checked,
         createdAt: proc?.createdAt || new Date().toISOString() });
-      closeModal(); toast(proc ? 'Procedimento atualizado' : 'Procedimento cadastrado', data.name, 'ok');
+      closeModal(); toast(proc ? 'Serviço atualizado' : 'Serviço cadastrado', data.name, 'ok');
     });
   });
 }
@@ -4193,10 +4427,14 @@ document.addEventListener('click', (e) => {
     <div class="modal-body" style="display:grid;gap:16px">
       <div style="display:flex;gap:10px;flex-wrap:wrap">${chip(a.status)}
         <span class="tag"><svg width="14" height="14"><use href="#i-calendar"/></svg>${fmtLong(a.date)}</span>
-        <span class="tag"><svg width="14" height="14"><use href="#i-clock"/></svg>${esc(a.time)}</span></div>
+        <span class="tag"><svg width="14" height="14"><use href="#i-clock"/></svg>${apptRange(a)}</span></div>
       <div class="detail-grid">
         <div><span>Paciente</span><b>${esc(p ? p.name : '—')}</b></div>
-        <div><span>Idade na consulta</span><b>${p ? calcAge(p.birthDate, a.date).label : '—'}</b></div>
+        <div><span>Serviço</span><b>${esc(procById(a.procedureId)?.name || 'A definir')}</b></div>
+        <div><span>Início</span><b>${esc(a.time)}</b></div>
+        <div><span>Término</span><b>${esc(apptEnd(a))}</b></div>
+        <div><span>Duração</span><b>${durationLabel(apptDuration(a))}</b></div>
+        <div><span>Orçamento</span><b>${money(a.price)}</b></div>
         <div class="full"><span>Motivo</span><b>${esc(a.reason)}</b></div>
         <div class="full"><span>Observações</span><b>${esc(a.notes || 'Sem observações.')}</b></div>
         <div class="full"><span>Onde</span><b>${esc(state.settings.address)}</b></div>

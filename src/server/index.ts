@@ -1,6 +1,6 @@
 import express from 'express';
 import path from 'path';
-import { db, ensureDefaultServices, ensureDefaultSettings, migrate } from './db';
+import { db, ensureDefaultServices, ensureDefaultSettings, migrate, migrateColumns } from './db';
 import { errorHandler, parseCookies, requireDentist } from './middleware';
 import { api } from './routes/api';
 import { authRoutes } from './routes/auth';
@@ -10,6 +10,7 @@ const PORT = Number(process.env.PORT || 3000);
 const PUBLIC_DIR = path.resolve(__dirname, '..', '..', 'public');
 
 migrate();
+migrateColumns();
 ensureDefaultSettings();
 ensureDefaultServices();
 ensureDentistUser();

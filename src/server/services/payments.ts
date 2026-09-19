@@ -4,6 +4,7 @@ import { cleanText } from '../utils/sanitize';
 import { isValidIsoDate, todayIso } from '../utils/dates';
 import { getPatient } from './patients';
 import { getPlan } from './plans';
+import { getServiceRow } from './catalog';
 
 export const PAY_METHODS: Record<string, string> = {
   dinheiro: 'Dinheiro',
@@ -26,6 +27,9 @@ export interface Payment {
   patientName: string;
   planId: number | null;
   planTitle: string | null;
+  serviceId: number | null;
+  serviceName: string | null;
+  appointmentId: number | null;
   description: string;
   amount: number;
   method: string;
@@ -44,6 +48,8 @@ interface PaymentRow {
   id: number;
   patient_id: number;
   plan_id: number | null;
+  service_id: number | null;
+  appointment_id: number | null;
   description: string;
   amount: number;
   method: string;
@@ -54,13 +60,15 @@ interface PaymentRow {
   updated_at: string;
   patient_name: string;
   plan_title: string | null;
+  service_name: string | null;
 }
 
 const SELECT = `
-  SELECT p.*, pt.name AS patient_name, tp.title AS plan_title
+  SELECT p.*, pt.name AS patient_name, tp.title AS plan_title, s.name AS service_name
   FROM payments p
   JOIN patients pt ON pt.id = p.patient_id
   LEFT JOIN treatment_plans tp ON tp.id = p.plan_id
+  LEFT JOIN services s ON s.id = p.service_id
 `;
 
 export function statusOf(paidAt: string | null, dueDate: string): string {
@@ -76,6 +84,9 @@ function mapPayment(row: PaymentRow): Payment {
     patientName: row.patient_name,
     planId: row.plan_id,
     planTitle: row.plan_title,
+    serviceId: row.service_id,
+    serviceName: row.service_name,
+    appointmentId: row.appointment_id,
     description: row.description,
     amount: row.amount,
     method: row.method,
@@ -99,6 +110,7 @@ export function getPayment(id: number): Payment {
 export interface PaymentQuery {
   patientId?: number | string;
   planId?: number | string;
+  serviceId?: number | string;
   status?: string;
   from?: string;
   to?: string;
@@ -109,6 +121,7 @@ export function listPayments(query: PaymentQuery = {}): Payment[] {
   const params: Record<string, unknown> = {};
   if (query.patientId) { where.push('p.patient_id = @patientId'); params.patientId = Number(query.patientId); }
   if (query.planId) { where.push('p.plan_id = @planId'); params.planId = Number(query.planId); }
+  if (query.serviceId) { where.push('p.service_id = @serviceId'); params.serviceId = Number(query.serviceId); }
   if (query.from) { where.push('p.due_date >= @from'); params.from = cleanText(query.from, 10); }
   if (query.to) { where.push('p.due_date <= @to'); params.to = cleanText(query.to, 10); }
 
@@ -130,17 +143,41 @@ interface PaymentInput {
   paidAt: string | null;
   installment: string;
   planId: number | null;
+  serviceId: number | null;
+  appointmentId: number | null;
 }
 
-function validatePayment(payload: Record<string, unknown>, current?: Payment): PaymentInput {
-  const description = cleanText(payload.description ?? current?.description, 200);
-  const amount = Number(payload.amount ?? current?.amount);
+function validatePayment(
+  payload: Record<string, unknown>,
+  patientId: number,
+  current?: Payment
+): PaymentInput {
+  const details: Record<string, string> = {};
+
+  /**
+   * Quando há serviço, ele é a ORIGEM do valor e da descrição: o que o cliente
+   * enviar em `amount` é descartado. O valor fica congelado na linha do
+   * lançamento, então alterar o preço no catálogo depois não muda o histórico.
+   */
+  let serviceId: number | null = current?.serviceId ?? null;
+  let amount = Number(payload.amount ?? current?.amount);
+  let description = cleanText(payload.description ?? current?.description, 200);
+
+  const rawService = payload.serviceId;
+  if (rawService !== undefined && rawService !== null && rawService !== '') {
+    const service = getServiceRow(Number(rawService));
+    serviceId = service.id;
+    amount = service.price;
+    description = service.name;
+  } else if (serviceId && payload.amount === undefined) {
+    amount = current!.amount; // mantém o valor histórico ao editar outros campos
+  }
+
   const method = String(payload.method ?? current?.method ?? 'pix');
   const dueDate = cleanText(payload.dueDate ?? current?.dueDate, 10);
   const installment = cleanText(payload.installment ?? current?.installment ?? '', 12);
 
-  const details: Record<string, string> = {};
-  if (description.length < 3) details.description = 'Descreva o lançamento.';
+  if (description.length < 3) details.description = 'Informe o serviço ou uma descrição do lançamento.';
   if (!Number.isFinite(amount) || amount <= 0) details.amount = 'Informe um valor maior que zero.';
   if (!PAY_METHODS[method]) details.method = 'Forma de pagamento inválida.';
   if (!isValidIsoDate(dueDate)) details.dueDate = 'Informe uma data de vencimento válida.';
@@ -155,33 +192,48 @@ function validatePayment(payload: Record<string, unknown>, current?: Payment): P
       else paidAt = value;
     }
   }
+  if (payload.paid === true && !paidAt) paidAt = todayIso(); // opção "Já recebido"
 
   let planId: number | null = current?.planId ?? null;
   if (payload.planId !== undefined && payload.planId !== null && payload.planId !== '') {
     planId = getPlan(Number(payload.planId)).id;
   }
 
+  // a consulta vinculada precisa ser do mesmo paciente
+  let appointmentId: number | null = current?.appointmentId ?? null;
+  if (payload.appointmentId !== undefined && payload.appointmentId !== null && payload.appointmentId !== '') {
+    const appointment = db.prepare('SELECT id, patient_id FROM appointments WHERE id = ?')
+      .get(Number(payload.appointmentId)) as { id: number; patient_id: number } | undefined;
+    if (!appointment) details.appointmentId = 'Consulta não encontrada.';
+    else if (appointment.patient_id !== patientId) details.appointmentId = 'A consulta pertence a outro paciente.';
+    else appointmentId = appointment.id;
+  }
+
   if (Object.keys(details).length) throw badRequest('Verifique os dados do lançamento.', details);
-  return { description, amount, method, dueDate, paidAt, installment, planId };
+  return { description, amount, method, dueDate, paidAt, installment, planId, serviceId, appointmentId };
 }
 
 export function createPayment(patientId: number, payload: Record<string, unknown>): Payment {
   getPatient(patientId);
-  const input = validatePayment(payload);
+  const input = validatePayment(payload, patientId);
   const info = db.prepare(`
-    INSERT INTO payments (patient_id, plan_id, description, amount, method, installment, due_date, paid_at)
-    VALUES (@patientId, @planId, @description, @amount, @method, @installment, @dueDate, @paidAt)
+    INSERT INTO payments
+      (patient_id, plan_id, service_id, appointment_id, description, amount, method,
+       installment, due_date, paid_at)
+    VALUES
+      (@patientId, @planId, @serviceId, @appointmentId, @description, @amount, @method,
+       @installment, @dueDate, @paidAt)
   `).run({ ...input, patientId });
   return getPayment(Number(info.lastInsertRowid));
 }
 
 export function updatePayment(id: number, payload: Record<string, unknown>): Payment {
   const current = getPayment(id);
-  const input = validatePayment(payload, current);
+  const input = validatePayment(payload, current.patientId, current);
   db.prepare(`
-    UPDATE payments SET plan_id = @planId, description = @description, amount = @amount,
-      method = @method, installment = @installment, due_date = @dueDate, paid_at = @paidAt,
-      updated_at = datetime('now')
+    UPDATE payments SET plan_id = @planId, service_id = @serviceId, appointment_id = @appointmentId,
+      description = @description, amount = @amount, method = @method, installment = @installment,
+      due_date = @dueDate, paid_at = @paidAt, updated_at = datetime('now')
     WHERE id = @id
   `).run({ ...input, id });
   return getPayment(id);

@@ -144,6 +144,8 @@ export function migrate(): void {
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       patient_id  INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
       plan_id     INTEGER REFERENCES treatment_plans(id) ON DELETE SET NULL,
+      service_id  INTEGER REFERENCES services(id) ON DELETE SET NULL,
+      appointment_id INTEGER REFERENCES appointments(id) ON DELETE SET NULL,
       description TEXT NOT NULL,
       amount      REAL NOT NULL CHECK (amount >= 0),
       method      TEXT NOT NULL DEFAULT 'pix',
@@ -170,11 +172,13 @@ export function migrate(): void {
     CREATE INDEX IF NOT EXISTS idx_appointments_patient ON appointments(patient_id);
     CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(date);
     CREATE INDEX IF NOT EXISTS idx_services_active ON services(active);
+    CREATE INDEX IF NOT EXISTS idx_appointments_service ON appointments(service_id);
     CREATE INDEX IF NOT EXISTS idx_records_patient ON clinical_records(patient_id, date DESC);
     CREATE INDEX IF NOT EXISTS idx_plans_patient ON treatment_plans(patient_id);
     CREATE INDEX IF NOT EXISTS idx_plan_items_plan ON treatment_plan_items(plan_id);
     CREATE INDEX IF NOT EXISTS idx_payments_patient ON payments(patient_id);
     CREATE INDEX IF NOT EXISTS idx_payments_due ON payments(due_date);
+    CREATE INDEX IF NOT EXISTS idx_payments_service ON payments(service_id);
     CREATE INDEX IF NOT EXISTS idx_patients_name ON patients(name);
     CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
   `);
@@ -185,7 +189,7 @@ const DEFAULT_SERVICES: [string, string, string, number, number][] = [
   ['Avaliação odontológica', 'Prevenção', 'Exame clínico inicial, radiografia quando necessária e plano de tratamento.', 80, 30],
   ['Limpeza dental', 'Prevenção', 'Profilaxia, raspagem supragengival, polimento e aplicação de flúor.', 150, 60],
   ['Restauração dentária', 'Dentística', 'Remoção do tecido cariado e restauração em resina composta.', 220, 60],
-  ['Clareamento dental', 'Estética', 'Clareamento em consultório com controle de sensibilidade.', 650, 90],
+  ['Clareamento dental', 'Estética', 'Clareamento em consultório com controle de sensibilidade.', 650, 60],
   ['Extração dentária', 'Cirurgia', 'Extração com anestesia local e orientação pós-operatória.', 350, 90],
   ['Aplicação de flúor', 'Prevenção', 'Flúor em moldeira, indicado no controle de cárie.', 90, 30],
   ['Tratamento de canal (por sessão)', 'Endodontia', 'Endodontia com isolamento absoluto e instrumentação.', 650, 90],
@@ -202,6 +206,18 @@ export function ensureDefaultServices(): void {
     VALUES (?, ?, ?, ?, ?)
   `);
   db.transaction(() => { DEFAULT_SERVICES.forEach((s) => insert.run(...s)); })();
+}
+
+/** Acrescenta colunas novas a bancos criados por versões anteriores. */
+function addColumnIfMissing(table: string, column: string, definition: string): void {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (columns.some((c) => c.name === column)) return;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+export function migrateColumns(): void {
+  addColumnIfMissing('payments', 'service_id', 'INTEGER REFERENCES services(id)');
+  addColumnIfMissing('payments', 'appointment_id', 'INTEGER REFERENCES appointments(id)');
 }
 
 export function settingsRowExists(): boolean {

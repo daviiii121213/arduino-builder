@@ -17,7 +17,7 @@ process.env.DB_FILE = 'clinical.db';
 
 const { db, ensureDefaultServices, ensureDefaultSettings, migrate } = require('../dist/server/db');
 const { createPatient } = require('../dist/server/services/patients');
-const { listServices } = require('../dist/server/services/catalog');
+const { listServices, createService, updateService } = require('../dist/server/services/catalog');
 const { createAppointment } = require('../dist/server/services/appointments');
 const {
   getOdontogram, setTooth, clearTooth, replaceOdontogram
@@ -30,7 +30,8 @@ const {
   createPlan, getPlan, updatePlan, listPlans, setItemStatus, acceptPlan
 } = require('../dist/server/services/plans');
 const {
-  createPayment, listPayments, settlePayment, billPlan, planBilling, financeSummary
+  createPayment, getPayment, updatePayment, listPayments, settlePayment,
+  billPlan, planBilling, financeSummary
 } = require('../dist/server/services/payments');
 const { reportsOverview } = require('../dist/server/services/reports');
 const { addDays, todayIso, weekdayOf } = require('../dist/server/utils/dates');
@@ -316,6 +317,77 @@ test('resumo financeiro separa recebido, a receber, em aberto e vencido', () => 
   const pendentes = listPayments({ status: 'pendente' });
   assert.ok(pendentes.every((p) => p.status === 'pendente'));
   assert.ok(listPayments({ patientId: patient.id }).every((p) => p.patientId === patient.id));
+});
+
+test('lançamento financeiro tira valor e descrição do serviço', () => {
+  const lancamento = createPayment(patient.id, {
+    serviceId: svc90.id,
+    amount: 1,               // valor forjado pelo cliente: deve ser ignorado
+    description: 'Preço camarada',
+    method: 'pix',
+    dueDate: todayIso()
+  });
+
+  assert.strictEqual(lancamento.amount, svc90.price, 'valor vem do catálogo');
+  assert.strictEqual(lancamento.description, svc90.name, 'descrição vem do serviço');
+  assert.strictEqual(lancamento.serviceId, svc90.id);
+  assert.strictEqual(lancamento.serviceName, svc90.name);
+});
+
+test('mudar o preço do serviço não altera lançamentos já feitos', () => {
+  const service = createService({
+    name: 'Serviço com reajuste', price: 300, durationMinutes: 30, category: 'Prevenção'
+  });
+  const antes = createPayment(patient.id, { serviceId: service.id, dueDate: todayIso() });
+  assert.strictEqual(antes.amount, 300);
+
+  updateService(service.id, { price: 450 });
+
+  const depois = createPayment(patient.id, { serviceId: service.id, dueDate: todayIso() });
+  assert.strictEqual(depois.amount, 450, 'lançamento novo usa o preço atualizado');
+  assert.strictEqual(getPayment(antes.id).amount, 300, 'lançamento antigo preserva o valor histórico');
+
+  // editar outros campos do lançamento antigo não puxa o preço novo
+  const editado = updatePayment(antes.id, { method: 'boleto' });
+  assert.strictEqual(editado.amount, 300);
+  assert.strictEqual(editado.methodLabel, 'Boleto');
+});
+
+test('lançamento aceita a opção "já recebido" e vincula a consulta do paciente', () => {
+  let date = addDays(todayIso(), 21);
+  while (weekdayOf(date) === 0) date = addDays(date, 1);
+  const appt = createAppointment({
+    patientId: patient.id, serviceId: svc60.id, date, time: '15:00', reason: 'Consulta'
+  });
+
+  const recebido = createPayment(patient.id, {
+    serviceId: svc60.id, appointmentId: appt.id, dueDate: todayIso(), paid: true
+  });
+  assert.strictEqual(recebido.status, 'pago');
+  assert.strictEqual(recebido.paidAt, todayIso());
+  assert.strictEqual(recebido.appointmentId, appt.id);
+  assert.strictEqual(recebido.amount, svc60.price);
+
+  assert.throws(
+    () => createPayment(other.id, { serviceId: svc60.id, appointmentId: appt.id, dueDate: todayIso() }),
+    (error) => /outro paciente/.test(error.details?.appointmentId ?? '')
+  );
+});
+
+test('serviço inativo não pode ser usado em novos lançamentos', () => {
+  const service = createService({
+    name: 'Serviço descontinuado', price: 200, durationMinutes: 30, category: 'Prevenção'
+  });
+  const ok = createPayment(patient.id, { serviceId: service.id, dueDate: todayIso() });
+  assert.strictEqual(ok.amount, 200);
+
+  updateService(service.id, { active: false });
+  assert.throws(
+    () => createPayment(patient.id, { serviceId: service.id, dueDate: todayIso() }),
+    /não está disponível/
+  );
+  // o lançamento antigo continua íntegro
+  assert.strictEqual(getPayment(ok.id).amount, 200);
 });
 
 /* --------------------------------------------------------------- relatórios */

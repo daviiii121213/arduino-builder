@@ -96,7 +96,7 @@ Eles são a única fonte do orçamento e do tempo reservado na agenda:
 | Avaliação odontológica | R$ 80,00 | 30 minutos |
 | Limpeza dental | R$ 150,00 | 1 hora |
 | Restauração dentária | R$ 220,00 | 1 hora |
-| Clareamento dental | R$ 650,00 | 1 hora e 30 minutos |
+| Clareamento dental | R$ 650,00 | 1 hora |
 | Extração dentária | R$ 350,00 | 1 hora e 30 minutos |
 
 - **Orçamento automático** — ao escolher o serviço, o portal mostra na hora o preço, a duração,
@@ -188,6 +188,31 @@ POST   /api/public/plans/:id/accept aceita o próprio orçamento
 ```
 
 `npm test` roda 32 testes: 15 de serviços/agendamento e 17 dos módulos clínicos.
+
+### Catálogo de serviços como fonte única
+
+O serviço é a única origem do procedimento, do preço e da duração — em toda a aplicação:
+
+- **Nenhum campo de digitação manual** de procedimento, preço ou duração. O formulário de
+  consulta tem um seletor de serviços no lugar do antigo campo de texto "motivo", e o motivo
+  da consulta passa a ser o nome do serviço. O paciente descreve o que sente em "Observações".
+- **Rótulo único** em todos os seletores: `Clareamento dental • 1 hora • R$ 650,00`.
+- **Ativo/inativo** — um serviço desativado sai dos seletores de agenda, orçamento e
+  financeiro, mas continua no histórico das consultas e lançamentos já feitos.
+- **Lançamento financeiro** — o formulário é Paciente → Serviço → Valor (somente leitura) →
+  Forma de pagamento → Vencimento → Já recebido → Lançar. Não há campo de valor digitável, e
+  a descrição deixou de ser texto livre: é o serviço selecionado.
+- **Valor histórico preservado** — o lançamento guarda `service_id` e o valor praticado no
+  momento. Reajustar o preço no catálogo afeta apenas lançamentos novos; os antigos mantêm
+  o valor original (coberto por teste).
+- **Consulta vinculada** — a partir dos detalhes da consulta é possível lançar no financeiro
+  com paciente, serviço e `appointment_id` já preenchidos; a consulta precisa ser do mesmo
+  paciente do lançamento.
+
+No banco, `payments` ganhou `service_id` e `appointment_id`, e bancos criados por versões
+anteriores recebem as colunas automaticamente na inicialização (`migrateColumns`).
+
+`npm test` roda 36 testes (15 de serviços/agendamento + 21 clínicos e financeiros).
 
 ## Dados de demonstração
 

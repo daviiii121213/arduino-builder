@@ -3,12 +3,13 @@
  * Todos os dados são inventados; basta apagar o arquivo data/clinic.db
  * (ou rodar `npm run seed -- --reset`) para remover a demonstração.
  */
-import { db, ensureDefaultServices, ensureDefaultSettings, migrate } from './db';
+import { db, ensureDefaultServices, ensureDefaultSettings, migrate, migrateColumns } from './db';
 import { ensureDentistUser } from './services/auth';
 import { addDays, todayIso, weekdayOf } from './utils/dates';
 import { AppointmentStatus } from './types';
 
 migrate();
+migrateColumns();
 ensureDefaultSettings();
 ensureDefaultServices();
 ensureDentistUser();
@@ -270,19 +271,28 @@ addPlan(7, 'Extração dos sisos inclusos', 'proposto', 150, [
 
 /* ------------------------------------------------------------- financeiro */
 const insertPayment = db.prepare(`
-  INSERT INTO payments (patient_id, plan_id, description, amount, method, installment, due_date, paid_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO payments (patient_id, plan_id, service_id, description, amount, method, installment, due_date, paid_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 const dueIn = (offset: number) => addDays(today, offset);
 
-insertPayment.run(patientIds[0], plan1, 'Entrada — reabilitação', 500, 'pix', '1/3', dueIn(-20), dueIn(-20));
-insertPayment.run(patientIds[0], plan1, 'Parcela 2/3 — reabilitação', 400, 'credito', '2/3', dueIn(-2), null);
-insertPayment.run(patientIds[0], plan1, 'Parcela 3/3 — reabilitação', 370, 'credito', '3/3', dueIn(28), null);
-insertPayment.run(patientIds[4], plan2, 'Entrada — prótese sobre implante', 500, 'pix', '1/2', dueIn(-45), dueIn(-45));
-insertPayment.run(patientIds[4], plan2, 'Parcela 2/2 — prótese sobre implante', 370, 'boleto', '2/2', dueIn(12), null);
-insertPayment.run(patientIds[1], null, 'Manutenção ortodôntica — mês corrente', 220, 'debito', '', dueIn(-6), dueIn(-6));
-insertPayment.run(patientIds[5], null, 'Limpeza dental', 150, 'dinheiro', '', dueIn(-12), dueIn(-12));
-insertPayment.run(patientIds[9], null, 'Avaliação odontológica', 80, 'pix', '', dueIn(-30), null);
+/** Lançamento avulso: valor e descrição saem do serviço cadastrado. */
+function chargeService(patientIndex: number, serviceName: string, method: string,
+                      due: number, paid: number | null) {
+  const service = serviceByNameSeed.get(serviceName);
+  if (!service) return;
+  insertPayment.run(patientIds[patientIndex], null, service.id, service.name,
+    service.price, method, '', dueIn(due), paid === null ? null : dueIn(paid));
+}
+
+insertPayment.run(patientIds[0], plan1, null, 'Entrada — reabilitação', 500, 'pix', '1/3', dueIn(-20), dueIn(-20));
+insertPayment.run(patientIds[0], plan1, null, 'Parcela 2/3 — reabilitação', 400, 'credito', '2/3', dueIn(-2), null);
+insertPayment.run(patientIds[0], plan1, null, 'Parcela 3/3 — reabilitação', 370, 'credito', '3/3', dueIn(28), null);
+insertPayment.run(patientIds[4], plan2, null, 'Entrada — prótese sobre implante', 500, 'pix', '1/2', dueIn(-45), dueIn(-45));
+insertPayment.run(patientIds[4], plan2, null, 'Parcela 2/2 — prótese sobre implante', 370, 'boleto', '2/2', dueIn(12), null);
+chargeService(1, 'Manutenção ortodôntica', 'debito', -6, -6);
+chargeService(5, 'Limpeza dental', 'dinheiro', -12, -12);
+chargeService(9, 'Avaliação odontológica', 'pix', -30, null);
 
 db.prepare(`
   INSERT INTO notifications (type, title, message, created_at)
