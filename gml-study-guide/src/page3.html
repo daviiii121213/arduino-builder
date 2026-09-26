@@ -1,0 +1,335 @@
+<!-- ============================ FOLHA 3 ============================ -->
+<section class="page" id="p3">
+  <header class="mast">
+    <div class="kick-row">
+      <div class="kicker"><span class="logo">GML</span> Guia de estudo · GameMaker Language</div>
+      <div class="legend">
+        <span class="chip"><i class="sw code"></i>CÓDIGO</span><span class="chip"><i class="sw def"></i>DEFINIÇÃO</span><span class="chip"><i class="sw tip"></i>DICA</span><span class="chip"><i class="sw warn"></i>ATENÇÃO</span><span class="chip"><i class="sw adv"></i>AVANÇADO</span><span class="chip"><span class="v24" style="margin:0">2024+</span>VERSÃO RECENTE</span>
+      </div>
+    </div>
+    <h1>GML <span class="dash">—</span> Folha 3: <em>Avançado + Referência</em></h1>
+    <div class="mast-right">
+      <div class="meta"><b>Arquitetura, dados e ferramentas</b><br>Structs · DS · Estados · Save · Surfaces · Debug</div>
+      <div class="folio">03</div>
+    </div>
+  </header>
+  <div class="toc tight">
+    <div class="items">
+      <span><b>01</b>Structs</span><span><b>02</b>Arrays</span><span><b>03</b>ds_*</span><span><b>04</b>Enums</span><span><b>05</b>Estados</span><span><b>06</b>Funções</span><span><b>07</b>Save</span><span><b>08</b>Buffers</span><span><b>09</b>Surfaces</span><span><b>10</b>Layers</span><span><b>11</b>Pathfinding</span><span><b>12</b>Debug</span><span><b>13</b>Desempenho</span><span><b>14</b>Erros</span><span><b>15</b>Referência</span><span><b>16</b>Desafios</span>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="row c3">
+      <div class="col">
+        <!-- 01 STRUCTS -->
+        <div class="sec">
+          <h2><span class="n">01</span>Structs<span class="rule"></span><span class="tag">REFERÊNCIA · SEM DESTROY</span></h2>
+          <pre class="gml">
+            var heroi = { nome: "Ayla", hp: 10 };  // criar
+            heroi.hp -= 2;   heroi[$ "mana"] = 5;  // + membro
+            function Item(_nome, _preco) constructor {
+                nome = _nome;   preco = _preco;
+                static descrever = function() {  // método
+                    return nome + ": $" + string(preco);
+                };
+            }
+            function Arma(_n, _p, _dano) : Item(_n, _p)
+                constructor { dano = _dano; }    // herança
+            var espada = new Arma("Espada", 50, 4);
+            espada.descrever();              // herdado
+          </pre>
+        </div>
+        <!-- 12 DEBUG -->
+        <div class="sec">
+          <h2><span class="n">12</span>Depuração<span class="rule"></span><span class="tag">F6 DEBUG · F9 BREAKPOINT</span></h2>
+          <pre class="gml">
+            show_debug_message("hp = " + string(hp));
+            show_debug_overlay(true);      // FPS
+          </pre>
+          
+        </div>
+      </div>
+      <div class="col">
+        <!-- 02 ARRAYS -->
+        <div class="sec">
+          <h2><span class="n">02</span>Arrays<span class="rule"></span></h2>
+          <pre class="gml">
+            var a = [10, 20, 30];
+            array_push(a, 40);        // [10,20,30,40]
+            var u = array_pop(a);     // 40 → [10,20,30]
+            var p = array_shift(a);   // 10 → [20,30] 2024+
+            array_insert(a, 1, 25);   // [20,25,30]
+            array_delete(a, 0, 1);    // (índice, qtd) [25,30]
+            var n = array_length(a);  // 2
+            var m = [[0, 1], [1, 0]];   m[1][0] = 2;  // 2D
+          </pre>
+        </div>
+        <!-- 04 ENUMS -->
+        <div class="sec">
+          <h2><span class="n">04</span>Enums práticos<span class="rule"></span></h2>
+          <pre class="gml">
+            enum ESTADO  { IDLE, WALK, JUMP, FALL,
+                           ATTACK, HURT, DEAD }
+            enum ARMA    { ESPADA, ARCO, BOMBA, TOTAL }
+            enum INIMIGO { SLIME, MORCEGO, CHEFE }
+            enum JOGO    { MENU, JOGANDO, PAUSA, FIM }
+            arma = (arma + 1) mod ARMA.TOTAL;  // ciclo
+          </pre>
+        </div>
+      </div>
+      <div class="col">
+        <!-- 03 DS -->
+        <div class="sec">
+          <h2><span class="n">03</span>Estruturas de dados<span class="rule"></span></h2>
+          <table class="mini">
+            <tr><td>ds_list</td><td>lista</td><td class="r">l[| 0]</td></tr>
+            <tr><td>ds_map</td><td>chave → valor</td><td class="r">m[? "ouro"]</td></tr>
+            <tr><td>ds_grid</td><td>grade 2D</td><td class="r">g[# cx, cy]</td></tr>
+            <tr><td>ds_queue</td><td>fila (1º a entrar sai)</td><td class="r">_enqueue · _dequeue</td></tr>
+            <tr><td>ds_stack</td><td>pilha (último sai)</td><td class="r">_push · _pop</td></tr>
+          </table>
+          <pre class="gml" style="margin-top:1mm">
+            lista = ds_list_create();            // Create
+            ds_list_add(lista, "espada", "escudo");
+            var item = lista[| 0];               // "espada"
+            ds_list_destroy(lista);              // Clean Up
+          </pre>
+          <div class="warn" style="margin-top:1mm"><b class="lbl"><svg class="ico" viewBox="0 0 10 10"><path d="M5 .8 9.6 9.2H.4Z" fill="#111"/><path d="M5 3.6v2.9M5 7.4v.8" stroke="#fff" stroke-width="1"/></svg>Memória</b><code>ds_*</code> <b>não</b> se libera sozinha: todo <code>_create</code> pede um <code>_destroy</code> no Clean Up. Verifique com <code>ds_exists()</code>.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 05 MÁQUINA DE ESTADOS -->
+    <div class="sec">
+      <h2><span class="n">05</span>Máquina de estados do jogador<span class="rule"></span><span class="tag">IDLE⇄WALK → JUMP → FALL → IDLE · ATTACK → IDLE · HURT → IDLE/DEAD</span></h2>
+      <div class="row c3" style="gap:0 2mm">
+        <pre class="gml">
+          // Create
+          estado = ESTADO.IDLE;   t_dano = 0;
+          sprites = [spr_idle, spr_walk, spr_jump,
+              spr_fall, spr_atk, spr_hurt, spr_dead];
+          // Step
+          var h = keyboard_check(vk_right)
+                - keyboard_check(vk_left);
+          var chao = place_meeting(x, y + 1, obj_bloco);
+          var pulo = keyboard_check_pressed(vk_space);
+          switch (estado) {
+              case ESTADO.IDLE:
+              case ESTADO.WALK:
+                  hsp = h * 3;
+                  estado = h != 0 ? ESTADO.WALK : ESTADO.IDLE;
+        </pre>
+        <pre class="gml" data-pad="4">
+              if (!chao) estado = ESTADO.FALL;
+              if (pulo) { vsp = -7; estado = ESTADO.JUMP; }
+              if (keyboard_check_pressed(ord("J"))) {
+                  estado = ESTADO.ATTACK;
+                  image_index = 0;
+              }
+              break;
+          case ESTADO.JUMP:
+              hsp = h * 3;
+              if (vsp &gt;= 0) estado = ESTADO.FALL;
+              break;
+          case ESTADO.FALL:
+              hsp = h * 3;
+              if (chao) estado = ESTADO.IDLE;   break;
+        </pre>
+        <pre class="gml">
+              case ESTADO.ATTACK:
+                  hsp = 0;
+                  if (image_index &gt;= image_number - 1)
+                      estado = ESTADO.IDLE;
+                  break;
+              case ESTADO.HURT:  // t_dano = 20 ao ser atingido
+                  t_dano -= 1;
+                  if (t_dano &lt;= 0) estado = ESTADO.IDLE;
+                  if (hp &lt;= 0)     estado = ESTADO.DEAD;
+                  break;
+              case ESTADO.DEAD:  hsp = 0;  break;
+          }
+          sprite_index = sprites[estado];  // enum = índice
+          // + gravidade e colisão (Folha 2 §06)
+        </pre>
+      </div>
+    </div>
+
+    <div class="row c3">
+      <div class="col">
+        <!-- 07 SAVE / LOAD -->
+        <div class="sec">
+          <h2><span class="n">07</span>Salvar e carregar<span class="rule"></span><span class="tag">INI · JSON</span></h2>
+          <pre class="gml">
+            ini_open("config.ini");              // INI
+            ini_write_real("audio", "volume", global.vol);
+            global.vol = ini_read_real("audio", "volume", 1);
+            ini_close();                         // feche!
+            function salvar(_arq, _dados) {      // JSON
+                var s = json_stringify(_dados);
+                var b = buffer_create(1, buffer_grow, 1);
+                buffer_write(b, buffer_string, s);
+                buffer_save(b, _arq);   buffer_delete(b);
+            }
+            function carregar(_arq) {
+                if (!file_exists(_arq)) return undefined;
+                var b = buffer_load(_arq);
+                var s = buffer_read(b, buffer_string);
+                buffer_delete(b);   return json_parse(s);
+            }
+          </pre>
+        </div>
+        <!-- 08 BUFFERS -->
+        <div class="sec">
+          <h2><span class="n">08</span>Buffers<span class="rule"></span><span class="tag">MEMÓRIA BINÁRIA TIPADA</span></h2>
+          <div class="adv"><b class="lbl"><svg class="ico" viewBox="0 0 10 10"><path d="M5 1 9.5 3.5 5 6 .5 3.5Z" fill="#fff"/><path d="M.5 5.5 5 8 9.5 5.5" fill="none" stroke="#fff" stroke-width=".9"/></svg>Avançado</b>Arquivos, rede, saves · leia na <b>mesma ordem</b>.
+          <pre class="gml">
+            var b = buffer_create(16, buffer_grow, 1);
+            buffer_write(b, buffer_u8, vidas);  // 1 byte
+            buffer_seek(b, buffer_seek_start, 0); // início
+            vidas = buffer_read(b, buffer_u8);
+            buffer_delete(b);                   // libere
+          </pre></div>
+        </div>
+      </div>
+      <div class="col">
+        <!-- 06 FUNÇÕES -->
+        <div class="sec">
+          <h2><span class="n">06</span>Funções reutilizáveis<span class="rule"></span></h2>
+          <pre class="gml">
+            /// @param {Id.Instance} _alvo  alvo do dano
+            /// @return {Bool} true se o alvo morreu
+            function aplicar_dano(_alvo, _dano, _forca = 2) {
+                if (!instance_exists(_alvo)) return false;
+                with (_alvo) {
+                    hp -= _dano;
+                    hsp = sign(x - other.x) * _forca;
+                }
+                return _alvo.hp &lt;= 0;
+            }
+          </pre>
+          <p class="small" style="margin:.8mm 0 0">1 tarefa por função · <i>verbo_objeto</i> · <code>_param</code> com padrão · <b>retorne</b> em vez de alterar globais.</p>
+        </div>
+        <!-- 09 SURFACES -->
+        <div class="sec">
+          <h2><span class="n">09</span>Surfaces e desenho<span class="rule"></span></h2>
+          <pre class="gml">
+            // Create: surf = -1;  Draw: … ;  CU = Clean Up
+            if (!surface_exists(surf))
+                surf = surface_create(320, 180);
+            surface_set_target(surf);
+            draw_clear_alpha(c_black, 0);
+            draw_circle(40, 40, 16, false);
+            surface_reset_target();          // sempre!
+            draw_surface(surf, 0, 0);
+            if (surface_exists(surf)) surface_free(surf); // CU
+          </pre>
+          <p class="small" style="margin:.8mm 0 0">Luz, minimapa, rastros · <b>voláteis</b> · só em eventos Draw.</p>
+        </div>
+      </div>
+      <div class="col">
+        <!-- 11 PATHFINDING -->
+        <div class="sec">
+          <h2><span class="n">11</span>Pathfinding<span class="rule"></span><span class="tag">MP_GRID</span></h2>
+          <pre class="gml">
+            var cw = room_width div 32;     // Controlador
+            var ch = room_height div 32;
+            global.mp = mp_grid_create(0, 0, cw, ch, 32, 32);
+            mp_grid_add_instances(global.mp, obj_bloco, false);
+            rota = path_add();   alarm[0] = 1;  // Inimigo
+            // Alarm 0 — recalcula a cada 0,5 s
+            if (instance_exists(obj_player)
+            &amp;&amp; mp_grid_path(global.mp, rota, x, y,
+                   obj_player.x, obj_player.y, true)) {
+                path_start(rota, 2, path_action_stop, true);
+            }
+            alarm[0] = 30;
+          </pre>
+          <p class="small" style="margin:.8mm 0 0">Libere com <code>path_delete</code> e <code>mp_grid_destroy</code>.</p>
+        </div>
+        <!-- 10 LAYERS -->
+        <div class="sec">
+          <h2><span class="n">10</span>Layers<span class="rule"></span></h2>
+          <table class="mini">
+            <tr><td>layer_get_id("Fundo") <span class="small">· id pelo nome</span></td></tr>
+            <tr><td>layer_set_visible(id, false) · layer_depth</td></tr>
+            <tr><td>layer_x(id, v) · layer_hspeed(id, 0.5)</td></tr>
+            <tr><td>instance_deactivate_layer(id) <span class="small">· pausa</span></td></tr>
+            <tr><td>layer_tilemap_get_id(id) <span class="small">· → tilemap</span></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="grid-template-columns: 1fr 2fr; gap: 0 4.2mm">
+      <!-- 13 DESEMPENHO -->
+      <div class="sec">
+        <h2><span class="n">13</span>Checklist de desempenho<span class="rule"></span></h2>
+        <ul class="dense check small" style="color:#2b2b2b">
+          <li>Destrua o que sai da tela; evite criar instâncias em massa.</li>
+          <li>Sem laços aninhados sobre todas as instâncias no Step.</li>
+          <li>Colisão só quando precisa; máscaras simples.</li>
+          <li>Todo <code>ds_*_create</code> tem seu <code>destroy</code>.</li>
+          <li>Surfaces e partículas: crie 1×, reutilize, libere.</li>
+          <li>Arrays grandes: <code>array_create(n)</code>; cache o tamanho.</li>
+          <li>Cálculos repetidos e temporários em <code>var</code>.</li>
+          <li>Objetos-pai + <code>event_inherited()</code>; meça com o Profiler.</li>
+        </ul>
+      </div>
+      <!-- 14 ERROS -->
+      <div class="sec">
+        <h2><span class="n">14</span>Erros intermediários e avançados<span class="rule"></span><span class="tag">✗ INCORRETO → ✓ CORRETO</span></h2>
+        <table class="ref slim">
+          <colgroup><col style="width:33%"><col style="width:43%"><col style="width:24%"></colgroup>
+          <tr><th>✗ GML incorreto</th><th>✓ GML correto</th><th>Por quê</th></tr>
+          <tr><td class="x bad">alarm[0] = 60;   // no Step</td><td class="x">if (alarm[0] == -1) alarm[0] = 60;</td><td class="t">Reiniciado todo frame.</td></tr>
+          <tr><td class="x bad">var l = ds_list_create(); // Step</td><td class="x">lista = ds_list_create(); // Create</td><td class="t">Vaza memória.</td></tr>
+          <tr><td class="x bad">with (obj_inimigo) hp -= dano;</td><td class="x">var d = dano;  with (obj_inimigo) hp -= d;</td><td class="t"><code>dano</code> seria do inimigo.</td></tr>
+          <tr><td class="x bad">ax = alvo.x;   // alvo destruído?</td><td class="x">if (instance_exists(alvo)) ax = alvo.x;</td><td class="t">Sem instância = erro.</td></tr>
+          <tr><td class="x bad">for (var i = 0; i &lt; n; i++)</td><td class="x">for (var i = array_length(a) - 1; i &gt;= 0; i--)</td><td class="t">Ao remover, vá de trás p/ frente.</td></tr>
+          <tr><td class="x bad">var b = a;  b.hp = 0;  // a muda!</td><td class="x">var b = { hp: a.hp };  // struct novo</td><td class="t">Structs são referências.</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- 15 REFERÊNCIA RÁPIDA -->
+    <div class="sec">
+      <h2><span class="n">15</span>Referência rápida de GML<span class="rule"></span><span class="tag">POR CATEGORIA</span></h2>
+      <div class="qref">
+        <div><h4>ENTRADA</h4><span>keyboard_check</span><span>keyboard_check_pressed</span><span>mouse_check_button</span><span>mouse_x · mouse_y</span></div>
+        <div><h4>MOVIMENTO</h4><span>hspeed · vspeed</span><span>speed · direction</span><span>motion_add · _set</span><span>move_towards_point</span></div>
+        <div><h4>COLISÃO</h4><span>place_meeting</span><span>instance_place</span><span>move_and_collide</span><span>collision_rectangle</span></div>
+        <div><h4>SPRITES</h4><span>sprite_index</span><span>image_index</span><span>image_xscale</span><span>draw_self()</span></div>
+        <div><h4>INSTÂNCIAS</h4><span>instance_create_layer</span><span>instance_destroy</span><span>instance_exists</span><span>instance_nearest</span></div>
+        <div><h4>ROOMS</h4><span>room_goto</span><span>room_restart</span><span>room_goto_next</span><span>room_width · _height</span></div>
+        <div><h4>CÂMERA</h4><span>view_camera[0]</span><span>camera_get_view_x</span><span>camera_set_view_pos</span><span>camera_set_view_size</span></div>
+        <div><h4>ÁUDIO</h4><span>audio_play_sound</span><span>audio_stop_sound</span><span>audio_is_playing</span><span>audio_sound_gain</span></div>
+        <div><h4>MATEMÁTICA</h4><span>clamp · lerp</span><span>point_distance</span><span>point_direction</span><span>irandom_range</span></div>
+        <div><h4>ARRAYS</h4><span>array_length</span><span>array_push · _pop</span><span>array_insert</span><span>array_delete</span></div>
+        <div><h4>STRUCTS</h4><span>s.a · s[$ "a"]</span><span>new Construtor()</span><span>struct_get_names</span><span>struct_exists</span></div>
+        <div><h4>ESTRUT. DE DADOS</h4><span>ds_list_create</span><span>ds_map_create</span><span>ds_grid_create</span><span>ds_exists(id, tipo)</span></div>
+        <div><h4>DEPURAÇÃO</h4><span>show_debug_message</span><span>show_debug_overlay</span><span>debug_get_callstack</span><span>typeof(valor)</span></div>
+        <div><h4>DESENHO</h4><span>draw_text</span><span>draw_set_font</span><span>draw_set_colour</span><span>draw_rectangle</span></div>
+      </div>
+    </div>
+
+    <!-- 16 DESAFIOS -->
+    <div class="sec">
+      <h2><span class="n">16</span>10 desafios progressivos<span class="rule"></span><span class="tag">SEM SOLUÇÕES · RESOLVA EM ORDEM</span></h2>
+      <div class="chal">
+        <div><span class="no">01</span><h4>Movimento</h4><span class="lvl">●<i>●●●●</i></span><p>Mover o jogador em 8 direções.</p><ul><li>WASD e setas; diagonal normalizada</li><li>Não sair dos limites da room</li></ul></div>
+        <div><span class="no">02</span><h4>Pulo</h4><span class="lvl">●<i>●●●●</i></span><p>Gravidade e pulo de plataforma.</p><ul><li>Pular só no chão</li><li>Pulo curto e queda máxima</li></ul></div>
+        <div><span class="no">03</span><h4>Colisão</h4><span class="lvl">●●<i>●●●</i></span><p>Paredes, chão e teto sólidos.</p><ul><li>Sem atravessar nem tremer</li><li>Parar rente à parede</li></ul></div>
+        <div><span class="no">04</span><h4>Inimigo</h4><span class="lvl">●●<i>●●●</i></span><p>Patrulhar e perseguir.</p><ul><li>Vira em paredes e beiradas</li><li>Persegue a menos de 120 px</li></ul></div>
+        <div><span class="no">05</span><h4>HP e dano</h4><span class="lvl">●●<i>●●●</i></span><p>Vida com invencibilidade.</p><ul><li>Barra de HP no Draw GUI</li><li>Piscar 1 s; respawn</li></ul></div>
+        <div><span class="no">06</span><h4>Inventário</h4><span class="lvl">●●●<i>●●</i></span><p>Coletar e usar itens.</p><ul><li>Array de structs</li><li>Empilhar itens iguais</li></ul></div>
+        <div><span class="no">07</span><h4>Tiro</h4><span class="lvl">●●●<i>●●</i></span><p>Atirar na direção do mouse.</p><ul><li>Recarga entre disparos</li><li>Dano e destruição ao colidir</li></ul></div>
+        <div><span class="no">08</span><h4>Estados</h4><span class="lvl">●●●●<i>●</i></span><p>Máquina de estados completa.</p><ul><li>Enum com os 7 estados</li><li>Um sprite por estado</li></ul></div>
+        <div><span class="no">09</span><h4>Save/Load</h4><span class="lvl">●●●●<i>●</i></span><p>Persistir o progresso.</p><ul><li>HP, fase e itens em JSON</li><li>Tratar arquivo ausente</li></ul></div>
+        <div><span class="no">10</span><h4>Mini jogo</h4><span class="lvl">●●●●●</span><p>Uma fase completa e jogável.</p><ul><li>Unir os desafios 1–9</li><li>Vitória, derrota e porta</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot"><span>GML Study Guide</span><span class="c">Folha 3 · Avançado + Referência</span><span class="r">03 <small>/ 03</small></span></footer>
+</section>

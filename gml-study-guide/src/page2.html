@@ -1,0 +1,330 @@
+<!-- ============================ FOLHA 2 ============================ -->
+<section class="page" id="p2">
+  <header class="mast">
+    <div class="kick-row">
+      <div class="kicker"><span class="logo">GML</span> Guia de estudo · GameMaker Language</div>
+      <div class="legend">
+        <span class="chip"><i class="sw code"></i>CÓDIGO</span><span class="chip"><i class="sw def"></i>DEFINIÇÃO</span><span class="chip"><i class="sw tip"></i>DICA</span><span class="chip"><i class="sw warn"></i>ATENÇÃO</span><span class="chip"><i class="sw adv"></i>AVANÇADO</span><span class="chip"><span class="v24" style="margin:0">2024+</span>VERSÃO RECENTE</span>
+      </div>
+    </div>
+    <h1>GML <span class="dash">—</span> Folha 2: <em>Gameplay</em></h1>
+    <div class="mast-right">
+      <div class="meta"><b>Construindo o jogo</b> · eventos, entrada, física e sistemas<br>obj_bloco = objeto sólido de parede/chão usado nos exemplos</div>
+      <div class="folio">02</div>
+    </div>
+  </header>
+  <div class="toc tight">
+    <div class="items">
+      <span><b>01</b>Eventos</span><span><b>02</b>Teclado</span><span><b>03</b>Mouse</span><span><b>04</b>Movimento</span><span><b>05</b>Colisão</span><span><b>06</b>Plataforma</span><span><b>07</b>Sprites</span><span><b>08</b>Instâncias</span><span><b>09</b>Rooms</span><span><b>10</b>Câmera</span><span><b>11</b>Jogador</span><span><b>12</b>Timers</span><span><b>13</b>Dados</span><span><b>14</b>Áudio</span><span><b>15</b>Partículas</span>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- 02–05 TABELA PRINCIPAL -->
+    <div class="sec">
+      <h2><span class="n">02–05</span>Entrada, movimento e colisão<span class="rule"></span><span class="tag">TABELA PRINCIPAL · k = vk_* ou ord("LETRA") · mb = mb_left / mb_right / mb_middle</span></h2>
+      <div class="row c2">
+       <div class="col">
+        <table class="ref slim">
+          <colgroup><col style="width:30%"><col style="width:25%"><col style="width:32%"><col style="width:13%"></colgroup>
+          <tr><th>Comando</th><th>Função</th><th>Exemplo</th><th>Dica</th></tr>
+          <tr class="grp"><td colspan="4">02 · TECLADO<span>exemplo abaixo: WASD + setas, pulo e ataque</span></td></tr>
+          <tr><td class="k">keyboard_check</td><td>Tecla segurada.</td><td class="x">keyboard_check(vk_right)</td><td class="t">andar</td></tr>
+          <tr><td class="k">keyboard_check_pressed</td><td>Apertou neste frame.</td><td class="x">…_pressed(vk_space)</td><td class="t">pular</td></tr>
+          <tr><td class="k">keyboard_check_released</td><td>Soltou neste frame.</td><td class="x">…_released(ord("X"))</td><td class="t">carregar</td></tr>
+          <tr><td class="k">keyboard_check_direct</td><td>Estado físico da tecla.</td><td class="x">…_direct(vk_f1)</td><td class="t">só Windows</td></tr>
+          <tr><td class="k">ord("W")</td><td>Código de letra/dígito.</td><td class="x">keyboard_check(ord("W"))</td><td class="t">MAIÚSCULA</td></tr>
+          <tr><td class="k">vk_*</td><td>Teclas especiais.</td><td class="x">vk_space vk_shift</td><td class="t">vk_anykey</td></tr>
+          <tr class="grp"><td colspan="4">03 · MOUSE</td></tr>
+          <tr><td class="k">mouse_check_button</td><td>Botão segurado.</td><td class="x">…_button(mb_left)</td><td class="t">tiro auto</td></tr>
+          <tr><td class="k">…_pressed · …_released</td><td>Clicou / soltou agora.</td><td class="x">…_pressed(mb_right)</td><td class="t">clique</td></tr>
+          <tr><td class="k">mouse_x · mouse_y</td><td>Posição <b>na room</b>.</td><td class="x">x = mouse_x;</td><td class="t">mira</td></tr>
+        </table>
+        <pre class="gml">
+          var h = (keyboard_check(ord("D")) || keyboard_check(vk_right))
+                - (keyboard_check(ord("A")) || keyboard_check(vk_left));
+          var v = (keyboard_check(ord("S")) || keyboard_check(vk_down))
+                - (keyboard_check(ord("W")) || keyboard_check(vk_up));
+          if (keyboard_check_pressed(vk_space)) pular();
+          if (keyboard_check_pressed(ord("J")) &amp;&amp; recarga == 0) atacar();
+        </pre>
+       </div>
+       <div class="col">
+        <table class="ref slim">
+          <colgroup><col style="width:31%"><col style="width:22%"><col style="width:37%"><col style="width:10%"></colgroup>
+          <tr><th>Comando</th><th>Função</th><th>Exemplo</th><th>Dica</th></tr>
+          <tr class="grp"><td colspan="4">04 · MOVIMENTO</td></tr>
+          <tr><td class="k">x · y</td><td>Posição em px.</td><td class="x">x += 2;</td><td class="t">y ↓</td></tr>
+          <tr><td class="k">hspeed · vspeed</td><td>Velocidade h / v.</td><td class="x">hspeed = -4;</td><td class="t">auto</td></tr>
+          <tr><td class="k">speed · direction</td><td>Velocidade + ângulo.</td><td class="x">direction = 90;</td><td class="t">tiros</td></tr>
+          <tr><td class="k">friction</td><td>Freia <code>speed</code>.</td><td class="x">friction = 0.2;</td><td class="t">deslizar</td></tr>
+          <tr><td class="k">motion_add(dir, spd)</td><td>Soma um vetor.</td><td class="x">motion_add(270, 0.3);</td><td class="t">impulso</td></tr>
+          <tr><td class="k">motion_set(dir, spd)</td><td>Define o vetor.</td><td class="x">motion_set(45, 4);</td><td class="t">lançar</td></tr>
+          <tr class="grp"><td colspan="4">05 · COLISÃO<span>retornam id ou noone · prec = precisa · notme = ignora a si</span></td></tr>
+          <tr><td class="k">place_meeting</td><td>Colidiria em x, y?</td><td class="x">(x, y + 1, obj_bloco)</td><td class="t">antes</td></tr>
+          <tr><td class="k">place_free</td><td>Livre de <i>Solid</i>?</td><td class="x">(x, y + 1)</td><td class="t">só Solid</td></tr>
+          <tr><td class="k">move_and_collide<span class="v24">2024+</span></td><td>Move e desliza.</td><td class="x">(hsp, vsp, obj_bloco)</td><td class="t">→ array</td></tr>
+          <tr><td class="k">instance_place</td><td>Quem colidiria.</td><td class="x">(x, y, obj_inimigo)</td><td class="t">agir</td></tr>
+          <tr><td class="k">instance_position</td><td>Instância num ponto.</td><td class="x">(mouse_x, mouse_y, obj_botao)</td><td class="t">clique</td></tr>
+          <tr><td class="k">collision_rectangle</td><td>Algo no retângulo?</td><td class="x">(x1,y1,x2,y2, obj, false, true)</td><td class="t">hitbox</td></tr>
+          <tr><td class="k">collision_circle</td><td>Algo no círculo?</td><td class="x">(x, y, raio, obj, false, true)</td><td class="t">visão</td></tr>
+          <tr><td class="k">collision_point</td><td>Algo no ponto?</td><td class="x">(x, y, obj, prec, notme)</td><td class="t">sensor</td></tr>
+        </table>
+       </div>
+      </div>
+    </div>
+
+    <div class="row c3">
+      <div class="col">
+        <!-- 01 EVENTOS -->
+        <div class="sec">
+          <h2><span class="n">01</span>Eventos<span class="rule"></span></h2>
+          <table class="ref slim">
+            <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+            <tr><th>Evento</th><th>Uso típico</th></tr>
+            <tr><td class="k">Create</td><td>1× ao nascer: iniciar variáveis.</td></tr>
+            <tr><td class="k">Begin Step</td><td>Início do frame: ler entrada.</td></tr>
+            <tr><td class="k">Step</td><td>Todo frame: lógica, movimento, IA.</td></tr>
+            <tr><td class="k">End Step</td><td>Após colisões: câmera, ajustes.</td></tr>
+            <tr><td class="k">Draw</td><td>Desenho na room; use <code>draw_self()</code>.</td></tr>
+            <tr><td class="k">Draw GUI</td><td>HUD, em coordenadas de tela.</td></tr>
+            <tr><td class="k">Alarm 0–11</td><td>Quando <code>alarm[n]</code> chega a 0.</td></tr>
+            <tr><td class="k">Keyboard·Mouse</td><td>Tecla / clique (ou <i>Global</i>).</td></tr>
+            <tr><td class="k">Collision</td><td>Ao tocar; <code>other</code> = o outro.</td></tr>
+            <tr><td class="k">Room Start·End</td><td>Entrar / sair da room.</td></tr>
+            <tr><td class="k">Clean Up</td><td>Liberar <code>ds_*</code>, surfaces etc.</td></tr>
+          </table>
+          <div class="order"><span>B.Step</span><i>›</i><span>Alarm</span><i>›</i><span>Input</span><i>›</i><span class="dk">Step</span><i>›</i><span>move</span><i>›</i><span>Colisão</span><i>›</i><span>E.Step</span><i>›</i><span class="dk">Draw</span></div>
+        </div>
+        <!-- 07 SPRITES -->
+        <div class="sec">
+          <h2><span class="n">07</span>Sprites e animação<span class="rule"></span></h2>
+          <table class="mini">
+            <tr><td>sprite_index</td><td>sprite atual</td></tr>
+            <tr><td>image_index</td><td>quadro atual (0 = 1º)</td></tr>
+            <tr><td>image_speed</td><td>ritmo da animação (0 = parada)</td></tr>
+            <tr><td>image_xscale · _yscale</td><td>escala; <b>−1 espelha</b></td></tr>
+            <tr><td>image_angle</td><td>rotação em graus</td></tr>
+            <tr><td>image_alpha</td><td>opacidade 0 … 1</td></tr>
+            <tr><td>image_blend</td><td>tinta (<code>c_white</code> = normal)</td></tr>
+            <tr><td>sprite_width · _height</td><td>tamanho em px com escala</td></tr>
+          </table>
+          <pre class="gml" style="margin-top:1mm">
+            if (!chao)         sprite_index = spr_pula;
+            else if (hsp != 0) sprite_index = spr_corre;
+            else               sprite_index = spr_parado;
+            if (hsp != 0) image_xscale = sign(hsp);
+          </pre>
+        </div>
+        <!-- 09 ROOMS -->
+        <div class="sec">
+          <h2><span class="n">09</span>Rooms<span class="rule"></span></h2>
+          <table class="mini">
+            <tr><td>room_goto(rm_fase2) <span class="small">· ir</span></td></tr>
+            <tr><td>room_restart() <span class="small">· reiniciar a atual</span></td></tr>
+            <tr><td>room_goto_next() · room_goto_previous()</td></tr>
+            <tr><td>room_next(room) · room_previous(room) <span class="small">· id/−1</span></td></tr>
+            <tr><td>room_width · room_height <span class="small">· tamanho</span></td></tr>
+          </table>
+        </div>
+        <!-- 08 INSTÂNCIAS -->
+        <div class="sec">
+          <h2><span class="n">08</span>Instâncias<span class="rule"></span></h2>
+          <pre class="gml">
+            var b = instance_create_layer(x, y, "Instances",
+                    obj_bala, { direction: 90, speed: 6 });
+            if (hp &lt;= 0) instance_destroy();
+            if (instance_exists(obj_chefe)) { }
+            var e1 = instance_find(obj_inimigo, 0);
+            if (instance_number(obj_moeda) == 0) vencer();
+            with (obj_inimigo) hp -= 1;   // TODOS; other = eu
+          </pre>
+        </div>
+      </div>
+
+      <div class="col">
+        <!-- 06 PLATAFORMA -->
+        <div class="sec">
+          <h2><span class="n">06</span>Sistema de plataforma<span class="rule"></span></h2>
+          <pre class="gml">
+            // Create
+            hsp = 0;   vsp = 0;   grv = 0.4;
+            vel = 3;   forca_pulo = -7;
+            // Step — horizontal + gravidade
+            hsp = (keyboard_check(vk_right)
+                - keyboard_check(vk_left)) * vel;
+            vsp = min(vsp + grv, 10);      // queda máx.
+            var chao = place_meeting(x, y + 1, obj_bloco);
+            if (chao &amp;&amp; keyboard_check_pressed(vk_space))
+                vsp = forca_pulo;           // pulo
+            if (vsp &lt; 0 &amp;&amp; !keyboard_check(vk_space))
+                vsp = max(vsp, forca_pulo / 2); // curto
+            // parede: encosta 1 px por vez e para
+            if (place_meeting(x + hsp, y, obj_bloco)) {
+                var sx = sign(hsp);
+                while (!place_meeting(x + sx, y, obj_bloco))
+                    x += sx;
+                hsp = 0;
+            }
+            x += hsp;
+            if (place_meeting(x, y + vsp, obj_bloco)) { // y
+                var sy = sign(vsp);
+                while (!place_meeting(x, y + sy, obj_bloco))
+                    y += sy;
+                vsp = 0;
+            }
+            y += vsp;
+          </pre>
+          <div class="def" style="margin-top:1mm"><b class="lbl">Definição</b><strong>Direto</strong>: você soma a <code>x</code>/<code>y</code> (controle total, como acima). <strong>Por velocidade</strong>: define <code>speed</code>/<code>hspeed</code> e o GameMaker move sozinho — ideal para projéteis. Não misture.</div>
+        </div>
+        <!-- 13 ARRAYS E STRUCTS -->
+        <div class="sec">
+          <h2><span class="n">13</span>Arrays e structs no jogo<span class="rule"></span></h2>
+          <pre class="gml">
+            stats = { hp: 10, atk: 3, def: 1, vel: 2.5 };
+            armas = [ { nome: "Espada", dano: 4 },
+                      { nome: "Arco",   dano: 2 } ];
+            var dano = armas[arma].dano + stats.atk;
+            mochila = [];                      // inventário
+            array_push(mochila, { nome: "Poção", qtd: 3 });
+            global.inimigos = {
+                slime:   { hp: 3, vel: 1,   xp: 5 },
+                morcego: { hp: 2, vel: 2.5, xp: 8 }
+            };
+            var d = global.inimigos[$ "slime"];
+          </pre>
+        </div>
+        <!-- 14 ÁUDIO -->
+        <div class="sec">
+          <h2><span class="n">14</span>Áudio<span class="rule"></span><span class="tag">(SOM, PRIORIDADE, LOOP)</span></h2>
+          <pre class="gml">
+            audio_play_sound(snd_pulo, 5, false);  // efeito
+            musica = audio_play_sound(snd_tema, 10, true);
+            audio_sound_gain(musica, 0, 2000); // fade 2 s
+            audio_stop_sound(musica);   audio_stop_all();
+            audio_master_gain(0.5);          // volume geral
+            if (!audio_is_playing(snd_tema)) { }
+            audio_sound_pitch(som, random_range(0.9, 1.1));
+          </pre>
+        </div>
+      </div>
+
+      <div class="col">
+        <!-- 11 JOGADOR -->
+        <div class="sec">
+          <h2><span class="n">11</span>Sistemas do jogador<span class="rule"></span></h2>
+          <pre class="gml">
+            // Create
+            hp_max = 5;   hp = hp_max;   inv = 0;
+            global.cp_x = x;   global.cp_y = y;
+            tomar_dano = function(_dano) {
+                if (inv &gt; 0 || hp &lt;= 0) return;
+                hp = max(hp - _dano, 0);
+                inv = 60;             // 1 s invencível
+                if (hp == 0) {        // morte
+                    visible = false;   alarm[1] = 90;
+                }
+            };
+            // Step — pisca se invencível
+            if (inv &gt; 0) inv--;
+            image_alpha = (inv mod 8 &lt; 4) ? 1 : 0.3;
+            // Alarm 1 — respawn no checkpoint
+            x = global.cp_x;   y = global.cp_y;
+            hp = hp_max; vsp = 0; inv = 90; visible = true;
+            // obj_espinho · Collision com obj_player
+            other.tomar_dano(1);
+            // obj_checkpoint · Collision com obj_player
+            global.cp_x = x;   global.cp_y = y;
+          </pre>
+        </div>
+        <!-- 10 CÂMERA -->
+        <div class="sec">
+          <h2><span class="n">10</span>Câmera<span class="rule"></span><span class="tag">ATIVE O VIEWPORT 0</span></h2>
+          <pre class="gml">
+            var alvo = obj_player;           // End Step
+            var cam = view_camera[0];
+            var w = camera_get_view_width(cam);
+            var h = camera_get_view_height(cam);
+            var tx = clamp(alvo.x - w/2, 0, room_width - w);
+            var ty = clamp(alvo.y - h/2, 0, room_height - h);
+            camera_set_view_pos(cam,
+                lerp(camera_get_view_x(cam), tx, 0.1),
+                lerp(camera_get_view_y(cam), ty, 0.1));
+            camera_set_view_size(cam, 480, 270); // zoom
+          </pre>
+        </div>
+        <!-- 12 TIMERS -->
+        <div class="sec">
+          <h2><span class="n">12</span>Timers<span class="rule"></span><span class="tag">ALARM −1/FRAME · −1 = OFF</span></h2>
+          <pre class="gml">
+            alarm[0] = game_get_speed(gamespeed_fps) * 3;
+            if (recarga &gt; 0) recarga--;     // contador
+            var dt = delta_time / 1000000;  // µs → s
+            x += 120 * dt;                  // 120 px/s
+            call_later(2, time_source_units_seconds, abrir);
+            // ↑ chama abrir() após 2 s (versões 2024+)
+          </pre>
+        </div>
+        <!-- 15 PARTÍCULAS -->
+        <div class="sec">
+          <h2><span class="n">15</span>Partículas<span class="rule"></span><span class="tag">SEM CRIAR INSTÂNCIAS</span></h2>
+          <pre class="gml">
+            ps = part_system_create();         // Create
+            pt = part_type_create();
+            part_type_shape(pt, pt_shape_pixel);
+            part_type_colour2(pt, c_white, c_gray);
+            part_type_alpha2(pt, 1, 0);
+            part_type_speed(pt, 1, 3, -0.05, 0);
+            part_type_direction(pt, 0, 359, 0, 0);
+            part_type_life(pt, 20, 40);       // frames
+            part_particles_create(ps, x, y, pt, 20); // uso
+            part_type_destroy(pt);  part_system_destroy(ps);
+          </pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- REFERÊNCIA RÁPIDA DE SISTEMAS -->
+    <div class="sec">
+      <h2><span class="n">★</span>GameMaker Systems — Referência rápida<span class="rule"></span><span class="tag">PADRÕES PRONTOS PARA ADAPTAR</span></h2>
+      <div class="systems">
+        <div class="cb"><div class="cap">Jogador <span>Step</span></div><pre class="gml">
+          var h = keyboard_check(ord("D"))
+                - keyboard_check(ord("A"));
+          move_and_collide(h * 3, 0, obj_bloco);
+          if (h != 0) image_xscale = sign(h);
+        </pre></div>
+        <div class="cb"><div class="cap">Inimigo (patrulha) <span>Create: dir = 1;  · Step</span></div><pre class="gml">
+          if (place_meeting(x + dir, y, obj_bloco)
+          || !place_meeting(x + dir * 8, y + 1, obj_bloco))
+              dir = -dir;        // parede ou beirada
+          x += dir * 1.5;   image_xscale = dir;
+        </pre></div>
+        <div class="cb"><div class="cap">Projétil <span>Create: speed = 8; dano = 1;</span></div><pre class="gml">
+          // Step
+          if (place_meeting(x, y, obj_bloco)) instance_destroy();
+          // Collision com obj_inimigo
+          other.hp -= dano;   instance_destroy();
+        </pre></div>
+        <div class="cb"><div class="cap">Coletável <span>Collision com obj_player</span></div><pre class="gml">
+          global.moedas += 1;
+          audio_play_sound(snd_moeda, 5, false);
+          instance_destroy();
+        </pre></div>
+        <div class="cb"><div class="cap">Porta <span>Collision c/ obj_player</span></div><pre class="gml">
+          if (keyboard_check_pressed(ord("E"))) {
+              room_goto(destino);   // Variable Definition
+          }
+        </pre></div>
+        <div class="cb"><div class="cap">Checkpoint <span>Collision c/ obj_player</span></div><pre class="gml">
+          if (!ativo) {
+              ativo = true;   image_index = 1; // aceso
+              global.cp_x = x;   global.cp_y = y;
+          }
+        </pre></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot"><span>GML Study Guide</span><span class="c">Folha 2 · Gameplay</span><span class="r">02 <small>/ 03</small></span></footer>
+</section>

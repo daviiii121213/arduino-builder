@@ -1,0 +1,255 @@
+<!-- ============================ FOLHA 1 ============================ -->
+<section class="page" id="p1">
+  <header class="mast">
+    <div class="kick-row">
+      <div class="kicker"><span class="logo">GML</span> Guia de estudo · GameMaker Language</div>
+      <div class="legend">
+        <span class="chip"><i class="sw code"></i>CÓDIGO</span><span class="chip"><i class="sw def"></i>DEFINIÇÃO</span><span class="chip"><i class="sw tip"></i>DICA</span><span class="chip"><i class="sw warn"></i>ATENÇÃO</span><span class="chip"><i class="sw adv"></i>AVANÇADO</span><span class="chip"><span class="v24" style="margin:0">2024+</span>VERSÃO RECENTE</span>
+      </div>
+    </div>
+    <h1>GML <span class="dash">—</span> Folha 1: <em>Fundamentos</em></h1>
+    <div class="mast-right">
+      <div class="meta"><b>Sintaxe atual do GameMaker</b> (GML 2.3+ · runtime 2024+)<br>Variáveis · Operadores · Fluxo · Funções · Matemática</div>
+      <div class="folio">01</div>
+    </div>
+  </header>
+  <div class="toc">
+    <div class="items">
+      <span><b>01</b>Variáveis</span><span><b>02</b>Operadores</span><span><b>03</b>Condições</span><span><b>04</b>Laços</span><span><b>05</b>Funções</span><span><b>06</b>Matemática</span><span><b>07</b>Macros/Enums</span><span><b>08</b>Organização</span><span><b>09</b>Erros</span>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- 01 VARIÁVEIS -->
+    <div class="sec">
+      <h2><span class="n">01</span>Variáveis e tipos de dados<span class="rule"></span><span class="tag">GML É DINAMICAMENTE TIPADA — O TIPO VEM DO VALOR</span></h2>
+      <table class="ref">
+        <colgroup><col style="width:13%"><col style="width:29%"><col style="width:31%"><col style="width:27%"></colgroup>
+        <tr><th>Comando / conceito</th><th>O que faz</th><th>Exemplo GML</th><th>Dica prática</th></tr>
+        <tr><td class="k">real</td><td>Todo número é real de 64 bits, inteiro ou fracionário.</td><td class="x">vel = 4.5;   vidas = 3;</td><td class="t">Não há tipo "int" separado para o dia a dia.</td></tr>
+        <tr><td class="k">string</td><td>Texto entre aspas duplas; <code>\n</code> quebra linha.</td><td class="x">txt = "HP: " + string(hp);</td><td class="t"><code>+</code> só junta string com string → <code>string()</code>.</td></tr>
+        <tr><td class="k">bool</td><td>Constantes <code>true</code> / <code>false</code> (valem 1 e 0).</td><td class="x">vivo = true;  if (!vivo) exit;</td><td class="t">Valem 1/0: <code>dir = direita − esquerda</code>.</td></tr>
+        <tr><td class="k">array</td><td>Lista ordenada; o índice começa em <b>0</b>.</td><td class="x">itens = ["espada", "escudo"];</td><td class="t">Último: <code>itens[array_length(itens) - 1]</code></td></tr>
+        <tr><td class="k">struct</td><td>Agrupa pares <i>nome: valor</i> numa variável.</td><td class="x">stats = { hp: 10, atk: 2 };</td><td class="t">Acesso: <code>stats.hp += 5;</code> (Folha 3 §01).</td></tr>
+        <tr><td class="k">undefined</td><td>"Sem valor": função sem <code>return</code>, índice vazio.</td><td class="x">if (is_undefined(r)) r = 0;</td><td class="t"><code>noone</code> (−4) = "nenhuma instância".</td></tr>
+        <tr><td class="k">typeof()</td><td>Devolve o nome do tipo em tempo de execução.</td><td class="x">typeof(3)    // "number"</td><td class="t">Testes: <code>is_string</code> <code>is_real</code> <code>is_array</code> <code>is_struct</code></td></tr>
+        <tr class="grp"><td colspan="4">ESCOPO<span>— onde a variável existe e por quanto tempo</span></td></tr>
+        <tr><td class="k">= (atribuir)</td><td>Cria a variável, se preciso, e guarda o valor.</td><td class="x">pontos = 0;</td><td class="t">Ler antes de atribuir = erro de execução.</td></tr>
+        <tr><td class="k">var (local)</td><td>Existe só no evento ou função atual.</td><td class="x">var dx = x - xprevious;</td><td class="t">Mais rápida; ideal para contas temporárias.</td></tr>
+        <tr><td class="k">de instância</td><td>Cada instância tem a sua. Crie no <b>Create</b>.</td><td class="x">hp = 100;           // Create</td><td class="t">De fora: <code>obj_player.hp</code> ou <code>inst.hp</code></td></tr>
+        <tr><td class="k">global.</td><td>Uma só para o jogo inteiro, entre rooms.</td><td class="x">global.moedas = 0;</td><td class="t">Inicialize uma única vez (script/controlador).</td></tr>
+      </table>
+    </div>
+
+    <div class="row c2">
+      <!-- 02 OPERADORES -->
+      <div class="col"><div class="sec">
+        <h2><span class="n">02</span>Operadores<span class="rule"></span></h2>
+        <table class="ref slim">
+          <colgroup><col style="width:17%"><col style="width:32%"><col style="width:30%"><col style="width:21%"></colgroup>
+          <tr><th>Operador</th><th>O que faz</th><th>Exemplo GML</th><th>Dica</th></tr>
+          <tr><td class="k">+ - * /</td><td>Aritmética; <code>/</code> sempre dá real.</td><td class="x">m = (a + b) / 2;</td><td class="t"><code>7 / 2</code> → 3.5</td></tr>
+          <tr><td class="k">div</td><td>Divisão inteira (sem resto).</td><td class="x">cel = x div 32;</td><td class="t">pixel → célula</td></tr>
+          <tr><td class="k">mod  %</td><td>Resto da divisão.</td><td class="x">par = (n mod 2 == 0);</td><td class="t">ciclos, par/ímpar</td></tr>
+          <tr><td class="k">==  !=</td><td>Igual / diferente → bool.</td><td class="x">if (hp == 0) morrer();</td><td class="t">compare com <code>==</code></td></tr>
+          <tr><td class="k">&lt; &gt; &lt;= &gt;=</td><td>Menor / maior (ou igual).</td><td class="x">if (x &gt; 640) x = 0;</td><td class="t">reais: evite <code>==</code></td></tr>
+          <tr><td class="k">=</td><td>Atribuição.</td><td class="x">vel = 3;</td><td class="t"><code>if (a = b)</code>: evite</td></tr>
+          <tr><td class="k">&amp;&amp; || !</td><td>E, OU, NÃO (<code>and or not</code>).</td><td class="x">if (vivo &amp;&amp; !pausa) {}</td><td class="t"><code>^^</code> = xor lógico</td></tr>
+          <tr><td class="k">++  --</td><td>Soma / subtrai 1.</td><td class="x">vidas--;   i++;</td><td class="t">use isolado</td></tr>
+          <tr><td class="k">+= -= *= /=</td><td>Opera e atribui.</td><td class="x">hp -= dano;  v *= 0.9;</td><td class="t"><code>*= 0.9</code> freia</td></tr>
+          <tr><td class="k">? :</td><td>Ternário: <i>cond ? sim : não</i></td><td class="x">s = no_chao ? 1 : 0;</td><td class="t">if curto</td></tr>
+          <tr><td class="k">??  ??=</td><td>Troca <code>undefined</code><span class="v24">2024+</span></td><td class="x">n = valor ?? 0;</td><td class="t">valor padrão</td></tr>
+        </table>
+      </div></div>
+      <!-- 03 CONDIÇÕES -->
+      <div class="col"><div class="sec">
+        <h2><span class="n">03</span>Condições<span class="rule"></span></h2>
+        <table class="ref slim">
+          <colgroup><col style="width:20%"><col style="width:29%"><col style="width:29%"><col style="width:22%"></colgroup>
+          <tr><th>Comando</th><th>O que faz</th><th>Exemplo GML</th><th>Dica</th></tr>
+          <tr><td class="k">if</td><td>Executa se for verdadeiro.</td><td class="x">if (hp &lt;= 0) morrer();</td><td class="t">sempre com <code>( )</code></td></tr>
+          <tr><td class="k">else · else if</td><td>Alternativa / nova condição.</td><td class="x">else if (hp &lt; 20) {}</td><td class="t">só 1 ramo roda</td></tr>
+          <tr><td class="k">switch·case</td><td>Compara 1 valor com vários.</td><td class="x">case ARMA.ARCO:</td><td class="t">número, string, enum</td></tr>
+          <tr><td class="k">default·break</td><td>Nenhum case · sai do switch.</td><td class="x">default: break;</td><td class="t">sem break, "cai"</td></tr>
+        </table>
+        <div class="cb" style="margin-top:1mm"><div class="cap">Exemplo de jogo <span>cor da vida + próxima fase</span></div>
+        <pre class="gml">
+          if (hp &gt; hp_max * 0.5)       cor = c_white;
+          else if (hp &gt; hp_max * 0.2)  cor = c_gray;
+          else                         cor = c_dkgray;
+          switch (room) {
+              case rm_fase1:  proxima = rm_fase2;  break;
+              case rm_fase2:  proxima = rm_chefe;  break;
+              default:        proxima = rm_menu;   break;
+          }
+        </pre></div>
+      </div></div>
+    </div>
+
+    <div class="row c2">
+      <div class="col">
+        <!-- 04 LAÇOS -->
+        <div class="sec">
+          <h2><span class="n">04</span>Laços de repetição<span class="rule"></span></h2>
+          <table class="ref slim">
+            <colgroup><col style="width:18%"><col style="width:48%"><col style="width:34%"></colgroup>
+            <tr><th>Comando</th><th>O que faz</th><th>Quando usar</th></tr>
+            <tr><td class="k">for</td><td>Contador: início; condição; passo.</td><td class="t">arrays, grades, N itens</td></tr>
+            <tr><td class="k">while</td><td>Repete <i>enquanto</i> for verdadeiro.</td><td class="t">⚠ condição precisa mudar!</td></tr>
+            <tr><td class="k">repeat (n)</td><td>Repete exatamente <i>n</i> vezes, sem contador.</td><td class="t">criar vários objetos</td></tr>
+            <tr><td class="k">do…until</td><td>Roda <b>1+ vezes</b>; para quando for verdadeiro.</td><td class="t">sortear até ser válido</td></tr>
+            <tr><td class="k">break</td><td>Sai do laço imediatamente.</td><td class="t">achou o que buscava</td></tr>
+            <tr><td class="k">continue</td><td>Pula para a próxima iteração.</td><td class="t">ignorar itens inválidos</td></tr>
+          </table>
+          <pre class="gml" style="margin-top:1.1mm">
+            var total = 0;                               // for
+            for (var i = 0; i &lt; array_length(loja); i++) {
+                if (loja[i].vendido) continue;
+                total += loja[i].preco;
+            }
+            while (place_meeting(x, y, obj_bloco)) y -= 1;  // while
+            repeat (8) instance_create_layer(x, y, "Instances", obj_moeda);
+            var px;  do { px = irandom(room_width); }       // do…until
+            until (!place_meeting(px, y, obj_bloco));
+          </pre>
+        </div>
+        <!-- 05 FUNÇÕES -->
+        <div class="sec">
+          <h2><span class="n">05</span>Funções<span class="rule"></span><span class="tag">SCRIPTS · MÉTODOS</span></h2>
+          <table class="ref slim">
+            <colgroup><col style="width:18%"><col style="width:33%"><col style="width:49%"></colgroup>
+            <tr><th>Conceito</th><th>O que faz</th><th>Exemplo GML</th></tr>
+            <tr><td class="k">function</td><td>Declara; num Script é global.</td><td class="x">function dobro(_n) { return _n * 2; }</td></tr>
+            <tr><td class="k">argumentos</td><td>Parâmetros, com valor padrão.</td><td class="x">function curar(_q = 1) { hp += _q; }</td></tr>
+            <tr><td class="k">return</td><td>Devolve valor e encerra.</td><td class="x">return clamp(_v, 0, 1);</td></tr>
+            <tr><td class="k">var</td><td>Local à chamada da função.</td><td class="x">var soma = 0;</td></tr>
+            <tr><td class="k">método</td><td>Função guardada em variável.</td><td class="x">atacar = function() { hp--; };</td></tr>
+            <tr><td class="k">static</td><td>Mantém valor entre chamadas.</td><td class="x">static usos = 0;  usos++;</td></tr>
+          </table>
+          <div class="cb" style="margin-top:1mm"><div class="cap">Função reutilizável <span>Script: scr_util</span></div>
+          <pre class="gml">
+            /// @function aproximar(valor, alvo, passo)
+            /// @description Leva "valor" até "alvo" sem ultrapassar.
+            function aproximar(_valor, _alvo, _passo) {
+                if (_valor &lt; _alvo) return min(_valor + _passo, _alvo);
+                return max(_valor - _passo, _alvo);
+            }
+            hsp = aproximar(hsp, 0, 0.3);    // em qualquer objeto: freia
+          </pre></div>
+          <div class="tip" style="margin-top:1.1mm"><b class="lbl"><svg class="ico" viewBox="0 0 10 10"><circle cx="5" cy="4" r="3" fill="none" stroke="#111" stroke-width=".9"/><path d="M3.8 7.6h2.4M4.1 9h1.8" stroke="#111" stroke-width=".9"/></svg>Dica</b>Prefixe parâmetros com <code>_</code> para não confundir com variáveis da instância. Sem <code>return</code>, a função devolve <code>undefined</code>.</div>
+        </div>
+      </div>
+
+      <div class="col">
+        <!-- 06 MATEMÁTICA -->
+        <div class="sec">
+          <h2><span class="n">06</span>Matemática e aleatoriedade<span class="rule"></span></h2>
+          <div class="row c2" style="gap:0 2.2mm">
+            <table class="mini">
+              <tr><td>abs(-5)</td><td class="r">5</td></tr>
+              <tr><td>min(3, 8, 1)</td><td class="r">1</td></tr>
+              <tr><td>max(3, 8, 1)</td><td class="r">8</td></tr>
+              <tr><td>clamp(12, 0, 10)</td><td class="r">10</td></tr>
+              <tr><td>round(2.7)</td><td class="r">3</td></tr>
+              <tr><td>floor(2.7)</td><td class="r">2</td></tr>
+              <tr><td>ceil(2.1)</td><td class="r">3</td></tr>
+              <tr><td>sign(-3)</td><td class="r">-1</td></tr>
+              
+              <tr><td>sqrt(16)</td><td class="r">4</td></tr>
+              
+              <tr><td>power(2, 3) · sqr(4)</td><td class="r">8 · 16</td></tr>
+              
+              <tr><td>lerp(0, 10, 0.25)</td><td class="r">2.5</td></tr>
+            </table>
+            <table class="mini">
+              <tr><td>random(10)</td><td class="r">real 0 ≤ n &lt; 10</td></tr>
+              <tr><td>random_range(2, 5)</td><td class="r">real 2 … 5</td></tr>
+              <tr><td>irandom(6)</td><td class="r">int 0 … 6</td></tr>
+              <tr><td>irandom_range(1, 6)</td><td class="r">int 1 … 6</td></tr>
+              <tr><td>choose("a", "b", "c")</td><td class="r">1 dos valores</td></tr>
+              
+              <tr><td>dsin(90) · dcos(0)</td><td class="r">1 · 1 (graus)</td></tr>
+              <tr><td>point_distance(x1,y1,x2,y2)</td><td class="r">px</td></tr>
+              <tr><td>point_direction(x1,y1,x2,y2)</td><td class="r">graus</td></tr>
+              <tr><td>lengthdir_x(dist, dir)</td><td class="r">Δx</td></tr>
+              <tr><td>lengthdir_y(dist, dir)</td><td class="r">Δy</td></tr>
+              <tr><td>angle_difference(a, b)</td><td class="r">−180 … 180</td></tr>
+              
+              
+            </table>
+          </div>
+          <div class="cb" style="margin-top:1mm"><div class="cap">Atirar na direção do mouse <span>obj_player · Step</span></div>
+          <pre class="gml">
+            var dir = point_direction(x, y, mouse_x, mouse_y);
+            var bx  = x + lengthdir_x(16, dir);    // ponta da arma
+            var by  = y + lengthdir_y(16, dir);
+            var b = instance_create_layer(bx, by, "Instances", obj_bala);
+            b.direction = dir;   b.speed = 8;   b.image_angle = dir;
+          </pre></div>
+          <div class="def" style="margin-top:1.1mm"><b class="lbl">Definição</b>Ângulos são em <strong>graus</strong>, anti-horário: 0° direita, 90° cima, 180° esquerda, 270° baixo. O <strong>y cresce para baixo</strong> (<code>lengthdir_y</code> já compensa). Use <code>randomize()</code> 1× no início.</div>
+        </div>
+        <!-- 07 MACROS E ENUMS -->
+        <div class="sec">
+          <h2><span class="n">07</span>Constantes: #macro e enum<span class="rule"></span></h2>
+          <div class="row c2" style="gap:0 1.8mm">
+            <pre class="gml">
+              #macro TILE      32
+              #macro GRAVIDADE 0.4
+              #macro VERSAO    "1.0.2"
+              vsp += GRAVIDADE;
+              var col = x div TILE;
+            </pre>
+            <pre class="gml">
+              enum ARMA { ESPADA, ARCO, CAJADO }
+              // valores 0, 1, 2
+              enum PRIO { BAIXA = 1, ALTA = 10 }
+              arma = ARMA.ARCO;
+              if (arma == ARMA.ARCO) atirar();
+            </pre>
+          </div>
+          <p class="small" style="margin:.9mm 0 0"><b>#macro</b>: trocada na compilação, sem <code>=</code> e sem <code>;</code>. <b>enum</b>: inteiros constantes (<code>ENUM.NOME</code>). Ambos globais.</p>
+        </div>
+        <!-- 08 ORGANIZAÇÃO -->
+        <div class="sec">
+          <h2><span class="n">08</span>Comentários e organização<span class="rule"></span></h2>
+          <div class="row" style="grid-template-columns: .9fr 1.1fr; gap:0 2mm">
+            <pre class="gml">
+              // comentário de linha
+              /* comentário
+                 de bloco */
+              /// @description Doc JSDoc
+              #region Movimento
+              x += hsp;
+              #endregion
+            </pre>
+            <ul class="dense small" style="color:#333">
+              <li>Prefixos: <code>obj_</code> <code>spr_</code> <code>snd_</code> <code>rm_</code> <code>scr_</code> <code>fnt_</code></li>
+              <li>Variáveis em <code>snake_case</code>; constantes em <code>MAIÚSCULAS</code>.</li>
+              <li><b>Create</b>: variáveis · <b>Step</b>: lógica · <b>Draw</b>: só desenho.</li>
+              <li>Nomes que explicam: <code>vel_max</code>, não <code>v2</code>.</li>
+              <li><code>#region</code> dobra blocos longos no editor.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 09 ERROS COMUNS -->
+    <div class="sec">
+      <h2><span class="n">09</span>Erros comuns de iniciante<span class="rule"></span><span class="tag">✗ ERRADO → ✓ CORRETO</span></h2>
+      <table class="ref slim">
+        <colgroup><col style="width:28%"><col style="width:30%"><col style="width:42%"></colgroup>
+        <tr><th>✗ Errado</th><th>✓ Correto</th><th>Por quê</th></tr>
+        <tr><td class="x bad">txt = "Pontos: " + pontos;</td><td class="x">txt = "Pontos: " + string(pontos);</td><td class="t">Somar string com número gera erro de execução.</td></tr>
+        <tr><td class="x bad">hp -= 1;    // hp nunca criado</td><td class="x">hp = 3;     // no evento Create</td><td class="t">"Variable … not set before reading it": crie antes de ler.</td></tr>
+        <tr><td class="x bad">draw_text(8, 8, hp);  // no Step</td><td class="x">draw_text(8, 8, hp);  // no Draw GUI</td><td class="t"><code>draw_*</code> só funciona em eventos Draw. Com Draw próprio, chame <code>draw_self()</code>.</td></tr>
+        <tr><td class="x bad">keyboard_check(ord("w"))</td><td class="x">keyboard_check(ord("W"))</td><td class="t"><code>ord()</code> para teclas exige letra <b>maiúscula</b>.</td></tr>
+        <tr><td class="x bad">for (i = 0; i &lt; 10; i++)</td><td class="x">for (var i = 0; i &lt; 10; i++)</td><td class="t">Sem <code>var</code>, <code>i</code> vira variável permanente da instância.</td></tr>
+        <tr><td class="x bad">#macro VEL = 4;</td><td class="x">#macro VEL 4</td><td class="t">O <code>=</code> e o <code>;</code> virariam parte do valor da macro.</td></tr>
+        <tr><td class="x bad">u = itens[array_length(itens)];</td><td class="x">u = itens[array_length(itens) - 1];</td><td class="t">Índices vão de 0 a tamanho − 1; fora disso é erro.</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <footer class="foot"><span>GML Study Guide</span><span class="c">Folha 1 · Fundamentos</span><span class="r">01 <small>/ 03</small></span></footer>
+</section>

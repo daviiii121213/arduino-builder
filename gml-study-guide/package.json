@@ -1,0 +1,12 @@
+{
+  "name": "gml-study-guide",
+  "private": true,
+  "description": "Guia de estudo de GML (GameMaker Language) em 3 folhas A4 — HTML/CSS renderizado para PNG 300 dpi e PDF.",
+  "scripts": {
+    "build": "node build.js",
+    "measure": "node build.js --measure"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.55.0"
+  }
+}
