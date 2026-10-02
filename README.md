@@ -25,7 +25,7 @@ endereço da segunda unidade, avaliações, biografia do Junior.
 
 ## Pendências do cliente
 
-1. Fotos em alta resolução, foto para a seção Sobre e foto do Junior → `assets/img/` (ver lista).
+1. Fotos da galeria em alta resolução e foto do Junior → `assets/img/` (ver lista).
 2. Preços/duração → atributos `data-price` / `data-duration` de cada serviço.
 3. Horários → seção Localização.
 4. Cor da marca: `--brand` em `style.css` foi extraída da faixa do logo (#455da7).
