@@ -1,15 +1,15 @@
 # Fotos reais
 
-Todas as imagens do site devem ser **fotografias reais** da Atitude Barbearia
-(Instagram oficial ou arquivos enviados pelo cliente). Enquanto um arquivo não
-existir, o site mostra um espaço reservado neutro no lugar da foto.
+Todas as imagens do site são **fotografias reais** da Atitude Barbearia.
 
-| Arquivo            | Onde aparece               | Tamanho recomendado |
-|--------------------|----------------------------|---------------------|
-| `hero.jpg`         | Hero (topo)                | 2400 × 1600, < 400 KB |
-| `galeria-01…06.jpg`| Galeria (01 e 05 são verticais) | 1200 px no lado maior, < 250 KB |
-| `sobre.jpg`        | Seção Sobre (4:5)          | 1200 × 1500 |
-| `junior.jpg`       | Foto do Junior (quadrada)  | 400 × 400 |
-| `og-image.jpg`     | Compartilhamento (Open Graph) | 1200 × 630 |
+| Arquivo | Onde aparece | Origem |
+|---------|--------------|--------|
+| `../logo-light.png` / `../logo-dark.png` | Menu, hero, rodapé | Logo oficial enviado pelo cliente (fundo transparente) |
+| `hero-bg.jpg` | Fundo do hero (desfocado) | Foto do salão enviada pelo cliente |
+| `galeria-01…04.jpg` | Galeria | Fotos enviadas pelo cliente |
+| `og-image.jpg` | Compartilhamento (Open Graph) | Logo oficial |
+| `sobre.jpg` *(opcional)* | Seção Sobre (4:5) | ainda não enviada; a coluna some enquanto não existir |
+| `junior.jpg` *(opcional)* | Foto do Junior (quadrada) | ainda não enviada; o avatar some enquanto não existir |
 
-Após adicionar as fotos, revise os textos `alt` no `index.html`.
+As fotos recebidas têm ~290 × 425 px. Versões em alta resolução (≥ 1200 px)
+deixam a galeria e o hero mais nítidos: basta substituir os arquivos com o mesmo nome.

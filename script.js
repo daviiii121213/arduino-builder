@@ -38,9 +38,15 @@
     img.classList.add('is-loaded');
     img.closest('.media')?.classList.add('has-image');
   };
+  // Fotos opcionais ([data-optional]) são ocultadas se o arquivo não existir
+  const markMissing = (img) => img.closest('[data-optional]')?.classList.add('is-missing');
   $$('.media img').forEach((img) => {
-    if (img.complete && img.naturalWidth > 0) markLoaded(img);
-    else img.addEventListener('load', () => markLoaded(img), { once: true });
+    if (img.complete) {
+      if (img.naturalWidth > 0) markLoaded(img); else markMissing(img);
+      return;
+    }
+    img.addEventListener('load', () => markLoaded(img), { once: true });
+    img.addEventListener('error', () => markMissing(img), { once: true });
   });
 
   /* ---------- Hero: entrada sequencial ---------- */

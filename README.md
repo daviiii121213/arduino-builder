@@ -25,9 +25,8 @@ endereço da segunda unidade, avaliações, biografia do Junior.
 
 ## Pendências do cliente
 
-1. Logo oficial → substituir o wordmark tipográfico em `index.html` (`.brand`) e `assets/favicon.svg`.
-2. Fotos reais → `assets/img/` (ver lista).
-3. Preços/duração → atributos `data-price` / `data-duration` de cada serviço.
-4. Horários → seção Localização.
-5. Cor de destaque oficial → `--accent` em `style.css`.
-6. Confirmar o número do WhatsApp → `CONFIG.whatsapp` em `script.js` (e links `wa.me` no HTML).
+1. Fotos em alta resolução, foto para a seção Sobre e foto do Junior → `assets/img/` (ver lista).
+2. Preços/duração → atributos `data-price` / `data-duration` de cada serviço.
+3. Horários → seção Localização.
+4. Cor da marca: `--brand` em `style.css` foi extraída da faixa do logo (#455da7).
+5. Confirmar o número do WhatsApp → `CONFIG.whatsapp` em `script.js` (e links `wa.me` no HTML).

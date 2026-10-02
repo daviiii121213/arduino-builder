@@ -21,11 +21,11 @@
   <meta name="geo.region" content="BR-MG">
   <meta name="geo.placename" content="Uberlândia">
 
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="preload" as="image" href="assets/img/hero.jpg" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/img/hero-bg.jpg" fetchpriority="high">
   <link rel="stylesheet" href="style.css">
   <noscript><style>.media img{opacity:1}.reveal{opacity:1;transform:none}.hero [data-hero]{opacity:1;transform:none}</style></noscript>
 
@@ -34,6 +34,8 @@
     "@context": "https://schema.org",
     "@type": "BarberShop",
     "name": "Atitude Barbearia",
+    "logo": "assets/logo-dark.png",
+    "image": "assets/img/galeria-01.jpg",
     "telephone": "+55 34 99152-3214",
     "address": {
       "@type": "PostalAddress",
@@ -57,9 +59,7 @@
   <header class="nav" id="nav">
     <div class="nav__inner container">
       <a class="brand" href="#inicio" aria-label="Atitude Barbearia — início">
-        <!-- Substitua por <img src="assets/logo.svg" alt="AT/TUDE Barbearia"> quando o arquivo oficial for adicionado -->
-        <span class="wordmark" aria-hidden="true">AT<i>/</i>TUDE</span>
-        <span class="wordmark__sub" aria-hidden="true">Barbearia</span>
+        <img src="assets/logo-light.png" alt="AT/TUDE Barbearia" width="816" height="405">
       </a>
 
       <nav class="nav__menu" id="menu" aria-label="Navegação principal">
@@ -90,15 +90,18 @@
       <div class="hero__media" aria-hidden="true">
         <div class="hero__parallax" id="heroParallax">
           <div class="media media--hero">
-            <!-- FOTO REAL: salve a fotografia oficial em assets/img/hero.jpg (mín. 2000px de largura) -->
-            <img src="assets/img/hero.jpg" alt="" fetchpriority="high" decoding="async">
+            <!-- Fotografia real do salão, desfocada como fundo atmosférico (troque por uma foto em alta resolução quando houver) -->
+            <img src="assets/img/hero-bg.jpg" alt="" fetchpriority="high" decoding="async">
           </div>
         </div>
         <div class="hero__shade"></div>
       </div>
 
       <div class="hero__content container">
-        <p class="eyebrow" data-hero>Barbearia · Uberlândia – MG</p>
+        <div class="hero__logo" data-hero>
+          <img src="assets/logo-light.png" alt="AT/TUDE Barbearia" width="816" height="405" fetchpriority="high">
+        </div>
+        <p class="eyebrow" data-hero>Uberlândia – MG</p>
         <h1 class="hero__title" id="hero-title">
           <span class="line" data-hero><span>Precisão no corte.</span></span>
           <span class="line" data-hero><span>Atitude no estilo.</span></span>
@@ -190,14 +193,12 @@
           <a class="link-arrow" href="https://www.instagram.com/atitudebarbearia" target="_blank" rel="noopener">Ver mais no Instagram <span aria-hidden="true">↗</span></a>
         </header>
 
-        <!-- FOTOS REAIS: salve em assets/img/galeria-01.jpg … galeria-06.jpg e ajuste os textos alternativos -->
+        <!-- Fotos reais enviadas pelo cliente. Para ampliar a galeria, adicione novos itens no mesmo formato. -->
         <ul class="gallery" id="gallery">
-          <li class="gallery__item gallery__item--tall reveal"><button class="media" type="button" aria-label="Ampliar foto 1"><img src="assets/img/galeria-01.jpg" alt="Corte realizado na Atitude Barbearia" loading="lazy" decoding="async"></button></li>
-          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto 2"><img src="assets/img/galeria-02.jpg" alt="Acabamento de barba na navalha na Atitude Barbearia" loading="lazy" decoding="async"></button></li>
-          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto 3"><img src="assets/img/galeria-03.jpg" alt="Degradê realizado na Atitude Barbearia" loading="lazy" decoding="async"></button></li>
-          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto 4"><img src="assets/img/galeria-04.jpg" alt="Ambiente da Atitude Barbearia" loading="lazy" decoding="async"></button></li>
-          <li class="gallery__item gallery__item--tall reveal"><button class="media" type="button" aria-label="Ampliar foto 5"><img src="assets/img/galeria-05.jpg" alt="Corte na tesoura na Atitude Barbearia" loading="lazy" decoding="async"></button></li>
-          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto 6"><img src="assets/img/galeria-06.jpg" alt="Detalhe de finalização na Atitude Barbearia" loading="lazy" decoding="async"></button></li>
+          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto: barbeiros atendendo no salão"><img src="assets/img/galeria-01.jpg" alt="Barbeiros atendendo clientes no salão da Atitude Barbearia" width="282" height="424" loading="lazy" decoding="async"></button></li>
+          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto: acabamento de barba"><img src="assets/img/galeria-02.jpg" alt="Acabamento de barba com máquina na Atitude Barbearia" width="293" height="422" loading="lazy" decoding="async"></button></li>
+          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto: finalização de corte"><img src="assets/img/galeria-03.jpg" alt="Barbeiro finalizando o corte de um cliente na Atitude Barbearia" width="285" height="423" loading="lazy" decoding="async"></button></li>
+          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto: área de lavatórios"><img src="assets/img/galeria-04.jpg" alt="Área de lavatórios da Atitude Barbearia com parede verde" width="291" height="429" loading="lazy" decoding="async"></button></li>
         </ul>
       </div>
     </section>
@@ -205,7 +206,7 @@
     <!-- ============ SOBRE ============ -->
     <section class="section" id="sobre" aria-labelledby="sobre-title">
       <div class="container about">
-        <div class="about__media reveal">
+        <div class="about__media reveal" data-optional>
           <div class="media media--portrait">
             <!-- FOTO REAL: salve em assets/img/sobre.jpg (barbearia ou equipe) -->
             <img src="assets/img/sobre.jpg" alt="Equipe da Atitude Barbearia em Uberlândia" loading="lazy" decoding="async">
@@ -218,7 +219,7 @@
           <p>O agendamento é feito pelo WhatsApp: você escolhe o serviço e o profissional.</p>
 
           <div class="pro">
-            <div class="pro__media media">
+            <div class="pro__media media" data-optional>
               <!-- FOTO REAL: salve em assets/img/junior.jpg -->
               <img src="assets/img/junior.jpg" alt="Junior, profissional da Atitude Barbearia" loading="lazy" decoding="async">
             </div>
@@ -362,8 +363,7 @@
   <footer class="footer">
     <div class="container footer__inner">
       <a class="brand" href="#inicio" aria-label="Voltar ao início">
-        <span class="wordmark" aria-hidden="true">AT<i>/</i>TUDE</span>
-        <span class="wordmark__sub" aria-hidden="true">Barbearia</span>
+        <img src="assets/logo-light.png" alt="AT/TUDE Barbearia" width="816" height="405" loading="lazy">
       </a>
       <p class="footer__meta">Av. Continental, 58 — Laranjeiras · Uberlândia – MG</p>
       <p class="footer__meta">© <span id="year">2026</span> Atitude Barbearia</p>
