@@ -176,18 +176,16 @@
   const selected = () => $$('input[name="servico"]:checked', chips).map((i) => i.value);
   const listText = (arr) => (arr.length < 2 ? arr.join('') : `${arr.slice(0, -1).join(', ')} e ${arr.at(-1)}`);
 
+  // Link real (não window.open): funciona mesmo onde pop-ups são bloqueados
+  const bookingLink = $('#bookingLink');
   chips.addEventListener('change', () => {
     const s = selected();
     hint.textContent = s.length
       ? `Selecionado: ${listText(s)}.`
       : 'Nenhum serviço selecionado — você pode escolher na conversa.';
+    if (CONFIG.whatsapp && bookingLink) bookingLink.href = waLink(listText(s));
   });
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (!CONFIG.whatsapp) return;
-    window.open(waLink(listText(selected())), '_blank', 'noopener');
-  });
+  form.addEventListener('submit', (e) => e.preventDefault());
 
   /* ---------- Galeria: lightbox ---------- */
   const lightbox = $('#lightbox');

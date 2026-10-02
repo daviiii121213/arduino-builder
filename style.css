@@ -15,6 +15,7 @@
   --subtle: #6e6e74;
   --accent: #f4f4f2;          /* troque pela cor de destaque oficial */
   --on-accent: #0b0b0c;
+  color-scheme: dark;
 
   --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
