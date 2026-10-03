@@ -128,27 +128,45 @@ html:not(.js) .loader { display: none; }
 .progress { position: fixed; inset: 0 0 auto; height: 2px; z-index: 90; pointer-events: none; }
 .progress span { display: block; height: 100%; background: var(--brand-hi); transform: scaleX(0); transform-origin: left; }
 
-/* ---------- cursor (só desktop, ativado via JS) ---------- */
-.cursor { display: none; }
-.has-cursor .cursor { display: block; }
+/* ---------- cursor tesoura (desktop + toque, ativado via JS) ----------
+   O elemento fica na posição do ponteiro; a ponta das lâminas é o ponto
+   de clique. Parada: fechada. Em movimento: abre e fecha. Clique: um corte. */
+.cursor {
+  position: fixed; left: 0; top: 0; z-index: 150; pointer-events: none;
+  width: 0; height: 0; opacity: 0; transition: opacity .25s;
+  will-change: transform;
+}
+.has-cursor .cursor.is-on, .cursor.is-tap { opacity: 1; }
 .has-cursor, .has-cursor a, .has-cursor button, .has-cursor label { cursor: none; }
-.cursor__dot, .cursor__ring {
-  position: fixed; left: 0; top: 0; z-index: 150; pointer-events: none; border-radius: 50%;
-  will-change: transform; opacity: 0; transition: opacity .3s;
+.scissors {
+  position: absolute; left: -20px; top: -2px; width: 40px; height: 40px; overflow: visible;
+  transform-origin: 20px 2px; transform: rotate(-32deg);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .55));
+  transition: transform .35s var(--ease-out);
 }
-.cursor.is-on .cursor__dot, .cursor.is-on .cursor__ring { opacity: 1; }
-.cursor__dot { width: 6px; height: 6px; margin: -3px 0 0 -3px; background: var(--text); }
-.cursor__ring {
-  width: 38px; height: 38px; margin: -19px 0 0 -19px; border: 1px solid rgba(255,255,255,.4);
-}
-.cursor__ring::after {
-  content: ""; position: absolute; inset: -1px; border-radius: 50%;
-  background: rgba(69, 93, 167, .28); border: 1px solid var(--brand-hi);
-  transform: scale(.4); opacity: 0; transition: transform .4s var(--ease-out), opacity .3s;
-}
-.cursor.is-hover .cursor__ring::after { transform: scale(1.5); opacity: 1; }
-.cursor.is-hover .cursor__dot { opacity: 0; }
-.cursor.is-down .cursor__ring::after { transform: scale(1.2); }
+.scissors__a, .scissors__b { transform-box: view-box; transform-origin: 32px 33.5px; transition: transform .14s var(--ease); }
+.scissors__blade { fill: var(--text); }
+.scissors__blade--back { fill: #b9bbc4; }
+.scissors__arm { fill: none; stroke: var(--text); stroke-width: 2.6; stroke-linecap: round; }
+.scissors__b .scissors__arm { stroke: #b9bbc4; }
+.scissors__ring { fill: rgba(8, 9, 11, .55); stroke: var(--brand-hi); stroke-width: 2.6; }
+.scissors__pivot { fill: var(--brand-hi); stroke: var(--bg); stroke-width: 1; }
+
+/* sobre links e botões: tesoura levemente aberta e maior */
+.cursor.is-hover .scissors { transform: rotate(-32deg) scale(1.12); }
+.cursor.is-hover .scissors__a { transform: rotate(-9deg); }
+.cursor.is-hover .scissors__b { transform: rotate(9deg); }
+
+/* movendo: corta continuamente */
+.cursor.is-moving .scissors__a { animation: snipA .26s var(--ease) infinite alternate; }
+.cursor.is-moving .scissors__b { animation: snipB .26s var(--ease) infinite alternate; }
+/* clique / toque: um corte completo */
+.cursor.is-snip .scissors__a { animation: snipOnceA .32s var(--ease-io); }
+.cursor.is-snip .scissors__b { animation: snipOnceB .32s var(--ease-io); }
+@keyframes snipA { from { transform: rotate(0); } to { transform: rotate(-20deg); } }
+@keyframes snipB { from { transform: rotate(0); } to { transform: rotate(20deg); } }
+@keyframes snipOnceA { 0%, 100% { transform: rotate(0); } 45% { transform: rotate(-30deg); } }
+@keyframes snipOnceB { 0%, 100% { transform: rotate(0); } 45% { transform: rotate(30deg); } }
 
 /* ==========================================================================
    Navegação

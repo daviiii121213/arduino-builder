@@ -62,7 +62,22 @@
   </div>
 
   <div class="progress" aria-hidden="true"><span id="progress"></span></div>
-  <div class="cursor" id="cursor" aria-hidden="true"><span class="cursor__dot"></span><span class="cursor__ring"></span></div>
+  <!-- Cursor tesoura: fechada parada, corta ao mover, um corte por clique -->
+  <div class="cursor" id="cursor" aria-hidden="true">
+    <svg class="scissors" viewBox="0 0 64 64">
+      <g class="scissors__b">
+        <path class="scissors__blade scissors__blade--back" d="M33.4 33 30.6 6.2c-.1-1.6 1.6-2.6 2.4-1.2l2.6 27.4z"/>
+        <path class="scissors__arm" d="M31.5 33.5 23.6 46"/>
+        <circle class="scissors__ring" cx="20.5" cy="51" r="6.8"/>
+      </g>
+      <g class="scissors__a">
+        <path class="scissors__blade" d="M30.6 33 33.4 6.2c.1-1.6-1.6-2.6-2.4-1.2L28.4 32.4z"/>
+        <path class="scissors__arm" d="M32.5 33.5 40.4 46"/>
+        <circle class="scissors__ring" cx="43.5" cy="51" r="6.8"/>
+      </g>
+      <circle class="scissors__pivot" cx="32" cy="33.5" r="2.1"/>
+    </svg>
+  </div>
 
   <!-- ================= NAVEGAÇÃO ================= -->
   <header class="nav" id="nav">

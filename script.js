@@ -177,34 +177,50 @@
   });
   window.matchMedia('(min-width: 1181px)').addEventListener('change', (e) => { if (e.matches) setMenu(false); });
 
-  /* ---------- Cursor e botões magnéticos (desktop) ---------- */
-  if (finePointer && !reduced) {
-    const cursor = $('#cursor');
-    const dot = $('.cursor__dot', cursor);
-    const ring = $('.cursor__ring', cursor);
-    let mx = -100, my = -100, rx = -100, ry = -100, running = false;
-    root.classList.add('has-cursor');
+  /* ---------- Cursor tesoura ---------- */
+  const cursor = $('#cursor');
+  let stopTimer;
+  const placeCursor = (x, y) => { cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`; };
+  const snip = () => {
+    cursor.classList.remove('is-snip');
+    void cursor.offsetWidth; // reinicia a animação a cada clique
+    cursor.classList.add('is-snip');
+  };
+  cursor.addEventListener('animationend', (e) => {
+    if (e.animationName.startsWith('snipOnce')) cursor.classList.remove('is-snip');
+  });
 
-    const loop = () => {
-      rx += (mx - rx) * 0.18;
-      ry += (my - ry) * 0.18;
-      ring.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
-      if (Math.abs(mx - rx) > 0.1 || Math.abs(my - ry) > 0.1) requestAnimationFrame(loop);
-      else running = false;
-    };
+  if (!reduced && finePointer) {
+    // desktop: a tesoura substitui o cursor
+    root.classList.add('has-cursor');
     document.addEventListener('pointermove', (e) => {
-      mx = e.clientX; my = e.clientY;
-      dot.style.transform = `translate3d(${mx}px, ${my}px, 0)`;
-      cursor.classList.add('is-on');
-      if (!running) { running = true; requestAnimationFrame(loop); }
+      if (e.pointerType !== 'mouse') return;
+      placeCursor(e.clientX, e.clientY);
+      cursor.classList.add('is-on', 'is-moving');
+      clearTimeout(stopTimer);
+      stopTimer = setTimeout(() => cursor.classList.remove('is-moving'), 140); // parada = fechada
     }, { passive: true });
-    document.addEventListener('pointerleave', () => cursor.classList.remove('is-on'));
-    document.addEventListener('pointerdown', () => cursor.classList.add('is-down'));
-    document.addEventListener('pointerup', () => cursor.classList.remove('is-down'));
+    document.documentElement.addEventListener('mouseleave', () => cursor.classList.remove('is-on', 'is-moving'));
+    document.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse') snip(); });
     document.addEventListener('pointerover', (e) => {
       cursor.classList.toggle('is-hover', !!e.target.closest('a, button, label, [role="button"]'));
     });
+  }
+  if (!reduced) {
+    // toque: a tesoura aparece no ponto tocado, corta e some
+    let tapTimer;
+    document.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse') return;
+      placeCursor(e.clientX, e.clientY);
+      cursor.classList.add('is-tap');
+      snip();
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => cursor.classList.remove('is-tap'), 520);
+    }, { passive: true });
+  }
 
+  /* ---------- Botões magnéticos (desktop) ---------- */
+  if (finePointer && !reduced) {
     $$('[data-magnetic]').forEach((el) => {
       el.addEventListener('pointermove', (e) => {
         const r = el.getBoundingClientRect();
