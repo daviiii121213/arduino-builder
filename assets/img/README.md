@@ -1,8 +1,9 @@
 # Fotos
 
-Todas as fotos são **reais**, enviadas pelo cliente. Foram tratadas sem alterar
-o conteúdo: ampliação 2× (Lanczos), redução leve de ruído, nitidez moderada,
-contraste suave e exportação em WebP. Cada foto tem duas versões (`-sm` = 1×).
+Todas as fotos são **reais**, enviadas pelo cliente. Tratamento (sem alterar o conteúdo):
+redução de artefatos de compressão (OpenCV NL-means), super-resolução EDSR ×4
+(fachada ×2), contraste local suave (CLAHE) e nitidez leve; exportação em WebP.
+Cada foto tem duas versões: grande (~1150–1600 px) e `-sm` (560–800 px).
 
 | Arquivo | Uso |
 |---------|-----|
@@ -14,5 +15,5 @@ contraste suave e exportação em WebP. Cada foto tem duas versões (`-sm` = 1×
 Logo oficial: `../logo-light.webp|png` (fundo escuro), `../logo-dark.png` (fundo claro),
 `../brand-bar.webp` (faixa do logo, usada no Agendamento), `../favicon.png`.
 
-As originais têm ~290 × 425 px (exceto a fachada). Substitua por versões em alta
-resolução com o mesmo nome e proporção para ganhar nitidez.
+As originais têm ~290 × 425 px (exceto a fachada). A super-resolução melhora bastante,
+mas fotos originais em alta resolução continuam sendo a melhor opção.
