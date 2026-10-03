@@ -193,8 +193,24 @@
   if (!reduced && finePointer) {
     // desktop: a tesoura substitui o cursor
     root.classList.add('has-cursor');
+    // a ponta gira, suavemente, para a direção em que o mouse se move
+    const scissors = $('.scissors', cursor);
+    let lastX = null, lastY = null, rot = -30, targetRot = -30, turning = false;
+    const turn = () => {
+      const diff = ((targetRot - rot + 540) % 360) - 180; // menor caminho
+      rot += diff * 0.2;
+      scissors.style.setProperty('--rot', rot.toFixed(2));
+      if (Math.abs(diff) > 0.3) requestAnimationFrame(turn); else turning = false;
+    };
     document.addEventListener('pointermove', (e) => {
       if (e.pointerType !== 'mouse') return;
+      if (lastX === null) { lastX = e.clientX; lastY = e.clientY; }
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      if (dx * dx + dy * dy > 64) { // acumula ~8px antes de virar: ignora tremidas
+        targetRot = Math.atan2(dy, dx) * 180 / Math.PI + 90; // SVG aponta para cima
+        lastX = e.clientX; lastY = e.clientY;
+        if (!turning) { turning = true; requestAnimationFrame(turn); }
+      }
       placeCursor(e.clientX, e.clientY);
       cursor.classList.add('is-on', 'is-moving');
       clearTimeout(stopTimer);

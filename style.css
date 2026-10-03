@@ -139,21 +139,20 @@ html:not(.js) .loader { display: none; }
 .has-cursor .cursor.is-on, .cursor.is-tap { opacity: 1; }
 .has-cursor, .has-cursor a, .has-cursor button, .has-cursor label { cursor: none; }
 .scissors {
-  position: absolute; left: -20px; top: -2px; width: 40px; height: 40px; overflow: visible;
-  transform-origin: 20px 2px; transform: rotate(-32deg);
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .55));
-  transition: transform .35s var(--ease-out);
+  /* 64px; a ponta (50,4 no viewBox) fica exatamente no ponteiro */
+  position: absolute; left: -32px; top: -2.6px; width: 64px; height: 64px; overflow: visible;
+  transform-origin: 32px 2.6px;
+  rotate: calc(var(--rot, -30) * 1deg);   /* aponta para a direção do movimento (JS) */
+  scale: 1; transition: scale .35s var(--ease-out);
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, .45));
 }
-.scissors__a, .scissors__b { transform-box: view-box; transform-origin: 32px 33.5px; transition: transform .14s var(--ease); }
-.scissors__blade { fill: var(--text); }
-.scissors__blade--back { fill: #b9bbc4; }
-.scissors__arm { fill: none; stroke: var(--text); stroke-width: 2.6; stroke-linecap: round; }
-.scissors__b .scissors__arm { stroke: #b9bbc4; }
-.scissors__ring { fill: rgba(8, 9, 11, .55); stroke: var(--brand-hi); stroke-width: 2.6; }
-.scissors__pivot { fill: var(--brand-hi); stroke: var(--bg); stroke-width: 1; }
+.scissors__a, .scissors__b { transform-box: view-box; transform-origin: 50px 54px; transition: transform .14s var(--ease); }
+/* preta com contorno branco, como a referência: visível no fundo escuro e no claro */
+.scissors path { fill: #000; stroke: #fff; stroke-width: 2.2; stroke-linejoin: round; paint-order: stroke; }
+.scissors__pivot { fill: #fff; }
 
 /* sobre links e botões: tesoura levemente aberta e maior */
-.cursor.is-hover .scissors { transform: rotate(-32deg) scale(1.12); }
+.cursor.is-hover .scissors { scale: 1.12; }
 .cursor.is-hover .scissors__a { transform: rotate(-9deg); }
 .cursor.is-hover .scissors__b { transform: rotate(9deg); }
 
@@ -163,8 +162,8 @@ html:not(.js) .loader { display: none; }
 /* clique / toque: um corte completo */
 .cursor.is-snip .scissors__a { animation: snipOnceA .32s var(--ease-io); }
 .cursor.is-snip .scissors__b { animation: snipOnceB .32s var(--ease-io); }
-@keyframes snipA { from { transform: rotate(0); } to { transform: rotate(-20deg); } }
-@keyframes snipB { from { transform: rotate(0); } to { transform: rotate(20deg); } }
+@keyframes snipA { from { transform: rotate(0); } to { transform: rotate(-22deg); } }
+@keyframes snipB { from { transform: rotate(0); } to { transform: rotate(22deg); } }
 @keyframes snipOnceA { 0%, 100% { transform: rotate(0); } 45% { transform: rotate(-30deg); } }
 @keyframes snipOnceB { 0%, 100% { transform: rotate(0); } 45% { transform: rotate(30deg); } }
 
