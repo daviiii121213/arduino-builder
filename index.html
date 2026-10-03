@@ -3,39 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Atitude Barbearia | Barbearia em Uberlândia – MG</title>
-  <meta name="description" content="Atitude Barbearia em Uberlândia – MG. Corte, visagismo, barba com acabamento na navalha, sobrancelha e hidratação capilar. Agende seu horário pelo WhatsApp.">
-  <meta name="theme-color" content="#0b0b0c">
+  <title>AT/TUDE Barbearia | Barbearia em Uberlândia – MG</title>
+  <meta name="description" content="AT/TUDE Barbearia em Uberlândia – MG, bairro Laranjeiras. Visagismo, corte na tesoura, barba com finalização em navalha, sobrancelha e hidratação capilar. Agende pelo WhatsApp.">
+  <meta name="theme-color" content="#08090b">
   <meta name="robots" content="index, follow">
 
-  <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
-  <meta property="og:site_name" content="Atitude Barbearia">
-  <meta property="og:title" content="Atitude Barbearia | Uberlândia – MG">
-  <meta property="og:description" content="Corte, visagismo, barba e acabamento na navalha. Agende pelo WhatsApp.">
+  <meta property="og:site_name" content="AT/TUDE Barbearia">
+  <meta property="og:title" content="AT/TUDE Barbearia | Uberlândia – MG">
+  <meta property="og:description" content="Visagismo, corte na tesoura, barba na navalha. Agende seu horário pelo WhatsApp.">
   <meta property="og:image" content="assets/img/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-
-  <!-- SEO local -->
   <meta name="geo.region" content="BR-MG">
   <meta name="geo.placename" content="Uberlândia">
 
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="preload" as="image" href="assets/img/hero-bg.jpg" fetchpriority="high">
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700;800;900&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="assets/img/fachada.webp" imagesrcset="assets/img/fachada-sm.webp 640w, assets/img/fachada.webp 1000w" imagesizes="(min-width: 960px) 58vw, 100vw" fetchpriority="high">
+  <script>document.documentElement.classList.add('js');</script>
   <link rel="stylesheet" href="style.css">
-  <noscript><style>.media img{opacity:1}.reveal{opacity:1;transform:none}.hero [data-hero]{opacity:1;transform:none}</style></noscript>
 
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "BarberShop",
-    "name": "Atitude Barbearia",
+    "name": "AT/TUDE Barbearia",
+    "alternateName": "Atitude Barbearia",
     "logo": "assets/logo-dark.png",
-    "image": "assets/img/galeria-01.jpg",
+    "image": "assets/img/fachada.webp",
     "telephone": "+55 34 99152-3214",
     "address": {
       "@type": "PostalAddress",
@@ -53,212 +53,314 @@
   </script>
 </head>
 <body>
-  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
 
-  <!-- ============ NAVEGAÇÃO ============ -->
+  <!-- Abertura: logo oficial, ~1s -->
+  <div class="loader" id="loader" aria-hidden="true">
+    <img class="loader__logo" src="assets/logo-light.webp" alt="" width="816" height="405">
+    <span class="loader__line"></span>
+  </div>
+
+  <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+  <div class="cursor" id="cursor" aria-hidden="true"><span class="cursor__dot"></span><span class="cursor__ring"></span></div>
+
+  <!-- ================= NAVEGAÇÃO ================= -->
   <header class="nav" id="nav">
-    <div class="nav__inner container">
-      <a class="brand" href="#inicio" aria-label="Atitude Barbearia — início">
-        <img src="assets/logo-light.png" alt="AT/TUDE Barbearia" width="816" height="405">
+    <div class="nav__bar wrap">
+      <a class="nav__logo" href="#inicio" aria-label="AT/TUDE Barbearia — voltar ao início">
+        <img src="assets/logo-light.webp" alt="AT/TUDE Barbearia" width="816" height="405">
       </a>
 
-      <nav class="nav__menu" id="menu" aria-label="Navegação principal">
-        <ul>
+      <nav class="nav__links" aria-label="Navegação principal">
+        <ul id="navList">
           <li><a href="#inicio">Início</a></li>
           <li><a href="#servicos">Serviços</a></li>
           <li><a href="#galeria">Galeria</a></li>
           <li><a href="#sobre">Sobre</a></li>
+          <li><a href="#profissionais">Profissionais</a></li>
           <li><a href="#diferenciais">Diferenciais</a></li>
           <li><a href="#localizacao">Localização</a></li>
           <li><a href="#agendamento">Agendamento</a></li>
         </ul>
-        <a class="btn btn--light btn--sm nav__menu-cta" href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener">Agendar pelo WhatsApp</a>
+        <span class="nav__indicator" id="navIndicator" aria-hidden="true"></span>
       </nav>
 
-      <a class="btn btn--light btn--sm nav__cta" href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener">Agendar</a>
+      <a class="btn btn--primary btn--sm nav__cta" href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener" data-magnetic>
+        <span class="btn__label">Agendar horário</span>
+      </a>
 
-      <button class="nav__toggle" id="navToggle" aria-expanded="false" aria-controls="menu" aria-label="Abrir menu">
+      <button class="nav__toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="menu" aria-label="Abrir menu">
         <span></span><span></span>
       </button>
     </div>
   </header>
 
+  <!-- Menu mobile -->
+  <div class="menu" id="menu" aria-label="Menu" hidden>
+    <nav class="menu__inner wrap" aria-label="Menu mobile">
+      <ul class="menu__list">
+        <li><a href="#inicio">Início</a></li>
+        <li><a href="#servicos">Serviços</a></li>
+        <li><a href="#galeria">Galeria</a></li>
+        <li><a href="#sobre">Sobre</a></li>
+        <li><a href="#profissionais">Profissionais</a></li>
+        <li><a href="#diferenciais">Diferenciais</a></li>
+        <li><a href="#localizacao">Localização</a></li>
+        <li><a href="#agendamento">Agendamento</a></li>
+      </ul>
+      <div class="menu__foot">
+        <a class="btn btn--primary btn--block" href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener">
+          <svg class="i" aria-hidden="true"><use href="#i-wa"/></svg><span class="btn__label">Agendar horário</span>
+        </a>
+        <p class="mono">Av. Continental, 58 — Laranjeiras · Uberlândia – MG</p>
+        <p class="menu__social"><a href="https://www.instagram.com/atitudebarbearia" target="_blank" rel="noopener">@atitudebarbearia</a> <a href="https://www.instagram.com/junioratitude_" target="_blank" rel="noopener">@junioratitude_</a></p>
+      </div>
+    </nav>
+  </div>
+
   <main id="conteudo">
 
-    <!-- ============ INÍCIO / HERO ============ -->
+    <!-- ================= HERO ================= -->
     <section class="hero" id="inicio" aria-labelledby="hero-title">
-      <div class="hero__media" aria-hidden="true">
-        <div class="hero__parallax" id="heroParallax">
-          <div class="media media--hero">
-            <!-- Fotografia real do salão, desfocada como fundo atmosférico (troque por uma foto em alta resolução quando houver) -->
-            <img src="assets/img/hero-bg.jpg" alt="" fetchpriority="high" decoding="async">
-          </div>
+      <div class="hero__media">
+        <div class="hero__frame" data-parallax="0.12">
+          <img class="hero__img"
+               src="assets/img/fachada.webp"
+               srcset="assets/img/fachada-sm.webp 640w, assets/img/fachada.webp 1000w"
+               sizes="(min-width: 960px) 58vw, 100vw"
+               alt="Fachada da AT/TUDE Barbearia à noite, com o letreiro aceso e o salão iluminado"
+               width="1000" height="1624" fetchpriority="high" decoding="async">
         </div>
-        <div class="hero__shade"></div>
+        <span class="hero__veil" aria-hidden="true"></span>
       </div>
 
-      <div class="hero__content container">
-        <div class="hero__logo" data-hero>
-          <img src="assets/logo-light.png" alt="AT/TUDE Barbearia" width="816" height="405" fetchpriority="high">
-        </div>
-        <p class="eyebrow" data-hero>Uberlândia – MG</p>
+      <div class="hero__content wrap">
+        <img class="hero__logo" data-hero src="assets/logo-light.webp" alt="AT/TUDE Barbearia" width="816" height="405">
+        <p class="mono hero__eyebrow" data-hero>Barbearia · Uberlândia — MG</p>
         <h1 class="hero__title" id="hero-title">
-          <span class="line" data-hero><span>Precisão no corte.</span></span>
-          <span class="line" data-hero><span>Atitude no estilo.</span></span>
+          <span class="line" data-hero><span>Estilo.</span></span>
+          <span class="line" data-hero><span>Precisão.</span></span>
+          <span class="line line--accent" data-hero><span>Atitude.</span></span>
         </h1>
-        <p class="hero__lead" data-hero>Corte, visagismo e barba com acabamento na navalha. Escolha o serviço e agende pelo WhatsApp.</p>
-        <div class="hero__actions" data-hero>
-          <a class="btn btn--light btn--lg" href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener">
-            <svg class="icon" aria-hidden="true"><use href="#i-wa"/></svg>
-            Agendar pelo WhatsApp
+        <p class="hero__lead" data-hero>Visagismo, corte na tesoura e barba com finalização em navalha. Escolha o serviço e agende direto pelo WhatsApp.</p>
+        <div class="hero__ctas">
+          <a class="btn btn--primary btn--lg" data-hero href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener" data-magnetic>
+            <svg class="i" aria-hidden="true"><use href="#i-wa"/></svg><span class="btn__label">Agendar horário</span>
           </a>
-          <a class="btn btn--ghost btn--lg" href="#servicos">Ver serviços</a>
+          <a class="btn btn--ghost btn--lg" data-hero href="#servicos" data-magnetic><span class="btn__label">Ver serviços</span></a>
         </div>
       </div>
 
-      <a class="hero__scroll" href="#servicos" aria-label="Rolar para serviços"><span></span></a>
+      <div class="hero__meta wrap" data-hero>
+        <span class="mono">Av. Continental, 58 — Laranjeiras</span>
+        <a class="hero__scroll" href="#servicos" aria-label="Rolar para os serviços"><span class="mono">Role</span><i aria-hidden="true"></i></a>
+      </div>
     </section>
 
-    <!-- ============ SERVIÇOS ============ -->
-    <section class="section" id="servicos" aria-labelledby="servicos-title">
-      <div class="container">
-        <header class="section__head reveal">
-          <p class="eyebrow">01 — Serviços</p>
-          <h2 id="servicos-title">Serviços</h2>
-          <p class="section__lead">Valores e disponibilidade são confirmados no atendimento pelo WhatsApp.</p>
+    <!-- Faixa de serviços movida pela rolagem -->
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker__track" data-scroll-x="-0.35">
+        <span>Visagismo</span><b>/</b><span>Corte na tesoura</span><b>/</b><span>Barba na navalha</span><b>/</b><span>Sobrancelha</span><b>/</b><span>Hidratação capilar</span><b>/</b>
+        <span>Visagismo</span><b>/</b><span>Corte na tesoura</span><b>/</b><span>Barba na navalha</span><b>/</b><span>Sobrancelha</span><b>/</b><span>Hidratação capilar</span><b>/</b>
+      </div>
+    </div>
+
+    <!-- ================= SERVIÇOS ================= -->
+    <section class="section services" id="servicos" aria-labelledby="servicos-title">
+      <div class="wrap">
+        <header class="head">
+          <p class="mono head__eyebrow" data-reveal="fade-right">Serviços</p>
+          <h2 class="head__title" id="servicos-title" data-reveal="lines">O que fazemos</h2>
+          <p class="head__text" data-reveal="fade-up">Valores e disponibilidade são confirmados no atendimento pelo WhatsApp.</p>
         </header>
 
-        <!--
-          Serviços confirmados no site oficial (atitudebarbearia.com.br).
-          Para exibir preço/duração, preencha data-price / data-duration (ex.: data-price="R$ 50" data-duration="40 min").
-        -->
-        <ol class="services" id="servicesList">
-          <li class="service reveal" data-service="Visagismo" data-price="" data-duration="">
-            <span class="service__num">01</span>
-            <div class="service__body">
+        <!-- Serviços do site oficial. Preço/duração: preencha data-price / data-duration (ex.: data-price="R$ 50"). -->
+        <ol class="svc" id="services" data-stagger>
+          <li class="svc__item" data-reveal="clip-left" data-service="Visagismo" data-price="" data-duration="">
+            <svg class="svc__icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 7c-7.5 0-12.5 5.7-12.5 14.2S17.5 41 24 41s12.5-11.3 12.5-19.8S31.5 7 24 7Z"/><path d="M6 24h5M37 24h5M24 2v5M24 41v5"/></svg>
+            <div class="svc__body">
               <h3>Visagismo</h3>
-              <p>Corte social ou degradê, pensado para o formato do rosto.</p>
+              <p>Corte social ou degradê, definido a partir do formato do rosto.</p>
             </div>
-            <span class="service__meta"></span>
-            <a class="service__cta" href="https://wa.me/5534991523214" data-wa="Visagismo" target="_blank" rel="noopener" aria-label="Agendar Visagismo pelo WhatsApp">Agendar <span aria-hidden="true">→</span></a>
+            <span class="svc__meta"></span>
+            <a class="svc__cta" href="https://wa.me/5534991523214" data-wa="Visagismo" target="_blank" rel="noopener" aria-label="Agendar visagismo pelo WhatsApp"><span>Agendar</span><svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
           </li>
-          <li class="service reveal" data-service="Corte na tesoura" data-price="" data-duration="">
-            <span class="service__num">02</span>
-            <div class="service__body">
-              <h3>Cabelo</h3>
-              <p>Corte com tesoura.</p>
+          <li class="svc__item" data-reveal="clip-left" data-service="Corte na tesoura" data-price="" data-duration="">
+            <svg class="svc__icon" viewBox="0 0 48 48" aria-hidden="true"><circle cx="12" cy="36" r="5"/><circle cx="24" cy="38" r="5"/><path d="M15 32 38 6M21 34 30 18"/></svg>
+            <div class="svc__body">
+              <h3>Corte na tesoura</h3>
+              <p>Cabelo cortado com tesoura.</p>
             </div>
-            <span class="service__meta"></span>
-            <a class="service__cta" href="https://wa.me/5534991523214" data-wa="Corte na tesoura" target="_blank" rel="noopener" aria-label="Agendar corte na tesoura pelo WhatsApp">Agendar <span aria-hidden="true">→</span></a>
+            <span class="svc__meta"></span>
+            <a class="svc__cta" href="https://wa.me/5534991523214" data-wa="Corte na tesoura" target="_blank" rel="noopener" aria-label="Agendar corte na tesoura pelo WhatsApp"><span>Agendar</span><svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
           </li>
-          <li class="service reveal" data-service="Selamento de barba" data-price="" data-duration="">
-            <span class="service__num">03</span>
-            <div class="service__body">
+          <li class="svc__item" data-reveal="clip-left" data-service="Selamento de barba" data-price="" data-duration="">
+            <svg class="svc__icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 30 32 6l8 8-24 24-4-4"/><path d="M12 34l-6 6M20 14l12 12"/></svg>
+            <div class="svc__body">
               <h3>Selamento de barba</h3>
               <p>Com finalização em navalha.</p>
             </div>
-            <span class="service__meta"></span>
-            <a class="service__cta" href="https://wa.me/5534991523214" data-wa="Selamento de barba" target="_blank" rel="noopener" aria-label="Agendar selamento de barba pelo WhatsApp">Agendar <span aria-hidden="true">→</span></a>
+            <span class="svc__meta"></span>
+            <a class="svc__cta" href="https://wa.me/5534991523214" data-wa="Selamento de barba" target="_blank" rel="noopener" aria-label="Agendar selamento de barba pelo WhatsApp"><span>Agendar</span><svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
           </li>
-          <li class="service reveal" data-service="Sobrancelha" data-price="" data-duration="">
-            <span class="service__num">04</span>
-            <div class="service__body">
+          <li class="svc__item" data-reveal="clip-left" data-service="Sobrancelha" data-price="" data-duration="">
+            <svg class="svc__icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 26c8-9 22-11 36-4"/><path d="M12 34c5-3 11-4 17-2"/></svg>
+            <div class="svc__body">
               <h3>Sobrancelha</h3>
               <p>Design feito com navalha.</p>
             </div>
-            <span class="service__meta"></span>
-            <a class="service__cta" href="https://wa.me/5534991523214" data-wa="Sobrancelha" target="_blank" rel="noopener" aria-label="Agendar sobrancelha pelo WhatsApp">Agendar <span aria-hidden="true">→</span></a>
+            <span class="svc__meta"></span>
+            <a class="svc__cta" href="https://wa.me/5534991523214" data-wa="Sobrancelha" target="_blank" rel="noopener" aria-label="Agendar sobrancelha pelo WhatsApp"><span>Agendar</span><svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
           </li>
-          <li class="service reveal" data-service="Hidratação capilar" data-price="" data-duration="">
-            <span class="service__num">05</span>
-            <div class="service__body">
+          <li class="svc__item" data-reveal="clip-left" data-service="Hidratação capilar" data-price="" data-duration="">
+            <svg class="svc__icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5s-12 14-12 23a12 12 0 0 0 24 0C36 19 24 5 24 5Z"/><path d="M18 29a6 6 0 0 0 6 6"/></svg>
+            <div class="svc__body">
               <h3>Hidratação capilar</h3>
               <p>Tratamento para os fios.</p>
             </div>
-            <span class="service__meta"></span>
-            <a class="service__cta" href="https://wa.me/5534991523214" data-wa="Hidratação capilar" target="_blank" rel="noopener" aria-label="Agendar hidratação capilar pelo WhatsApp">Agendar <span aria-hidden="true">→</span></a>
+            <span class="svc__meta"></span>
+            <a class="svc__cta" href="https://wa.me/5534991523214" data-wa="Hidratação capilar" target="_blank" rel="noopener" aria-label="Agendar hidratação capilar pelo WhatsApp"><span>Agendar</span><svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
           </li>
         </ol>
       </div>
     </section>
 
-    <!-- ============ GALERIA ============ -->
-    <section class="section section--alt" id="galeria" aria-labelledby="galeria-title">
-      <div class="container">
-        <header class="section__head section__head--row reveal">
+    <!-- ================= EXPERIÊNCIA (Sobre) ================= -->
+    <section class="section xp" id="sobre" aria-labelledby="xp-title">
+      <span class="xp__glyph" aria-hidden="true" data-parallax="-0.18">A/</span>
+      <div class="wrap xp__grid">
+        <figure class="xp__main" data-reveal="mask">
+          <div class="xp__frame" data-parallax="0.08">
+            <img src="assets/img/lavatorios.webp" srcset="assets/img/lavatorios-sm.webp 291w, assets/img/lavatorios.webp 582w" sizes="(min-width: 960px) 40vw, 90vw"
+                 alt="Área de lavatórios da AT/TUDE Barbearia, com armários escuros e parede verde" width="582" height="858" loading="lazy" decoding="async">
+          </div>
+        </figure>
+        <figure class="xp__aside" data-reveal="fade-left">
+          <img src="assets/img/acabamento.webp" srcset="assets/img/acabamento-sm.webp 321w, assets/img/acabamento.webp 642w" sizes="(min-width: 960px) 20vw, 45vw"
+               alt="Cliente durante o acabamento do corte, com a parede verde ao fundo" width="642" height="1018" loading="lazy" decoding="async">
+        </figure>
+
+        <div class="xp__text">
+          <p class="mono head__eyebrow" data-reveal="fade-right">Experiência AT/TUDE</p>
+          <h2 class="head__title" id="xp-title" data-reveal="lines">Do corte ao acabamento na navalha.</h2>
+          <p data-reveal="blur">A AT/TUDE é uma barbearia em Uberlândia, no bairro Laranjeiras. Atende com visagismo, corte na tesoura, barba com finalização em navalha, sobrancelha e hidratação capilar.</p>
+          <p data-reveal="blur">O agendamento é feito pelo WhatsApp: você escolhe o serviço e o profissional.</p>
+          <ul class="xp__facts" data-stagger>
+            <li data-reveal="fade-up"><span class="mono">Unidades</span><strong>2 em Uberlândia</strong></li>
+            <li data-reveal="fade-up"><span class="mono">Agendamento</span><strong>WhatsApp</strong></li>
+            <li data-reveal="fade-up"><span class="mono">Acabamento</span><strong>Navalha</strong></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= GALERIA ================= -->
+    <section class="section gallery" id="galeria" aria-labelledby="galeria-title">
+      <div class="wrap">
+        <header class="head head--row">
           <div>
-            <p class="eyebrow">02 — Galeria</p>
-            <h2 id="galeria-title">Trabalho real</h2>
+            <p class="mono head__eyebrow" data-reveal="fade-right">Galeria</p>
+            <h2 class="head__title" id="galeria-title" data-reveal="lines">Trabalho real</h2>
           </div>
-          <a class="link-arrow" href="https://www.instagram.com/atitudebarbearia" target="_blank" rel="noopener">Ver mais no Instagram <span aria-hidden="true">↗</span></a>
+          <a class="link" href="https://www.instagram.com/atitudebarbearia" target="_blank" rel="noopener" data-reveal="fade-left"><span>Mais no Instagram</span><svg class="i" aria-hidden="true"><use href="#i-out"/></svg></a>
         </header>
 
-        <!-- Fotos reais enviadas pelo cliente. Para ampliar a galeria, adicione novos itens no mesmo formato. -->
-        <ul class="gallery" id="gallery">
-          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto: barbeiros atendendo no salão"><img src="assets/img/galeria-01.jpg" alt="Barbeiros atendendo clientes no salão da Atitude Barbearia" width="282" height="424" loading="lazy" decoding="async"></button></li>
-          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto: acabamento de barba"><img src="assets/img/galeria-02.jpg" alt="Acabamento de barba com máquina na Atitude Barbearia" width="293" height="422" loading="lazy" decoding="async"></button></li>
-          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto: finalização de corte"><img src="assets/img/galeria-03.jpg" alt="Barbeiro finalizando o corte de um cliente na Atitude Barbearia" width="285" height="423" loading="lazy" decoding="async"></button></li>
-          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto: área de lavatórios"><img src="assets/img/galeria-04.jpg" alt="Área de lavatórios da Atitude Barbearia com parede verde" width="291" height="429" loading="lazy" decoding="async"></button></li>
-          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto: barbeiro da equipe"><img src="assets/img/galeria-05.jpg" alt="Barbeiro da Atitude Barbearia sorrindo, com a camiseta da marca" width="285" height="373" loading="lazy" decoding="async"></button></li>
-          <li class="gallery__item reveal"><button class="media" type="button" aria-label="Ampliar foto: acabamento do corte"><img src="assets/img/galeria-06.jpg" alt="Cliente durante o acabamento do corte na Atitude Barbearia" width="321" height="509" loading="lazy" decoding="async"></button></li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- ============ SOBRE ============ -->
-    <section class="section" id="sobre" aria-labelledby="sobre-title">
-      <div class="container about">
-        <div class="about__media reveal" data-optional>
-          <div class="media media--portrait">
-            <img src="assets/img/sobre.jpg" alt="Fachada da Atitude Barbearia à noite, com o letreiro aceso e o salão iluminado" width="1000" height="1624" loading="lazy" decoding="async">
+        <div class="masonry" id="gallery">
+          <div class="masonry__col" data-parallax="0.04">
+            <button class="shot shot--tall" type="button" data-reveal="mask" data-full="assets/img/equipe.webp" data-caption="Equipe em atendimento">
+              <img src="assets/img/equipe-sm.webp" srcset="assets/img/equipe-sm.webp 282w, assets/img/equipe.webp 564w" sizes="(min-width: 960px) 30vw, 46vw" alt="Barbeiros atendendo clientes no salão da AT/TUDE Barbearia" width="564" height="848" loading="lazy" decoding="async">
+              <span class="shot__cap"><span class="mono">01</span>Equipe em atendimento</span>
+            </button>
+            <button class="shot shot--square" type="button" data-reveal="mask" data-full="assets/img/lavatorios.webp" data-caption="Área de lavatórios">
+              <img src="assets/img/lavatorios-sm.webp" srcset="assets/img/lavatorios-sm.webp 291w, assets/img/lavatorios.webp 582w" sizes="(min-width: 960px) 30vw, 46vw" alt="Lavatórios da AT/TUDE Barbearia com parede verde" width="582" height="858" loading="lazy" decoding="async">
+              <span class="shot__cap"><span class="mono">04</span>Área de lavatórios</span>
+            </button>
           </div>
-        </div>
-        <div class="about__text reveal">
-          <p class="eyebrow">03 — Sobre</p>
-          <h2 id="sobre-title">Atitude Barbearia</h2>
-          <p>Barbearia em Uberlândia – MG, no bairro Laranjeiras. Atende com corte social e degradê, corte na tesoura, barba com finalização em navalha, sobrancelha e hidratação capilar.</p>
-          <p>O agendamento é feito pelo WhatsApp: você escolhe o serviço e o profissional.</p>
-
-          <div class="pro">
-            <div class="pro__media media" data-optional>
-              <!-- FOTO REAL: salve em assets/img/junior.jpg -->
-              <img src="assets/img/junior.jpg" alt="Junior, profissional da Atitude Barbearia" loading="lazy" decoding="async">
-            </div>
-            <div>
-              <p class="pro__name">Junior</p>
-              <p class="pro__role">Profissional da Atitude Barbearia</p>
-              <a class="link-arrow" href="https://www.instagram.com/junioratitude_" target="_blank" rel="noopener">@junioratitude_ <span aria-hidden="true">↗</span></a>
-            </div>
+          <div class="masonry__col masonry__col--offset" data-parallax="-0.06">
+            <button class="shot" type="button" data-reveal="mask" data-full="assets/img/barba.webp" data-caption="Acabamento de barba">
+              <img src="assets/img/barba-sm.webp" srcset="assets/img/barba-sm.webp 293w, assets/img/barba.webp 586w" sizes="(min-width: 960px) 30vw, 46vw" alt="Acabamento de barba com máquina na AT/TUDE Barbearia" width="586" height="844" loading="lazy" decoding="async">
+              <span class="shot__cap"><span class="mono">02</span>Acabamento de barba</span>
+            </button>
+            <button class="shot shot--tall" type="button" data-reveal="mask" data-full="assets/img/barbeiro.webp" data-caption="Equipe AT/TUDE">
+              <img src="assets/img/barbeiro-sm.webp" srcset="assets/img/barbeiro-sm.webp 285w, assets/img/barbeiro.webp 570w" sizes="(min-width: 960px) 30vw, 46vw" alt="Barbeiro da AT/TUDE sorrindo, com a camiseta da marca" width="570" height="746" loading="lazy" decoding="async">
+              <span class="shot__cap"><span class="mono">05</span>Equipe AT/TUDE</span>
+            </button>
+          </div>
+          <div class="masonry__col" data-parallax="0.02">
+            <button class="shot shot--tall" type="button" data-reveal="mask" data-full="assets/img/finalizacao.webp" data-caption="Finalização do corte">
+              <img src="assets/img/finalizacao-sm.webp" srcset="assets/img/finalizacao-sm.webp 285w, assets/img/finalizacao.webp 570w" sizes="(min-width: 960px) 30vw, 46vw" alt="Barbeiro finalizando o corte de um cliente na AT/TUDE Barbearia" width="570" height="846" loading="lazy" decoding="async">
+              <span class="shot__cap"><span class="mono">03</span>Finalização do corte</span>
+            </button>
+            <button class="shot" type="button" data-reveal="mask" data-full="assets/img/acabamento.webp" data-caption="Acabamento do corte">
+              <img src="assets/img/acabamento-sm.webp" srcset="assets/img/acabamento-sm.webp 321w, assets/img/acabamento.webp 642w" sizes="(min-width: 960px) 30vw, 46vw" alt="Cliente durante o acabamento do corte na AT/TUDE Barbearia" width="642" height="1018" loading="lazy" decoding="async">
+              <span class="shot__cap"><span class="mono">06</span>Acabamento do corte</span>
+            </button>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ============ DIFERENCIAIS ============ -->
-    <section class="section section--alt" id="diferenciais" aria-labelledby="dif-title">
-      <div class="container">
-        <header class="section__head reveal">
-          <p class="eyebrow">04 — Diferenciais</p>
-          <h2 id="dif-title">O que você encontra aqui</h2>
+    <!-- ================= PROFISSIONAIS ================= -->
+    <section class="section pros" id="profissionais" aria-labelledby="pros-title">
+      <div class="wrap pros__grid">
+        <figure class="pros__photo" data-reveal="clip-right">
+          <div class="pros__frame" data-parallax="0.06">
+            <img src="assets/img/equipe.webp" srcset="assets/img/equipe-sm.webp 282w, assets/img/equipe.webp 564w" sizes="(min-width: 960px) 40vw, 92vw"
+                 alt="Equipe da AT/TUDE Barbearia atendendo no salão" width="564" height="848" loading="lazy" decoding="async">
+          </div>
+          <figcaption class="mono">Equipe AT/TUDE em atendimento</figcaption>
+        </figure>
+
+        <div class="pros__text">
+          <p class="mono head__eyebrow" data-reveal="fade-right">Profissionais</p>
+          <h2 class="head__title" id="pros-title" data-reveal="lines">Escolha com quem cortar.</h2>
+          <p class="head__text" data-reveal="fade-up">No agendamento pelo WhatsApp você indica o profissional de sua preferência.</p>
+
+          <!-- Somente profissionais confirmados. Para adicionar, duplique o <article>. -->
+          <div class="pros__list" data-stagger>
+            <article class="pro" data-reveal="scale">
+              <div class="pro__head">
+                <span class="pro__mono" aria-hidden="true">J</span>
+                <div>
+                  <h3 class="pro__name">Junior</h3>
+                  <p class="pro__role">Profissional AT/TUDE</p>
+                </div>
+              </div>
+              <div class="pro__actions">
+                <a class="link" href="https://www.instagram.com/junioratitude_" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="#i-ig"/></svg><span>@junioratitude_</span></a>
+                <a class="btn btn--ghost btn--sm" href="https://wa.me/5534991523214" data-wa data-pro="Junior" target="_blank" rel="noopener" data-magnetic><span class="btn__label">Agendar com Junior</span></a>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= DIFERENCIAIS ================= -->
+    <section class="section diff" id="diferenciais" aria-labelledby="diff-title">
+      <div class="wrap">
+        <header class="head">
+          <p class="mono head__eyebrow" data-reveal="fade-right">Diferenciais</p>
+          <h2 class="head__title diff__title" id="diff-title" data-scroll-x="0.05">Detalhes que fazem a diferença</h2>
         </header>
-        <ul class="features">
-          <li class="feature reveal">
-            <svg class="feature__icon" aria-hidden="true"><use href="#i-face"/></svg>
+        <ul class="diff__grid" data-stagger>
+          <li class="diff__item" data-reveal="fade-up">
+            <svg class="diff__icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 7c-7.5 0-12.5 5.7-12.5 14.2S17.5 41 24 41s12.5-11.3 12.5-19.8S31.5 7 24 7Z"/><path d="M6 24h5M37 24h5M24 2v5M24 41v5"/></svg>
             <h3>Visagismo</h3>
             <p>Corte definido a partir do formato do rosto.</p>
           </li>
-          <li class="feature reveal">
-            <svg class="feature__icon" aria-hidden="true"><use href="#i-blade"/></svg>
+          <li class="diff__item" data-reveal="fade-up">
+            <svg class="diff__icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 30 32 6l8 8-24 24-4-4"/><path d="M12 34l-6 6M20 14l12 12"/></svg>
             <h3>Acabamento na navalha</h3>
             <p>Na barba e na sobrancelha.</p>
           </li>
-          <li class="feature reveal">
-            <svg class="feature__icon" aria-hidden="true"><use href="#i-chat"/></svg>
+          <li class="diff__item" data-reveal="fade-up">
+            <svg class="diff__icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M7 9h34v22H21l-9 8v-8H7z"/><path d="M14 17h20M14 23h12"/></svg>
             <h3>Agendamento pelo WhatsApp</h3>
             <p>Escolha o serviço e o profissional.</p>
           </li>
-          <li class="feature reveal">
-            <svg class="feature__icon" aria-hidden="true"><use href="#i-pin"/></svg>
+          <li class="diff__item" data-reveal="fade-up">
+            <svg class="diff__icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 40s-9-8-9-16a9 9 0 0 1 18 0c0 8-9 16-9 16Z"/><path d="M34 34s-6-5.4-6-10.8a6 6 0 0 1 12 0C40 28.6 34 34 34 34Z"/><circle cx="16" cy="24" r="3"/></svg>
             <h3>Duas unidades</h3>
             <p>Atendimento em Uberlândia – MG.</p>
           </li>
@@ -266,94 +368,76 @@
       </div>
     </section>
 
-    <!-- ============ LOCALIZAÇÃO ============ -->
-    <section class="section" id="localizacao" aria-labelledby="local-title">
-      <div class="container location">
-        <div class="location__info reveal">
-          <p class="eyebrow">05 — Localização</p>
-          <h2 id="local-title">Onde estamos</h2>
-
-          <address class="location__address">
-            <span class="label">Unidade Laranjeiras</span>
-            Av. Continental, 58 — Laranjeiras<br>
-            Uberlândia – MG, 38410-314
-          </address>
-
-          <dl class="location__list">
-            <div>
-              <dt>WhatsApp</dt>
-              <dd><a href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener">(34) 99152-3214</a></dd>
-            </div>
-            <div>
-              <dt>Horários</dt>
-              <!-- Preencha com os horários oficiais quando confirmados -->
-              <dd>Consulte a disponibilidade pelo WhatsApp</dd>
-            </div>
-            <div>
-              <dt>Outra unidade</dt>
-              <dd>Endereço disponível pelo WhatsApp</dd>
-            </div>
+    <!-- ================= LOCALIZAÇÃO ================= -->
+    <section class="section loc" id="localizacao" aria-labelledby="loc-title">
+      <div class="wrap loc__grid">
+        <div class="loc__info">
+          <p class="mono head__eyebrow" data-reveal="fade-right">Localização</p>
+          <h2 class="head__title" id="loc-title" data-reveal="lines">Onde estamos</h2>
+          <dl class="loc__list" data-stagger>
+            <div data-reveal="fade-up"><dt class="mono">Unidade Laranjeiras</dt><dd>Av. Continental, 58 — Laranjeiras<br>Uberlândia – MG · 38410-314</dd></div>
+            <div data-reveal="fade-up"><dt class="mono">WhatsApp</dt><dd><a href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener">(34) 99152-3214</a></dd></div>
+            <!-- Preencha com os horários oficiais quando confirmados -->
+            <div data-reveal="fade-up"><dt class="mono">Horários</dt><dd>Consulte a disponibilidade pelo WhatsApp</dd></div>
+            <div data-reveal="fade-up"><dt class="mono">Outra unidade</dt><dd>Endereço disponível pelo WhatsApp</dd></div>
           </dl>
-
-          <a class="btn btn--light" href="https://www.google.com/maps/dir/?api=1&amp;destination=Atitude+Barbearia,+Av.+Continental,+58,+Laranjeiras,+Uberl%C3%A2ndia+-+MG,+38410-314" target="_blank" rel="noopener">
-            <svg class="icon" aria-hidden="true"><use href="#i-route"/></svg>
-            Como chegar
-          </a>
+          <div class="loc__ctas" data-stagger>
+            <a class="btn btn--primary" data-reveal="fade-up" href="https://www.google.com/maps/search/?api=1&amp;query=Av.+Continental,+58,+Laranjeiras,+Uberl%C3%A2ndia+-+MG,+38410-314" target="_blank" rel="noopener" data-magnetic>
+              <svg class="i" aria-hidden="true"><use href="#i-pin"/></svg><span class="btn__label">Abrir no Google Maps</span>
+            </a>
+            <a class="btn btn--ghost" data-reveal="fade-up" href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener" data-magnetic>
+              <svg class="i" aria-hidden="true"><use href="#i-wa"/></svg><span class="btn__label">Chamar no WhatsApp</span>
+            </a>
+          </div>
         </div>
 
-        <div class="location__map reveal">
-          <iframe
-            title="Mapa: Atitude Barbearia, Av. Continental, 58 — Laranjeiras, Uberlândia – MG"
+        <div class="loc__map" data-reveal="clip-up">
+          <iframe title="Mapa: AT/TUDE Barbearia, Av. Continental, 58 — Laranjeiras, Uberlândia – MG"
             src="https://www.google.com/maps?q=Av.+Continental,+58,+Laranjeiras,+Uberl%C3%A2ndia+-+MG,+38410-314&amp;output=embed"
             loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
         </div>
       </div>
     </section>
 
-    <!-- ============ AGENDAMENTO ============ -->
-    <section class="booking" id="agendamento" aria-labelledby="booking-title">
-      <div class="container booking__inner reveal">
-        <p class="eyebrow">06 — Agendamento</p>
-        <h2 id="booking-title">Reserve seu horário</h2>
-        <p class="booking__lead">Selecione o serviço e fale direto com a barbearia.</p>
+    <!-- ================= AGENDAMENTO ================= -->
+    <section class="book" id="agendamento" aria-labelledby="book-title">
+      <div class="book__bar" aria-hidden="true" data-reveal="bar"><img src="assets/brand-bar.webp" alt="" width="774" height="149" loading="lazy"></div>
+      <div class="wrap book__inner">
+        <p class="mono head__eyebrow" data-reveal="fade-down">Agendamento</p>
+        <h2 class="book__title" id="book-title" data-reveal="lines">Agende seu horário</h2>
+        <p class="book__lead" data-reveal="fade-up">Selecione os serviços e fale direto com a barbearia.</p>
 
-        <form class="booking__form" id="bookingForm" novalidate>
+        <form class="book__form" id="bookForm" novalidate>
           <fieldset>
-            <legend class="sr-only">Serviço desejado</legend>
-            <div class="chips" id="serviceChips"><!-- gerado a partir da lista de serviços --></div>
+            <legend class="sr-only">Serviços desejados</legend>
+            <div class="chips" id="chips" data-stagger></div>
           </fieldset>
-          <a class="btn btn--light btn--xl" id="bookingLink" href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener">
-            <svg class="icon" aria-hidden="true"><use href="#i-wa"/></svg>
-            Agendar pelo WhatsApp
+          <a class="btn btn--primary btn--xl book__cta" id="bookLink" href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener" data-magnetic data-reveal="scale">
+            <svg class="i" aria-hidden="true"><use href="#i-wa"/></svg><span class="btn__label">Agendar horário</span>
           </a>
-          <p class="booking__hint" id="bookingHint" aria-live="polite">Nenhum serviço selecionado — você pode escolher na conversa.</p>
+          <p class="book__hint mono" id="bookHint" aria-live="polite">Nenhum serviço selecionado — você pode escolher na conversa.</p>
         </form>
       </div>
     </section>
 
-    <!-- ============ INSTAGRAM ============ -->
-    <section class="section section--tight" id="instagram" aria-labelledby="ig-title">
-      <div class="container">
+    <!-- ================= INSTAGRAM ================= -->
+    <section class="section ig" id="instagram" aria-labelledby="ig-title">
+      <div class="wrap">
+        <p class="mono head__eyebrow" data-reveal="fade-right">Instagram</p>
         <h2 class="sr-only" id="ig-title">Instagram</h2>
-        <ul class="social">
-          <li class="reveal">
-            <a class="social__card" href="https://www.instagram.com/atitudebarbearia" target="_blank" rel="noopener">
-              <svg class="icon icon--lg" aria-hidden="true"><use href="#i-ig"/></svg>
-              <span>
-                <span class="social__handle">@atitudebarbearia</span>
-                <span class="social__desc">Perfil oficial da barbearia</span>
-              </span>
-              <span class="social__arrow" aria-hidden="true">↗</span>
+        <ul class="ig__list" data-stagger>
+          <li data-reveal="fade-up">
+            <a class="ig__row" href="https://www.instagram.com/atitudebarbearia" target="_blank" rel="noopener">
+              <span class="ig__handle">@atitudebarbearia</span>
+              <span class="ig__desc mono">Perfil oficial da barbearia</span>
+              <svg class="i ig__arrow" aria-hidden="true"><use href="#i-out"/></svg>
             </a>
           </li>
-          <li class="reveal">
-            <a class="social__card" href="https://www.instagram.com/junioratitude_" target="_blank" rel="noopener">
-              <svg class="icon icon--lg" aria-hidden="true"><use href="#i-ig"/></svg>
-              <span>
-                <span class="social__handle">@junioratitude_</span>
-                <span class="social__desc">Junior · Profissional</span>
-              </span>
-              <span class="social__arrow" aria-hidden="true">↗</span>
+          <li data-reveal="fade-up">
+            <a class="ig__row" href="https://www.instagram.com/junioratitude_" target="_blank" rel="noopener">
+              <span class="ig__handle">@junioratitude_</span>
+              <span class="ig__desc mono">Junior · Profissional</span>
+              <svg class="i ig__arrow" aria-hidden="true"><use href="#i-out"/></svg>
             </a>
           </li>
         </ul>
@@ -361,39 +445,56 @@
     </section>
   </main>
 
+  <!-- ================= RODAPÉ ================= -->
   <footer class="footer">
-    <div class="container footer__inner">
-      <a class="brand" href="#inicio" aria-label="Voltar ao início">
-        <img src="assets/logo-light.png" alt="AT/TUDE Barbearia" width="816" height="405" loading="lazy">
-      </a>
-      <p class="footer__meta">Av. Continental, 58 — Laranjeiras · Uberlândia – MG</p>
-      <p class="footer__meta">© <span id="year">2026</span> Atitude Barbearia</p>
+    <div class="wrap footer__grid">
+      <div class="footer__brand">
+        <img src="assets/logo-light.webp" alt="AT/TUDE Barbearia" width="816" height="405" loading="lazy">
+      </div>
+      <nav class="footer__col" aria-label="Rodapé">
+        <p class="mono">Navegação</p>
+        <a href="#servicos">Serviços</a><a href="#galeria">Galeria</a><a href="#sobre">Sobre</a><a href="#localizacao">Localização</a>
+      </nav>
+      <div class="footer__col">
+        <p class="mono">Contato</p>
+        <a href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener">WhatsApp (34) 99152-3214</a>
+        <span>Av. Continental, 58 — Laranjeiras<br>Uberlândia – MG</span>
+      </div>
+      <div class="footer__col">
+        <p class="mono">Redes</p>
+        <a href="https://www.instagram.com/atitudebarbearia" target="_blank" rel="noopener">@atitudebarbearia</a>
+        <a href="https://www.instagram.com/junioratitude_" target="_blank" rel="noopener">@junioratitude_</a>
+      </div>
+    </div>
+    <div class="wrap footer__base mono">
+      <span>© <span id="year">2026</span> AT/TUDE Barbearia</span>
+      <a href="#inicio">Voltar ao topo ↑</a>
     </div>
   </footer>
 
-  <!-- CTA persistente (mobile) / flutuante (desktop) -->
-  <a class="wa-float" href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener" aria-label="Agendar pelo WhatsApp">
-    <svg class="icon" aria-hidden="true"><use href="#i-wa"/></svg>
-    <span>Agendar pelo WhatsApp</span>
+  <!-- WhatsApp flutuante (desktop) / barra fixa (mobile) -->
+  <a class="wa" id="waFloat" href="https://wa.me/5534991523214" data-wa target="_blank" rel="noopener" aria-label="Agendar horário pelo WhatsApp">
+    <svg class="i" aria-hidden="true"><use href="#i-wa"/></svg><span>Agendar horário</span>
   </a>
 
   <!-- Lightbox -->
-  <dialog class="lightbox" id="lightbox" aria-label="Foto ampliada">
-    <button class="lightbox__close" type="button" data-close aria-label="Fechar">×</button>
-    <button class="lightbox__nav lightbox__nav--prev" type="button" data-prev aria-label="Foto anterior">←</button>
-    <img class="lightbox__img" id="lightboxImg" alt="">
-    <button class="lightbox__nav lightbox__nav--next" type="button" data-next aria-label="Próxima foto">→</button>
+  <dialog class="lb" id="lightbox" aria-label="Galeria ampliada">
+    <figure class="lb__stage">
+      <img class="lb__img" id="lbImg" alt="">
+      <figcaption class="lb__cap"><span class="mono" id="lbCount">01 / 06</span><span id="lbCap"></span></figcaption>
+    </figure>
+    <button class="lb__btn lb__close" type="button" data-lb="close" aria-label="Fechar galeria"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg></button>
+    <button class="lb__btn lb__prev" type="button" data-lb="prev" aria-label="Foto anterior"><svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+    <button class="lb__btn lb__next" type="button" data-lb="next" aria-label="Próxima foto"><svg class="i" aria-hidden="true"><use href="#i-arrow"/></svg></button>
   </dialog>
 
-  <!-- Ícones -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-wa" viewBox="0 0 24 24"><path fill="currentColor" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91A9.85 9.85 0 0 0 12.04 2Zm0 18.15c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.24-8.23 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.7 8.23-8.22 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.13-.15.17-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.48a.92.92 0 0 0-.66.31c-.23.25-.87.85-.87 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.22-.16-.47-.28Z"/></symbol>
-    <symbol id="i-ig" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></g></symbol>
-    <symbol id="i-route" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.33-6-10a6 6 0 1 1 12 0c0 4.67-6 10-6 10Z"/><circle cx="12" cy="11" r="2"/></g></symbol>
-    <symbol id="i-face" viewBox="0 0 32 32"><g fill="none" stroke="currentColor" stroke-width="1.3"><path d="M16 4c-5 0-8.5 3.8-8.5 9.5S11 27 16 27s8.5-7.8 8.5-13.5S21 4 16 4Z"/><path d="M4 16h3.5M24.5 16H28M16 1.5V4M16 27v3.5" stroke-dasharray="1.5 1.5"/></g></symbol>
-    <symbol id="i-blade" viewBox="0 0 32 32"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M5 20 21 4l7 7-16 16-3.5-3.5"/><path d="M8.5 23.5 5 27"/><path d="M14 11l7 7" stroke-dasharray="1.5 1.5"/></g></symbol>
-    <symbol id="i-chat" viewBox="0 0 32 32"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M5 7h22v14H14l-6 5v-5H5z"/><path d="M10 12h12M10 16h7"/></g></symbol>
-    <symbol id="i-pin" viewBox="0 0 32 32"><g fill="none" stroke="currentColor" stroke-width="1.3"><path d="M11 26s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11Z"/><path d="M23 22s-4-3.6-4-7.2a4 4 0 0 1 8 0c0 3.6-4 7.2-4 7.2Z"/><circle cx="11" cy="15" r="1.8"/><circle cx="23" cy="15" r="1.3"/></g></symbol>
+    <symbol id="i-ig" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".7" fill="currentColor"/></g></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M4 12h15M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-out" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M7 17 17 7M8 7h9v9"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.2"/></g></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></symbol>
   </svg>
 
   <script src="script.js" defer></script>
