@@ -139,16 +139,16 @@ html:not(.js) .loader { display: none; }
 .has-cursor .cursor.is-on, .cursor.is-tap { opacity: 1; }
 .has-cursor, .has-cursor a, .has-cursor button, .has-cursor label { cursor: none; }
 .scissors {
-  /* 64px; a ponta (50,4 no viewBox) fica exatamente no ponteiro */
-  position: absolute; left: -32px; top: -2.6px; width: 64px; height: 64px; overflow: visible;
-  transform-origin: 32px 2.6px;
+  /* 48px; a ponta (50,4 no viewBox) fica exatamente no ponteiro */
+  position: absolute; left: -24px; top: -1.9px; width: 48px; height: 48px; overflow: visible;
+  transform-origin: 24px 1.9px;
   rotate: calc(var(--rot, -30) * 1deg);   /* aponta para a direção do movimento (JS) */
   scale: 1; transition: scale .35s var(--ease-out);
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, .45));
 }
 .scissors__a, .scissors__b { transform-box: view-box; transform-origin: 50px 54px; transition: transform .14s var(--ease); }
 /* preta com contorno branco, como a referência: visível no fundo escuro e no claro */
-.scissors path { fill: #000; stroke: #fff; stroke-width: 2.2; stroke-linejoin: round; paint-order: stroke; }
+.scissors path { fill: #000; stroke: #fff; stroke-width: 2.6; stroke-linejoin: round; paint-order: stroke; }
 .scissors__pivot { fill: #fff; }
 
 /* sobre links e botões: tesoura levemente aberta e maior */
