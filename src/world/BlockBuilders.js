@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Materials } from './Materials.js';
-import { CITY, RING_OUTER } from './CityLayout.js';
+import { CITY, RING_OUTER, DISTRICTS } from './CityLayout.js';
 import { boxParts, translation } from './GeometryBatcher.js';
 
 const Y = CITY.curbHeight;
@@ -41,8 +41,11 @@ export class BlockBuilders {
     const x1 = b.x1 - SW;
     const z0 = b.z0 + SW;
     const z1 = b.z1 - SW;
-    const tall = (ix + iz) % 2 === 0;
-    const floorsFor = () => (tall ? rng.int(5, 11) : rng.int(3, 7));
+    const district = DISTRICTS[`${ix},${iz}`] ?? 'commercial';
+    const residential = district === 'residential';
+    const tall = !residential;
+    const floorsFor = () => (residential ? rng.int(3, 6) : rng.int(5, 11));
+    const shop = (chance) => (residential ? chance * 0.15 : Math.min(1, chance * 1.3));
     const dN = rng.range(13, 17);
     const dS = rng.range(13, 17);
 
@@ -66,10 +69,17 @@ export class BlockBuilders {
         a += seg;
       }
     };
-    row('x', x0, x1, z1, dN, 0, rng.chance(0.5) ? 4 : 0, 0.75);
-    row('x', x0, x1, z0, dS, Math.PI, rng.chance(0.5) ? 4 : 0, 0.75);
-    row('z', z0 + dS, z1 - dN, x1, 13, Math.PI / 2, 0, 0.5);
-    row('z', z0 + dS, z1 - dN, x0, 13, -Math.PI / 2, 0, 0.5);
+    row('x', x0, x1, z1, dN, 0, rng.chance(0.5) ? 4 : 0, shop(0.75));
+    row('x', x0, x1, z0, dS, Math.PI, rng.chance(0.5) ? 4 : 0, shop(0.75));
+    row('z', z0 + dS, z1 - dN, x1, 13, Math.PI / 2, 0, shop(0.5));
+    row('z', z0 + dS, z1 - dN, x0, 13, -Math.PI / 2, 0, shop(0.5));
+    if (residential) {
+      // Window-box planters line the residential fronts.
+      for (let x = x0 + 4; x < x1 - 3; x += 7) {
+        this.props.planter(x, Y, z1 + 0.5, 1.6, 0.6);
+        this.props.planter(x, Y, z0 - 0.5, 1.6, 0.6);
+      }
+    }
 
     // Service courtyard clutter.
     const cx = (x0 + x1) / 2;
@@ -77,7 +87,7 @@ export class BlockBuilders {
     this.props.dumpster(cx - 4, Y, cz + 2, rng.range(-0.3, 0.3));
     this.props.dumpster(cx + 3, Y, cz - 3, Math.PI / 2, '#4f5a63');
     this.props.crate(cx + 5, Y, cz + 4, 0.9, 0.3);
-    this.props.crate(cx + 5.2, Y + 0.9, cz + 4.1, 0.7, 0.9);
+    this.props.crate(cx + 5.2, Y + 0.71, cz + 4.1, 0.7, 0.9);
     this.props.utilityBox(cx - 6, Y, cz - 4, 0);
     this.props.tree(cx, Y, cz + 6, 0.9, true);
   }
@@ -110,6 +120,10 @@ export class BlockBuilders {
 
     this.terrace(9, 9, 23, 23, 1.5);
 
+    // Enterable café in the north-west lawn, door facing the main path.
+    this.city.interiors.cafe(-21, -12, 8, 15);
+    c.quad(plaza, -12, 10.5, -2, 12.5, Y + 0.008, 2);
+
     // Kiosk with a small paved pad.
     c.quad(plaza, -19, -19, -9, -11, Y + 0.008, 2);
     p.kiosk(-14, Y, -15.5, 0);
@@ -133,6 +147,7 @@ export class BlockBuilders {
       if (Math.hypot(x, z) < 11) continue;
       if (x > 3 && z > 3 && x < 26 && z < 26) continue;
       if (x < -7 && x > -21 && z < -9 && z > -21) continue;
+      if (x < -9 && z > 5 && z < 18) continue;
       if (spots.some((s) => Math.hypot(s.x - x, s.z - z) < 5.5)) continue;
       spots.push({ x, z });
       p.tree(x, Y, z, rng.range(1.0, 1.35), false);
@@ -229,6 +244,10 @@ export class BlockBuilders {
     p.bench(pc.x, top, pc.z - 2, 0);
   }
 
+  industrial(b) {
+    this.city.interiors.industrial(b);
+  }
+
   parking(b) {
     const p = this.props;
     const c = this.city;
@@ -238,8 +257,8 @@ export class BlockBuilders {
     const z0 = b.z0 + SW;
     const z1 = b.z1 - SW;
 
-    // Convenience store on the west edge, facing the lot.
-    this.factory.build({ x: x0 + 7, z: -75, w: 30, d: 14, rotY: Math.PI / 2, floors: 1, style: 'concreteGray', storefront: 'market' });
+    // Enterable convenience store on the west edge, facing the lot.
+    this.city.interiors.store(x0, x0 + 14, -90, -60);
     // Three-storey building on the north edge facing the street.
     this.factory.build({ x: x0 + 14, z: z1 - 6, w: 28, d: 12, rotY: 0, floors: 3, style: 'plasterTerracotta', storefront: 'cafe' });
 
@@ -256,7 +275,8 @@ export class BlockBuilders {
     for (let i = 0; i <= 10; i++) {
       const z = -90 + i * 2.7;
       c.quad(paint, x0 + 14.3, z - 0.06, x0 + 19.4, z + 0.06, 0.16, 1);
-      if (i < 10) c.lotSpots.push({ x: x0 + 17.0, y: Y, z: z + 1.35, yaw: -Math.PI / 2 });
+      // Keep the stall in front of the store entrance free.
+      if (i < 10 && Math.abs(z + 1.35 + 75) > 2.5) c.lotSpots.push({ x: x0 + 17.0, y: Y, z: z + 1.35, yaw: -Math.PI / 2 });
     }
     // Direction arrows painted in the aisle.
     for (const ax of [-70, -58]) {
@@ -266,7 +286,7 @@ export class BlockBuilders {
     // Lot lighting and bollards protecting the store front.
     p.streetLamp(-60.4, Y, -97.4, 0);
     p.streetLamp(-74, Y, -60, Math.PI);
-    for (let z = -88; z <= -62; z += 4) p.bollard(x0 + 14.6, Y, z);
+    for (let z = -88; z <= -62; z += 4) if (Math.abs(z + 75) > 2.5) p.bollard(x0 + 14.6, Y, z);
     p.planter(x1 - 2, Y, z1 - 8, 1.6, 6);
 
     // Driveway ramp from the street (x = b.x1) down onto the asphalt.

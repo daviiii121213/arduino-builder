@@ -3,6 +3,7 @@ import { Vehicle } from '../vehicle/Vehicle.js';
 import { VEHICLE_TYPES, VEHICLE_TYPE_IDS } from '../vehicle/VehicleDefinitions.js';
 import { CharacterRig } from '../characters/CharacterRig.js';
 import { GameConfig } from '../config.js';
+import { regionAlongRay, damageFor } from '../combat/BodyDamage.js';
 
 const MIN_SPAWN_DISTANCE = 40;
 
@@ -80,6 +81,54 @@ export class TrafficManager {
     vehicle.setMode('physics');
     vehicle.body.setLinvel(lv, true);
     return driver.rig;
+  }
+
+  /**
+   * A bullet hit a traffic car: if it passed through the driver, apply body-part damage.
+   * Returns {target, region} for hit feedback, or null.
+   */
+  hitOccupant(vehicle, shot) {
+    const driver = vehicle.driver;
+    if (!(driver instanceof TrafficDriver)) return null;
+    const reach = shot.origin.distanceTo(shot.point) + 2.5;
+    const hit = regionAlongRay(driver.rig, shot.origin, shot.dir, reach);
+    if (!hit) {
+      driver.panic();
+      return null;
+    }
+    this.audio.play('hitBody', vehicle.currPos);
+    driver.rig.triggerHit(1, hit.region, hit.side);
+    const lethal = driver.health.damage(damageFor(shot.damage, hit.region));
+    const target = { alive: !lethal };
+    if (lethal) this.killDriver(vehicle);
+    else {
+      this.audio.play('yelp', vehicle.currPos);
+      driver.panic();
+      if (hit.region === 'arms') driver.armInjury = 12;
+    }
+    return { target, region: hit.region };
+  }
+
+  /** Crash or shot: the driver slumps over and the car coasts out of control. */
+  killDriver(vehicle) {
+    const rig = this.release(vehicle);
+    if (!rig) return;
+    rig.slumped = true;
+    rig.update(0, { seated: true });
+    vehicle.deadOccupant = rig;
+    vehicle.loseControl(3 + Math.random() * 2, (Math.random() - 0.5) * 0.5);
+  }
+
+  /** Injures the driver of a car involved in a heavy impact. Returns true if they died. */
+  injureDriver(vehicle, amount) {
+    const driver = vehicle.driver;
+    if (!(driver instanceof TrafficDriver)) return false;
+    driver.rig.triggerHit(1, 'torso');
+    if (driver.health.damage(amount)) {
+      this.killDriver(vehicle);
+      return true;
+    }
+    return false;
   }
 
   /** Asks a car to stop for a carjacking. */

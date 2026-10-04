@@ -52,7 +52,9 @@ export class Player {
     cc.enableAutostep(0.4, 0.2, false);
     cc.enableSnapToGround(0.4);
     cc.setSlideEnabled(true);
-    cc.setApplyImpulsesToDynamicBodies(false);
+    // Lets the player shove loose props (bins, cones, crates).
+    cc.setApplyImpulsesToDynamicBodies(true);
+    cc.setCharacterMass(60);
     this.controller = cc;
 
     this.rig = new CharacterRig(PLAYER_LOOK);

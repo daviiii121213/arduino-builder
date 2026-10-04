@@ -57,7 +57,7 @@ export class Effects {
 
     // Dust puffs (also used as the non-graphic hit feedback on characters).
     this.puffs = [];
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 64; i++) {
       const mat = new THREE.SpriteMaterial({ map: glowTexture(), color: 0xb8b0a4, transparent: true, depthWrite: false, opacity: 0 });
       const s = new THREE.Sprite(mat);
       s.visible = false;

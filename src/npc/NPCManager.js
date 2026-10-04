@@ -23,7 +23,8 @@ export class NPCManager {
     cc.enableSnapToGround(0.4);
     cc.setMaxSlopeClimbAngle(THREE.MathUtils.degToRad(50));
     cc.setSlideEnabled(true);
-    cc.setApplyImpulsesToDynamicBodies(false);
+    cc.setApplyImpulsesToDynamicBodies(true);
+    cc.setCharacterMass(55);
     this.controller = cc;
     this.paths = paths;
     this.npcs = [];
@@ -63,11 +64,12 @@ export class NPCManager {
    * An evicted driver becomes a fleeing pedestrian. To keep the population
    * constant, the pedestrian farthest from the player hands over its slot.
    */
-  adoptDriver(rig, pos, threatPos) {
+  adoptDriver(rig, pos, threatPos, { dead = false, calm = false } = {}) {
     let slot = null;
     let far = -1;
+    const ref = threatPos ?? pos;
     for (const npc of this.npcs) {
-      const d = npc.currPos.distanceTo(threatPos);
+      const d = npc.currPos.distanceTo(ref);
       if (d > far) {
         far = d;
         slot = npc;
@@ -91,6 +93,13 @@ export class NPCManager {
     slot.placeOnPath(best.i, 1);
     slot.teleport(pos.x, pos.y, pos.z);
     slot.state = 'walk';
+    rig.slumped = false;
+    if (dead) {
+      slot.die(true);
+      rig.fallBlend = 1;
+      return;
+    }
+    if (calm || !threatPos) return;
     slot.onDanger(threatPos, 1e6, 8);
     this.audio.play('yelp', pos, 1);
   }

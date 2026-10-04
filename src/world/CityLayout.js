@@ -15,8 +15,23 @@ const { roadCenters: R, roadHalf: H } = CITY;
 export const BLOCK_TYPES = [
   ['parking', 'buildings', 'buildings'],
   ['buildings', 'park', 'civic'],
-  ['buildings', 'buildings', 'buildings'],
+  ['industrial', 'buildings', 'buildings'],
 ];
+
+/** Character of each building block: drives heights, styles and how many shops. */
+export const DISTRICTS = {
+  '0,1': 'residential',
+  '0,2': 'residential',
+  '1,0': 'commercial',
+  '2,1': 'commercial',
+  '2,2': 'residential',
+};
+
+/** Original street names: roads running along z (by x position) and along x (by z position). */
+export const STREET_NAMES = {
+  x: ['Rua das Acácias', 'Av. Aurora', 'Rua do Mirante', 'Av. Beira-Leste'],
+  z: ['Av. Contorno Sul', 'Rua dos Ipês', 'Av. Central', 'Rua Alto da Serra'],
+};
 
 export function blockBounds(ix, iz) {
   return { x0: R[ix] + H, x1: R[ix + 1] - H, z0: R[iz] + H, z1: R[iz + 1] - H };

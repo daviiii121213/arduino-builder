@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Groups, QueryGroups } from '../core/Physics.js';
 import { buildVehicleModel, VehicleMaterials } from './VehicleModels.js';
 import { VEHICLE_TYPES } from './VehicleDefinitions.js';
+import { VehicleDamage } from './VehicleDamage.js';
 import { approach, clamp, lerp } from '../core/math.js';
 
 const COMMON = {
@@ -88,6 +89,9 @@ export class Vehicle {
     scene.add(this.model.root);
     this.wheelBase = wheels.allocate();
     this.wheelSpin = 0;
+    this.damage = new VehicleDamage(this);
+    /** null = automatic (on at night), or a manual true/false from the driver. */
+    this.headlightOverride = null;
 
     this.mode = 'parked';
     this.driver = null; // 'player' or a TrafficDriver
@@ -215,10 +219,10 @@ export class Vehicle {
     let brake = 0;
     if (ctl.throttle > 0) {
       if (speed < -0.8) brake = COMMON.brakeForce;
-      else if (speed < d.maxSpeed) engine = d.engine * clamp(1.15 - speed / (d.maxSpeed * 1.25), 0.25, 1);
+      else if (speed < d.maxSpeed) engine = d.engine * this.damage.enginePower * clamp(1.15 - speed / (d.maxSpeed * 1.25), 0.25, 1);
     } else if (ctl.brake > 0) {
       if (speed > 0.8) brake = COMMON.brakeForce;
-      else if (speed > -COMMON.maxReverseSpeed) engine = -d.engine * COMMON.reverseFactor;
+      else if (speed > -COMMON.maxReverseSpeed) engine = -d.engine * COMMON.reverseFactor * this.damage.enginePower;
     } else {
       brake = input ? COMMON.rollingBrake : 20;
     }
@@ -246,6 +250,8 @@ export class Vehicle {
     if (dv > 4 && this.impactCooldown <= 0) {
       this.audio.play('carCrash', this.currPos, clamp(dv / 12, 0.3, 1));
       this.impactCooldown = 0.4;
+      this.damage.applyCrash(dv * 2.4, this.lastVel.clone().sub(_v));
+      this.onCrash?.(this, dv);
     }
     this.lastVel.copy(_v);
     this.recoverIfFlipped(dt);
@@ -254,6 +260,12 @@ export class Vehicle {
     const still = absSpeed < 0.2 && _v.length() < 0.3;
     this.restTime = !this.driver && still ? this.restTime + dt : 0;
     if (this.restTime > 2.5 && this.isUpright()) this.setMode('parked');
+  }
+
+  /** Drifts without throttle or brakes for a while (driver incapacitated). */
+  loseControl(seconds, steer) {
+    if (this.mode !== 'physics') this.setMode('physics');
+    this.coast = { time: seconds, steer };
   }
 
   isUpright() {
@@ -318,7 +330,7 @@ export class Vehicle {
       this.wheelsInstanced.set(this.wheelBase + i, _m);
     });
 
-    const lightsOn = night > 0.3 && !!this.driver;
+    const lightsOn = !!this.driver && (this.headlightOverride ?? night > 0.3);
     this.lightsOn = lightsOn;
     this.model.head.material = lightsOn ? VehicleMaterials.headOn : VehicleMaterials.head;
     this.model.tail.material = this.braking ? VehicleMaterials.tailBrake : lightsOn ? VehicleMaterials.tailOn : VehicleMaterials.tail;

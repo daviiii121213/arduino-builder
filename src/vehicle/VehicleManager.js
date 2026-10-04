@@ -13,7 +13,8 @@ const _corner = new THREE.Vector3();
  * wake-up on contact and cleanup of abandoned cars.
  */
 export class VehicleManager {
-  constructor({ physics, scene, audio, rng }) {
+  constructor({ physics, scene, audio, rng, effects }) {
+    this.effects = effects;
     this.physics = physics;
     this.scene = scene;
     this.audio = audio;
@@ -111,7 +112,13 @@ export class VehicleManager {
 
   fixedUpdate(dt, playerInput) {
     for (const v of this.list) {
-      if (v.mode === 'physics') v.fixedUpdate(dt, v === this.playerVehicle ? playerInput : null);
+      if (v.mode !== 'physics') continue;
+      let input = v === this.playerVehicle ? playerInput : null;
+      if (!input && v.coast?.time > 0) {
+        v.coast.time -= dt;
+        input = { throttle: 0, brake: 0, steer: v.coast.steer, handbrake: false };
+      }
+      v.fixedUpdate(dt, input);
     }
   }
 
@@ -132,7 +139,10 @@ export class VehicleManager {
   }
 
   render(dt, alpha, night) {
-    for (const v of this.list) v.render(dt, alpha, night, v === this.playerVehicle);
+    for (const v of this.list) {
+      v.render(dt, alpha, night, v === this.playerVehicle);
+      v.damage.update(dt, this.effects);
+    }
     this.wheels.commit();
   }
 }

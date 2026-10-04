@@ -9,6 +9,7 @@ export class HUD {
       <div id="crosshair" class="hidden"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><b class="dot"></b></div>
       <div id="hitmarker"></div>
       <div id="prompt" class="hidden"></div>
+      <div id="clock"></div>
       <div id="weapon-panel">
         <div class="slots">
           <div class="slot" data-slot="pistol"><span class="key">1</span>Pistola</div>
@@ -21,7 +22,7 @@ export class HUD {
       <div id="help">
         <div><b>WASD</b> mover · <b>Shift</b> correr · <b>Espaço</b> pular</div>
         <div><b>1</b> pistola · <b>2</b> fuzil · <b>Botão esq.</b> atirar · <b>Botão dir.</b> mirar · <b>R</b> recarregar</div>
-        <div><b>F</b> entrar, sair ou roubar um carro · no carro: <b>W/S</b> acelerar/frear-ré · <b>A/D</b> direção · <b>Espaço</b> freio de mão · <b>H</b> buzina</div>
+        <div><b>F</b> entrar, sair ou roubar um carro · no carro: <b>W/S</b> acelerar/frear-ré · <b>A/D</b> direção · <b>Espaço</b> freio de mão · <b>H</b> buzina · <b>L</b> faróis</div>
       </div>`;
     this.el = {
       crosshair: root.querySelector('#crosshair'),
@@ -36,6 +37,7 @@ export class HUD {
       speedometer: root.querySelector('#speedometer'),
       speed: root.querySelector('#speedometer .value'),
       help: root.querySelector('#help'),
+      clock: root.querySelector('#clock'),
     };
     this.hitTimer = 0;
     this.helpTimer = 20;
@@ -48,9 +50,10 @@ export class HUD {
     apply(value);
   }
 
-  showHit(kill = false) {
-    this.hitTimer = 0.18;
+  showHit(kill = false, headshot = false) {
+    this.hitTimer = headshot ? 0.3 : 0.18;
     this.el.hitmarker.classList.toggle('kill', kill);
+    this.el.hitmarker.classList.toggle('head', headshot);
     this.el.hitmarker.classList.add('show');
   }
 
@@ -83,6 +86,7 @@ export class HUD {
     this.set('speedo', s.driving, (v) => e.speedometer.classList.toggle('hidden', !v));
     if (s.driving) this.set('speed', Math.round(Math.abs(s.speed) * 3.6), (v) => (e.speed.textContent = v));
 
+    this.set('clock', s.weather ? `${s.clock} · ${s.weather}` : s.clock, (v) => (e.clock.textContent = v));
     if (this.hitTimer > 0) {
       this.hitTimer -= dt;
       if (this.hitTimer <= 0) e.hitmarker.classList.remove('show');

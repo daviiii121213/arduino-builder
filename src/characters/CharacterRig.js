@@ -182,6 +182,12 @@ export class CharacterRig {
     this.lastStepSign = 1;
     this.onFootstep = null;
     this.weaponOffset = 0.2;
+    this.reactions = { head: 0, torso: 0, arms: 0, legs: 0 };
+    this.reactionSide = 1;
+    /** Side (+1 left, -1 right) of an injured arm that hangs limp, or 0. */
+    this.injuredArm = 0;
+    this.limp = 0;
+    this.slumped = false;
   }
 
   /** Bakes all parts in bind pose with a rigid weight to their joint. */
@@ -224,8 +230,11 @@ export class CharacterRig {
     this.flashTimer = 0.12;
   }
 
-  triggerHit(strength = 1) {
+  /** Animated, non-graphic hit reaction for a body region ('head' | 'torso' | 'arms' | 'legs'). */
+  triggerHit(strength = 1, region = 'torso', side = 0) {
     this.hitTimer = 0.35 * strength;
+    this.reactions[region] = 0.45;
+    if (region === 'arms') this.reactionSide = side || 1;
     this.flash();
   }
 
@@ -255,6 +264,7 @@ export class CharacterRig {
 
     if (s.seated) {
       this.poseSeated();
+      this.applyReactions(dt);
       return;
     }
 
@@ -327,6 +337,8 @@ export class CharacterRig {
 
     if (this.armedBlend > 0.01 && s.grips) this.applyWeaponIK(s.grips, reload, this.armedBlend);
 
+    this.applyReactions(dt);
+
     // Whole-body fall for knocked-down characters.
     const f = this.fallBlend;
     this.body.rotation.x = -f * 1.45;
@@ -342,20 +354,47 @@ export class CharacterRig {
     }
   }
 
+  applyReactions(dt) {
+    const R = this.reactions;
+    const pulse = (t) => Math.sin(Math.min(1, t / 0.45) * Math.PI);
+    for (const k in R) R[k] = Math.max(0, R[k] - dt);
+    if (R.head > 0) {
+      const k = pulse(R.head);
+      this.head.rotation.x -= 0.7 * k;
+      this.spine.rotation.x -= 0.2 * k;
+    }
+    const armReaction = R.arms > 0 ? pulse(R.arms) : 0;
+    for (const [arm, side] of [[this.armL, 1], [this.armR, -1]]) {
+      const hurt = (this.injuredArm === side ? 0.6 : 0) + (this.reactionSide === side ? armReaction : 0);
+      if (hurt > 0) {
+        arm.upper.rotateZ(side * 0.5 * hurt);
+        arm.upper.rotateX(0.6 * hurt);
+      }
+    }
+    if (R.legs > 0) {
+      const k = pulse(R.legs);
+      this.hips.position.y -= 0.08 * k;
+      this.legL.shin.rotation.x += 0.6 * k;
+      this.legR.shin.rotation.x += 0.4 * k;
+    }
+    // A limp lowers one side slightly at each step.
+    if (this.limp > 0) this.hips.rotation.z = Math.sin(this.phase) * 0.08 * this.limp;
+  }
+
   poseSeated() {
     this.body.rotation.set(0, 0, 0);
     this.body.position.set(0, 0, 0);
     this.hips.position.y = DIM.hipY;
     this.hips.rotation.set(0, 0, 0);
-    this.spine.rotation.set(-0.15, 0, 0);
-    this.head.rotation.set(0.12, 0, 0);
+    this.spine.rotation.set(this.slumped ? 0.55 : -0.15, 0, this.slumped ? 0.25 : 0);
+    this.head.rotation.set(this.slumped ? 0.6 : 0.12, 0, 0);
     for (const legs of [this.legL, this.legR]) {
       legs.thigh.rotation.set(-1.45, 0, 0);
       legs.shin.rotation.set(1.35, 0, 0);
       legs.foot.rotation.set(0.1, 0, 0);
     }
     for (const [arm, side] of [[this.armL, 1], [this.armR, -1]]) {
-      arm.upper.rotation.set(-0.95, 0, side * -0.12);
+      arm.upper.rotation.set(this.slumped ? -0.2 : -0.95, 0, side * -0.12);
       arm.upper.quaternion.setFromEuler(arm.upper.rotation);
       arm.fore.rotation.set(-0.55, 0, 0);
       arm.fore.quaternion.setFromEuler(arm.fore.rotation);

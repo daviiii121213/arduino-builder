@@ -27,6 +27,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font-f
 #hitmarker::after { transform: rotate(-45deg); }
 #hitmarker.show { opacity: 1; }
 #hitmarker.kill::before, #hitmarker.kill::after { background: var(--accent); }
+#hitmarker.head { transform: scale(1.35); }
 
 #prompt { position: absolute; left: 50%; bottom: 22%; transform: translateX(-50%); padding: 8px 16px; background: rgba(15, 17, 20, 0.6); border-radius: 4px; font-size: 16px; letter-spacing: 0.02em; }
 
@@ -41,6 +42,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font-f
 #weapon-panel .mag.low { color: #ff7a5c; }
 #weapon-panel .reserve { margin-left: 6px; opacity: 0.75; }
 #weapon-panel .reloading { margin-top: 4px; color: var(--accent); font-size: 13px; }
+
+#clock { position: absolute; right: 24px; top: 18px; font-size: 15px; letter-spacing: 0.06em; opacity: 0.9; font-variant-numeric: tabular-nums; }
 
 #speedometer { position: absolute; right: 30px; bottom: 30px; text-align: right; }
 #speedometer .value { font-size: 44px; font-weight: 700; }

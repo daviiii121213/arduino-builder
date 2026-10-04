@@ -129,6 +129,13 @@ export class ThirdPersonCamera {
       _desired.x += (Math.random() - 0.5) * this.shake * 0.3;
       _desired.y += (Math.random() - 0.5) * this.shake * 0.3;
     }
+    // Subtle sway while running on foot.
+    const bob = ctx.bob ?? 0;
+    if (bob > 0.01) {
+      const ph = ctx.bobPhase ?? 0;
+      _desired.y += Math.sin(ph * 2) * 0.03 * bob;
+      _desired.addScaledVector(_right, Math.sin(ph) * 0.025 * bob);
+    }
     this.camera.position.copy(_desired);
     this.camera.lookAt(_desired.clone().add(_dir));
     if (Math.abs(this.camera.fov - this.fov) > 0.01) {

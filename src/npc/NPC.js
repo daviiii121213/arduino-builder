@@ -3,6 +3,7 @@ import { Groups, QueryGroups } from '../core/Physics.js';
 import { CharacterRig } from '../characters/CharacterRig.js';
 import { dampAngle } from '../core/math.js';
 import { NPCHealth } from './NPCHealth.js';
+import { regionFromWorld, damageFor } from '../combat/BodyDamage.js';
 const GRAVITY = 20;
 
 /**
@@ -49,6 +50,8 @@ export class NPC {
     const t = this.path.points[this.target];
     this.yaw = Math.atan2(t.x - p.x, t.z - p.z);
     this.health.reset();
+    this.legInjury = 0;
+    this.armInjury = 0;
     this.state = 'walk';
     this.stateTimer = 0;
     this.vy = 0;
@@ -94,21 +97,37 @@ export class NPC {
 
   // ------------------------------------------------------------ reactions
 
+  /** Bullet hit: damage and reaction depend on the body region struck. Returns the region. */
   onBulletHit(damage, point, dir) {
-    if (this.state === 'dead') return;
-    const lethal = this.health.damage(damage);
-    this.rig.triggerHit(1);
+    if (this.state === 'dead') return null;
+    const lying = this.state === 'down';
+    const { region, side } = lying ? { region: 'torso', side: 0 } : regionFromWorld(this.rig, point);
+    const lethal = this.health.damage(damageFor(damage, region));
+    this.rig.triggerHit(1, region, side);
     this.audio.play('hitBody', point);
+    this.lastHitRegion = region;
     if (lethal) {
       this.die();
-      return;
+      return region;
     }
     this.audio.play('yelp', point, 0.8);
-    if (this.state !== 'down') {
-      this.state = 'stagger';
-      this.stateTimer = 0.4;
-      this.fleeFrom(point.x - dir.x * 10, point.z - dir.z * 10);
+    this.fleeFrom(point.x - dir.x * 10, point.z - dir.z * 10);
+    if (lying) return region;
+    if (region === 'legs') {
+      // Leg hits slow the character down for a while and can knock them over.
+      this.legInjury = 14;
+      if (this.rng.chance(0.4)) {
+        this.state = 'down';
+        this.stateTimer = 1.6;
+        return region;
+      }
+    } else if (region === 'arms') {
+      this.armInjury = 14;
+      this.rig.injuredArm = side;
     }
+    this.state = 'stagger';
+    this.stateTimer = region === 'head' ? 0.6 : 0.4;
+    return region;
   }
 
   hitByVehicle(speed, carPos) {
@@ -182,6 +201,10 @@ export class NPC {
   fixedUpdate(dt) {
     this.prevPos.copy(this.currPos);
     if (this.stateTimer > 0) this.stateTimer -= dt;
+    this.legInjury = Math.max(0, (this.legInjury ?? 0) - dt);
+    this.armInjury = Math.max(0, (this.armInjury ?? 0) - dt);
+    this.rig.limp = this.legInjury > 0 ? 1 : 0;
+    if (this.armInjury <= 0) this.rig.injuredArm = 0;
 
     let desiredSpeed = 0;
     switch (this.state) {
@@ -224,6 +247,7 @@ export class NPC {
         return;
     }
 
+    if (this.legInjury > 0) desiredSpeed *= 0.5;
     this.speed += Math.sign(desiredSpeed - this.speed) * Math.min(Math.abs(desiredSpeed - this.speed), 8 * dt);
     const pos = this.currPos;
     let dirX = 0;

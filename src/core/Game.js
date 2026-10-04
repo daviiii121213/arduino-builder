@@ -17,6 +17,8 @@ import { VehicleInteraction } from '../vehicle/VehicleInteraction.js';
 import { RoadNetwork } from '../traffic/RoadNetwork.js';
 import { TrafficManager } from '../traffic/TrafficManager.js';
 import { HUD } from '../ui/HUD.js';
+import { PhysicsProps } from '../world/PhysicsProps.js';
+import { Interactables } from '../world/Interactables.js';
 
 const MAX_STEPS_PER_FRAME = 5;
 
@@ -46,11 +48,15 @@ export class Game {
     this.camera = new THREE.PerspectiveCamera(66, window.innerWidth / window.innerHeight, 0.1, 1500);
     this.environment = new Environment(this.scene, renderer);
 
+    this.physicsProps = new PhysicsProps(this.scene, physics);
     this.city = new City(this.scene, physics);
+    this.city.dynamicProps = this.physicsProps;
+    this.audio = new AudioSystem();
+    this.interactables = new Interactables(this.scene, physics, this.audio);
+    this.city.interactables = this.interactables;
     this.city.build();
     this.dayNight = new DayNight({ scene: this.scene, environment: this.environment, lampHeads: this.city.props.lampHeads });
 
-    this.audio = new AudioSystem();
     this.input = new Input(renderer.domElement);
     this.effects = new Effects(this.scene);
     const rng = createRng(777);
@@ -62,7 +68,7 @@ export class Game {
 
     this.npcs = new NPCManager({ physics, scene: this.scene, audio: this.audio, paths: this.city.npcPaths });
     this.network = new RoadNetwork();
-    this.vehicles = new VehicleManager({ physics, scene: this.scene, audio: this.audio, rng });
+    this.vehicles = new VehicleManager({ physics, scene: this.scene, audio: this.audio, rng, effects: this.effects });
     this.vehicles.spawnParked(this.city.lotSpots, this.network.curbsideSpots(), [
       ...this.city.noParking, { x: spawn.player.x, z: spawn.player.z, r: 4 },
     ]);
@@ -81,11 +87,14 @@ export class Game {
       audio: this.audio,
       camera: this.cameraRig,
       onShot: (pos) => this.npcs.onGunshot(pos),
-      onHit: (npc) => {
-        this.hud.showHit(!npc.alive);
+      onHit: (target, region) => {
+        this.hud.showHit(!target.alive, region === 'head');
         this.audio.play('hitMarker');
       },
-      onVehicleHit: (vehicle) => vehicle.driver?.panic?.(),
+      onVehicleHit: (vehicle, shot) => {
+        vehicle.damage.applyBullet(shot.point);
+        return this.traffic.hitOccupant(vehicle, shot);
+      },
     });
     this.vehicle = new VehicleInteraction({
       scene: this.scene, player: this.player, vehicles: this.vehicles, traffic: this.traffic, npcs: this.npcs,
@@ -119,8 +128,13 @@ export class Game {
     const mouse = input.consumeMouseDelta();
     this.cameraRig.handleMouse(mouse.x, mouse.y);
 
-    if (input.wasPressed('KeyF')) this.vehicle.toggle();
+    if (input.wasPressed('KeyF')) this.interact();
     const onFoot = !this.vehicle.busy;
+    if (input.wasPressed('KeyL') && this.vehicle.driving) {
+      const pv = this.vehicles.playerVehicle;
+      pv.headlightOverride = !pv.lightsOn;
+      this.audio.play('switchClick');
+    }
     if (input.wasPressed('KeyH')) {
       if (this.vehicle.driving) this.audio.play('horn', this.vehicles.playerVehicle?.currPos);
       else this.hud.el.help.classList.toggle('faded');
@@ -132,6 +146,30 @@ export class Game {
       if (input.wasPressed('Space')) this.player.queueJump();
     }
     this.aiming = onFoot && !!this.weapons.active && input.isMouseDown(2) && !this.weapons.isReloading;
+  }
+
+  /** What F would act on right now: the nearest door/gate or vehicle. */
+  interactionTarget() {
+    if (this.vehicle.busy) return { kind: 'vehicle' };
+    const pos = this.player.position;
+    const door = this.interactables.nearest(pos);
+    const car = this.vehicles.nearestEnterable(pos);
+    const carDistance = car ? car.doorPosition().distanceTo(pos) : Infinity;
+    if (door && door.distance < carDistance) return { kind: 'door', item: door.item };
+    return car ? { kind: 'vehicle' } : null;
+  }
+
+  interact() {
+    const target = this.interactionTarget();
+    if (!target) return;
+    if (target.kind === 'door') target.item.interact();
+    else this.vehicle.toggle();
+  }
+
+  interactionPrompt() {
+    const target = this.interactionTarget();
+    if (target?.kind === 'door') return target.item.prompt();
+    return this.vehicle.prompt();
   }
 
   footIntent() {
@@ -181,6 +219,9 @@ export class Game {
     this.physics.step();
     this.vehicles.postStep();
     this.vehicles.checkPlayerContacts((v) => {
+      // A hard crash can incapacitate the other driver; otherwise they get out and run.
+      const impact = Math.abs(this.vehicles.playerVehicle.speed);
+      if (impact > 11 && this.traffic.injureDriver(v, impact * 5)) return;
       const rig = this.traffic.release(v);
       if (rig) {
         const spot = this.vehicle.findExitSpot(v, true) ?? v.doorPosition(new THREE.Vector3());
@@ -225,7 +266,10 @@ export class Game {
     else if (this.aiming) cam.setMode('aiming');
     else cam.setMode(this.weapons.active ? 'armed' : 'onFoot');
     const focus = this.vehicle.focus();
-    cam.update(dt, focus, pv ? { vehicleYaw: pv.renderYaw, vehicleSpeed: pv.speed, vehicleLength: pv.def.length } : {});
+    const rig = this.player.rig;
+    cam.update(dt, focus, pv
+      ? { vehicleYaw: pv.renderYaw, vehicleSpeed: pv.speed, vehicleLength: pv.def.length }
+      : { bob: this.vehicle.busy ? 0 : rig.runBlend * rig.moveBlend, bobPhase: rig.phase });
 
     // Weapons fire after the camera so the aim ray matches what is on screen.
     const onFoot = !this.vehicle.busy;
@@ -238,6 +282,8 @@ export class Game {
       cameraYaw: cam.yaw,
     });
 
+    this.physicsProps.sync();
+    this.interactables.update(dt);
     this.effects.update(dt);
     this.city.update(dt);
     this.dayNight.update(dt, this.camera.position, this.vehicles.playerVehicle);
@@ -282,8 +328,10 @@ export class Game {
       reserve: w?.reserve,
       magazineSize: w?.def.magazineSize,
       reloading: this.weapons.isReloading,
-      prompt: this.vehicle.prompt(),
+      prompt: this.interactionPrompt(),
       speed: pv?.speed ?? 0,
+      clock: this.dayNight.clock(),
+      weather: this.weather?.label ?? null,
     });
   }
 }

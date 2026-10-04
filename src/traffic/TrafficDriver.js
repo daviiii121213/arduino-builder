@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { angleDiff, clamp } from '../core/math.js';
+import { NPCHealth } from '../npc/NPCHealth.js';
 
 const ACCEL = 3.2;
 const BRAKE = 7;
@@ -36,6 +37,8 @@ export class TrafficDriver {
     this.panicTime = 0;
     this.hijacked = false;
     this.blockedByPlayer = 0;
+    this.health = new NPCHealth(100);
+    this.armInjury = 0;
   }
 
   appendLane(lane) {
@@ -255,7 +258,10 @@ export class TrafficDriver {
     this.z = p.z;
     const desiredYaw = this.headingAhead();
     this.yaw += angleDiff(this.yaw, desiredYaw) * Math.min(1, dt * 10);
-    const steer = clamp(angleDiff(this.yaw, this.headingAhead(5)) * 1.5, -0.5, 0.5);
+    let steer = clamp(angleDiff(this.yaw, this.headingAhead(5)) * 1.5, -0.5, 0.5);
+    // An injured arm makes the steering visibly unsteady.
+    this.armInjury = Math.max(0, this.armInjury - dt);
+    if (this.armInjury > 0) steer += Math.sin(performance.now() * 0.006) * 0.25;
     v.driveKinematic(this.x, this.z, this.yaw, this.speed, steer);
   }
 

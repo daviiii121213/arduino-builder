@@ -516,6 +516,40 @@ export const bulletHoleTexture = () => cached('hole', () => {
   return toTexture(c, { repeat: false });
 });
 
+/** Corrugated metal siding (vertical ridges), one canvas = 2 m wide. */
+export const corrugatedTexture = () => cached('corrugated', () => {
+  const s = 256;
+  const c = makeCanvas(s, s);
+  const ctx = c.getContext('2d');
+  const rng = createRng(91);
+  ctx.fillStyle = '#d8d8d8';
+  ctx.fillRect(0, 0, s, s);
+  for (let x = 0; x < s; x += 16) {
+    const g = ctx.createLinearGradient(x, 0, x + 16, 0);
+    g.addColorStop(0, '#9a9a9a');
+    g.addColorStop(0.5, '#f4f4f4');
+    g.addColorStop(1, '#a8a8a8');
+    ctx.fillStyle = g;
+    ctx.fillRect(x, 0, 16, s);
+  }
+  blotches(ctx, s, s, 15, 'rgba(90,70,50,A)', 0.15, 10, 50, rng);
+  return toTexture(c);
+});
+
+/** See-through bar fence/gate (alpha-tested), one canvas = 2 m wide x 2 m tall. */
+export const fenceTexture = () => cached('fence', () => {
+  const s = 256;
+  const c = makeCanvas(s, s);
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, s, s);
+  ctx.fillStyle = '#3c4045';
+  ctx.fillRect(0, 0, s, 12);
+  ctx.fillRect(0, s - 12, s, 12);
+  ctx.fillRect(0, s / 2 - 5, s, 10);
+  for (let x = 6; x < s; x += 21) ctx.fillRect(x, 0, 6, s);
+  return toTexture(c);
+});
+
 /** Reusable small canvas texture with a painted text label (shop signs). */
 export function signTexture(text, bg, fg) {
   return cached(`sign:${text}:${bg}:${fg}`, () => {

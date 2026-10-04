@@ -75,7 +75,7 @@ export class DayNight {
       this.headlight.target.position.set(0, 0, L + 12).applyMatrix4(m);
       this.headlight.target.updateMatrixWorld();
     }
-    this.headlight.intensity = playerVehicle ? n * 60 : 0;
+    this.headlight.intensity = playerVehicle?.lightsOn ? Math.max(n, 0.35) * 60 : 0;
   }
 
   /** "HH:MM" for display/debugging. */

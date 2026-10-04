@@ -122,6 +122,10 @@ export class PropFactory {
   }
 
   trashBin(x, y, z) {
+    if (this.dynamicProps) {
+      this.dynamicProps.add('bin', x, y, z, this.rng.range(0, Math.PI * 2));
+      return;
+    }
     this.add(Materials.painted(), new THREE.CylinderGeometry(0.3, 0.26, 0.9, 12), mat(x, y + 0.45, z), COLORS.binGreen);
     this.add(Materials.metal(), new THREE.CylinderGeometry(0.33, 0.33, 0.08, 12), mat(x, y + 0.92, z), COLORS.darkMetal);
     this.physics.addStaticCylinder(x, y + 0.48, z, 0.48, 0.32);
@@ -203,6 +207,10 @@ export class PropFactory {
   }
 
   crate(x, y, z, size, rotY) {
+    if (this.dynamicProps) {
+      this.dynamicProps.add('crate', x, y, z, rotY);
+      return;
+    }
     this.add(Materials.painted(), new THREE.BoxGeometry(size, size, size), mat(x, y + size / 2, z, rotY), '#8b6b47');
     this.add(Materials.painted(), new THREE.BoxGeometry(size + 0.02, 0.06, size + 0.02), mat(x, y + size * 0.5, z, rotY), '#6f5237');
     this.physics.addStaticBox(x, y + size / 2, z, size / 2, size / 2, size / 2).setRotation(quatY(rotY));

@@ -250,14 +250,19 @@ export class WeaponSystem {
     if (!hit) return;
     const owner = this.physics.ownerOf(hit.collider);
     if (owner?.onBulletHit) {
-      owner.onBulletHit(def.damage, hit.point, toTarget);
+      const region = owner.onBulletHit(def.damage, hit.point, toTarget);
       this.effects.characterHit(hit.point, toTarget);
-      this.onHit?.(owner);
-    } else {
-      const isVehicle = owner?.isVehicle;
-      this.effects.impact(hit.point, hit.normal, { decal: !isVehicle, dustColor: isVehicle ? 0x777777 : 0xb8b0a4 });
-      this.audio.play('impact', hit.point);
-      if (isVehicle) this.onVehicleHit?.(owner);
+      this.onHit?.(owner, region);
+      return;
+    }
+    const isVehicle = owner?.isVehicle;
+    this.effects.impact(hit.point, hit.normal, { decal: !isVehicle && !owner?.isProp, dustColor: isVehicle ? 0x777777 : 0xb8b0a4 });
+    this.audio.play('impact', hit.point);
+    owner?.onImpulse?.(hit.point, toTarget, def.damage * 0.05);
+    if (isVehicle) {
+      // Someone sitting in the car may be behind the glass that was hit.
+      const occupantHit = this.onVehicleHit?.(owner, { point: hit.point, origin: chest.clone(), dir: toTarget.clone(), damage: def.damage });
+      if (occupantHit) this.onHit?.(occupantHit.target, occupantHit.region);
     }
   }
 }

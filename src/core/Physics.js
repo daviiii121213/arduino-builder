@@ -7,6 +7,7 @@ export const Layer = {
   NPC: 1 << 2,
   VEHICLE: 1 << 3,
   QUERY: 1 << 4,
+  PROP: 1 << 5,
 };
 const ALL = 0xffff;
 
@@ -17,14 +18,15 @@ export const Groups = {
   player: groups(Layer.PLAYER, ALL),
   npc: groups(Layer.NPC, ALL),
   // Cars collide with the world and each other; NPC/player hits are handled in gameplay code.
-  vehicle: groups(Layer.VEHICLE, Layer.STATIC | Layer.VEHICLE | Layer.QUERY),
+  vehicle: groups(Layer.VEHICLE, Layer.STATIC | Layer.VEHICLE | Layer.PROP | Layer.QUERY),
+  prop: groups(Layer.PROP, ALL),
 };
 
 export const QueryGroups = {
-  playerMove: groups(Layer.QUERY, Layer.STATIC | Layer.NPC | Layer.VEHICLE),
-  npcMove: groups(Layer.QUERY, Layer.STATIC | Layer.PLAYER | Layer.VEHICLE),
+  playerMove: groups(Layer.QUERY, Layer.STATIC | Layer.NPC | Layer.VEHICLE | Layer.PROP),
+  npcMove: groups(Layer.QUERY, Layer.STATIC | Layer.PLAYER | Layer.VEHICLE | Layer.PROP),
   wheels: groups(Layer.QUERY, Layer.STATIC),
-  bullets: groups(Layer.QUERY, Layer.STATIC | Layer.NPC | Layer.VEHICLE),
+  bullets: groups(Layer.QUERY, Layer.STATIC | Layer.NPC | Layer.VEHICLE | Layer.PROP),
   camera: groups(Layer.QUERY, Layer.STATIC | Layer.VEHICLE),
   solid: groups(Layer.QUERY, Layer.STATIC | Layer.VEHICLE | Layer.NPC),
   ground: groups(Layer.QUERY, Layer.STATIC),

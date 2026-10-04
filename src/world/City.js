@@ -7,6 +7,9 @@ import { TrafficLights } from './TrafficLights.js';
 import { CITY, forEachBlock, blockBounds } from './CityLayout.js';
 import { createRng } from '../core/math.js';
 import { BlockBuilders } from './BlockBuilders.js';
+import { Interiors } from './Interiors.js';
+import { STREET_NAMES } from './CityLayout.js';
+import { signTexture } from './Textures.js';
 
 const Y = CITY.curbHeight;
 
@@ -36,7 +39,9 @@ export class City {
     this.batcher = new GeometryBatcher();
     this.buildings = new BuildingFactory(this.batcher, this.physics, this.rng);
     this.props = new PropFactory(this.batcher, this.physics, this.rng);
+    this.props.dynamicProps = this.dynamicProps ?? null;
     const blocks = new BlockBuilders(this);
+    this.interiors = new Interiors(this, this.interactables);
 
     this.buildGround();
     this.buildRoadMarkings();
@@ -48,6 +53,7 @@ export class City {
     blocks.outerStrips();
     this.buildSidewalkFurniture();
     this.buildTrafficLights();
+    this.buildStreetSigns();
     this.buildBoundary();
 
     this.batcher.build(this.group);
@@ -98,6 +104,7 @@ export class City {
       park: Materials.grass(),
       civic: Materials.plaza(),
       buildings: Materials.concrete(),
+      industrial: Materials.concrete(),
       outer: Materials.sidewalk(),
     }[type];
     if (type !== 'park') this.quad(lotMat, x0 + ring, z0 + ring, x1 - ring, z1 - ring, Y, type === 'parking' ? 8 : 2);
@@ -229,6 +236,37 @@ export class City {
       this.props.trafficLight(cx + half + 0.8, Y, cz - half - 0.8, 0, 'x');
       this.props.trafficLight(cx - half - 0.8, Y, cz + half + 0.8, Math.PI, 'x');
     }
+  }
+
+  /** Street name blades on a pole at one corner of every intersection. */
+  buildStreetSigns() {
+    const C = CITY.roadCenters;
+    const off = CITY.roadHalf + 1.4;
+    const mats = new Map();
+    const blade = (text) => {
+      if (!mats.has(text)) mats.set(text, new THREE.MeshStandardMaterial({ map: signTexture(text, '#2d5f3f', '#f2efe6'), roughness: 0.5 }));
+      return mats.get(text);
+    };
+    const m = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    C.forEach((cx, i) => C.forEach((cz, j) => {
+      const x = cx - off;
+      const z = cz - off;
+      if (Math.abs(x) > 115 || Math.abs(z) > 115) return;
+      m.makeTranslation(x, Y + 1.5, z);
+      this.batcher.add(Materials.metal(), new THREE.CylinderGeometry(0.05, 0.05, 3, 6), m, '#3b4146');
+      this.physics.addStaticCylinder(x, Y + 1.5, z, 1.5, 0.08);
+      // Blade facing traffic on the road along z (named by x), and one for the road along x.
+      for (const [text, yaw, y] of [[STREET_NAMES.x[i], 0, 2.85], [STREET_NAMES.z[j], Math.PI / 2, 2.6]]) {
+        for (const flip of [0, Math.PI]) {
+          q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw + flip);
+          const dir = new THREE.Vector3(0, 0, 0.012).applyQuaternion(q);
+          const along = new THREE.Vector3(0.55, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+          m.compose(new THREE.Vector3(x + along.x + dir.x, Y + y, z + along.z + dir.z), q, new THREE.Vector3(1, 1, 1));
+          this.batcher.add(blade(text), new THREE.PlaneGeometry(1.1, 0.21), m);
+        }
+      }
+    }));
   }
 
   buildBoundary() {

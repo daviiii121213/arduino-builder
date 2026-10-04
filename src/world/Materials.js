@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {
+  corrugatedTexture, fenceTexture,
   asphaltTexture, sidewalkTexture, plazaTexture, grassTexture, roofTexture, concreteTexture,
   facadeTextures, storefrontTextures,
 } from './Textures.js';
@@ -49,5 +50,22 @@ export const Materials = {
   glass: () => get('glass', () => std({ color: 0x3b4d58, roughness: 0.08, metalness: 0.3 })),
   foliage: () => get('foliage', () => std({ vertexColors: true, roughness: 0.9, flatShading: true })),
   emissiveWarm: () => get('emissiveWarm', () => std({ color: 0xfff1d0, emissive: 0xffd9a0, emissiveIntensity: 0.3 })),
+  /** See-through shop windows and doors. */
+  shopGlass: () => get('shopGlass', () => {
+    const m = std({ color: 0x9fc0cc, roughness: 0.05, metalness: 0.4, transparent: true, opacity: 0.32, depthWrite: false });
+    m.userData.castShadow = false;
+    return m;
+  }),
+  rollupDoor: () => get('rollupDoor', () => std({ map: corrugatedTexture(), color: 0x9aa7b0, roughness: 0.5, metalness: 0.4 })),
+  /** Interior surfaces get a little self-light so rooms read well under a roof. */
+  interior: () => get('interior', () => std({ vertexColors: true, roughness: 0.8, emissive: 0x3a352e })),
+  lightPanel: () => get('lightPanel', () => std({ color: 0xfffaf0, emissive: 0xfff2dc, emissiveIntensity: 1.4 })),
+  fridgeGlass: () => get('fridgeGlass', () => std({ color: 0xbfe3f0, emissive: 0x9fd4ec, emissiveIntensity: 0.6, roughness: 0.1, metalness: 0.2 })),
+  corrugated: () => get('corrugated', () => std({ map: corrugatedTexture(), vertexColors: true, roughness: 0.55, metalness: 0.35 })),
+  fence: () => get('fence', () => {
+    const m = std({ map: fenceTexture(), alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.6, metalness: 0.5 });
+    m.userData.castShadow = true;
+    return m;
+  }),
   water: () => get('water', () => std({ color: 0x3f6a78, roughness: 0.05, metalness: 0.2 })),
 };

@@ -354,6 +354,21 @@ const SOUNDS = {
     a.tone(out, { dur: 0.25, freq: 80, freqEnd: 35, gain: 0.8 });
     a.noiseBurst(out, { t: 0.04, dur: 0.25, type: 'bandpass', freq: 3200, q: 2, gain: 0.3 });
   },
+  switchClick(a, gain, pan) {
+    const out = a.output(gain * 0.3, pan);
+    a.noiseBurst(out, { dur: 0.03, type: 'bandpass', freq: 3000, q: 3, gain: 0.8 });
+  },
+  doorCreak(a, gain, pan) {
+    const out = a.output(gain * 0.35, pan);
+    a.noiseBurst(out, { dur: 0.05, type: 'bandpass', freq: 1800, q: 2, gain: 0.6 });
+    a.tone(out, { t: 0.03, dur: 0.35, type: 'sawtooth', freq: 180, freqEnd: 140, gain: 0.05, attack: 0.05 });
+    a.noiseBurst(out, { t: 0.05, dur: 0.3, type: 'bandpass', freq: 500, q: 1, gain: 0.2, attack: 0.05 });
+  },
+  gateRoll(a, gain, pan) {
+    const out = a.output(gain * 0.4, pan, 0.2);
+    for (let i = 0; i < 10; i++) a.noiseBurst(out, { t: i * 0.11, dur: 0.08, type: 'bandpass', freq: 900 + Math.random() * 400, q: 3, gain: 0.5 });
+    a.noiseBurst(out, { dur: 1.2, type: 'lowpass', freq: 300, gain: 0.4, attack: 0.1, buffer: a.brown });
+  },
   horn(a, gain, pan) {
     const out = a.output(gain * 0.3, pan, 0.15);
     const g = (f) => a.tone(out, { dur: 0.45, type: 'square', freq: f, gain: 0.35, attack: 0.01 });

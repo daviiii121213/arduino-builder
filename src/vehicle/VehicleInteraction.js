@@ -79,6 +79,9 @@ export class VehicleInteraction {
       this.state = 'approaching';
       this.audio.play('yelp', vehicle.currPos);
       this.npcs.onTheft(vehicle.currPos);
+    } else if (vehicle.deadOccupant) {
+      // An incapacitated driver is moved out of the seat first.
+      this.ejectDriver();
     } else {
       this.startEnterAnimation();
     }
@@ -97,11 +100,13 @@ export class VehicleInteraction {
 
   ejectDriver() {
     const v = this.vehicle;
-    const rig = this.traffic.release(v);
+    const dead = !!v.deadOccupant && !(v.driver instanceof TrafficDriver);
+    const rig = dead ? v.deadOccupant : this.traffic.release(v);
+    v.deadOccupant = null;
     this.state = 'ejecting';
     this.timer = 0;
     if (!rig) return;
-    this.ejected = { rig, from: new THREE.Vector3(), to: this.findExitSpot(v, true) ?? v.doorPosition(new THREE.Vector3()) };
+    this.ejected = { dead, rig, from: new THREE.Vector3(), to: this.findExitSpot(v, true) ?? v.doorPosition(new THREE.Vector3()) };
     rig.root.updateMatrixWorld(true);
     rig.root.getWorldPosition(this.ejected.from);
     v.model.root.remove(rig.root);
@@ -176,12 +181,12 @@ export class VehicleInteraction {
         if (this.ejected) {
           const r = this.ejected.rig;
           r.root.position.lerpVectors(this.ejected.from, this.ejected.to, ease(t));
-          r.update(dt, { speed: 2, grounded: true });
+          r.update(dt, this.ejected.dead ? { seated: true } : { speed: 2, grounded: true });
         }
         rig.update(dt, { speed: 0, grounded: true });
         if (t >= 1) {
           if (this.ejected) {
-            this.npcs.adoptDriver(this.ejected.rig, this.ejected.to, this.player.position);
+            this.npcs.adoptDriver(this.ejected.rig, this.ejected.to, this.player.position, { dead: this.ejected.dead });
             this.ejected = null;
           }
           this.startEnterAnimation();
