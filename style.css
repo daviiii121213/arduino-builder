@@ -689,6 +689,12 @@ html:not(.js) .svc__icon { stroke-dashoffset: 0; }
 .footer__col a:hover { color: var(--text); }
 .footer__base { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line); }
 .footer__base a:hover { color: var(--text); }
+/* marca d'água do desenvolvedor, com transparência */
+.footer__credit { text-transform: none; letter-spacing: .04em; color: rgba(243, 243, 241, .38); }
+.footer__credit strong { font-weight: 500; color: rgba(243, 243, 241, .58); }
+@media (max-width: 640px) {
+  .footer__base { flex-direction: column; align-items: flex-start; gap: 12px; }
+}
 @media (min-width: 900px) {
   .footer { padding-bottom: 32px; }
   .footer__grid { grid-template-columns: 2fr 1fr 1fr 1fr; }
@@ -724,24 +730,6 @@ html:not(.js) .svc__icon { stroke-dashoffset: 0; }
   }
 }
 
-/* ---------- Marca d'água fixa ---------- */
-.watermark {
-  position: fixed; right: 14px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 65;
-  font: 400 11px/1 var(--f-mono); letter-spacing: .04em;
-  color: rgba(243, 243, 241, .38);
-  pointer-events: none; user-select: none;
-  transition: bottom .6s var(--ease-out);
-}
-.watermark strong { font-weight: 500; color: rgba(243, 243, 241, .55); }
-/* sobe quando a barra de agendamento do celular aparece */
-@media (max-width: 959px) {
-  .wa:not(.is-hidden) ~ .watermark { bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
-}
-/* desktop: o botão do WhatsApp fica acima da marca d'água */
-@media (min-width: 960px) {
-  .wa { bottom: 40px; }
-}
-
 /* ==========================================================================
    Telas baixas (celular deitado)
    ========================================================================== */
@@ -757,7 +745,6 @@ html:not(.js) .svc__icon { stroke-dashoffset: 0; }
   .hero__ctas .btn--lg { --h: 46px; padding: 0 20px; }
   .hero__meta { display: none; }
   .wa { left: auto; right: 12px; min-height: 46px; padding: 0 20px; }
-  .wa:not(.is-hidden) ~ .watermark { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
   .menu__list a { padding: 8px 0; font-size: 24px; }
   .section { padding: 72px 0; }
   .lb__img { max-height: calc(100vh - 120px); }
