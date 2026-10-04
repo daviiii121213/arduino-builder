@@ -248,11 +248,15 @@ export class BlockBuilders {
       const x = x0 + 16 + i * 2.7;
       if (x > x1 - 1) break;
       c.quad(paint, x - 0.06, z0 + 0.3, x + 0.06, z0 + 5.4, 0.16, 1);
-      if (i < 13 && x + 2.7 < x1 - 1) p.wheelStop(x + 1.35, Y, z0 + 1.0, 0);
+      if (i < 13 && x + 2.7 < x1 - 1) {
+        p.wheelStop(x + 1.35, Y, z0 + 0.7, 0);
+        c.lotSpots.push({ x: x + 1.35, y: Y, z: z0 + 3.0, yaw: Math.PI });
+      }
     }
     for (let i = 0; i <= 10; i++) {
       const z = -90 + i * 2.7;
       c.quad(paint, x0 + 14.3, z - 0.06, x0 + 19.4, z + 0.06, 0.16, 1);
+      if (i < 10) c.lotSpots.push({ x: x0 + 17.0, y: Y, z: z + 1.35, yaw: -Math.PI / 2 });
     }
     // Direction arrows painted in the aisle.
     for (const ax of [-70, -58]) {
@@ -275,6 +279,7 @@ export class BlockBuilders {
     this.batcher.add(Materials.concrete(), new THREE.BoxGeometry(run + 0.1, 0.1, 8), new THREE.Matrix4().compose(center, rot, new THREE.Vector3(1, 1, 1)));
     // Concrete apron across the sidewalk marks the driveway.
     c.quad(Materials.concrete(), b.x1 - SW, zc - 4, b.x1, zc + 4, Y + 0.006, 2);
+    c.noParking.push({ x: b.x1 + 5, z: zc, r: 9 });
   }
 
   civic(b) {

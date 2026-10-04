@@ -17,7 +17,7 @@ const _q = new THREE.Quaternion();
  * spread/recoil, ammunition and reloading.
  */
 export class WeaponSystem {
-  constructor({ player, physics, effects, audio, camera, onShot, onHit }) {
+  constructor({ player, physics, effects, audio, camera, onShot, onHit, onVehicleHit }) {
     this.player = player;
     this.physics = physics;
     this.effects = effects;
@@ -25,6 +25,7 @@ export class WeaponSystem {
     this.camera = camera;
     this.onShot = onShot;
     this.onHit = onHit;
+    this.onVehicleHit = onVehicleHit;
     const rig = player.rig;
 
     this.weapons = {};
@@ -32,6 +33,8 @@ export class WeaponSystem {
       const def = WEAPONS[id];
       const model = weaponModelFactories[id]();
       model.magazine.userData.baseY = model.magazine.position.y;
+      // Weapons are sized for the compact characters.
+      model.object.scale.setScalar(0.72);
       this.weapons[id] = {
         def,
         model,
@@ -69,11 +72,11 @@ export class WeaponSystem {
     w.model.magazine.visible = true;
     if (w.def.stow === 'back') {
       rig.spine.add(obj);
-      obj.position.set(0.03, 0.46, -0.19);
+      obj.position.set(0.02, 0.22, -0.15);
       obj.rotation.set(Math.PI / 2, 0, 0.75, 'ZYX');
     } else {
       rig.hips.add(obj);
-      obj.position.set(-0.2, 0.0, 0.02);
+      obj.position.set(-0.2, -0.02, 0.02);
       obj.rotation.set(Math.PI / 2, 0, 0, 'XYZ');
     }
   }
@@ -218,7 +221,7 @@ export class WeaponSystem {
 
     // Start past the player so nothing between the camera and the character is hit.
     const chest = _shoulder.copy(this.player.position);
-    chest.y += 1.45;
+    chest.y += 0.95;
     const skip = Math.max(0, _origin.subVectors(chest, ray.origin).dot(_dir));
     _origin.copy(ray.origin).addScaledVector(_dir, skip);
     const camHit = this.physics.raycast(_origin, _dir, def.range, QueryGroups.bullets, this.player.body);
@@ -254,7 +257,7 @@ export class WeaponSystem {
       const isVehicle = owner?.isVehicle;
       this.effects.impact(hit.point, hit.normal, { decal: !isVehicle, dustColor: isVehicle ? 0x777777 : 0xb8b0a4 });
       this.audio.play('impact', hit.point);
-      owner?.onImpact?.(hit.point, toTarget);
+      if (isVehicle) this.onVehicleHit?.(owner);
     }
   }
 }

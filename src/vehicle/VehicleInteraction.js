@@ -1,90 +1,254 @@
 import * as THREE from 'three';
 import { QueryGroups } from '../core/Physics.js';
+import { TrafficDriver } from '../traffic/TrafficDriver.js';
 
-const ENTER_DISTANCE = 2.6;
 const MAX_EXIT_SPEED = 5;
-const SEAT = new THREE.Vector3(0.38, -0.2, -0.3);
+const ENTER_TIME = 0.55;
+const EXIT_TIME = 0.45;
+const EJECT_TIME = 0.6;
+const HIJACK_TIMEOUT = 4;
 
-/** Entering and leaving the car: seat placement, exit-spot validation and camera mode. */
+const _seat = new THREE.Vector3();
+const _door = new THREE.Vector3();
+const ease = (t) => t * t * (3 - 2 * t);
+
+/**
+ * Entering, leaving and stealing vehicles. A small state machine moves the
+ * player (and an evicted AI driver) between the street and the driver seat,
+ * transferring control and camera at the right moments.
+ */
 export class VehicleInteraction {
-  constructor({ scene, player, car, camera, weapons, physics, audio }) {
-    this.scene = scene;
-    this.player = player;
-    this.car = car;
-    this.camera = camera;
-    this.weapons = weapons;
-    this.physics = physics;
-    this.audio = audio;
-    this.driving = false;
+  constructor({ scene, player, vehicles, traffic, npcs, camera, weapons, physics, audio }) {
+    Object.assign(this, { scene, player, vehicles, traffic, npcs, camera, weapons, physics, audio });
+    this.state = 'onFoot'; // onFoot | approaching | ejecting | entering | driving | exiting
+    this.vehicle = null;
+    this.timer = 0;
     this.exitShape = new physics.RAPIER.Capsule(player.halfHeight, player.radius);
+    this.message = null;
+    this.messageTimer = 0;
   }
 
-  /** Text for the on-screen prompt, or null. */
+  get driving() {
+    return this.state === 'driving';
+  }
+
+  /** Player has no on-foot control (in a car or mid-transition). */
+  get busy() {
+    return this.state !== 'onFoot';
+  }
+
+  /** Contextual prompt (Brazilian Portuguese) or null. */
   prompt() {
-    if (this.driving) {
-      return Math.abs(this.car.speed) > MAX_EXIT_SPEED ? 'Reduza a velocidade para sair' : '[F] Sair do veículo';
+    if (this.messageTimer > 0) return this.message;
+    if (this.state === 'driving') {
+      return Math.abs(this.vehicle.speed) > MAX_EXIT_SPEED ? null : 'Pressione F para sair do veículo';
     }
-    return this.canEnter() ? '[F] Entrar no veículo' : null;
+    if (this.state !== 'onFoot') return null;
+    const v = this.vehicles.nearestEnterable(this.player.position);
+    if (!v) return null;
+    return v.driver instanceof TrafficDriver ? 'Pressione F para roubar o veículo' : 'Pressione F para entrar no veículo';
   }
 
-  canEnter() {
-    const p = this.player.position;
-    const door = this.car.doorPosition(new THREE.Vector3());
-    const center = this.car.position;
-    const near = Math.hypot(p.x - door.x, p.z - door.z) < ENTER_DISTANCE || Math.hypot(p.x - center.x, p.z - center.z) < 2.4;
-    return near && Math.abs(p.y - center.y) < 1.6;
+  flash(text) {
+    this.message = text;
+    this.messageTimer = 1.6;
   }
 
   toggle() {
-    if (this.driving) this.exit();
-    else if (this.canEnter()) this.enter();
+    if (this.state === 'driving') this.beginExit();
+    else if (this.state === 'onFoot') {
+      const v = this.vehicles.nearestEnterable(this.player.position);
+      if (v) this.beginEnter(v);
+    }
   }
 
-  enter() {
-    this.driving = true;
+  // ------------------------------------------------------------ enter
+
+  beginEnter(vehicle) {
+    this.vehicle = vehicle;
     this.weapons.holster();
     this.player.setEnabled(false);
-    const rig = this.player.rig;
-    this.car.model.root.add(rig.root);
-    rig.root.position.copy(SEAT);
-    rig.root.rotation.set(0, 0, 0);
-    this.car.driver = this.player;
+    this.startPos = this.player.position.clone();
+    this.startYaw = this.player.yaw;
+    this.timer = 0;
+    vehicle.persistent = false;
+    this.camera.excludeBody = vehicle.body;
+    if (vehicle.driver instanceof TrafficDriver) {
+      // Carjacking: the car stops, then the driver is pulled out.
+      this.traffic.hijack(vehicle);
+      this.state = 'approaching';
+      this.audio.play('yelp', vehicle.currPos);
+      this.npcs.onTheft(vehicle.currPos);
+    } else {
+      this.startEnterAnimation();
+    }
+  }
+
+  startEnterAnimation() {
+    const v = this.vehicle;
+    if (v.mode !== 'physics') v.setMode('physics');
+    this.state = 'entering';
+    this.timer = 0;
+    this.startPos = this.player.rig.root.position.clone();
     this.camera.setMode('vehicle');
-    this.camera.excludeBody = this.car.body;
-    this.audio.play('doorOpen', this.car.position);
-    setTimeout(() => this.audio.play('doorClose', this.car.position), 350);
-    setTimeout(() => this.audio.play('engineStart', this.car.position), 550);
+    this.camera.excludeBody = v.body;
+    this.audio.play('doorOpen', v.currPos);
   }
 
-  exit() {
-    if (Math.abs(this.car.speed) > MAX_EXIT_SPEED) return;
-    const spot = this.findExitSpot();
-    if (!spot) return;
-    this.driving = false;
-    this.car.driver = null;
-    const rig = this.player.rig;
+  ejectDriver() {
+    const v = this.vehicle;
+    const rig = this.traffic.release(v);
+    this.state = 'ejecting';
+    this.timer = 0;
+    if (!rig) return;
+    this.ejected = { rig, from: new THREE.Vector3(), to: this.findExitSpot(v, true) ?? v.doorPosition(new THREE.Vector3()) };
+    rig.root.updateMatrixWorld(true);
+    rig.root.getWorldPosition(this.ejected.from);
+    v.model.root.remove(rig.root);
     this.scene.add(rig.root);
-    this.player.setEnabled(true);
-    this.player.teleport(spot.x, spot.y, spot.z);
-    this.player.yaw = this.car.yaw;
-    this.camera.setMode('onFoot');
-    this.camera.excludeBody = undefined;
-    this.audio.play('doorClose', this.car.position);
+    rig.root.position.copy(this.ejected.from);
+    rig.root.rotation.set(0, v.yaw + Math.PI / 2, 0);
+    this.audio.play('doorOpen', v.currPos);
   }
 
-  findExitSpot() {
+  // ------------------------------------------------------------ exit
+
+  beginExit() {
+    const v = this.vehicle;
+    if (Math.abs(v.speed) > MAX_EXIT_SPEED) return;
+    const spot = this.findExitSpot(v);
+    if (!spot) {
+      this.flash('Sem espaço para sair aqui');
+      return;
+    }
+    this.exitSpot = spot;
+    this.state = 'exiting';
+    this.timer = 0;
+    v.driver = null;
+    this.vehicles.playerVehicle = null;
+    const rig = this.player.rig;
+    rig.root.updateMatrixWorld(true);
+    this.startPos = rig.root.getWorldPosition(new THREE.Vector3());
+    v.model.root.remove(rig.root);
+    this.scene.add(rig.root);
+    rig.root.position.copy(this.startPos);
+    this.audio.play('doorOpen', v.currPos);
+    this.audio.setEngine(false);
+  }
+
+  /** First free spot beside the car (walls, cars and people are checked). */
+  findExitSpot(v, farSide = false) {
     const world = this.physics.world;
-    const centerOffset = this.player.centerOffset;
-    for (const c of this.car.exitCandidates()) {
-      // Drop the candidate onto whatever is below it.
-      const down = this.physics.raycast({ x: c.x, y: c.y + 1.5, z: c.z }, { x: 0, y: -1, z: 0 }, 6, QueryGroups.solid, this.car.body);
-      const feetY = down ? down.point.y + 0.05 : c.y;
+    const candidates = v.exitCandidates();
+    if (farSide) candidates.push(candidates.shift());
+    for (const c of candidates) {
+      const down = this.physics.raycast({ x: c.x, y: c.y + 1.5, z: c.z }, { x: 0, y: -1, z: 0 }, 4, QueryGroups.ground);
+      const feetY = down ? down.point.y + 0.03 : c.y;
       const blocked = world.intersectionWithShape(
-        { x: c.x, y: feetY + centerOffset + 0.02, z: c.z }, { x: 0, y: 0, z: 0, w: 1 }, this.exitShape,
-        undefined, QueryGroups.solid, undefined, undefined,
+        { x: c.x, y: feetY + this.player.centerOffset + 0.03, z: c.z }, { x: 0, y: 0, z: 0, w: 1 }, this.exitShape,
+        undefined, QueryGroups.solid, undefined, v.body,
       );
       if (!blocked) return new THREE.Vector3(c.x, feetY, c.z);
     }
     return null;
+  }
+
+  // ------------------------------------------------------------ per-frame
+
+  update(dt) {
+    this.messageTimer = Math.max(0, this.messageTimer - dt);
+    const v = this.vehicle;
+    const rig = this.player.rig;
+    switch (this.state) {
+      case 'approaching': {
+        // Walk alongside the door while the car brakes to a stop.
+        this.timer += dt;
+        v.doorPosition(_door);
+        rig.root.position.lerp(_door, Math.min(1, dt * 8));
+        rig.root.rotation.y = v.yaw - Math.PI / 2;
+        rig.update(dt, { speed: 2.5, grounded: true });
+        if (Math.abs(v.speed) < 0.6 || this.timer > HIJACK_TIMEOUT) this.ejectDriver();
+        break;
+      }
+      case 'ejecting': {
+        this.timer += dt;
+        const t = Math.min(1, this.timer / EJECT_TIME);
+        if (this.ejected) {
+          const r = this.ejected.rig;
+          r.root.position.lerpVectors(this.ejected.from, this.ejected.to, ease(t));
+          r.update(dt, { speed: 2, grounded: true });
+        }
+        rig.update(dt, { speed: 0, grounded: true });
+        if (t >= 1) {
+          if (this.ejected) {
+            this.npcs.adoptDriver(this.ejected.rig, this.ejected.to, this.player.position);
+            this.ejected = null;
+          }
+          this.startEnterAnimation();
+        }
+        break;
+      }
+      case 'entering': {
+        this.timer += dt;
+        const t = Math.min(1, this.timer / ENTER_TIME);
+        v.model.root.updateMatrixWorld(true);
+        v.seatPosition(_seat).applyMatrix4(v.model.root.matrixWorld);
+        v.doorPosition(_door);
+        // First step to the door, then slide into the seat.
+        if (t < 0.45) rig.root.position.lerpVectors(this.startPos, _door, ease(t / 0.45));
+        else rig.root.position.lerpVectors(_door, _seat, ease((t - 0.45) / 0.55));
+        rig.root.rotation.y = v.yaw;
+        rig.update(dt, t < 0.45 ? { speed: 2.4, grounded: true } : { seated: true });
+        if (t >= 1) this.finishEnter();
+        break;
+      }
+      case 'exiting': {
+        this.timer += dt;
+        const t = Math.min(1, this.timer / EXIT_TIME);
+        rig.root.position.lerpVectors(this.startPos, this.exitSpot, ease(t));
+        rig.root.rotation.y = v.yaw;
+        rig.update(dt, t < 0.4 ? { seated: true } : { speed: 2, grounded: true });
+        if (t >= 1) this.finishExit();
+        break;
+      }
+      case 'driving':
+        rig.update(dt, { seated: true });
+        break;
+      default:
+    }
+  }
+
+  finishEnter() {
+    const v = this.vehicle;
+    const rig = this.player.rig;
+    this.scene.remove(rig.root);
+    v.model.root.add(rig.root);
+    rig.root.position.copy(v.seatPosition(_seat));
+    rig.root.rotation.set(0, 0, 0);
+    v.driver = 'player';
+    this.vehicles.playerVehicle = v;
+    this.state = 'driving';
+    this.audio.play('doorClose', v.currPos);
+    setTimeout(() => this.audio.play('engineStart', v.currPos), 250);
+  }
+
+  finishExit() {
+    const v = this.vehicle;
+    const spot = this.exitSpot;
+    this.player.setEnabled(true);
+    this.player.teleport(spot.x, spot.y, spot.z);
+    this.player.yaw = v.yaw;
+    this.camera.setMode('onFoot');
+    this.camera.excludeBody = undefined;
+    this.state = 'onFoot';
+    this.vehicle = null;
+    this.audio.play('doorClose', v.currPos);
+  }
+
+  /** Focus point for the camera. */
+  focus() {
+    if (this.state === 'driving' || this.state === 'entering') return this.vehicle.position;
+    if (this.state === 'onFoot') return this.player.position;
+    return this.player.rig.root.position;
   }
 }

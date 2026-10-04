@@ -2,8 +2,7 @@ import * as THREE from 'three';
 import { Groups, QueryGroups } from '../core/Physics.js';
 import { CharacterRig } from '../characters/CharacterRig.js';
 import { dampAngle } from '../core/math.js';
-
-const MAX_HEALTH = 100;
+import { NPCHealth } from './NPCHealth.js';
 const GRAVITY = 20;
 
 /**
@@ -18,8 +17,8 @@ export class NPC {
     this.path = path;
     this.rng = rng;
     const R = physics.RAPIER;
-    this.radius = 0.3;
-    this.halfHeight = 0.55;
+    this.radius = 0.25;
+    this.halfHeight = 0.4;
     this.centerOffset = this.halfHeight + this.radius;
 
     this.body = physics.world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased());
@@ -29,6 +28,8 @@ export class NPC {
     );
     physics.setOwner(this.collider, this);
 
+    this.scene = scene;
+    this.health = new NPCHealth(100);
     this.rig = new CharacterRig(look);
     scene.add(this.rig.root);
     this.walkSpeed = rng.range(1.15, 1.55);
@@ -47,7 +48,7 @@ export class NPC {
     this.teleport(p.x, this.physics.groundHeight(p.x, p.z, 5) + 0.05, p.z);
     const t = this.path.points[this.target];
     this.yaw = Math.atan2(t.x - p.x, t.z - p.z);
-    this.health = MAX_HEALTH;
+    this.health.reset();
     this.state = 'walk';
     this.stateTimer = 0;
     this.vy = 0;
@@ -95,13 +96,14 @@ export class NPC {
 
   onBulletHit(damage, point, dir) {
     if (this.state === 'dead') return;
-    this.health -= damage;
+    const lethal = this.health.damage(damage);
     this.rig.triggerHit(1);
     this.audio.play('hitBody', point);
-    if (this.health <= 0) {
+    if (lethal) {
       this.die();
       return;
     }
+    this.audio.play('yelp', point, 0.8);
     if (this.state !== 'down') {
       this.state = 'stagger';
       this.stateTimer = 0.4;
@@ -111,12 +113,12 @@ export class NPC {
 
   hitByVehicle(speed, carPos) {
     if (!this.canBeHit) return;
-    this.health -= Math.min(150, speed * 9);
+    const lethal = this.health.damage(Math.min(150, speed * 9));
     this.rig.triggerHit(1);
     this.audio.play('hitBody', this.currPos, 1.4);
     this.fleeFrom(carPos.x, carPos.z);
     this.knockdown(carPos);
-    if (this.health <= 0) this.die(true);
+    if (lethal) this.die(true);
   }
 
   knockdown(from) {
@@ -126,13 +128,29 @@ export class NPC {
     this.stateTimer = 2.8;
   }
 
-  onGunshot(pos) {
-    if (this.state !== 'walk' && this.state !== 'idle') return;
+  /** Runs away from a danger (gunfire, a theft, a car coming at them) within `radius`. */
+  onDanger(pos, radius = 32, duration = 6) {
+    if (this.state !== 'walk' && this.state !== 'idle' && this.state !== 'flee') return false;
     const d = Math.hypot(pos.x - this.currPos.x, pos.z - this.currPos.z);
-    if (d > 32) return;
+    if (d > radius) return false;
     this.fleeFrom(pos.x, pos.z);
-    this.state = 'flee';
-    this.stateTimer = this.rng.range(5, 8);
+    if (this.state !== 'flee') this.state = 'flee';
+    this.stateTimer = Math.max(this.stateTimer, duration * this.rng.range(0.8, 1.2));
+    return true;
+  }
+
+  onGunshot(pos) {
+    this.onDanger(pos, 32, 6);
+  }
+
+  /** Swaps the visual rig (used when an evicted driver becomes a pedestrian). */
+  setRig(rig) {
+    this.scene.remove(this.rig.root);
+    this.rig.dispose();
+    this.rig = rig;
+    this.scene.add(rig.root);
+    rig.root.rotation.set(0, 0, 0);
+    rig.fallBlend = 0;
   }
 
   fleeFrom(x, z) {
@@ -142,13 +160,11 @@ export class NPC {
     const t = this.path.points[this.target];
     const towardTarget = (t.x - here.x) * away.x + (t.z - here.z) * away.z;
     if (towardTarget < 0) this.reverse();
-    this.fleeTimer = this.rng.range(5, 8);
   }
 
   die(byVehicle = false) {
     this.state = 'dead';
     this.stateTimer = 9;
-    this.health = 0;
     this.collider.setEnabled(false);
     if (!byVehicle) this.rig.triggerHit(1);
   }
@@ -258,10 +274,15 @@ export class NPC {
     this.moveSpeed = got / dt;
   }
 
-  render(dt, alpha) {
+  /** `far` characters animate at a reduced rate (animation LOD). */
+  render(dt, alpha, far = false) {
     this.renderPos.lerpVectors(this.prevPos, this.currPos, alpha);
     this.rig.root.position.copy(this.renderPos);
     this.rig.root.rotation.y = this.yaw;
+    this.animDt = (this.animDt ?? 0) + dt;
+    if (far && this.animDt < 0.1) return;
+    dt = this.animDt;
+    this.animDt = 0;
     const lying = this.state === 'dead' || this.state === 'down';
     this.rig.update(dt, {
       speed: lying ? 0 : this.moveSpeed ?? 0,

@@ -22,9 +22,12 @@ export class City {
     this.group.name = 'City';
     scene.add(this.group);
     this.npcPaths = [];
+    /** Parking-lot stalls: {x, y, z, yaw}. */
+    this.lotSpots = [];
+    /** Places where no car may be parked (driveways, bus stops, spawn): {x, z, r}. */
+    this.noParking = [];
     this.spawn = {
-      player: { x: -44, y: 0.4, z: -66, yaw: -Math.PI / 2 },
-      car: { x: -64, y: 0.9, z: -78, yaw: Math.PI / 2 },
+      player: { x: -44.5, y: 0.4, z: -66, yaw: -Math.PI / 2 },
     };
   }
 
@@ -148,7 +151,9 @@ export class City {
           // Dashed centre line.
           for (let a = s0 + 6; a < s1 - 6; a += 6) along(axis, c, a, Math.min(a + 3, s1 - 6), 0, 0.15);
           // Edge lines.
-          for (const off of [-half + 0.45, half - 0.45]) along(axis, c, s0 + 4.2, s1 - 4.2, off, 0.12);
+          // Lane edge lines separate the travel lanes from the curbside parking strip.
+          const edge = CITY.laneOffset + 1.6;
+          for (const off of [-edge, edge]) along(axis, c, s0 + 4.2, s1 - 4.2, off, 0.12);
         }
       }
     }
@@ -212,6 +217,7 @@ export class City {
     p.busShelter(b1.x1 - 3.1, Y, (b1.z0 + b1.z1) / 2 + 8, Math.PI / 2);
     const b2 = blockBounds(2, 1);
     p.busShelter(b2.x0 + 3.1, Y, (b2.z0 + b2.z1) / 2 - 8, -Math.PI / 2);
+    this.noParking.push({ x: b1.x1 + 5, z: (b1.z0 + b1.z1) / 2 + 8, r: 8 }, { x: b2.x0 - 5, z: (b2.z0 + b2.z1) / 2 - 8, r: 8 });
   }
 
   buildTrafficLights() {

@@ -2,16 +2,20 @@ import * as THREE from 'three';
 import { Physics, FIXED_DT } from './Physics.js';
 import { Input } from './Input.js';
 import { AudioSystem } from './AudioSystem.js';
+import { createRng } from './math.js';
 import { setMaxAnisotropy } from '../world/Textures.js';
 import { Environment } from '../world/Environment.js';
+import { DayNight } from '../world/DayNight.js';
 import { City } from '../world/City.js';
 import { Player } from '../player/Player.js';
 import { ThirdPersonCamera } from '../camera/ThirdPersonCamera.js';
 import { Effects } from '../weapons/Effects.js';
 import { WeaponSystem } from '../weapons/WeaponSystem.js';
 import { NPCManager } from '../npc/NPCManager.js';
-import { Car } from '../vehicle/Car.js';
+import { VehicleManager } from '../vehicle/VehicleManager.js';
 import { VehicleInteraction } from '../vehicle/VehicleInteraction.js';
+import { RoadNetwork } from '../traffic/RoadNetwork.js';
+import { TrafficManager } from '../traffic/TrafficManager.js';
 import { HUD } from '../ui/HUD.js';
 
 const MAX_STEPS_PER_FRAME = 5;
@@ -39,23 +43,36 @@ export class Game {
     setMaxAnisotropy(Math.min(8, renderer.capabilities.getMaxAnisotropy()));
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.1, 1500);
+    this.camera = new THREE.PerspectiveCamera(66, window.innerWidth / window.innerHeight, 0.1, 1500);
     this.environment = new Environment(this.scene, renderer);
 
     this.city = new City(this.scene, physics);
     this.city.build();
+    this.dayNight = new DayNight({ scene: this.scene, environment: this.environment, lampHeads: this.city.props.lampHeads });
 
     this.audio = new AudioSystem();
     this.input = new Input(renderer.domElement);
     this.effects = new Effects(this.scene);
+    const rng = createRng(777);
 
     const spawn = this.city.spawn;
     this.player = new Player({ physics, scene: this.scene, audio: this.audio, spawn: spawn.player });
-    this.car = new Car({ physics, scene: this.scene, audio: this.audio, spawn: spawn.car });
     this.cameraRig = new ThirdPersonCamera(this.camera, physics);
     this.cameraRig.yaw = spawn.player.yaw;
 
     this.npcs = new NPCManager({ physics, scene: this.scene, audio: this.audio, paths: this.city.npcPaths });
+    this.network = new RoadNetwork();
+    this.vehicles = new VehicleManager({ physics, scene: this.scene, audio: this.audio, rng });
+    this.vehicles.spawnParked(this.city.lotSpots, this.network.curbsideSpots(), [
+      ...this.city.noParking, { x: spawn.player.x, z: spawn.player.z, r: 4 },
+    ]);
+    for (const v of this.vehicles.list) v.persistent = true;
+    this.traffic = new TrafficManager({
+      physics, scene: this.scene, audio: this.audio, network: this.network, vehicles: this.vehicles,
+      lights: this.city.trafficLights, randomLook: () => this.npcs.randomLook(), rng,
+    });
+    this.traffic.populate(this.player.currPos);
+
     this.hud = new HUD(hudRoot);
     this.weapons = new WeaponSystem({
       player: this.player,
@@ -68,15 +85,17 @@ export class Game {
         this.hud.showHit(!npc.alive);
         this.audio.play('hitMarker');
       },
+      onVehicleHit: (vehicle) => vehicle.driver?.panic?.(),
     });
     this.vehicle = new VehicleInteraction({
-      scene: this.scene, player: this.player, car: this.car, camera: this.cameraRig,
-      weapons: this.weapons, physics, audio: this.audio,
+      scene: this.scene, player: this.player, vehicles: this.vehicles, traffic: this.traffic, npcs: this.npcs,
+      camera: this.cameraRig, weapons: this.weapons, physics, audio: this.audio,
     });
 
     this.accumulator = 0;
     this.lastTime = performance.now();
     this.aiming = false;
+    this.obstacles = [];
 
     // The physics world needs one step so colliders are queryable before the first frame.
     physics.step();
@@ -101,8 +120,11 @@ export class Game {
     this.cameraRig.handleMouse(mouse.x, mouse.y);
 
     if (input.wasPressed('KeyF')) this.vehicle.toggle();
-    if (input.wasPressed('KeyH')) this.hud.el.help.classList.toggle('faded');
-    const onFoot = !this.vehicle.driving;
+    const onFoot = !this.vehicle.busy;
+    if (input.wasPressed('KeyH')) {
+      if (this.vehicle.driving) this.audio.play('horn', this.vehicles.playerVehicle?.currPos);
+      else this.hud.el.help.classList.toggle('faded');
+    }
     if (onFoot) {
       if (input.wasPressed('Digit1')) this.weapons.equip('pistol');
       if (input.wasPressed('Digit2')) this.weapons.equip('rifle');
@@ -122,14 +144,12 @@ export class Game {
     if (input.isDown('KeyA')) r -= 1;
     const yaw = this.cameraRig.yaw;
     // Camera-relative: forward (sin, cos), right (-cos, sin).
-    const dirX = Math.sin(yaw) * f - Math.cos(yaw) * r;
-    const dirZ = Math.cos(yaw) * f + Math.sin(yaw) * r;
-    const faceAim = this.aiming || this.weapons.aimHold > 0;
     return {
-      dirX, dirZ,
+      dirX: Math.sin(yaw) * f - Math.cos(yaw) * r,
+      dirZ: Math.cos(yaw) * f + Math.sin(yaw) * r,
       run: input.isDown('ShiftLeft') || input.isDown('ShiftRight'),
       aimingSlow: this.aiming,
-      faceAim,
+      faceAim: this.aiming || this.weapons.aimHold > 0,
       aimYaw: yaw,
     };
   }
@@ -148,16 +168,32 @@ export class Game {
 
   fixedStep(dt) {
     const driving = this.vehicle.driving;
-    if (!driving) this.player.fixedUpdate(dt, this.footIntent());
-    this.car.fixedUpdate(dt, driving ? this.carInput() : null);
+    if (!this.vehicle.busy) this.player.fixedUpdate(dt, this.footIntent());
+
+    // Things traffic must yield to: pedestrians and the player on foot.
+    this.obstacles.length = 0;
+    this.npcs.obstacles(this.obstacles);
+    if (!this.vehicle.busy) this.obstacles.push({ x: this.player.currPos.x, z: this.player.currPos.z, r: 0.4, player: true });
+    this.traffic.fixedUpdate(dt, { obstacles: this.obstacles, playerPos: this.player.currPos });
+
+    this.vehicles.fixedUpdate(dt, driving ? this.carInput() : null);
     this.npcs.fixedUpdate(dt, this.player.currPos);
     this.physics.step();
-    this.car.postStep();
-    this.npcs.checkVehicle(this.car);
+    this.vehicles.postStep();
+    this.vehicles.checkPlayerContacts((v) => {
+      const rig = this.traffic.release(v);
+      if (rig) {
+        const spot = this.vehicle.findExitSpot(v, true) ?? v.doorPosition(new THREE.Vector3());
+        v.model.root.remove(rig.root);
+        this.npcs.adoptDriver(rig, spot, v.currPos);
+      }
+    });
+    this.npcs.checkVehicles(this.vehicles.list);
     if (driving) {
       // Keep the hidden on-foot body with the car so exit checks start nearby.
-      this.player.currPos.copy(this.car.currPos);
-      this.player.prevPos.copy(this.car.currPos);
+      const p = this.vehicles.playerVehicle.currPos;
+      this.player.currPos.copy(p);
+      this.player.prevPos.copy(p);
     }
   }
 
@@ -176,24 +212,26 @@ export class Game {
     if (steps === MAX_STEPS_PER_FRAME) this.accumulator = 0;
     const alpha = this.accumulator / FIXED_DT;
 
-    const driving = this.vehicle.driving;
-    this.car.render(dt, alpha);
+    const night = this.dayNight.night;
+    this.vehicles.render(dt, alpha, night);
     this.player.render(dt, alpha, this.weapons.animState(this.aiming));
-    if (driving) this.player.rig.update(dt, { seated: true });
-    this.npcs.render(dt, alpha);
+    this.vehicle.update(dt);
+    this.npcs.render(dt, alpha, this.camera.position);
 
     // Camera.
     const cam = this.cameraRig;
-    if (driving) cam.setMode('vehicle');
+    const pv = this.vehicles.playerVehicle ?? (this.vehicle.state === 'entering' ? this.vehicle.vehicle : null);
+    if (pv) cam.setMode('vehicle');
     else if (this.aiming) cam.setMode('aiming');
     else cam.setMode(this.weapons.active ? 'armed' : 'onFoot');
-    const focus = driving ? this.car.position : this.player.position;
-    cam.update(dt, focus, { vehicleYaw: this.car.renderYaw, vehicleSpeed: this.car.speed });
+    const focus = this.vehicle.focus();
+    cam.update(dt, focus, pv ? { vehicleYaw: pv.renderYaw, vehicleSpeed: pv.speed, vehicleLength: pv.def.length } : {});
 
     // Weapons fire after the camera so the aim ray matches what is on screen.
+    const onFoot = !this.vehicle.busy;
     this.weapons.update(dt, {
-      fireHeld: !driving && this.input.isMouseDown(0) && this.input.active,
-      firePressed: !driving && this.input.wasMousePressed(0) && this.input.active,
+      fireHeld: onFoot && this.input.isMouseDown(0) && this.input.active,
+      firePressed: onFoot && this.input.wasMousePressed(0) && this.input.active,
       aiming: this.aiming,
       moving: Math.min(1, this.player.speed() / 6),
       airborne: !this.player.grounded,
@@ -202,21 +240,40 @@ export class Game {
 
     this.effects.update(dt);
     this.city.update(dt);
+    this.dayNight.update(dt, this.camera.position, this.vehicles.playerVehicle);
     this.environment.update(focus);
     this.audio.setListener(this.camera.position.x, this.camera.position.y, this.camera.position.z, cam.yaw);
     this.audio.updateAmbience(dt);
-    if (!driving) this.audio.setEngine(false);
+    if (!this.vehicles.playerVehicle) this.audio.setEngine(false);
+    this.updateTrafficHum();
+    this.vehicles.cleanup(this.player.currPos);
 
-    this.updateHud(dt, driving);
+    this.updateHud(dt);
     this.renderer.render(this.scene, this.camera);
     this.input.endFrame();
   }
 
-  updateHud(dt, driving) {
+  updateTrafficHum() {
+    let best = 0;
+    let speed = 0;
+    for (const v of this.vehicles.list) {
+      if (v.mode !== 'traffic') continue;
+      const d = v.currPos.distanceTo(this.camera.position);
+      const p = Math.max(0, 1 - d / 28);
+      if (p > best) {
+        best = p;
+        speed = Math.min(1, Math.abs(v.speed) / 12);
+      }
+    }
+    this.audio.setTrafficHum(best * best, speed);
+  }
+
+  updateHud(dt) {
     const w = this.weapons.active;
+    const pv = this.vehicles.playerVehicle;
     this.hud.update(dt, {
       armed: !!w,
-      driving,
+      driving: !!pv,
       aiming: this.aiming,
       spread: this.weapons.spread,
       weaponId: w?.def.id,
@@ -226,7 +283,7 @@ export class Game {
       magazineSize: w?.def.magazineSize,
       reloading: this.weapons.isReloading,
       prompt: this.vehicle.prompt(),
-      speed: this.car.speed,
+      speed: pv?.speed ?? 0,
     });
   }
 }

@@ -196,6 +196,35 @@ export class AudioSystem {
     this.engine = { o1, o2, o3, filter, gain: out, skid };
   }
 
+  /** Low hum of nearby traffic; `proximity` 0 (none) .. 1 (right next to the listener). */
+  setTrafficHum(proximity, speed01) {
+    if (!this.ctx) return;
+    if (!this.hum) {
+      const ctx = this.ctx;
+      const o = ctx.createOscillator();
+      o.type = 'sawtooth';
+      const f = ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 300;
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      o.connect(f).connect(g).connect(this.master);
+      o.start();
+      const n = ctx.createBufferSource();
+      n.buffer = this.brown;
+      n.loop = true;
+      const ng = ctx.createGain();
+      ng.gain.value = 0;
+      n.connect(ng).connect(this.master);
+      n.start();
+      this.hum = { o, g, ng };
+    }
+    const now = this.ctx.currentTime;
+    this.hum.o.frequency.setTargetAtTime(38 + speed01 * 45, now, 0.2);
+    this.hum.g.gain.setTargetAtTime(proximity * 0.05, now, 0.2);
+    this.hum.ng.gain.setTargetAtTime(proximity * 0.18, now, 0.2);
+  }
+
   // ------------------------------------------------------------ ambience
 
   startAmbience() {
@@ -324,6 +353,28 @@ const SOUNDS = {
     a.noiseBurst(out, { dur: 0.35, type: 'lowpass', freq: 1800, freqEnd: 300, gain: 1, attack: 0.002 });
     a.tone(out, { dur: 0.25, freq: 80, freqEnd: 35, gain: 0.8 });
     a.noiseBurst(out, { t: 0.04, dur: 0.25, type: 'bandpass', freq: 3200, q: 2, gain: 0.3 });
+  },
+  horn(a, gain, pan) {
+    const out = a.output(gain * 0.3, pan, 0.15);
+    const g = (f) => a.tone(out, { dur: 0.45, type: 'square', freq: f, gain: 0.35, attack: 0.01 });
+    g(415);
+    g(523);
+  },
+  yelp(a, gain, pan) {
+    // Short non-verbal shout: a vowel-like formant sweep.
+    const out = a.output(gain * 0.22, pan);
+    const base = 260 + Math.random() * 180;
+    a.tone(out, { dur: 0.32, type: 'sawtooth', freq: base * 1.3, freqEnd: base * 0.9, gain: 0.25, attack: 0.01 });
+    a.noiseBurst(out, { dur: 0.3, type: 'bandpass', freq: 900 + Math.random() * 300, q: 6, gain: 0.5, attack: 0.02 });
+  },
+  chatter(a, gain, pan) {
+    // Murmur: a few soft formant blips, like distant indistinct talk.
+    const out = a.output(gain * 0.08, pan);
+    const n = 3 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < n; i++) {
+      const f = 500 + Math.random() * 900;
+      a.noiseBurst(out, { t: i * 0.14 + Math.random() * 0.05, dur: 0.1, type: 'bandpass', freq: f, q: 5, gain: 0.7, attack: 0.02 });
+    }
   },
   bird(a, gain, pan) {
     const out = a.output(gain * 0.05, pan);

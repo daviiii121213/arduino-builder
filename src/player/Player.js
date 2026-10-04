@@ -4,14 +4,14 @@ import { CharacterRig } from '../characters/CharacterRig.js';
 import { clamp, dampAngle } from '../core/math.js';
 
 const MOVE = {
-  walkSpeed: 2.7,
-  runSpeed: 6.4,
-  aimSpeed: 2.3,
+  walkSpeed: 2.5,
+  runSpeed: 5.9,
+  aimSpeed: 2.0,
   groundAccel: 22,
   groundDecel: 26,
   airAccel: 4,
   gravity: 20,
-  jumpSpeed: 6.4,
+  jumpSpeed: 6.0,
   coyoteTime: 0.12,
   jumpBuffer: 0.15,
   turnRate: 11,
@@ -19,7 +19,7 @@ const MOVE = {
 };
 
 const PLAYER_LOOK = {
-  skin: 0xb5835e, shirt: 0x3d4a58, pants: 0x2d3440, shoes: 0x2a2420, hair: 0x231a14, sleeves: 'long', scale: 1,
+  skin: 0xc68e62, shirt: 0xd8572a, pants: 0x2f3c52, shoes: 0x2a2420, hair: 0x2a1c14, hairStyle: 'side', sleeves: 'short', scale: 1,
 };
 
 /**
@@ -32,8 +32,8 @@ export class Player {
     this.audio = audio;
     this.spawn = spawn;
     const R = physics.RAPIER;
-    this.radius = 0.32;
-    this.halfHeight = 0.58;
+    this.radius = 0.26;
+    this.halfHeight = 0.4;
     this.centerOffset = this.halfHeight + this.radius; // feet -> capsule centre
 
     this.body = physics.world.createRigidBody(

@@ -21,7 +21,7 @@ export class HUD {
       <div id="help">
         <div><b>WASD</b> mover · <b>Shift</b> correr · <b>Espaço</b> pular</div>
         <div><b>1</b> pistola · <b>2</b> fuzil · <b>Botão esq.</b> atirar · <b>Botão dir.</b> mirar · <b>R</b> recarregar</div>
-        <div><b>F</b> entrar/sair do carro · no carro: <b>W/S</b> acelerar/freiar-ré · <b>A/D</b> direção · <b>Espaço</b> freio de mão</div>
+        <div><b>F</b> entrar, sair ou roubar um carro · no carro: <b>W/S</b> acelerar/frear-ré · <b>A/D</b> direção · <b>Espaço</b> freio de mão · <b>H</b> buzina</div>
       </div>`;
     this.el = {
       crosshair: root.querySelector('#crosshair'),

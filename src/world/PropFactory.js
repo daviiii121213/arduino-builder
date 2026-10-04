@@ -44,6 +44,8 @@ export class PropFactory {
     this.physics = physics;
     this.rng = rng;
     this.trafficLightHeads = [];
+    /** World positions of street-lamp heads, used for night lighting. */
+    this.lampHeads = [];
   }
 
   add(material, geometry, matrix, color) {
@@ -61,6 +63,7 @@ export class PropFactory {
     const [hx, hz] = rot(x, z, rotY, 0, 1.45);
     this.add(m, new THREE.BoxGeometry(0.34, 0.16, 0.7), mat(hx, y + H + 0.1, hz, rotY), COLORS.darkMetal);
     this.add(Materials.emissiveWarm(), new THREE.BoxGeometry(0.26, 0.04, 0.6), mat(hx, y + H + 0.01, hz, rotY));
+    this.lampHeads.push(new THREE.Vector3(hx, y + H, hz));
     this.physics.addStaticCylinder(x, y + H / 2, z, H / 2, 0.14);
   }
 

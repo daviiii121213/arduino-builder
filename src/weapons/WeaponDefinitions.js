@@ -19,7 +19,7 @@ export const WEAPONS = {
     recoilPitch: 0.03,
     recoilYaw: 0.008,
     // Holding pose relative to the character's spine (see CharacterRig).
-    pose: { pivot: [-0.08, 0.34, 0.06], twist: -0.12, readyPitch: 0.95, readyYaw: 0.05, readyOffset: 0.3, aimOffset: 0.38 },
+    pose: { pivot: [-0.06, 0.24, 0.07], twist: -0.12, readyPitch: 0.95, readyYaw: 0.05, readyOffset: 0.18, aimOffset: 0.25 },
     stow: 'hip',
   },
   rifle: {
@@ -40,7 +40,7 @@ export const WEAPONS = {
     spreadRecovery: 0.1,
     recoilPitch: 0.014,
     recoilYaw: 0.009,
-    pose: { pivot: [-0.15, 0.34, 0.1], twist: -0.45, readyPitch: 0.6, readyYaw: 0.3, readyOffset: 0.3, aimOffset: 0.31 },
+    pose: { pivot: [-0.07, 0.25, 0.13], twist: -0.5, readyPitch: 0.6, readyYaw: 0.3, readyOffset: 0.15, aimOffset: 0.16 },
     stow: 'back',
   },
 };

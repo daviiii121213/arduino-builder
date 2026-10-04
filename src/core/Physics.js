@@ -16,8 +16,8 @@ export const Groups = {
   static: groups(Layer.STATIC, ALL),
   player: groups(Layer.PLAYER, ALL),
   npc: groups(Layer.NPC, ALL),
-  // Dynamic car only exchanges contact forces with the static world; NPC/player hits are handled in gameplay code.
-  vehicle: groups(Layer.VEHICLE, Layer.STATIC | Layer.QUERY),
+  // Cars collide with the world and each other; NPC/player hits are handled in gameplay code.
+  vehicle: groups(Layer.VEHICLE, Layer.STATIC | Layer.VEHICLE | Layer.QUERY),
 };
 
 export const QueryGroups = {

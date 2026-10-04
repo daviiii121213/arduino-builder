@@ -269,6 +269,11 @@ function drawWall(ctx, w, h, style, rng) {
   }
 }
 
+// While painting facades, lit windows are also drawn into this emissive canvas (night lighting).
+let emitCtx = null;
+let litChance = 0;
+const LIT_COLORS = ['#ffcf8a', '#ffe2b0', '#fff2d6', '#cfe0ff', '#ffbf70'];
+
 function drawGlass(ctx, rough, x, y, w, h, style, rng) {
   const g = ctx.createLinearGradient(x, y, x + w * 0.3, y + h);
   const base = new THREE.Color(style.glass);
@@ -293,6 +298,22 @@ function drawGlass(ctx, rough, x, y, w, h, style, rng) {
   // Glass reflects (low roughness) except where blinds are.
   rough.fillStyle = kind < 0.35 ? '#555' : '#1a1a1a';
   rough.fillRect(x, y, w, h);
+  if (emitCtx && rng.next() < litChance) {
+    const g = emitCtx.createLinearGradient(x, y, x, y + h);
+    const c = LIT_COLORS[Math.floor(rng.next() * LIT_COLORS.length)];
+    g.addColorStop(0, c);
+    g.addColorStop(1, 'rgba(120,80,40,0.6)');
+    emitCtx.fillStyle = g;
+    emitCtx.fillRect(x, y, w, h);
+  }
+}
+
+function emissiveCanvas(w, h) {
+  const c = makeCanvas(w, h);
+  const e = c.getContext('2d');
+  e.fillStyle = '#000';
+  e.fillRect(0, 0, w, h);
+  return c;
 }
 
 function drawWindowUnit(ctx, rough, x, y, bw, fh, style, rng) {
@@ -357,6 +378,9 @@ export function facadeTextures(styleName) {
     const rng = createRng(styleName.length * 977 + styleName.charCodeAt(0));
     rough.fillStyle = '#e0e0e0';
     rough.fillRect(0, 0, w, h);
+    const e = emissiveCanvas(w, h);
+    emitCtx = e.getContext('2d');
+    litChance = 0.42;
     drawWall(ctx, w, h, style, rng);
     const bw = w / FACADE_TILE_BAYS;
     const fh = h / FACADE_TILE_FLOORS;
@@ -371,7 +395,8 @@ export function facadeTextures(styleName) {
       }
     }
     addGrain(ctx, w, h, 8, rng);
-    return { map: toTexture(c), roughnessMap: toTexture(r, { srgb: false }) };
+    emitCtx = null;
+    return { map: toTexture(c), roughnessMap: toTexture(r, { srgb: false }), emissiveMap: toTexture(e) };
   });
 }
 
@@ -396,6 +421,9 @@ export function storefrontTextures(styleName) {
     const rng = createRng(styleName.length * 131 + 7);
     rough.fillStyle = '#d8d8d8';
     rough.fillRect(0, 0, w, h);
+    const e = emissiveCanvas(w, h);
+    emitCtx = e.getContext('2d');
+    litChance = 0.95;
     ctx.fillStyle = style.wall;
     ctx.fillRect(0, 0, w, h);
     const signH = h * 0.17;
@@ -429,7 +457,8 @@ export function storefrontTextures(styleName) {
       }
     }
     addGrain(ctx, w, h, 8, rng);
-    return { map: toTexture(c), roughnessMap: toTexture(r, { srgb: false }) };
+    emitCtx = null;
+    return { map: toTexture(c), roughnessMap: toTexture(r, { srgb: false }), emissiveMap: toTexture(e) };
   });
 }
 

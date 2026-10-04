@@ -14,6 +14,13 @@ function get(key, create) {
 
 const std = (params) => new THREE.MeshStandardMaterial(params);
 
+/** Materials whose emissive glow follows the night factor: [material, intensity at full night]. */
+export const nightMaterials = [];
+const nightGlow = (material, max) => {
+  nightMaterials.push([material, max]);
+  return material;
+};
+
 export const Materials = {
   asphalt: () => get('asphalt', () => std({ map: asphaltTexture(), roughness: 0.92 })),
   sidewalk: () => get('sidewalk', () => std({ map: sidewalkTexture(), roughness: 0.88 })),
@@ -30,17 +37,17 @@ export const Materials = {
   })),
   facade: (style) => get('facade:' + style, () => {
     const t = facadeTextures(style);
-    return std({ map: t.map, roughnessMap: t.roughnessMap, roughness: 1, metalness: 0.05 });
+    return nightGlow(std({ map: t.map, roughnessMap: t.roughnessMap, roughness: 1, metalness: 0.05, emissiveMap: t.emissiveMap, emissive: 0xffffff, emissiveIntensity: 0 }), 1.1);
   }),
   storefront: (style) => get('store:' + style, () => {
     const t = storefrontTextures(style);
-    return std({ map: t.map, roughnessMap: t.roughnessMap, roughness: 1, metalness: 0.05 });
+    return nightGlow(std({ map: t.map, roughnessMap: t.roughnessMap, roughness: 1, metalness: 0.05, emissiveMap: t.emissiveMap, emissive: 0xffffff, emissiveIntensity: 0 }), 1.4);
   }),
   /** Untextured, vertex-coloured material used for trims, props and details. */
   painted: () => get('painted', () => std({ vertexColors: true, roughness: 0.75 })),
   metal: () => get('metal', () => std({ vertexColors: true, roughness: 0.45, metalness: 0.6 })),
   glass: () => get('glass', () => std({ color: 0x3b4d58, roughness: 0.08, metalness: 0.3 })),
   foliage: () => get('foliage', () => std({ vertexColors: true, roughness: 0.9, flatShading: true })),
-  emissiveWarm: () => get('emissiveWarm', () => std({ color: 0xfff1d0, emissive: 0xffd9a0, emissiveIntensity: 0.6 })),
+  emissiveWarm: () => get('emissiveWarm', () => std({ color: 0xfff1d0, emissive: 0xffd9a0, emissiveIntensity: 0.3 })),
   water: () => get('water', () => std({ color: 0x3f6a78, roughness: 0.05, metalness: 0.2 })),
 };

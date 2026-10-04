@@ -1,7 +1,9 @@
 /** Shared dimensions of the city grid (metres). */
 export const CITY = {
   roadCenters: [-108, -36, 36, 108],
-  roadHalf: 6,
+  roadHalf: 7,
+  laneOffset: 2.6,
+  parkingOffset: 5.6,
   sidewalk: 4,
   curbHeight: 0.15,
   outerEdge: 150,

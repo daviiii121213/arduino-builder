@@ -11,10 +11,10 @@ export const CAMERA_SETTINGS = {
 };
 
 const MODES = {
-  onFoot: { distance: 3.7, shoulder: 0.42, height: 1.58, fov: 68 },
-  armed: { distance: 3.1, shoulder: 0.55, height: 1.6, fov: 66 },
-  aiming: { distance: 1.75, shoulder: 0.62, height: 1.62, fov: 52 },
-  vehicle: { distance: 7.2, shoulder: 0, height: 1.9, fov: 70 },
+  onFoot: { distance: 3.4, shoulder: 0.35, height: 1.2, fov: 66 },
+  armed: { distance: 2.8, shoulder: 0.48, height: 1.22, fov: 64 },
+  aiming: { distance: 1.6, shoulder: 0.55, height: 1.22, fov: 52 },
+  vehicle: { distance: 6.0, shoulder: 0, height: 1.55, fov: 70 },
 };
 
 const _pivot = new THREE.Vector3();
@@ -77,7 +77,8 @@ export class ThirdPersonCamera {
     const m = MODES[this.mode];
     this.idleLookTime += dt;
     const speedFov = this.mode === 'vehicle' ? clamp((ctx.vehicleSpeed ?? 0) * 0.35, 0, 12) : 0;
-    this.distance = damp(this.distance, m.distance + (this.mode === 'vehicle' ? clamp((ctx.vehicleSpeed ?? 0) * 0.05, 0, 1.5) : 0), 6, dt);
+    const baseDistance = this.mode === 'vehicle' ? 2.2 + (ctx.vehicleLength ?? 4) * 0.95 : m.distance;
+    this.distance = damp(this.distance, baseDistance + (this.mode === 'vehicle' ? clamp(Math.abs(ctx.vehicleSpeed ?? 0) * 0.05, 0, 1.5) : 0), 6, dt);
     this.shoulder = damp(this.shoulder, m.shoulder, 10, dt);
     this.height = damp(this.height, m.height, 8, dt);
     this.fov = damp(this.fov, m.fov + speedFov, 8, dt);
