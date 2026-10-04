@@ -285,6 +285,8 @@ body.menu-open { overflow: hidden; }
 }
 .hero__lead { max-width: 440px; color: #c7c8ce; font-size: clamp(15px, 1.4vw, 17px); }
 .hero__ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+.hero__app { margin-top: 18px; color: #c7c8ce; }
+.hero__app .i:first-child { color: var(--brand-hi); }
 .hero__meta { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); }
 .hero__scroll { display: inline-flex; align-items: center; gap: 12px; }
 .hero__scroll i { position: relative; width: 1px; height: 40px; background: var(--line-2); overflow: hidden; }
@@ -651,6 +653,8 @@ html:not(.js) .svc__icon { stroke-dashoffset: 0; }
 }
 @keyframes ping { 0% { transform: scale(1); opacity: .6; } 60%, 100% { transform: scale(1.12, 1.35); opacity: 0; } }
 .book__cta::before { border-radius: inherit; }
+.book__app { margin-top: 14px; }
+@media (max-width: 520px) { .book__app { width: 100%; } }
 .book__hint { margin-top: 18px; min-height: 1.5em; text-transform: none; letter-spacing: .02em; font-size: 12.5px; }
 @media (max-width: 520px) { .book__cta { width: 100%; } }
 

@@ -35,7 +35,8 @@ Tudo respeita `prefers-reduced-motion`.
 | WhatsApp | (34) 99152-3214 | Resultados públicos do Instagram/Facebook — **confirmar com o cliente** |
 | Serviços | Visagismo, corte na tesoura, selamento de barba com navalha, sobrancelha com navalha, hidratação capilar | atitudebarbearia.com.br |
 | Duas unidades | Endereço da 2ª unidade não confirmado | Facebook oficial |
-| Profissional | Junior — @junioratitude_ | Informado pelo cliente |
+| Profissional | Junior, visagista — @junioratitude_ | Informado pelo cliente |
+| App de agendamento | https://sites.appbarber.com.br/atitudebarbeari-fftu | Informado pelo cliente |
 
 **Não encontrados (não exibidos):** preços, durações, horários, endereço da
 segunda unidade, avaliações, outros profissionais.
