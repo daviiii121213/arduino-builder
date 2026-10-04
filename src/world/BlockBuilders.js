@@ -318,7 +318,7 @@ export class BlockBuilders {
     // Flag poles.
     for (const fx of [-3, 0, 3]) {
       this.batcher.add(Materials.metal(), new THREE.CylinderGeometry(0.05, 0.07, 9, 8), translation(fx, Y + 4.5, z1 - 19.5), '#c8c8c8');
-      this.batcher.add(Materials.painted(), new THREE.BoxGeometry(0.02, 1.0, 1.6), translation(fx, Y + 8.3, z1 - 19.5 - 0.85), ['#2f6a8a', '#d9a52b', '#3d7a4a'][fx / 3 + 1]);
+      this.batcher.add(Materials.painted(), new THREE.BoxGeometry(1.6, 1.0, 0.02), translation(fx + 0.85, Y + 8.3, z1 - 19.5), ['#2f6a8a', '#d9a52b', '#3d7a4a'][fx / 3 + 1]);
       this.physics.addStaticCylinder(fx, Y + 4.5, z1 - 19.5, 4.5, 0.08);
     }
     this.city.npcPaths.push({

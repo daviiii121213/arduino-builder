@@ -66,7 +66,7 @@ export class PropFactory {
 
   tree(x, y, z, scale = 1, withPit = true) {
     const rng = this.rng;
-    const trunkH = 2.6 * scale;
+    const trunkH = 2.9 * scale;
     this.add(Materials.painted(), new THREE.CylinderGeometry(0.13 * scale, 0.2 * scale, trunkH, 7), mat(x, y + trunkH / 2, z), COLORS.bark);
     // Branch stubs.
     for (let i = 0; i < 3; i++) {

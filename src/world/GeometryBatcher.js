@@ -101,11 +101,5 @@ export function boxParts(w, h, d, { sideTile = [1, 1], topTile = [1, 1], top = t
   return { sides: pick([0, 1, 4, 5]), top: topFaces.length ? pick(topFaces) : null };
 }
 
-/** Box with world-scaled UVs on every face. */
-export function tiledBox(w, h, d, tile = [1, 1]) {
-  const { sides, top } = boxParts(w, h, d, { sideTile: tile, topTile: tile, top: true, bottom: true });
-  return mergeGeometries([sides.toNonIndexed(), top.toNonIndexed()]);
-}
-
 export const translation = (x, y, z, rotY = 0) =>
   new THREE.Matrix4().makeRotationY(rotY).setPosition(x, y, z);

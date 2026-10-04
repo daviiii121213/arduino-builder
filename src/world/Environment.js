@@ -68,12 +68,23 @@ export class Environment {
     this.shadowTexel = (extent * 2) / s.mapSize.x;
   }
 
-  /** Keeps the shadow frustum centred on the focus point, snapped to texels to avoid shimmering. */
+  /** Keeps the shadow frustum centred on the focus point, snapped to shadow texels in light space to avoid shimmering. */
   update(focus) {
     const snap = this.shadowTexel;
-    const fx = Math.round(focus.x / snap) * snap;
-    const fz = Math.round(focus.z / snap) * snap;
-    this.sun.target.position.set(fx, 0, fz);
-    this.sun.position.set(fx + this.sunDir.x * 150, this.sunDir.y * 150, fz + this.sunDir.z * 150);
+    // Light-space basis (right/up perpendicular to the sun direction).
+    const right = _right.crossVectors(this.sunDir, _worldUp).normalize();
+    const up = _up.crossVectors(right, this.sunDir).normalize();
+    _focus.set(focus.x, 0, focus.z);
+    const r = Math.round(_focus.dot(right) / snap) * snap;
+    const u = Math.round(_focus.dot(up) / snap) * snap;
+    const d = _focus.dot(this.sunDir);
+    _focus.copy(right).multiplyScalar(r).addScaledVector(up, u).addScaledVector(this.sunDir, d);
+    this.sun.target.position.copy(_focus);
+    this.sun.position.copy(_focus).addScaledVector(this.sunDir, 150);
   }
 }
+
+const _right = new THREE.Vector3();
+const _up = new THREE.Vector3();
+const _focus = new THREE.Vector3();
+const _worldUp = new THREE.Vector3(0, 1, 0);

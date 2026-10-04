@@ -188,7 +188,7 @@ export class Game {
     else if (this.aiming) cam.setMode('aiming');
     else cam.setMode(this.weapons.active ? 'armed' : 'onFoot');
     const focus = driving ? this.car.position : this.player.position;
-    cam.update(dt, focus, { vehicleYaw: this.car.yaw, vehicleSpeed: this.car.speed });
+    cam.update(dt, focus, { vehicleYaw: this.car.renderYaw, vehicleSpeed: this.car.speed });
 
     // Weapons fire after the camera so the aim ray matches what is on screen.
     this.weapons.update(dt, {

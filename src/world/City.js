@@ -4,7 +4,7 @@ import { Materials } from './Materials.js';
 import { BuildingFactory } from './BuildingFactory.js';
 import { PropFactory } from './PropFactory.js';
 import { TrafficLights } from './TrafficLights.js';
-import { CITY, forEachBlock, blockBounds, RING_OUTER } from './CityLayout.js';
+import { CITY, forEachBlock, blockBounds } from './CityLayout.js';
 import { createRng } from '../core/math.js';
 import { BlockBuilders } from './BlockBuilders.js';
 
@@ -48,7 +48,6 @@ export class City {
     this.buildBoundary();
 
     this.batcher.build(this.group);
-    for (const sign of this.buildings.signMeshes) this.group.add(sign);
     this.trafficLights = new TrafficLights(this.group, this.props.trafficLightHeads);
     this.buildSkyline();
   }
@@ -254,5 +253,3 @@ export class City {
     batcher.build(this.group, { castShadow: false, receiveShadow: false });
   }
 }
-
-export { RING_OUTER };

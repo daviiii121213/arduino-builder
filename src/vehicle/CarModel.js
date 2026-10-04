@@ -73,16 +73,16 @@ function mesh(geo, mat, x = 0, y = 0, z = 0, parent) {
  */
 export function createCarModel(color = 0x2e6f78) {
   const root = new THREE.Group();
-  const paint = new THREE.MeshPhysicalMaterial({ color, roughness: 0.32, metalness: 0.45, clearcoat: 0.8, clearcoatRoughness: 0.15 });
+  const paint = new THREE.MeshPhysicalMaterial({ color, roughness: 0.4, metalness: 0.25, clearcoat: 0.6, clearcoatRoughness: 0.2 });
   const trim = new THREE.MeshStandardMaterial({ color: 0x1d1f21, roughness: 0.7 });
   const chrome = new THREE.MeshStandardMaterial({ color: 0xc9ccd0, roughness: 0.2, metalness: 1 });
-  const glass = new THREE.MeshStandardMaterial({ color: 0x26343b, roughness: 0.04, metalness: 0.2, transparent: true, opacity: 0.55, depthWrite: false });
+  const glass = new THREE.MeshStandardMaterial({ color: 0x141c21, roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.8, depthWrite: false });
   const headMat = new THREE.MeshStandardMaterial({ color: 0xf2f0e6, emissive: 0xfff4d8, emissiveIntensity: 0.35, roughness: 0.1 });
   const tailMat = new THREE.MeshStandardMaterial({ color: 0x8a1712, emissive: 0xff2010, emissiveIntensity: 0.25, roughness: 0.2 });
   const interior = new THREE.MeshStandardMaterial({ color: 0x2b2826, roughness: 0.9 });
 
   // Body.
-  const body = mesh(extrudeProfile(lowerBodyShape(), 1.78, 0.06), paint, 0, 0, 0, root);
+  const body = mesh(extrudeProfile(lowerBodyShape(), 1.78, 0.045), paint, 0, 0, 0, root);
   body.name = 'body';
   // Cabin: one tinted-glass volume framed by painted roof and pillars.
   const cabinGlass = mesh(extrudeProfile(cabinShape(0), 1.5, 0.03), glass, 0, 0, 0, root);

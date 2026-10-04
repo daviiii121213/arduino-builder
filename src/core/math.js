@@ -1,5 +1,3 @@
-import * as THREE from 'three';
-
 export const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 export const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -40,5 +38,3 @@ export function createRng(seed = 1) {
     chance: (p) => next() < p,
   };
 }
-
-export const tmpVec = () => new THREE.Vector3();

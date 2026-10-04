@@ -5,6 +5,8 @@ const _v = new THREE.Vector3();
 const _n = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const Z = new THREE.Vector3(0, 0, 1);
+const _m = new THREE.Matrix4();
+const _s = new THREE.Vector3();
 
 /**
  * Pooled, short-lived combat visuals: muzzle flashes, tracers, impact sparks,
@@ -64,20 +66,16 @@ export class Effects {
     }
     this.puffIndex = 0;
 
-    // Bullet holes.
-    this.decals = [];
-    const decalGeo = new THREE.PlaneGeometry(0.12, 0.12);
+    // Bullet holes: one instanced mesh, recycled ring-buffer style.
+    this.maxDecals = 120;
     const decalMat = new THREE.MeshStandardMaterial({
       map: bulletHoleTexture(), transparent: true, depthWrite: false, roughness: 1,
       polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
     });
-    for (let i = 0; i < 80; i++) {
-      const m = new THREE.Mesh(decalGeo, decalMat);
-      m.visible = false;
-      m.matrixAutoUpdate = false;
-      scene.add(m);
-      this.decals.push(m);
-    }
+    this.decals = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.12, 0.12), decalMat, this.maxDecals);
+    this.decals.count = 0;
+    this.decals.frustumCulled = false;
+    scene.add(this.decals);
     this.decalIndex = 0;
   }
 
@@ -140,11 +138,13 @@ export class Effects {
   }
 
   bulletHole(point, normal) {
-    const m = this.decals[this.decalIndex++ % this.decals.length];
+    const i = this.decalIndex++ % this.maxDecals;
     _q.setFromUnitVectors(Z, normal);
     _v.set(point.x, point.y, point.z).addScaledVector(normal, 0.005);
-    m.matrix.compose(_v, _q, new THREE.Vector3(1, 1, 1).multiplyScalar(0.8 + Math.random() * 0.4));
-    m.visible = true;
+    _m.compose(_v, _q, _s.setScalar(0.8 + Math.random() * 0.4));
+    this.decals.setMatrixAt(i, _m);
+    this.decals.count = Math.min(this.maxDecals, Math.max(this.decals.count, i + 1));
+    this.decals.instanceMatrix.needsUpdate = true;
   }
 
   update(dt) {

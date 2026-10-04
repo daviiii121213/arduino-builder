@@ -43,7 +43,7 @@ export class BuildingFactory {
     this.batcher = batcher;
     this.physics = physics;
     this.rng = rng;
-    this.signMeshes = [];
+    this.signMaterials = new Map();
     this.shopIndex = 0;
   }
 
@@ -160,8 +160,9 @@ export class BuildingFactory {
   addRoofEdge(base, w, d, y, trim, withCornice) {
     const b = this.batcher;
     if (withCornice) {
-      b.add(Materials.painted(), new THREE.BoxGeometry(w + 0.5, 0.3, d + 0.5), local(base, 0, y + 0.15, 0), trim);
-      b.add(Materials.painted(), new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), local(base, 0, y - 0.1, 0), trim);
+      // Projecting cornice as a ring so the roof surface stays visible.
+      this.ring(base, w + 0.5, d + 0.5, 0.5, y + 0.15, 0.3, trim);
+      this.ring(base, w + 0.3, d + 0.3, 0.3, y - 0.1, 0.2, trim);
     }
     // Parapet walls.
     const ph = 0.9;
@@ -171,6 +172,15 @@ export class BuildingFactory {
     b.add(Materials.painted(), new THREE.BoxGeometry(w, ph, t), local(base, 0, y + ph / 2, -d / 2 + t / 2), col);
     b.add(Materials.painted(), new THREE.BoxGeometry(t, ph, d - t * 2), local(base, w / 2 - t / 2, y + ph / 2, 0), col);
     b.add(Materials.painted(), new THREE.BoxGeometry(t, ph, d - t * 2), local(base, -w / 2 + t / 2, y + ph / 2, 0), col);
+  }
+
+  /** Rectangular frame of thickness `t` (outer size w x d), centred at height y. */
+  ring(base, w, d, t, y, h, color) {
+    const b = this.batcher;
+    b.add(Materials.painted(), new THREE.BoxGeometry(w, h, t), local(base, 0, y, d / 2 - t / 2), color);
+    b.add(Materials.painted(), new THREE.BoxGeometry(w, h, t), local(base, 0, y, -d / 2 + t / 2), color);
+    b.add(Materials.painted(), new THREE.BoxGeometry(t, h, d - t * 2), local(base, w / 2 - t / 2, y, 0), color);
+    b.add(Materials.painted(), new THREE.BoxGeometry(t, h, d - t * 2), local(base, -w / 2 + t / 2, y, 0), color);
   }
 
   addRooftop(base, w, d, y) {
@@ -226,12 +236,11 @@ export class BuildingFactory {
   addShopSign(base, w, groundH, d, storefront) {
     const [text] = SHOP_NAMES[this.shopIndex++ % SHOP_NAMES.length];
     const bg = STOREFRONT_STYLES[storefront].sign;
-    const mat = new THREE.MeshStandardMaterial({ map: signTexture(text, bg, '#f4ecd8'), roughness: 0.6 });
+    const key = text + bg;
+    if (!this.signMaterials.has(key)) {
+      this.signMaterials.set(key, new THREE.MeshStandardMaterial({ map: signTexture(text, bg, '#f4ecd8'), roughness: 0.6 }));
+    }
     const signH = 0.62;
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(signH * (512 / 96), signH), mat);
-    mesh.matrixAutoUpdate = false;
-    mesh.matrix.copy(local(base, 0, groundH - 0.36, d / 2 + 0.03));
-    mesh.receiveShadow = true;
-    this.signMeshes.push(mesh);
+    this.batcher.add(this.signMaterials.get(key), new THREE.PlaneGeometry(signH * (512 / 96), signH), local(base, 0, groundH - 0.36, d / 2 + 0.03));
   }
 }

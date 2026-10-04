@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { clamp, damp, dampFactor, lerp } from '../core/math.js';
+import { clamp, damp, lerp } from '../core/math.js';
 
 // Body dimensions for a 1.8 m reference character (scaled per instance).
 const DIM = {
@@ -370,5 +370,3 @@ export class CharacterRig {
     this.mesh.geometry.dispose();
   }
 }
-
-export const dampF = dampFactor;

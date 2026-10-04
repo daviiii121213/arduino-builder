@@ -28,6 +28,7 @@ const GEARS = [0, 9, 16, 23, 30, 38];
 const _q = new THREE.Quaternion();
 const _v = new THREE.Vector3();
 const _inv = new THREE.Matrix4();
+const _one = new THREE.Vector3(1, 1, 1);
 
 /**
  * Drivable car: Rapier dynamic chassis + raycast vehicle controller.
@@ -106,11 +107,18 @@ export class Car {
     this.currRot = new THREE.Quaternion();
     this.position = new THREE.Vector3();
     this.quaternion = new THREE.Quaternion();
-    this.matrix = new THREE.Matrix4();
+    this.physicsMatrix = new THREE.Matrix4();
     this.syncState(true);
   }
 
+  /** Heading of the physics state. */
   get yaw() {
+    _v.set(0, 0, 1).applyQuaternion(this.currRot);
+    return Math.atan2(_v.x, _v.z);
+  }
+
+  /** Heading of the interpolated (rendered) pose, for the camera. */
+  get renderYaw() {
     _v.set(0, 0, 1).applyQuaternion(this.quaternion);
     return Math.atan2(_v.x, _v.z);
   }
@@ -124,6 +132,7 @@ export class Car {
     }
     this.currPos.set(t.x, t.y, t.z);
     this.currRot.set(r.x, r.y, r.z, r.w);
+    this.physicsMatrix.compose(this.currPos, this.currRot, _one);
     if (reset) {
       this.prevPos.copy(this.currPos);
       this.prevRot.copy(this.currRot);
@@ -237,8 +246,6 @@ export class Car {
     const root = this.model.root;
     root.position.copy(this.position);
     root.quaternion.copy(this.quaternion);
-    root.updateMatrix();
-    this.matrix.compose(this.position, this.quaternion, new THREE.Vector3(1, 1, 1));
 
     const v = this.controller;
     const S = TUNING.suspension;
@@ -264,14 +271,14 @@ export class Car {
 
   /** True if `point` (world) lies within the car's footprint expanded by `margin`. */
   overlapsPoint(point, margin, minY, maxY) {
-    _inv.copy(this.matrix).invert();
+    _inv.copy(this.physicsMatrix).invert();
     _v.copy(point).applyMatrix4(_inv);
     return Math.abs(_v.x) < 0.9 + margin && Math.abs(_v.z) < 2.12 + margin && _v.y > minY - 1.6 && _v.y < maxY;
   }
 
   /** Door position on the driver's side (left, +X local), in world space. */
   doorPosition(target = new THREE.Vector3()) {
-    return target.set(1.35, 0, 0.1).applyMatrix4(this.matrix);
+    return target.set(1.35, 0, 0.1).applyMatrix4(this.physicsMatrix);
   }
 
   /** Candidate exit spots in world space, preferred first. */
@@ -282,6 +289,6 @@ export class Car {
       new THREE.Vector3(0, 0.2, 3.0),
       new THREE.Vector3(0, 0.2, -3.0),
       new THREE.Vector3(0, 2.0, 0),
-    ].map((p) => p.applyMatrix4(this.matrix));
+    ].map((p) => p.applyMatrix4(this.physicsMatrix));
   }
 }
