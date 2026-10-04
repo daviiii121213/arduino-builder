@@ -108,7 +108,7 @@ Clique na tela para começar: o mouse fica preso à janela e o áudio é liberad
     uma mensagem curta e ele volta ao ponto inicial sem estrelas.
 - **Horário**: por enquanto o relógio fica parado de dia (`freezeTime` em `src/config.js`).
 
-Fora do escopo desta fase, conforme pedido: menus, inventário, missões, dinheiro, lojas, polícia/procurado,
+Fora do escopo desta fase, conforme pedido: menus, inventário, missões, dinheiro, lojas,
 multiplayer, customização, história e rádio.
 
 ## Estrutura do código
