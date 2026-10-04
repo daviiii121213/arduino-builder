@@ -1,0 +1,59 @@
+:root {
+  --hud-fg: #f3efe6;
+  --hud-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  --accent: #e2b04a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
+#app canvas { display: block; }
+.hidden { display: none !important; }
+
+#hud { position: fixed; inset: 0; pointer-events: none; color: var(--hud-fg); text-shadow: var(--hud-shadow); user-select: none; }
+
+/* Crosshair: four ticks whose gap follows weapon spread. */
+#crosshair { --gap: 6px; position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+#crosshair i { position: absolute; background: rgba(255, 255, 255, 0.92); box-shadow: 0 0 2px rgba(0, 0, 0, 0.9); transition: transform 0.05s; }
+#crosshair .t, #crosshair .b { width: 2px; height: 8px; left: -1px; }
+#crosshair .l, #crosshair .r { width: 8px; height: 2px; top: -1px; }
+#crosshair .t { top: calc(-8px - var(--gap)); }
+#crosshair .b { top: var(--gap); }
+#crosshair .l { left: calc(-8px - var(--gap)); }
+#crosshair .r { left: var(--gap); }
+#crosshair .dot { position: absolute; width: 2px; height: 2px; left: -1px; top: -1px; background: #fff; }
+#crosshair.aiming i { background: #fff; }
+
+#hitmarker { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; opacity: 0; }
+#hitmarker::before, #hitmarker::after { content: ''; position: absolute; left: 10px; top: -2px; width: 2px; height: 26px; background: #fff; transform: rotate(45deg); box-shadow: 0 0 2px #000; }
+#hitmarker::after { transform: rotate(-45deg); }
+#hitmarker.show { opacity: 1; }
+#hitmarker.kill::before, #hitmarker.kill::after { background: var(--accent); }
+
+#prompt { position: absolute; left: 50%; bottom: 22%; transform: translateX(-50%); padding: 8px 16px; background: rgba(15, 17, 20, 0.6); border-radius: 4px; font-size: 16px; letter-spacing: 0.02em; }
+
+#weapon-panel { position: absolute; right: 28px; bottom: 26px; text-align: right; }
+#weapon-panel .slots { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 8px; }
+#weapon-panel .slot { padding: 4px 10px; font-size: 13px; background: rgba(15, 17, 20, 0.45); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 3px; opacity: 0.65; }
+#weapon-panel .slot.active { opacity: 1; border-color: var(--accent); background: rgba(40, 32, 15, 0.6); }
+#weapon-panel .key { display: inline-block; margin-right: 6px; color: var(--accent); font-weight: 700; }
+#weapon-panel .ammo { font-size: 15px; }
+#weapon-panel .weapon-name { margin-right: 10px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; }
+#weapon-panel .mag { font-size: 34px; font-weight: 700; }
+#weapon-panel .mag.low { color: #ff7a5c; }
+#weapon-panel .reserve { margin-left: 6px; opacity: 0.75; }
+#weapon-panel .reloading { margin-top: 4px; color: var(--accent); font-size: 13px; }
+
+#speedometer { position: absolute; right: 30px; bottom: 30px; text-align: right; }
+#speedometer .value { font-size: 44px; font-weight: 700; }
+#speedometer .unit { margin-left: 6px; font-size: 14px; opacity: 0.8; }
+
+#help { position: absolute; left: 24px; bottom: 24px; padding: 10px 14px; font-size: 13px; line-height: 1.6; background: rgba(15, 17, 20, 0.5); border-radius: 4px; transition: opacity 1.2s; }
+#help b { color: var(--accent); }
+#help.faded { opacity: 0; }
+
+#start-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(10, 12, 15, 0.55), rgba(10, 12, 15, 0.85)); color: #eee; cursor: default; }
+#start-overlay.ready { cursor: pointer; }
+#start-overlay .card { max-width: 640px; padding: 28px 34px; text-align: center; }
+#start-overlay h1 { margin: 0 0 6px; font-size: 40px; letter-spacing: 0.18em; font-weight: 800; }
+#start-overlay p { margin: 0 0 18px; font-size: 18px; color: var(--accent); }
+#start-overlay ul { list-style: none; padding: 0; margin: 0; font-size: 14px; line-height: 1.9; opacity: 0.85; }
+#start-overlay b { color: var(--accent); }
