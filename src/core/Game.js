@@ -19,6 +19,9 @@ import { TrafficManager } from '../traffic/TrafficManager.js';
 import { HUD } from '../ui/HUD.js';
 import { PhysicsProps } from '../world/PhysicsProps.js';
 import { Interactables } from '../world/Interactables.js';
+import { Weather } from '../world/Weather.js';
+import { VehicleUse } from '../npc/VehicleUse.js';
+import { EventDirector } from '../events/EventDirector.js';
 
 const MAX_STEPS_PER_FRAME = 5;
 
@@ -55,6 +58,8 @@ export class Game {
     this.interactables = new Interactables(this.scene, physics, this.audio);
     this.city.interactables = this.interactables;
     this.city.build();
+    // Register the static world with the query pipeline before anything raycasts against it.
+    physics.step();
     this.dayNight = new DayNight({ scene: this.scene, environment: this.environment, lampHeads: this.city.props.lampHeads });
 
     this.input = new Input(renderer.domElement);
@@ -78,6 +83,22 @@ export class Game {
       lights: this.city.trafficLights, randomLook: () => this.npcs.randomLook(), rng,
     });
     this.traffic.populate(this.player.currPos);
+    this.npcs.vehicles = this.vehicles;
+    this.vehicleUse = new VehicleUse({
+      scene: this.scene, physics, npcs: this.npcs, traffic: this.traffic, playerPosition: () => this.player.currPos,
+    });
+    this.eventRng = createRng(9001);
+    this.events = new EventDirector(this);
+
+    this.weather = new Weather({
+      scene: this.scene, environment: this.environment, audio: this.audio, puddleSpots: this.puddleSpots(rng),
+    });
+    // Footsteps kick up a little spray on wet ground.
+    const footstep = this.player.rig.onFootstep;
+    this.player.rig.onFootstep = (run) => {
+      footstep(run);
+      if (this.weather.wetness > 0.3) this.effects.puff(this.player.position, { x: 0, y: 0.6, z: 0 }, 0xdfe7ec, 0.16 + run * 0.08, 0.35);
+    };
 
     this.hud = new HUD(hudRoot);
     this.weapons = new WeaponSystem({
@@ -146,6 +167,25 @@ export class Game {
       if (input.wasPressed('Space')) this.player.queueJump();
     }
     this.aiming = onFoot && !!this.weapons.active && input.isMouseDown(2) && !this.weapons.isReloading;
+  }
+
+  /** Random spots on the roads where rain water collects. */
+  puddleSpots(rng) {
+    const spots = [];
+    for (let i = 0; i < 90; i++) {
+      const lane = this.network.lanes[Math.floor(rng.next() * this.network.lanes.length)];
+      const s = rng.next() * lane.length;
+      const lateral = (rng.next() - 0.5) * 7;
+      spots.push({
+        x: lane.start.x + lane.dir.x * s - lane.dir.z * lateral,
+        y: 0,
+        z: lane.start.z + lane.dir.z * s + lane.dir.x * lateral,
+        yaw: rng.next() * Math.PI,
+        sx: 0.8 + rng.next() * 2.2,
+        sz: 0.6 + rng.next() * 1.4,
+      });
+    }
+    return spots;
   }
 
   /** What F would act on right now: the nearest door/gate or vehicle. */
@@ -282,10 +322,14 @@ export class Game {
       cameraYaw: cam.yaw,
     });
 
+    this.vehicleUse.update(dt);
+    this.events.update(dt);
     this.physicsProps.sync();
     this.interactables.update(dt);
     this.effects.update(dt);
     this.city.update(dt);
+    this.weather.groundY = focus.y;
+    this.weather.update(dt, this.camera.position, this.dayNight.night);
     this.dayNight.update(dt, this.camera.position, this.vehicles.playerVehicle);
     this.environment.update(focus);
     this.audio.setListener(this.camera.position.x, this.camera.position.y, this.camera.position.z, cam.yaw);

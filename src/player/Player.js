@@ -49,7 +49,7 @@ export class Player {
     cc.setUp({ x: 0, y: 1, z: 0 });
     cc.setMaxSlopeClimbAngle(THREE.MathUtils.degToRad(50));
     cc.setMinSlopeSlideAngle(THREE.MathUtils.degToRad(55));
-    cc.enableAutostep(0.4, 0.2, false);
+    cc.enableAutostep(0.4, 0.1, false);
     cc.enableSnapToGround(0.4);
     cc.setSlideEnabled(true);
     // Lets the player shove loose props (bins, cones, crates).

@@ -225,6 +225,29 @@ export class AudioSystem {
     this.hum.ng.gain.setTargetAtTime(proximity * 0.18, now, 0.2);
   }
 
+  /** Rain bed: band-limited noise whose level follows `amount` (0..1). */
+  setRain(amount) {
+    if (!this.ctx) return;
+    if (!this.rain) {
+      const ctx = this.ctx;
+      const src = ctx.createBufferSource();
+      src.buffer = this.noise;
+      src.loop = true;
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 700;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 7000;
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      src.connect(hp).connect(lp).connect(g).connect(this.master);
+      src.start();
+      this.rain = g;
+    }
+    this.rain.gain.setTargetAtTime(amount * 0.22, this.ctx.currentTime, 0.5);
+  }
+
   // ------------------------------------------------------------ ambience
 
   startAmbience() {
@@ -368,6 +391,10 @@ const SOUNDS = {
     const out = a.output(gain * 0.4, pan, 0.2);
     for (let i = 0; i < 10; i++) a.noiseBurst(out, { t: i * 0.11, dur: 0.08, type: 'bandpass', freq: 900 + Math.random() * 400, q: 3, gain: 0.5 });
     a.noiseBurst(out, { dur: 1.2, type: 'lowpass', freq: 300, gain: 0.4, attack: 0.1, buffer: a.brown });
+  },
+  wind(a, gain, pan) {
+    const out = a.output(gain * 0.25, pan);
+    a.noiseBurst(out, { dur: 2.2, type: 'bandpass', freq: 400, freqEnd: 900, q: 0.7, gain: 0.6, attack: 0.6 });
   },
   horn(a, gain, pan) {
     const out = a.output(gain * 0.3, pan, 0.15);

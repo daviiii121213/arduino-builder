@@ -42,6 +42,7 @@ export class NPC {
 
   placeOnPath(index, direction) {
     const p = this.path.points[index];
+    this.goal = null;
     this.target = index;
     this.direction = direction;
     this.advanceTarget();
@@ -147,8 +148,29 @@ export class NPC {
     this.stateTimer = 2.8;
   }
 
+  /**
+   * Walks (or runs) straight to a point, then calls `onArrive`. Used for street
+   * crossings and for heading to a car. Danger or a long blockage cancels it.
+   */
+  goTo(point, onArrive, speed = this.walkSpeed, onCancel = null) {
+    this.goal = { x: point.x, z: point.z, onArrive, onCancel, speed, time: 0 };
+    this.state = 'goto';
+  }
+
+  cancelGoal() {
+    const g = this.goal;
+    this.goal = null;
+    if (this.state === 'goto') this.state = 'walk';
+    g?.onCancel?.();
+  }
+
   /** Runs away from a danger (gunfire, a theft, a car coming at them) within `radius`. */
   onDanger(pos, radius = 32, duration = 6) {
+    if (this.state === 'goto') {
+      const d = Math.hypot(pos.x - this.currPos.x, pos.z - this.currPos.z);
+      if (d > radius) return false;
+      this.cancelGoal();
+    }
     if (this.state !== 'walk' && this.state !== 'idle' && this.state !== 'flee') return false;
     const d = Math.hypot(pos.x - this.currPos.x, pos.z - this.currPos.z);
     if (d > radius) return false;
@@ -162,10 +184,10 @@ export class NPC {
     this.onDanger(pos, 32, 6);
   }
 
-  /** Swaps the visual rig (used when an evicted driver becomes a pedestrian). */
-  setRig(rig) {
+  /** Swaps the visual rig (an evicted driver becomes a pedestrian, or a pedestrian drives off). */
+  setRig(rig, disposeOld = true) {
     this.scene.remove(this.rig.root);
-    this.rig.dispose();
+    if (disposeOld) this.rig.dispose();
     this.rig = rig;
     this.scene.add(rig.root);
     rig.root.rotation.set(0, 0, 0);
@@ -235,6 +257,11 @@ export class NPC {
           this.pauseTimer = this.rng.range(6, 18);
         }
         break;
+      case 'goto':
+        desiredSpeed = this.goal.speed;
+        this.goal.time += dt;
+        if (this.goal.time > 40) this.cancelGoal();
+        break;
       case 'down':
         if (this.stateTimer <= 0) {
           this.state = 'flee';
@@ -252,11 +279,24 @@ export class NPC {
     const pos = this.currPos;
     let dirX = 0;
     let dirZ = 0;
-    if (this.speed > 0.01) {
+    if (this.speed > 0.01 && this.goal && this.state === 'goto') {
+      const dx = this.goal.x - pos.x;
+      const dz = this.goal.z - pos.z;
+      if (Math.hypot(dx, dz) < 0.5) {
+        const g = this.goal;
+        this.goal = null;
+        this.state = 'walk';
+        g.onArrive?.(this);
+      } else {
+        this.yaw = dampAngle(this.yaw, Math.atan2(dx, dz), 8, dt);
+      }
+    } else if (this.speed > 0.01) {
       let t = this.path.points[this.target];
       let dx = t.x - pos.x;
       let dz = t.z - pos.z;
       if (Math.hypot(dx, dz) < 0.6) {
+        // Reaching a waypoint is a chance to do something else (cross the street...).
+        if (this.onWaypoint?.(this)) return;
         this.advanceTarget();
         t = this.path.points[this.target];
         dx = t.x - pos.x;
@@ -271,7 +311,12 @@ export class NPC {
     const fx = Math.sin(this.yaw);
     const fz = Math.cos(this.yaw);
     this.vy = Math.max(this.vy - GRAVITY * dt, -30);
-    const desired = { x: fx * this.speed * dt, y: this.vy * dt, z: fz * this.speed * dt };
+    // Rapier's autostep needs a minimum horizontal move per query to climb curbs,
+    // so slow walkers move in small accumulated strides (hidden by interpolation).
+    this.pendingMove = (this.pendingMove ?? 0) + this.speed * dt;
+    const stride = this.pendingMove >= 0.03 ? this.pendingMove : 0;
+    if (stride) this.pendingMove = 0;
+    const desired = { x: fx * stride, y: this.vy * dt, z: fz * stride };
     this.controller.computeColliderMovement(this.collider, desired, undefined, QueryGroups.npcMove);
     const moved = this.controller.computedMovement();
     if (this.controller.computedGrounded()) this.vy = -1;
@@ -279,11 +324,26 @@ export class NPC {
     // Blocked (by the player, the car...) for a while: turn around.
     const want = Math.hypot(desired.x, desired.z);
     const got = Math.hypot(moved.x, moved.z);
-    if (want > 0.005 && got < want * 0.3) this.blockedTime += dt;
-    else this.blockedTime = Math.max(0, this.blockedTime - dt);
-    if (this.blockedTime > 1.0) {
+    if (want > 0.005) {
+      if (got < want * 0.3) this.blockedTime += dt * 2;
+      else this.blockedTime = Math.max(0, this.blockedTime - dt * 2);
+    }
+    if (this.blockedTime > 1.0 && this.state === 'goto') {
+      if (this.blockedTime > 4) this.cancelGoal();
+    } else if (this.blockedTime > 1.0) {
       this.blockedTime = 0;
       this.reverse();
+    }
+
+    // Safety net: a pedestrian that makes no progress for a while is moved on.
+    if (desiredSpeed > 0 && want > 0 && got < 0.002) this.stuckTime = (this.stuckTime ?? 0) + dt;
+    else this.stuckTime = 0;
+    if (this.stuckTime > 5 && this.state !== 'goto') {
+      this.stuckTime = 0;
+      const p = this.path.points[this.target];
+      this.teleport(p.x, this.physics.groundHeight(p.x, p.z, 5) + 0.05, p.z);
+      this.advanceTarget();
+      return;
     }
 
     const t = this.body.translation();
@@ -295,7 +355,8 @@ export class NPC {
     }
     this.body.setNextKinematicTranslation(next);
     this.currPos.set(next.x, next.y - this.centerOffset, next.z);
-    this.moveSpeed = got / dt;
+    if (want > 0) this.moveSpeed = this.speed * Math.min(1, got / want);
+    else if (this.speed < 0.05) this.moveSpeed = 0;
   }
 
   /** `far` characters animate at a reduced rate (animation LOD). */

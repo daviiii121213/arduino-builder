@@ -137,8 +137,9 @@ export class PhysicsProps {
       const dz = t.z - center.z;
       const d = Math.hypot(dx, dz);
       if (d > radius) continue;
-      const k = strength * (1 - d / radius) * (TYPES[item.type].mass / 4);
-      item.body.applyImpulse({ x: dx / (d || 1) * k + strength * 0.6, y: k * 0.4, z: dz / (d || 1) * k }, true);
+      // Impulse = mass x velocity change, so light and heavy props both visibly move.
+      const k = strength * (1 - 0.6 * d / radius) * TYPES[item.type].mass;
+      item.body.applyImpulse({ x: (dx / (d || 1) + 0.5) * k, y: k * 0.25, z: (dz / (d || 1)) * k }, true);
     }
   }
 

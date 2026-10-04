@@ -333,7 +333,7 @@ export class Vehicle {
     const lightsOn = !!this.driver && (this.headlightOverride ?? night > 0.3);
     this.lightsOn = lightsOn;
     this.model.head.material = lightsOn ? VehicleMaterials.headOn : VehicleMaterials.head;
-    this.model.tail.material = this.braking ? VehicleMaterials.tailBrake : lightsOn ? VehicleMaterials.tailOn : VehicleMaterials.tail;
+    this.model.tail.material = this.braking || this.hazard ? VehicleMaterials.tailBrake : lightsOn ? VehicleMaterials.tailOn : VehicleMaterials.tail;
     this.model.beam.visible = lightsOn;
 
     if (isPlayerCar) {

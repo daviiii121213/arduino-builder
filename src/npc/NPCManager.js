@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { NPC } from './NPC.js';
 import { createRng } from '../core/math.js';
-import { HAIR_STYLES } from '../characters/CharacterRig.js';
+import { HAIR_STYLES, CharacterRig } from '../characters/CharacterRig.js';
+import { CITY } from '../world/CityLayout.js';
 import { GameConfig } from '../config.js';
 
 const SKIN = [0x8d5524, 0xc68642, 0xe0ac69, 0xf1c27d, 0xd9a57b, 0x6b4226, 0xa0663f, 0xb98563];
@@ -19,7 +20,7 @@ export class NPCManager {
     this.rng = createRng(4242);
     const cc = physics.world.createCharacterController(0.02);
     cc.setUp({ x: 0, y: 1, z: 0 });
-    cc.enableAutostep(0.4, 0.2, false);
+    cc.enableAutostep(0.4, 0.1, false);
     cc.enableSnapToGround(0.4);
     cc.setMaxSlopeClimbAngle(THREE.MathUtils.degToRad(50));
     cc.setSlideEnabled(true);
@@ -32,8 +33,64 @@ export class NPCManager {
     // Interleave paths so NPCs are spread over the whole map.
     for (let i = 0; i < count; i++) {
       const path = paths[(i * 7) % paths.length];
-      this.npcs.push(new NPC({ physics, scene, audio, controller: cc, path, rng: this.rng, look: this.randomLook() }));
+      const npc = new NPC({ physics, scene, audio, controller: cc, path, rng: this.rng, look: this.randomLook() });
+      npc.onWaypoint = (n) => this.maybeCross(n);
+      this.npcs.push(npc);
     }
+    this.buildCrossings();
+    this.vehicles = null; // set by the game, used to check for oncoming cars
+  }
+
+  /**
+   * Links between sidewalk loops across each road at the crosswalks: a block
+   * corner and the facing corner of the neighbouring block.
+   */
+  buildCrossings() {
+    const span = 2 * 2 + 2 * CITY.roadHalf;
+    this.crossings = new Map();
+    const loops = this.paths.filter((p) => p.loop && p.points.length === 4 && !p.indoor);
+    for (const path of loops) {
+      const links = path.points.map(() => []);
+      path.points.forEach((pt, i) => {
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const tx = pt.x + dx * span;
+          const tz = pt.z + dz * span;
+          for (const other of loops) {
+            if (other === path) continue;
+            const j = other.points.findIndex((q) => Math.hypot(q.x - tx, q.z - tz) < 1);
+            if (j >= 0) links[i].push({ path: other, index: j, to: other.points[j] });
+          }
+        }
+      });
+      this.crossings.set(path, links);
+    }
+  }
+
+  /** At a block corner, sometimes cross to the next block over the crosswalk. */
+  maybeCross(npc) {
+    if (npc.state !== 'walk' || npc.legInjury > 0 || !this.rng.chance(0.35)) return false;
+    const links = this.crossings.get(npc.path)?.[npc.target];
+    if (!links?.length) return false;
+    const link = this.rng.pick(links);
+    // Wait for a gap: skip the crossing if a moving car is close to the crosswalk.
+    const mx = (npc.currPos.x + link.to.x) / 2;
+    const mz = (npc.currPos.z + link.to.z) / 2;
+    for (const v of this.vehicles?.list ?? []) {
+      if (Math.abs(v.speed) > 3 && Math.hypot(v.currPos.x - mx, v.currPos.z - mz) < 9) return false;
+    }
+    npc.goTo(link.to, (n) => {
+      n.path = link.path;
+      n.target = link.index;
+      n.direction = this.rng.chance(0.5) ? 1 : -1;
+      n.advanceTarget();
+    });
+    return true;
+  }
+
+  /** Gives an NPC a fresh look and sends it back into the city far from the player. */
+  recycle(npc, playerPos) {
+    npc.setRig(new CharacterRig(this.randomLook()), false);
+    this.respawn(npc, playerPos);
   }
 
   randomLook() {

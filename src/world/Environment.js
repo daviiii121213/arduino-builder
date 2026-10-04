@@ -30,6 +30,8 @@ export class Environment {
     this.sunDir = new THREE.Vector3(0, 1, 0);
     this.lightDir = new THREE.Vector3(0, 1, 0);
     this.night = 0;
+    /** Weather modifiers (0..1), set by the Weather system. */
+    this.weather = { cloud: 0, fog: 0, rain: 0 };
 
     this.sky = new Sky();
     this.sky.scale.setScalar(4000);
@@ -40,6 +42,12 @@ export class Environment {
     u.mieDirectionalG.value = 0.86;
     scene.add(this.sky);
     this.buildNightSky(scene);
+    // Overcast layer that greys the physical sky under heavy cloud.
+    this.overcast = new THREE.Mesh(new THREE.SphereGeometry(1190, 16, 8), new THREE.MeshBasicMaterial({
+      color: 0xa9afb5, side: THREE.BackSide, transparent: true, opacity: 0, depthWrite: false, fog: false,
+    }));
+    this.overcast.renderOrder = -1;
+    scene.add(this.overcast);
 
     // Image-based lighting is rendered from a copy of the sky, refreshed as the sun moves.
     this.pmrem = new THREE.PMREMGenerator(renderer);
@@ -142,7 +150,25 @@ export class Environment {
     this.renderer.toneMappingExposure = lerp(DAY.exposure, NIGHT.exposure, night);
     this.scene.environmentIntensity = lerp(DAY.env, NIGHT.env, night);
 
+    this.applyWeather(night);
     if (Math.abs(elevation - this.lastEnvElevation) > 3) this.refreshEnvironment();
+  }
+
+  applyWeather(night) {
+    const { cloud, fog, rain } = this.weather;
+    const overcast = Math.max(cloud, rain);
+    this.sun.intensity *= 1 - 0.78 * overcast;
+    this.hemi.color.lerp(_c.set(night > 0.5 ? 0x3c4352 : 0x9ba3ab), overcast * 0.6);
+    this.hemi.intensity *= 1 + overcast * 0.15;
+    this.scene.environmentIntensity *= 1 - 0.35 * overcast;
+    const grey = _c.set(night > 0.5 ? 0x1c2129 : 0x9da3a8);
+    this.scene.fog.color.lerp(grey, Math.max(overcast * 0.6, fog));
+    this.scene.fog.near = lerp(lerp(110, 30, rain), 6, fog);
+    this.scene.fog.far = lerp(lerp(480, 230, rain), 85, fog);
+    this.overcast.material.color.copy(this.scene.fog.color);
+    this.overcast.material.opacity = Math.min(0.92, overcast * 0.85 + fog * 0.5);
+    this.overcast.visible = this.overcast.material.opacity > 0.01;
+    this.stars.material.opacity *= 1 - overcast;
   }
 
   refreshEnvironment() {

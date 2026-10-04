@@ -34,7 +34,7 @@ Clique na tela para começar: o mouse fica preso à janela e o áudio é liberad
 | Botão esquerdo | atirar (pistola semiautomática, fuzil automático) |
 | Botão direito | mirar (câmera sobre o ombro, menos dispersão) |
 | `R` | recarregar |
-| `F` | entrar num carro estacionado ou roubar um carro do trânsito (perto da porta) |
+| `F` | interagir: entrar/roubar carro, abrir/fechar portas e portões |
 | `H` | mostrar/ocultar a ajuda |
 
 | No carro | |
@@ -44,6 +44,7 @@ Clique na tela para começar: o mouse fica preso à janela e o áudio é liberad
 | `A` / `D` | direção |
 | `Espaço` | freio de mão |
 | `H` | buzina |
+| `L` | faróis (liga/desliga) |
 | `F` | sair (abaixo de ~18 km/h) |
 
 ## O que está implementado
@@ -77,6 +78,22 @@ Clique na tela para começar: o mouse fica preso à janela e o áudio é liberad
 - **Áudio**: passos, pulo, tiros, recarga, motor com marchas, pneus, freio, buzina, portas, batidas, ruído do
   trânsito próximo, gritos curtos e murmúrio de pedestres, ambiente da cidade.
 
+- **Dano por região do corpo** (sem sangue): cabeça (×4, pode matar na hora), tronco (×1), braços (×0,45, braço
+  fica caído) e pernas (×0,55, o personagem manca e pode cair). Reações animadas por região, queda e desaparecimento.
+  Motoristas podem ser atingidos através do vidro; se o motorista morre, o carro segue desgovernado e para.
+- **Dano de veículos**: batidas e tiros amassam a carroceria e arranham a pintura; com dano alto sai fumaça e o
+  motor perde força até parar. Batidas fortes podem incapacitar o outro motorista.
+- **Física de objetos**: cones, lixeiras, caixas e barreiras podem ser empurrados, atingidos por carros e tiros.
+- **Distritos e interiores**: centro (praça e torre), residencial, comercial e industrial (pátio cercado com
+  portão deslizante, galpões, contêineres). Dá para entrar no mercadinho, no café da praça e no galpão (portas e
+  porta de enrolar interativas). Placas com nomes de ruas originais.
+- **Clima**: ensolarado, nublado, chuva e neblina, com transições; chuva com gotas, respingos, ruas molhadas
+  com reflexo, poças e som; nuvens; relógio do jogo no canto da tela.
+- **Vida urbana e eventos**: pedestres atravessam nas faixas, entram em carros estacionados e saem dirigindo;
+  carros do trânsito estacionam e o motorista desce. De tempos em tempos acontecem pequenos eventos: um carro
+  derrapa, alguém atravessa fora da faixa, um carro para de repente com pisca-alerta, um pedestre se assusta,
+  uma rajada de vento derruba objetos.
+
 Fora do escopo desta fase, conforme pedido: menus, inventário, missões, dinheiro, lojas, polícia/procurado,
 multiplayer, customização, história e rádio.
 
@@ -87,15 +104,17 @@ src/
   core/        Game (loop com física em passo fixo + interpolação), Physics (Rapier, grupos de colisão),
                Input, AudioSystem (sons sintetizados), math
   config.js    quantidades de pedestres, trânsito e carros estacionados; duração do dia
-  world/       City, CityLayout, DayNight, BlockBuilders (conteúdo de cada tipo de quarteirão), BuildingFactory,
+  world/       City, CityLayout, DayNight, Weather, Interiors, Interactables, PhysicsProps, BlockBuilders (conteúdo de cada tipo de quarteirão), BuildingFactory,
                PropFactory, TrafficLights, Environment (céu/luz), Materials, Textures (canvas),
                GeometryBatcher (junta geometria estática por material)
   characters/  CharacterRig (humanoide procedural, uma SkinnedMesh por personagem)
   player/      Player (controlador a pé)
   camera/      ThirdPersonCamera (configurações em CAMERA_SETTINGS, incl. sensibilidade do mouse)
   weapons/     WeaponDefinitions (stats), WeaponModels, WeaponSystem, Effects
-  npc/         NPC (comportamento), NPCHealth (vida), NPCManager
-  vehicle/     VehicleDefinitions (modelos), VehicleModels, Vehicle (física e modos), VehicleManager,
+  npc/         NPC (comportamento), NPCHealth (vida), NPCManager, VehicleUse (NPCs entrando/saindo de carros)
+  combat/      BodyDamage (regiões do corpo e multiplicadores)
+  events/      EventDirector (eventos aleatórios)
+  vehicle/     VehicleDefinitions (modelos), VehicleModels, Vehicle (física e modos), VehicleDamage, VehicleManager,
                VehicleInteraction (entrar, sair e roubar)
   traffic/     RoadNetwork (faixas e curvas), TrafficDriver (IA de um carro), TrafficManager (população)
   ui/          HUD

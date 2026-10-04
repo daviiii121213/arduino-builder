@@ -36,14 +36,22 @@ export class VehicleManager {
 
   /** Parks cars in lot stalls and along curbs, never on lanes or inside buildings. */
   spawnParked(lotSpots, curbSpots, avoid) {
-    const spots = [...lotSpots];
-    // Shuffle curbside candidates and keep a spread-out subset.
-    const curb = curbSpots.slice();
-    for (let i = curb.length - 1; i > 0; i--) {
-      const j = Math.floor(this.rng.next() * (i + 1));
-      [curb[i], curb[j]] = [curb[j], curb[i]];
+    // Roughly half in the lot, half along the curbs, shuffled for variety.
+    const shuffle = (list) => {
+      const a = list.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(this.rng.next() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+    const lot = shuffle(lotSpots);
+    const curb = shuffle(curbSpots);
+    const spots = [];
+    for (let i = 0; i < Math.max(lot.length, curb.length); i++) {
+      if (i < lot.length && i % 2 === 0) spots.push(lot[i]);
+      if (i < curb.length) spots.push(curb[i]);
     }
-    spots.push(...curb);
     const placed = [];
     for (const s of spots) {
       if (placed.length >= GameConfig.parkedCount) break;

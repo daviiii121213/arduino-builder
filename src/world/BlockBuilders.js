@@ -217,7 +217,16 @@ export class BlockBuilders {
       const sh = stepTop - Y;
       const g = new THREE.BoxGeometry(run, sh, sz1 - sz0);
       this.batcher.add(Materials.concrete(), g, translation((sx0 + sx1) / 2, Y + sh / 2, (sz0 + sz1) / 2));
-      this.physics.addStaticBox((sx0 + sx1) / 2, Y + sh / 2, (sz0 + sz1) / 2, run / 2, sh / 2, (sz1 - sz0) / 2);
+    }
+    // Collision for the stairs is a smooth invisible slope under the visible steps.
+    {
+      const runLen = (steps - 1) * run;
+      const ang = Math.atan2(h, runLen);
+      const slopeLen = Math.hypot(h, runLen);
+      const rotS = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), ang);
+      const mid = new THREE.Vector3(x0 - runLen / 2, Y + h / 2, (sz0 + sz1) / 2);
+      const c = new THREE.Vector3(0, -0.1, 0).applyQuaternion(rotS).add(mid);
+      this.physics.addStaticBox(c.x, c.y, c.z, slopeLen / 2 + 0.05, 0.1, (sz1 - sz0) / 2, rotS);
     }
 
     // Railings with openings for the ramp and stairs.

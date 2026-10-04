@@ -131,6 +131,65 @@ export class TrafficManager {
     return false;
   }
 
+  /** The lane a car at `pos` heading `yaw` is driving along (or parked beside), with distance along it. */
+  laneAt(pos, yaw, maxLateral = 4.2) {
+    const fx = Math.sin(yaw);
+    const fz = Math.cos(yaw);
+    let best = null;
+    for (const lane of this.network.lanes) {
+      if (lane.dir.x * fx + lane.dir.z * fz < 0.9) continue;
+      const dx = pos.x - lane.start.x;
+      const dz = pos.z - lane.start.z;
+      const s = dx * lane.dir.x + dz * lane.dir.z;
+      const lateral = Math.abs(dx * lane.dir.z - dz * lane.dir.x);
+      if (s < 0 || s > lane.length - 6 || lateral > maxLateral) continue;
+      if (!best || lateral < best.lateral) best = { lane, distance: s, lateral };
+    }
+    return best;
+  }
+
+  /** A pedestrian has got into a parked car: it joins traffic from the curb. */
+  adoptVehicle(vehicle, rig) {
+    const hit = this.laneAt(vehicle.currPos, vehicle.yaw);
+    if (!hit) return false;
+    vehicle.setMode('traffic');
+    const driver = new TrafficDriver({ vehicle, network: this.network, rng: () => this.rng.next(), lane: hit.lane, distance: hit.distance, rig });
+    driver.mergeFrom(vehicle.currPos, hit.lane, hit.distance);
+    driver.yaw = vehicle.yaw;
+    vehicle.driver = driver;
+    vehicle.persistent = false;
+    this.drivers.push(driver);
+    return true;
+  }
+
+  /** Free curbside spot ahead of a driver on its current lane, if any. */
+  findParkingSpot(driver, spots) {
+    const hit = this.laneAt({ x: driver.x, z: driver.z }, driver.yaw, 1.5);
+    if (!hit) return null;
+    for (const spot of spots) {
+      if (spot.lane !== hit.lane) continue;
+      const s = (spot.x - hit.lane.start.x) * hit.lane.dir.x + (spot.z - hit.lane.start.z) * hit.lane.dir.z;
+      if (s - hit.distance < 14 || s - hit.distance > 45) continue;
+      if (this.vehicles.list.some((v) => v !== driver.vehicle && Math.hypot(v.currPos.x - spot.x, v.currPos.z - spot.z) < 5.5)) continue;
+      return spot;
+    }
+    return null;
+  }
+
+  /** Takes a car that has just parked out of traffic; returns the driver's rig. */
+  releaseParked(vehicle) {
+    const driver = vehicle.driver;
+    this.drivers.splice(this.drivers.indexOf(driver), 1);
+    driver.releaseReservation();
+    vehicle.driver = null;
+    vehicle.speed = 0;
+    vehicle.braking = false;
+    vehicle.hazard = false;
+    vehicle.setMode('parked');
+    vehicle.persistent = false;
+    return driver.rig;
+  }
+
   /** Asks a car to stop for a carjacking. */
   hijack(vehicle) {
     if (vehicle.driver instanceof TrafficDriver) vehicle.driver.hijacked = true;
