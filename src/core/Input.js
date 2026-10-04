@@ -11,6 +11,8 @@ export class Input {
     this.mousePressed = new Set();
     this.mouseDelta = { x: 0, y: 0 };
     this.pointerLocked = false;
+    /** Fallback when pointer lock is refused (e.g. embedded frames): raw mouse movement still turns the camera. */
+    this.freeLook = false;
 
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
@@ -32,7 +34,7 @@ export class Input {
     element.addEventListener('contextmenu', (e) => e.preventDefault());
 
     document.addEventListener('mousemove', (e) => {
-      if (!this.pointerLocked) return;
+      if (!this.active) return;
       this.mouseDelta.x += e.movementX;
       this.mouseDelta.y += e.movementY;
     });
@@ -42,8 +44,21 @@ export class Input {
     });
   }
 
+  get active() {
+    return this.pointerLocked || this.freeLook;
+  }
+
+  /** Tries to lock the pointer; falls back to free-look mode if the browser refuses. */
   requestPointerLock() {
-    if (!this.pointerLocked) this.element.requestPointerLock?.();
+    if (this.pointerLocked) return;
+    const fallback = () => { if (!this.pointerLocked) this.freeLook = true; };
+    try {
+      const result = this.element.requestPointerLock?.();
+      if (result?.catch) result.catch(fallback);
+      setTimeout(fallback, 400);
+    } catch {
+      fallback();
+    }
   }
 
   isDown(code) { return this.keysDown.has(code); }

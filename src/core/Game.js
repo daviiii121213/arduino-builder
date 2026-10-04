@@ -192,8 +192,8 @@ export class Game {
 
     // Weapons fire after the camera so the aim ray matches what is on screen.
     this.weapons.update(dt, {
-      fireHeld: !driving && this.input.isMouseDown(0) && this.input.pointerLocked,
-      firePressed: !driving && this.input.wasMousePressed(0) && this.input.pointerLocked,
+      fireHeld: !driving && this.input.isMouseDown(0) && this.input.active,
+      firePressed: !driving && this.input.wasMousePressed(0) && this.input.active,
       aiming: this.aiming,
       moving: Math.min(1, this.player.speed() / 6),
       airborne: !this.player.grounded,

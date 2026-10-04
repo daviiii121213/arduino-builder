@@ -17,11 +17,14 @@ async function boot() {
     const begin = () => {
       game.audio.start();
       game.input.requestPointerLock();
+      overlay.classList.add('hidden');
     };
     overlay.addEventListener('click', begin);
     game.renderer.domElement.addEventListener('click', begin);
     document.addEventListener('pointerlockchange', () => {
-      overlay.classList.toggle('hidden', document.pointerLockElement === game.renderer.domElement);
+      const locked = document.pointerLockElement === game.renderer.domElement;
+      if (locked) game.input.freeLook = false;
+      overlay.classList.toggle('hidden', locked);
     });
   } catch (err) {
     console.error(err);
