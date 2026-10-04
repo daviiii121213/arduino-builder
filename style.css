@@ -147,9 +147,9 @@ html:not(.js) .loader { display: none; }
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, .45));
 }
 .scissors__a, .scissors__b { transform-box: view-box; transform-origin: 50px 54px; transition: transform .14s var(--ease); }
-/* preta com contorno branco, como a referência: visível no fundo escuro e no claro */
-.scissors path { fill: #000; stroke: #fff; stroke-width: 2.6; stroke-linejoin: round; paint-order: stroke; }
-.scissors__pivot { fill: #fff; }
+/* branca com contorno preto: visível no fundo escuro e no claro */
+.scissors path { fill: #fff; stroke: #000; stroke-width: 2.6; stroke-linejoin: round; paint-order: stroke; }
+.scissors__pivot { fill: #000; }
 
 /* sobre links e botões: tesoura levemente aberta e maior */
 .cursor.is-hover .scissors { scale: 1.12; }
