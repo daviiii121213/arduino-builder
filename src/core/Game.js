@@ -22,6 +22,8 @@ import { Interactables } from '../world/Interactables.js';
 import { Weather } from '../world/Weather.js';
 import { VehicleUse } from '../npc/VehicleUse.js';
 import { EventDirector } from '../events/EventDirector.js';
+import { WantedSystem } from '../police/WantedSystem.js';
+import { PoliceManager } from '../police/PoliceManager.js';
 
 const MAX_STEPS_PER_FRAME = 5;
 
@@ -107,13 +109,19 @@ export class Game {
       effects: this.effects,
       audio: this.audio,
       camera: this.cameraRig,
-      onShot: (pos) => this.npcs.onGunshot(pos),
+      onShot: (pos) => {
+        this.npcs.onGunshot(pos);
+        this.wanted.crime('gunshot', pos, this.playerInfo);
+      },
       onHit: (target, region) => {
         this.hud.showHit(!target.alive, region === 'head');
         this.audio.play('hitMarker');
+        if (target.isOfficer) this.wanted.crime(target.alive ? 'assaultPolice' : 'killPolice', target.currPos, this.playerInfo);
+        else this.wanted.crime(target.alive ? 'assault' : 'murder', target.currPos ?? this.player.currPos, this.playerInfo);
       },
       onVehicleHit: (vehicle, shot) => {
         vehicle.damage.applyBullet(shot.point);
+        if (vehicle.def.police) this.wanted.crime('damagePolice', vehicle.currPos, this.playerInfo);
         return this.traffic.hitOccupant(vehicle, shot);
       },
     });
@@ -121,6 +129,36 @@ export class Game {
       scene: this.scene, player: this.player, vehicles: this.vehicles, traffic: this.traffic, npcs: this.npcs,
       camera: this.cameraRig, weapons: this.weapons, physics, audio: this.audio,
     });
+
+    // Police and the wanted level.
+    const game = this;
+    this.playerInfo = {
+      get position() { return game.player.currPos; },
+      get vehicle() { return game.vehicles.playerVehicle ?? null; },
+      get speed() { return game.vehicles.playerVehicle ? Math.abs(game.vehicles.playerVehicle.speed) : game.player.speed(); },
+      get alive() { return game.player.alive && !game.defeated; },
+      get armed() { return !!game.weapons.active; },
+      hurt: (amount) => game.player.applyDamage(amount),
+    };
+    this.wanted = new WantedSystem({ physics, npcs: this.npcs, audio: this.audio });
+    this.wanted.hiddenTest = (p) => this.city.interiors.isInside(p);
+    this.wanted.visibility = () => 1 - this.weather.current.fog * 0.6 - this.weather.current.rain * 0.3;
+    this.police = new PoliceManager({
+      scene: this.scene, physics, audio: this.audio, effects: this.effects, npcs: this.npcs, traffic: this.traffic,
+      vehicles: this.vehicles, network: this.network, wanted: this.wanted, player: this.playerInfo,
+      rng: createRng(5150), vehicleUse: this.vehicleUse,
+    });
+    this.police.populate();
+    this.police.onArrest = () => this.defeat('VOCÊ FOI DETIDO', true);
+    this.player.onDefeated = () => this.defeat('VOCÊ FOI DERROTADO', false);
+    this.defeated = false;
+    this.vehicle.onEnter = (v) => {
+      if (v.def.police) {
+        this.police.onPoliceCarTaken(v);
+        this.wanted.crime('damagePolice', v.currPos, this.playerInfo);
+      } else if (!v.stolen) this.wanted.crime(v.driver ? 'carjack' : 'theft', v.currPos, this.playerInfo);
+      v.stolen = true;
+    };
 
     this.accumulator = 0;
     this.lastTime = performance.now();
@@ -149,6 +187,10 @@ export class Game {
     const mouse = input.consumeMouseDelta();
     this.cameraRig.handleMouse(mouse.x, mouse.y);
 
+    if (this.defeated) {
+      this.aiming = false;
+      return;
+    }
     if (input.wasPressed('KeyF')) this.interact();
     const onFoot = !this.vehicle.busy;
     if (input.wasPressed('KeyL') && this.vehicle.driving) {
@@ -246,13 +288,19 @@ export class Game {
 
   fixedStep(dt) {
     const driving = this.vehicle.driving;
-    if (!this.vehicle.busy) this.player.fixedUpdate(dt, this.footIntent());
+    if (!this.vehicle.busy) {
+      this.player.fixedUpdate(dt, this.defeated ? { dirX: 0, dirZ: 0, run: false, aimingSlow: false, faceAim: false, aimYaw: 0 } : this.footIntent());
+    }
 
     // Things traffic must yield to: pedestrians and the player on foot.
     this.obstacles.length = 0;
     this.npcs.obstacles(this.obstacles);
+    this.police.obstacles(this.obstacles);
     if (!this.vehicle.busy) this.obstacles.push({ x: this.player.currPos.x, z: this.player.currPos.z, r: 0.4, player: true });
-    this.traffic.fixedUpdate(dt, { obstacles: this.obstacles, playerPos: this.player.currPos });
+    const trafficCtx = { obstacles: this.obstacles, playerPos: this.player.currPos, sirens: this.police.sirens() };
+    this.traffic.fixedUpdate(dt, trafficCtx);
+    this.police.fixedUpdate(dt, trafficCtx);
+    this.wanted.update(dt, this.playerInfo);
 
     this.vehicles.fixedUpdate(dt, driving ? this.carInput() : null);
     this.npcs.fixedUpdate(dt, this.player.currPos);
@@ -261,6 +309,13 @@ export class Game {
     this.vehicles.checkPlayerContacts((v) => {
       // A hard crash can incapacitate the other driver; otherwise they get out and run.
       const impact = Math.abs(this.vehicles.playerVehicle.speed);
+      if (v.def.police) {
+        // Ramming a police car: the crew bails out and the wanted level rises.
+        this.wanted.crime('damagePolice', v.currPos, this.playerInfo);
+        if (v.policeUnit?.driver) this.police.deploy(v.policeUnit);
+        v.setMode('physics');
+        return;
+      }
       if (impact > 11 && this.traffic.injureDriver(v, impact * 5)) return;
       const rig = this.traffic.release(v);
       if (rig) {
@@ -269,7 +324,13 @@ export class Game {
         this.npcs.adoptDriver(rig, spot, v.currPos);
       }
     });
-    this.npcs.checkVehicles(this.vehicles.list);
+    const pv = this.vehicles.playerVehicle;
+    this.npcs.checkVehicles(this.vehicles.list, this.npcs.npcs, (car, npc) => {
+      if (car === pv) this.wanted.crime(npc.alive ? 'assault' : 'murder', npc.currPos, this.playerInfo);
+    });
+    this.npcs.checkVehicles(this.vehicles.list, this.police.officers, (car, o) => {
+      if (car === pv) this.wanted.crime(o.alive ? 'assaultPolice' : 'killPolice', o.currPos, this.playerInfo);
+    });
     if (driving) {
       // Keep the hidden on-foot body with the car so exit checks start nearby.
       const p = this.vehicles.playerVehicle.currPos;
@@ -295,7 +356,10 @@ export class Game {
 
     const night = this.dayNight.night;
     this.vehicles.render(dt, alpha, night);
-    this.player.render(dt, alpha, this.weapons.animState(this.aiming));
+    this.player.render(dt, alpha, this.defeated && !this.arrested ? { dead: true } : this.weapons.animState(this.aiming));
+    this.player.regenerate(dt);
+    this.police.render(dt, alpha, this.camera.position);
+    this.updateDefeat(dt);
     this.vehicle.update(dt);
     this.npcs.render(dt, alpha, this.camera.position);
 
@@ -312,7 +376,7 @@ export class Game {
       : { bob: this.vehicle.busy ? 0 : rig.runBlend * rig.moveBlend, bobPhase: rig.phase });
 
     // Weapons fire after the camera so the aim ray matches what is on screen.
-    const onFoot = !this.vehicle.busy;
+    const onFoot = !this.vehicle.busy && !this.defeated;
     this.weapons.update(dt, {
       fireHeld: onFoot && this.input.isMouseDown(0) && this.input.active,
       firePressed: onFoot && this.input.wasMousePressed(0) && this.input.active,
@@ -358,6 +422,33 @@ export class Game {
     this.audio.setTrafficHum(best * best, speed);
   }
 
+  /** Player taken down or arrested: short pause, then back to the start with a clean slate. */
+  defeat(text, arrested) {
+    if (this.defeated) return;
+    this.defeated = true;
+    this.arrested = arrested;
+    this.defeatTimer = 4;
+    this.banner = text;
+    if (this.vehicle.driving) this.vehicle.forceExit();
+    this.weapons.holster();
+    this.audio.play('radio', null, 0.8);
+  }
+
+  updateDefeat(dt) {
+    if (!this.defeated) return;
+    this.defeatTimer -= dt;
+    if (this.defeatTimer > 0) return;
+    const s = this.city.spawn.player;
+    this.player.teleport(s.x, s.y, s.z);
+    this.player.health.reset();
+    this.player.rig.fallBlend = 0;
+    this.wanted.clear();
+    this.police.standDown();
+    this.cameraRig.yaw = s.yaw;
+    this.defeated = false;
+    this.banner = '';
+  }
+
   updateHud(dt) {
     const w = this.weapons.active;
     const pv = this.vehicles.playerVehicle;
@@ -375,6 +466,10 @@ export class Game {
       prompt: this.interactionPrompt(),
       speed: pv?.speed ?? 0,
       clock: this.dayNight.clock(),
+      wanted: this.wanted.level,
+      searching: this.wanted.searching,
+      health: this.player.health.value,
+      banner: this.banner,
       weather: this.weather?.label ?? null,
     });
   }

@@ -20,6 +20,13 @@ export class Interiors {
     this.physics = city.physics;
     this.props = city.props;
     this.interactables = interactables;
+    /** Footprints of enterable interiors (players inside are hard for police to spot). */
+    this.areas = [];
+  }
+
+  /** Is a point inside one of the enterable buildings? */
+  isInside(p) {
+    return this.areas.some((a) => p.x > a.x0 && p.x < a.x1 && p.z > a.z0 && p.z < a.z1);
   }
 
   /** Axis-aligned box from min/max corners, optionally solid. */
@@ -37,9 +44,10 @@ export class Interiors {
    * the wall (x for north/south, z for east/west). Exterior and interior faces
    * get different colours; the roof is a slab over the whole footprint.
    */
-  shell({ x0, x1, z0, z1, height, t = 0.25, openings = {}, outMat = Materials.painted(), outColor, inColor = '#e9e4da', roofColor = '#5d5b58', floorMat, floorTile = 2 }) {
+  shell({ x0, x1, z0, z1, height, t = 0.25, enterable = true, openings = {}, outMat = Materials.painted(), outColor, inColor = '#e9e4da', roofColor = '#5d5b58', floorMat, floorTile = 2 }) {
     const y0 = Y;
     const y1 = Y + height;
+    if (enterable) this.areas.push({ x0, x1, z0, z1 });
     const sides = {
       north: { fixed: z1, a0: x0, a1: x1, axis: 'x' },
       south: { fixed: z0, a0: x0, a1: x1, axis: 'x' },

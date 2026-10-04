@@ -65,6 +65,7 @@ export class VehicleInteraction {
   // ------------------------------------------------------------ enter
 
   beginEnter(vehicle) {
+    this.onEnter?.(vehicle);
     this.vehicle = vehicle;
     this.weapons.holster();
     this.player.setEnabled(false);
@@ -248,6 +249,20 @@ export class VehicleInteraction {
     this.state = 'onFoot';
     this.vehicle = null;
     this.audio.play('doorClose', v.currPos);
+  }
+
+  /** Immediately puts a driving player back on foot next to the car (defeat, arrest). */
+  forceExit() {
+    const v = this.vehicle;
+    if (!v) return;
+    const rig = this.player.rig;
+    rig.root.removeFromParent();
+    this.scene.add(rig.root);
+    v.driver = null;
+    this.vehicles.playerVehicle = null;
+    this.exitSpot = this.findExitSpot(v) ?? v.doorPosition(new THREE.Vector3());
+    this.audio.setEngine(false);
+    this.finishExit();
   }
 
   /** Focus point for the camera. */

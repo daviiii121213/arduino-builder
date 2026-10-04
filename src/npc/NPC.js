@@ -184,6 +184,14 @@ export class NPC {
     this.onDanger(pos, 32, 6);
   }
 
+  /** Saw a crime: freeze for a moment (calling it in), then get away. */
+  onWitness(pos) {
+    if (this.state !== 'walk' && this.state !== 'idle') return;
+    this.state = 'idle';
+    this.stateTimer = 1.5;
+    this.witnessPos = { x: pos.x, z: pos.z };
+  }
+
   /** Swaps the visual rig (an evicted driver becomes a pedestrian, or a pedestrian drives off). */
   setRig(rig, disposeOld = true) {
     this.scene.remove(this.rig.root);
@@ -239,6 +247,12 @@ export class NPC {
         }
         break;
       case 'idle':
+        if (this.stateTimer <= 0 && this.witnessPos) {
+          const w = this.witnessPos;
+          this.witnessPos = null;
+          this.onDanger(w, 1e6, 7);
+          break;
+        }
         if (this.stateTimer <= 0) {
           this.state = 'walk';
           this.pauseTimer = this.rng.range(6, 18);

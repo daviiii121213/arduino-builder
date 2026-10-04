@@ -9,7 +9,10 @@ export class HUD {
       <div id="crosshair" class="hidden"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><b class="dot"></b></div>
       <div id="hitmarker"></div>
       <div id="prompt" class="hidden"></div>
+      <div id="wanted"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+      <div id="health"><i></i></div>
       <div id="clock"></div>
+      <div id="banner" class="hidden"></div>
       <div id="weapon-panel">
         <div class="slots">
           <div class="slot" data-slot="pistol"><span class="key">1</span>Pistola</div>
@@ -38,6 +41,11 @@ export class HUD {
       speed: root.querySelector('#speedometer .value'),
       help: root.querySelector('#help'),
       clock: root.querySelector('#clock'),
+      wanted: root.querySelector('#wanted'),
+      stars: [...root.querySelectorAll('#wanted span')],
+      health: root.querySelector('#health'),
+      healthFill: root.querySelector('#health i'),
+      banner: root.querySelector('#banner'),
     };
     this.hitTimer = 0;
     this.helpTimer = 20;
@@ -86,6 +94,18 @@ export class HUD {
     this.set('speedo', s.driving, (v) => e.speedometer.classList.toggle('hidden', !v));
     if (s.driving) this.set('speed', Math.round(Math.abs(s.speed) * 3.6), (v) => (e.speed.textContent = v));
 
+    this.set('wanted', s.wanted, (lvl) => e.stars.forEach((st, i) => st.classList.toggle('on', i < lvl)));
+    this.set('searching', !!s.searching, (v) => e.wanted.classList.toggle('searching', v));
+    const hp = Math.round(s.health ?? 100);
+    this.set('hp', hp, (v) => {
+      e.healthFill.style.width = `${v}%`;
+      e.health.classList.toggle('visible', v < 100);
+      e.health.classList.toggle('low', v < 35);
+    });
+    this.set('banner', s.banner ?? '', (v) => {
+      e.banner.textContent = v;
+      e.banner.classList.toggle('hidden', !v);
+    });
     this.set('clock', s.weather ? `${s.clock} · ${s.weather}` : s.clock, (v) => (e.clock.textContent = v));
     if (this.hitTimer > 0) {
       this.hitTimer -= dt;

@@ -27,6 +27,8 @@ export const QueryGroups = {
   npcMove: groups(Layer.QUERY, Layer.STATIC | Layer.PLAYER | Layer.VEHICLE | Layer.PROP),
   wheels: groups(Layer.QUERY, Layer.STATIC),
   bullets: groups(Layer.QUERY, Layer.STATIC | Layer.NPC | Layer.VEHICLE | Layer.PROP),
+  /** Shots fired by NPCs can also hit the player. */
+  npcBullets: groups(Layer.QUERY, Layer.STATIC | Layer.NPC | Layer.VEHICLE | Layer.PROP | Layer.PLAYER),
   camera: groups(Layer.QUERY, Layer.STATIC | Layer.VEHICLE),
   solid: groups(Layer.QUERY, Layer.STATIC | Layer.VEHICLE | Layer.NPC),
   ground: groups(Layer.QUERY, Layer.STATIC),

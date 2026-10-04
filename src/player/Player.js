@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { Groups, QueryGroups } from '../core/Physics.js';
 import { CharacterRig } from '../characters/CharacterRig.js';
 import { clamp, dampAngle } from '../core/math.js';
+import { NPCHealth } from '../npc/NPCHealth.js';
+import { regionFromWorld, damageFor } from '../combat/BodyDamage.js';
 
 const MOVE = {
   walkSpeed: 2.5,
@@ -73,6 +75,38 @@ export class Player {
     this.renderPos = this.prevPos.clone();
     this.airTime = 0;
     this.actualSpeed = 0;
+    this.isPlayer = true;
+    this.health = new NPCHealth(100);
+    this.sinceHurt = 99;
+    this.onDefeated = null;
+    this.onDamaged = null;
+  }
+
+  get alive() {
+    return !this.health.dead;
+  }
+
+  /** Hit by an NPC's bullet: body-part damage, scaled so firefights stay survivable. */
+  onBulletHit(damage, point, dir) {
+    if (this.health.dead) return null;
+    const { region, side } = regionFromWorld(this.rig, point);
+    this.applyDamage(damageFor(damage, region) * 0.35, region, side);
+    return region;
+  }
+
+  applyDamage(amount, region = 'torso', side = 0) {
+    if (this.health.dead) return;
+    this.rig.triggerHit(0.8, region, side);
+    this.sinceHurt = 0;
+    this.audio.play('hitBody', null, 0.8);
+    this.onDamaged?.(amount);
+    if (this.health.damage(amount)) this.onDefeated?.();
+  }
+
+  /** Slow regeneration after a few seconds without taking damage. */
+  regenerate(dt) {
+    this.sinceHurt += dt;
+    if (this.sinceHurt > 6 && !this.health.dead) this.health.value = Math.min(this.health.max, this.health.value + 6 * dt);
   }
 
   /** Feet position, interpolated for rendering. */

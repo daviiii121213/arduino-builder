@@ -48,6 +48,11 @@ export class TrafficDriver {
     this.tailLane = lane;
   }
 
+  /** Route choice at the next junction (overridden by pursuing police). */
+  pickNextLane(lane) {
+    return this.network.chooseNext(lane, this.rng);
+  }
+
   /** Starts from a curbside position and merges into `lane` a few metres ahead. */
   mergeFrom(start, lane, distance) {
     const s = Math.min(lane.length - 1, distance + 7);
@@ -96,7 +101,7 @@ export class TrafficDriver {
     for (let i = this.index; i < this.points.length - 1; i++) remaining += this.points[i].distanceTo(this.points[i + 1]);
     remaining -= this.along;
     while (remaining < 40) {
-      const next = this.network.chooseNext(this.tailLane, this.rng);
+      const next = this.pickNextLane(this.tailLane);
       const turn = this.network.turnPoints(this.tailLane, next);
       let last = this.points[this.points.length - 1];
       for (const p of [...turn, next.start]) {
@@ -210,6 +215,15 @@ export class TrafficDriver {
     const v = this.vehicle;
     const def = v.def;
     let target = this.panicTime > 0 ? this.cruise * 1.4 : this.cruise;
+    // Make way for emergency vehicles nearby.
+    if (!this.ignoreSignals) {
+      for (const s of ctx.sirens ?? []) {
+        if (Math.abs(s.x - this.x) < 30 && Math.abs(s.z - this.z) < 30) {
+          target *= 0.45;
+          break;
+        }
+      }
+    }
 
     // Slow for curves: compare heading now with heading a few metres ahead.
     const bend = Math.abs(angleDiff(this.headingAhead(1), this.headingAhead(9)));
@@ -229,14 +243,14 @@ export class TrafficDriver {
       const dist = stop.distance - def.length / 2;
       let mustStop = false;
       this.waitingAtLight = false;
-      if (node.signalized && this.panicTime <= 0) {
+      if (node.signalized && this.panicTime <= 0 && !this.ignoreSignals) {
         const state = ctx.lights.stateFor(stop.lane.axis);
         if (state === 'red' || (state === 'yellow' && dist > 7)) {
           mustStop = true;
           this.waitingAtLight = dist < 12;
         }
       }
-      if (!mustStop && dist < 7 && this.reserved?.node !== node) {
+      if (!mustStop && dist < 7 && this.reserved?.node !== node && !this.ignoreSignals) {
         mustStop = !this.reserve(node, stop.lane);
       }
       if (mustStop) target = Math.min(target, this.stoppingSpeed(dist - 0.5));

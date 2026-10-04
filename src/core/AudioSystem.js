@@ -225,6 +225,34 @@ export class AudioSystem {
     this.hum.ng.gain.setTargetAtTime(proximity * 0.18, now, 0.2);
   }
 
+  /** Two-tone wail of the nearest police siren; `proximity` 0..1. */
+  setSiren(proximity) {
+    if (!this.ctx) return;
+    if (!this.siren && proximity <= 0) return;
+    if (!this.siren) {
+      const ctx = this.ctx;
+      const o = ctx.createOscillator();
+      o.type = 'square';
+      o.frequency.value = 620;
+      // A slow LFO sweeps the pitch up and down (wail).
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = 0.45;
+      const depth = ctx.createGain();
+      depth.gain.value = 230;
+      lfo.connect(depth).connect(o.frequency);
+      const f = ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 2400;
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      o.connect(f).connect(g).connect(this.master);
+      o.start();
+      lfo.start();
+      this.siren = g;
+    }
+    this.siren.gain.setTargetAtTime(proximity * proximity * 0.07, this.ctx.currentTime, 0.2);
+  }
+
   /** Rain bed: band-limited noise whose level follows `amount` (0..1). */
   setRain(amount) {
     if (!this.ctx) return;
@@ -391,6 +419,13 @@ const SOUNDS = {
     const out = a.output(gain * 0.4, pan, 0.2);
     for (let i = 0; i < 10; i++) a.noiseBurst(out, { t: i * 0.11, dur: 0.08, type: 'bandpass', freq: 900 + Math.random() * 400, q: 3, gain: 0.5 });
     a.noiseBurst(out, { dur: 1.2, type: 'lowpass', freq: 300, gain: 0.4, attack: 0.1, buffer: a.brown });
+  },
+  radio(a, gain, pan) {
+    // Short squelch and garbled chatter of a police radio.
+    const out = a.output(gain * 0.2, pan);
+    a.noiseBurst(out, { dur: 0.08, type: 'bandpass', freq: 2500, q: 1, gain: 0.8 });
+    for (let i = 0; i < 5; i++) a.noiseBurst(out, { t: 0.1 + i * 0.09, dur: 0.07, type: 'bandpass', freq: 900 + Math.random() * 900, q: 8, gain: 0.6 });
+    a.noiseBurst(out, { t: 0.6, dur: 0.06, type: 'bandpass', freq: 2500, q: 1, gain: 0.6 });
   },
   wind(a, gain, pan) {
     const out = a.output(gain * 0.25, pan);

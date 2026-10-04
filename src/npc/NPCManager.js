@@ -162,16 +162,17 @@ export class NPCManager {
   }
 
   /** Pedestrians get out of the way of cars heading at them; contact knocks them down. */
-  checkVehicles(vehicles) {
+  checkVehicles(vehicles, people = this.npcs, onHit = null) {
     for (const car of vehicles) {
       const speed = Math.abs(car.speed);
       if (speed < 2.5 || car.disposed) continue;
-      for (const npc of this.npcs) {
+      for (const npc of people) {
         if (!npc.canBeHit) continue;
         const p = npc.currPos;
         if (Math.abs(p.x - car.currPos.x) > 14 || Math.abs(p.z - car.currPos.z) > 14) continue;
         if (car.overlapsPoint(p, npc.radius + 0.05, 1.8)) {
           npc.hitByVehicle(speed, car.currPos);
+          onHit?.(car, npc);
           continue;
         }
         // Danger zone ahead of (or behind, when reversing) the car.

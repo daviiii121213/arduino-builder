@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { glowTexture } from '../world/Textures.js';
+import { glowTexture, signTexture } from '../world/Textures.js';
 
 /** Materials shared by every vehicle so the fleet costs few state changes. */
 export const VehicleMaterials = {
@@ -10,6 +10,9 @@ export const VehicleMaterials = {
   headOn: new THREE.MeshStandardMaterial({ color: 0xf4f1e6, emissive: 0xfff2cf, emissiveIntensity: 2.5, roughness: 0.15 }),
   tail: new THREE.MeshStandardMaterial({ color: 0x8a1712, emissive: 0xff2010, emissiveIntensity: 0.15, roughness: 0.25 }),
   tailOn: new THREE.MeshStandardMaterial({ color: 0x8a1712, emissive: 0xff2010, emissiveIntensity: 1.0, roughness: 0.25 }),
+  sirenRedOn: new THREE.MeshStandardMaterial({ color: 0xff2a1f, emissive: 0xff1a10, emissiveIntensity: 3, roughness: 0.3 }),
+  sirenBlueOn: new THREE.MeshStandardMaterial({ color: 0x2a5cff, emissive: 0x1a40ff, emissiveIntensity: 3, roughness: 0.3 }),
+  sirenOff: new THREE.MeshStandardMaterial({ color: 0x5a5f66, roughness: 0.3, metalness: 0.2 }),
   beam: new THREE.MeshBasicMaterial({ color: 0xfff0c8, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }),
   tailBrake: new THREE.MeshStandardMaterial({ color: 0xb01d16, emissive: 0xff2414, emissiveIntensity: 2.2, roughness: 0.25 }),
   wheel: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, metalness: 0.15 }),
@@ -138,6 +141,17 @@ export function buildVehicleModel(d, colorHex) {
     add(new THREE.BoxGeometry(0.25, 0.03, 0.9), paintDark, at(0, d.hood + 0.015, L2 - 0.75)); // hood scoop stripe
   }
 
+  // Police livery: dark lower doors and a push bar; light bar and lettering are added below.
+  if (d.police) {
+    const dark = new THREE.Color(0x15181c);
+    const len = (d.wheelFront - d.wheelRear) - (d.wheelRadius + 0.08) * 2;
+    for (const sx of [-1, 1]) add(new THREE.BoxGeometry(0.02, d.belt - d.bottom - 0.22, len), dark, at(sx * (W / 2 + 0.012), (d.belt + d.bottom) / 2 - 0.05, (d.wheelFront + d.wheelRear) / 2));
+    add(new THREE.BoxGeometry(W * 0.6, 0.06, 0.06), dark, at(0, d.bottom + 0.35, L2 + 0.12));
+    add(new THREE.BoxGeometry(W * 0.6, 0.06, 0.06), dark, at(0, d.bottom + 0.15, L2 + 0.12));
+    for (const sx of [-0.3, 0.3]) add(new THREE.BoxGeometry(0.06, 0.32, 0.08), dark, at(sx, d.bottom + 0.25, L2 + 0.1));
+    add(new THREE.BoxGeometry(1.1, 0.08, 0.32), dark, at(0, d.roof + 0.04, (c.roofRear + c.roofFront) / 2 + 0.1));
+  }
+
   const root = new THREE.Group();
   const body = new THREE.Mesh(mergeGeometries(parts), VehicleMaterials.body);
   body.castShadow = true;
@@ -163,10 +177,26 @@ export function buildVehicleModel(d, colorHex) {
   beam.renderOrder = 1;
   root.add(beam);
 
+  let siren = null;
+  if (d.police) {
+    const z = (c.roofRear + c.roofFront) / 2 + 0.1;
+    const red = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.12, 0.26).translate(0.27, d.roof + 0.14, z), VehicleMaterials.sirenOff);
+    const blue = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.12, 0.26).translate(-0.27, d.roof + 0.14, z), VehicleMaterials.sirenOff);
+    root.add(red, blue);
+    siren = { red, blue };
+    const label = new THREE.MeshStandardMaterial({ map: signTexture('POLÍCIA', '#15181c', '#f2f2ee'), roughness: 0.5 });
+    for (const sx of [-1, 1]) {
+      const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 0.22), label);
+      plate.position.set(sx * (W / 2 + 0.025), (d.belt + d.bottom) / 2 - 0.05, (d.wheelFront + d.wheelRear) / 2);
+      plate.rotation.y = sx * Math.PI / 2;
+      root.add(plate);
+    }
+  }
+
   const wheelAnchors = [
     [d.track, d.wheelFront], [-d.track, d.wheelFront], [d.track, d.wheelRear], [-d.track, d.wheelRear],
   ].map(([x, z]) => new THREE.Vector3(x, d.wheelRadius, z));
-  return { root, body, glass, head, tail, beam, wheelAnchors };
+  return { root, body, glass, head, tail, beam, siren, wheelAnchors };
 }
 
 /** All vehicle wheels in a single instanced draw call. */

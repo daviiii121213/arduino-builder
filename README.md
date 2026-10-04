@@ -73,7 +73,7 @@ Clique na tela para começar: o mouse fica preso à janela e o áudio é liberad
   "Pressione F para roubar o veículo"; o carro freia, o motorista é tirado e foge a pé, pedestres por perto
   correm, e o jogador assume o volante. A saída procura um lugar livre (paredes, carros e pessoas são
   verificados). Bater num carro do trânsito faz o motorista abandoná-lo.
-- **Dia e noite**: o sol percorre o céu, cor e intensidade da luz, neblina e exposição mudam aos poucos; à noite
+- **Dia e noite** (ciclo completo disponível; desativado por enquanto em `src/config.js`): o sol percorre o céu, cor e intensidade da luz, neblina e exposição mudam aos poucos; à noite
   há lua, céu estrelado, janelas acesas, postes com luz no chão e faróis nos carros dirigidos.
 - **Áudio**: passos, pulo, tiros, recarga, motor com marchas, pneus, freio, buzina, portas, batidas, ruído do
   trânsito próximo, gritos curtos e murmúrio de pedestres, ambiente da cidade.
@@ -93,6 +93,20 @@ Clique na tela para começar: o mouse fica preso à janela e o áudio é liberad
   carros do trânsito estacionam e o motorista desce. De tempos em tempos acontecem pequenos eventos: um carro
   derrapa, alguém atravessa fora da faixa, um carro para de repente com pisca-alerta, um pedestre se assusta,
   uma rajada de vento derruba objetos.
+
+- **Polícia e nível de procurado** (estrelas no canto superior direito, 0 a 5):
+  - Crimes: atirar em público, agredir ou matar pedestres, roubar ou tomar carros, atropelar, atacar policiais,
+    danificar viaturas. A polícia só sabe o que vê (distância, campo de visão e linha de visão, reduzidos por
+    neblina/chuva) ou o que testemunhas civis denunciam alguns segundos depois (com localização aproximada).
+  - Fora de vista, as estrelas piscam (busca) e caem uma de cada vez; esconder-se em interiores acelera isso e trocar
+    de carro dificulta o reconhecimento.
+  - Patrulha a pé e de viatura; com estrelas, viaturas com sirene e giroflex usam a IA de trânsito para chegar ao
+    suspeito (ignorando semáforos), desembarcam, tentam deter (1–2 estrelas) ou trocam tiros (cobertura, cerco,
+    reposicionamento, mira imperfeita), voltam ao carro para perseguir quem foge dirigindo, e bloqueiam ruas a
+    partir de 4 estrelas. O trânsito abre passagem para sirenes.
+  - O jogador tem vida (barra discreta sob as estrelas, regenera aos poucos). Ao ser derrotado ou detido aparece
+    uma mensagem curta e ele volta ao ponto inicial sem estrelas.
+- **Horário**: por enquanto o relógio fica parado de dia (`freezeTime` em `src/config.js`).
 
 Fora do escopo desta fase, conforme pedido: menus, inventário, missões, dinheiro, lojas, polícia/procurado,
 multiplayer, customização, história e rádio.
@@ -117,6 +131,8 @@ src/
   vehicle/     VehicleDefinitions (modelos), VehicleModels, Vehicle (física e modos), VehicleDamage, VehicleManager,
                VehicleInteraction (entrar, sair e roubar)
   traffic/     RoadNetwork (faixas e curvas), TrafficDriver (IA de um carro), TrafficManager (população)
+  police/      WantedSystem (estrelas, crimes, detecção), PoliceOfficer (policial a pé), PoliceDriver (viatura),
+               PoliceManager (patrulha, resposta, desembarque, cobertura, bloqueios)
   ui/          HUD
 ```
 

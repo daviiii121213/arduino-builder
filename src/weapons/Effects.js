@@ -26,6 +26,17 @@ export class Effects {
     this.flashLight = new THREE.PointLight(0xffb060, 0, 9, 2);
     scene.add(this.flashLight);
     this.flashTime = 0;
+    // Extra flashes for other shooters (no light, to keep the light count fixed).
+    this.flashes = [];
+    for (let i = 0; i < 8; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: flashTexture(), color: 0xffd9a0, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true,
+      }));
+      s.visible = false;
+      scene.add(s);
+      this.flashes.push({ sprite: s, life: 0 });
+    }
+    this.flashIndex = 0;
 
     // Tracers.
     this.tracers = [];
@@ -89,6 +100,16 @@ export class Effects {
     this.flashTime = 0.05;
   }
 
+  /** Muzzle flash for an NPC weapon. */
+  otherFlash(position, direction, scale = 0.8) {
+    const f = this.flashes[this.flashIndex++ % this.flashes.length];
+    f.sprite.position.copy(position).addScaledVector(direction, 0.04);
+    f.sprite.scale.setScalar(0.3 * scale * (0.8 + Math.random() * 0.4));
+    f.sprite.material.rotation = Math.random() * Math.PI;
+    f.sprite.visible = true;
+    f.life = 0.05;
+  }
+
   tracer(from, to) {
     const t = this.tracers[this.tracerIndex++ % this.tracers.length];
     const len = from.distanceTo(to);
@@ -148,6 +169,11 @@ export class Effects {
   }
 
   update(dt) {
+    for (const f of this.flashes) {
+      if (f.life <= 0) continue;
+      f.life -= dt;
+      if (f.life <= 0) f.sprite.visible = false;
+    }
     if (this.flashTime > 0) {
       this.flashTime -= dt;
       if (this.flashTime <= 0) {

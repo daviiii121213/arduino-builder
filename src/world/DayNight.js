@@ -47,7 +47,7 @@ export class DayNight {
   }
 
   update(dt, cameraPos, playerVehicle) {
-    this.hour = (this.hour + (dt * 24) / (GameConfig.dayLengthMinutes * 60)) % 24;
+    if (!GameConfig.freezeTime) this.hour = (this.hour + (dt * 24) / (GameConfig.dayLengthMinutes * 60)) % 24;
     this.environment.setTime(this.hour);
     const n = this.night;
 

@@ -335,6 +335,12 @@ export class Vehicle {
     this.model.head.material = lightsOn ? VehicleMaterials.headOn : VehicleMaterials.head;
     this.model.tail.material = this.braking || this.hazard ? VehicleMaterials.tailBrake : lightsOn ? VehicleMaterials.tailOn : VehicleMaterials.tail;
     this.model.beam.visible = lightsOn;
+    // Emergency lights alternate red/blue while the siren is on.
+    if (this.model.siren) {
+      const phase = this.sirenOn ? Math.floor(performance.now() / 180) % 2 : -1;
+      this.model.siren.red.material = phase === 0 ? VehicleMaterials.sirenRedOn : VehicleMaterials.sirenOff;
+      this.model.siren.blue.material = phase === 1 ? VehicleMaterials.sirenBlueOn : VehicleMaterials.sirenOff;
+    }
 
     if (isPlayerCar) {
       const absSpeed = Math.abs(this.speed);
@@ -380,9 +386,9 @@ export class Vehicle {
     return target.set(this.def.width / 2 + 0.55, 0, this.def.seat.z + 0.1).applyMatrix4(this.physicsMatrix);
   }
 
-  /** Local seat anchor for a seated character root. */
-  seatPosition(target = new THREE.Vector3()) {
-    return target.set(this.def.seat.x, this.def.bottom - 0.27, this.def.seat.z);
+  /** Local seat anchor for a seated character root (driver, or the front passenger). */
+  seatPosition(target = new THREE.Vector3(), passenger = false) {
+    return target.set(passenger ? -this.def.seat.x : this.def.seat.x, this.def.bottom - 0.27, this.def.seat.z);
   }
 
   /** Candidate exit spots in world space, preferred first. */

@@ -49,6 +49,17 @@ export const VEHICLE_TYPES = {
     mass: 1400, engine: 2700, maxSpeed: 31, steer: 0.55,
     colors: [0xe7e3d6, 0xc96f2a, 0x3e6b8a, 0x6d7a3e, 0x9a9a94],
   },
+  police: {
+    name: 'Viatura',
+    length: 4.0, width: 1.74, wheelRadius: 0.31, wheelFront: 1.3, wheelRear: -1.25, track: 0.75,
+    bottom: 0.26, belt: 0.85, hood: 0.8, deck: 0.83, roof: 1.33,
+    cabin: { rear: -1.15, roofRear: -0.85, roofFront: 0.3, front: 0.75 }, cabinWidth: 1.5,
+    seat: { x: 0.36, z: -0.25 },
+    mass: 1150, engine: 3000, maxSpeed: 40, steer: 0.58,
+    colors: [0xeeeeea],
+    police: true,
+  },
 };
 
-export const VEHICLE_TYPE_IDS = Object.keys(VEHICLE_TYPES);
+/** Civilian types (traffic and parked cars); police cars are spawned by the police system. */
+export const VEHICLE_TYPE_IDS = Object.keys(VEHICLE_TYPES).filter((id) => !VEHICLE_TYPES[id].police);

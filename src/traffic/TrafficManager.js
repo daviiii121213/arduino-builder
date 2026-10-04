@@ -36,33 +36,48 @@ export class TrafficManager {
     for (let tries = 0; this.drivers.length < this.target && tries < 200; tries++) this.trySpawn(playerPos, 20);
   }
 
-  trySpawn(playerPos, minDistance = MIN_SPAWN_DISTANCE) {
-    const lane = this.network.lanes[Math.floor(this.rng.next() * this.network.lanes.length)];
-    const distance = 4 + this.rng.next() * Math.max(1, lane.length - 8);
+  /**
+   * Creates an AI-driven car on `lane` with a seated driver (and optionally a
+   * front passenger). The caller decides which list the driver belongs to.
+   */
+  createDriven({ typeId, color, lane, distance, look, passengerLook = null, DriverClass = TrafficDriver }) {
+    const x = lane.start.x + lane.dir.x * distance;
+    const z = lane.start.z + lane.dir.z * distance;
+    const vehicle = this.vehicles.add(new Vehicle({
+      physics: this.physics, scene: this.scene, audio: this.audio, wheels: this.vehicles.wheels,
+      typeId, color, x, z, yaw: Math.atan2(lane.dir.x, lane.dir.z), mode: 'traffic',
+    }));
+    const seat = (l, passenger) => {
+      const rig = new CharacterRig(l);
+      rig.look = l;
+      vehicle.model.root.add(rig.root);
+      rig.root.position.copy(vehicle.seatPosition(undefined, passenger));
+      rig.update(0, { seated: true });
+      return rig;
+    };
+    const rig = seat(look, false);
+    const driver = new DriverClass({ vehicle, network: this.network, rng: () => this.rng.next(), lane, distance, rig });
+    if (passengerLook) driver.passengerRig = seat(passengerLook, true);
+    vehicle.driver = driver;
+    return driver;
+  }
+
+  /** Is a spot on a lane clear of the player and other cars? */
+  laneSpotFree(lane, distance, playerPos, minDistance) {
     const x = lane.start.x + lane.dir.x * distance;
     const z = lane.start.z + lane.dir.z * distance;
     if (Math.hypot(x - playerPos.x, z - playerPos.z) < minDistance) return false;
-    for (const v of this.vehicles.list) if (Math.hypot(v.currPos.x - x, v.currPos.z - z) < 10) return false;
+    return !this.vehicles.list.some((v) => Math.hypot(v.currPos.x - x, v.currPos.z - z) < 10);
+  }
 
+  trySpawn(playerPos, minDistance = MIN_SPAWN_DISTANCE) {
+    const lane = this.network.lanes[Math.floor(this.rng.next() * this.network.lanes.length)];
+    const distance = 4 + this.rng.next() * Math.max(1, lane.length - 8);
+    if (!this.laneSpotFree(lane, distance, playerPos, minDistance)) return false;
     const typeId = VEHICLE_TYPE_IDS[Math.floor(this.rng.next() * VEHICLE_TYPE_IDS.length)];
     const def = VEHICLE_TYPES[typeId];
     const color = def.colors[Math.floor(this.rng.next() * def.colors.length)];
-    const yaw = Math.atan2(lane.dir.x, lane.dir.z);
-    const vehicle = this.vehicles.add(new Vehicle({
-      physics: this.physics, scene: this.scene, audio: this.audio, wheels: this.vehicles.wheels,
-      typeId, color, x, z, yaw, mode: 'traffic',
-    }));
-    const look = this.randomLook();
-    const rig = new CharacterRig(look);
-    rig.look = look;
-    vehicle.model.root.add(rig.root);
-    rig.root.position.copy(vehicle.seatPosition());
-    rig.update(0, { seated: true });
-    const driver = new TrafficDriver({
-      vehicle, network: this.network, rng: () => this.rng.next(), lane, distance, rig,
-    });
-    vehicle.driver = driver;
-    this.drivers.push(driver);
+    this.drivers.push(this.createDriven({ typeId, color, lane, distance, look: this.randomLook() }));
     return true;
   }
 
@@ -73,7 +88,9 @@ export class TrafficManager {
   release(vehicle) {
     const driver = vehicle.driver;
     if (!(driver instanceof TrafficDriver)) return null;
-    this.drivers.splice(this.drivers.indexOf(driver), 1);
+    const i = this.drivers.indexOf(driver);
+    if (i >= 0) this.drivers.splice(i, 1);
+    driver.onReleased?.();
     driver.releaseReservation();
     vehicle.driver = null;
     vehicle.braking = false;
@@ -195,8 +212,13 @@ export class TrafficManager {
     if (vehicle.driver instanceof TrafficDriver) vehicle.driver.hijacked = true;
   }
 
+  /** Shared per-step context for AI drivers (police drivers use it too). */
+  context(ctx) {
+    return { ...ctx, vehicles: this.vehicles.list, lights: this.lights, audio: this.audio };
+  }
+
   fixedUpdate(dt, ctx) {
-    const full = { ...ctx, vehicles: this.vehicles.list, lights: this.lights, audio: this.audio };
+    const full = this.context(ctx);
     for (const d of this.drivers) d.update(dt, full);
     this.spawnTimer -= dt;
     if (this.drivers.length < this.target && this.spawnTimer <= 0) {
