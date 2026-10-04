@@ -4,6 +4,7 @@ import { createRng } from '../core/math.js';
 import { HAIR_STYLES, CharacterRig } from '../characters/CharacterRig.js';
 import { CITY } from '../world/CityLayout.js';
 import { GameConfig } from '../config.js';
+import { WORKER_LOOK } from '../world/Construction.js';
 
 const SKIN = [0x8d5524, 0xc68642, 0xe0ac69, 0xf1c27d, 0xd9a57b, 0x6b4226, 0xa0663f, 0xb98563];
 const SHIRT = [0x8a3b34, 0x2f5e72, 0xc9b38a, 0x4c6a46, 0xe6e1d6, 0x5b4a6e, 0xc87b3a, 0x34363a, 0x7a8c99, 0xa64d5c, 0x3e8f86, 0xe0b23c];
@@ -16,6 +17,7 @@ const SHOES = [0x222222, 0x3b2a20, 0xe0ddd6, 0x5a4636];
 export class NPCManager {
   constructor({ physics, scene, audio, paths, count = GameConfig.pedestrianCount }) {
     this.physics = physics;
+    this.scene = scene;
     this.audio = audio;
     this.rng = createRng(4242);
     const cc = physics.world.createCharacterController(0.02);
@@ -63,6 +65,42 @@ export class NPCManager {
         }
       });
       this.crossings.set(path, links);
+    }
+  }
+
+  /** A construction worker pacing a short route on a site. */
+  addWorker(path) {
+    const npc = new NPC({ physics: this.physics, scene: this.scene, audio: this.audio, controller: this.controller, path, rng: this.rng, look: WORKER_LOOK });
+    npc.worker = true;
+    npc.walkSpeed = 0.9;
+    this.npcs.push(npc);
+    return npc;
+  }
+
+  /** Civilians (not workers) currently in the world. */
+  get activeCount() {
+    let n = 0;
+    for (const npc of this.npcs) if (!npc.worker && !npc.inactive) n++;
+    return n;
+  }
+
+  /**
+   * Population cycle: brings the number of civilians toward `fraction` of the
+   * full population, one at a time and only out of the player's surroundings.
+   */
+  setDensity(fraction, playerPos) {
+    const civilians = this.npcs.filter((n) => !n.worker);
+    const desired = Math.max(3, Math.round(civilians.length * fraction));
+    const active = this.activeCount;
+    if (active > desired) {
+      const npc = civilians.find((n) => !n.inactive && n.state === 'walk' && n.currPos.distanceTo(playerPos) > 50);
+      npc?.deactivate();
+    } else if (active < desired) {
+      const npc = civilians.find((n) => n.inactive);
+      if (npc) {
+        npc.activate();
+        this.respawn(npc, playerPos);
+      }
     }
   }
 
@@ -122,17 +160,19 @@ export class NPCManager {
    * constant, the pedestrian farthest from the player hands over its slot.
    */
   adoptDriver(rig, pos, threatPos, { dead = false, calm = false } = {}) {
-    let slot = null;
-    let far = -1;
+    let slot = this.npcs.find((n) => n.inactive && !n.worker) ?? null;
+    let far = slot ? Infinity : -1;
+    if (slot) slot.activate();
     const ref = threatPos ?? pos;
     for (const npc of this.npcs) {
+      if (npc.worker || npc.inactive) continue;
       const d = npc.currPos.distanceTo(ref);
       if (d > far) {
         far = d;
         slot = npc;
       }
     }
-    if (!slot) return;
+    if (!slot) return null;
     slot.setRig(rig);
     // Join the nearest walking route.
     let best = null;
@@ -154,11 +194,12 @@ export class NPCManager {
     if (dead) {
       slot.die(true);
       rig.fallBlend = 1;
-      return;
+      return slot;
     }
-    if (calm || !threatPos) return;
+    if (calm || !threatPos) return slot;
     slot.onDanger(threatPos, 1e6, 8);
     this.audio.play('yelp', pos, 1);
+    return slot;
   }
 
   /** Pedestrians get out of the way of cars heading at them; contact knocks them down. */
@@ -188,7 +229,7 @@ export class NPCManager {
   /** Obstacles traffic must stop for. */
   obstacles(out) {
     for (const npc of this.npcs) {
-      if (npc.state === 'dead') continue;
+      if (npc.state === 'dead' || npc.inactive) continue;
       out.push({ x: npc.currPos.x, z: npc.currPos.z, r: npc.radius });
     }
     return out;
@@ -203,6 +244,10 @@ export class NPCManager {
 
   respawn(npc, playerPos) {
     npc.respawnRequested = false;
+    if (npc.worker) {
+      npc.placeOnPath(0, 1);
+      return;
+    }
     // Reappear somewhere out of the player's immediate surroundings.
     for (let attempt = 0; attempt < 12; attempt++) {
       const path = this.rng.pick(this.paths);

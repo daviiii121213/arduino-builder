@@ -276,6 +276,33 @@ export class AudioSystem {
     this.rain.gain.setTargetAtTime(amount * 0.22, this.ctx.currentTime, 0.5);
   }
 
+  /** Crackle of a burning vehicle nearby (0 = silent). */
+  setFire(amount) {
+    if (!this.ctx) return;
+    if (!this.fire && amount <= 0) return;
+    if (!this.fire) {
+      const ctx = this.ctx;
+      const src = ctx.createBufferSource();
+      src.buffer = this.brown;
+      src.loop = true;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 900;
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      src.connect(lp).connect(g).connect(this.master);
+      src.start();
+      this.fire = g;
+      this.crackle = 0;
+    }
+    this.fire.gain.setTargetAtTime(amount * 0.35, this.ctx.currentTime, 0.3);
+    // Random pops on top of the roar.
+    if (amount > 0.05 && Math.random() < amount * 0.2) {
+      const out = this.output(amount * 0.12, (Math.random() - 0.5) * 0.6);
+      this.noiseBurst(out, { dur: 0.02, type: 'bandpass', freq: 1500 + Math.random() * 2500, q: 2, gain: 1 });
+    }
+  }
+
   // ------------------------------------------------------------ ambience
 
   startAmbience() {
@@ -404,6 +431,40 @@ const SOUNDS = {
     a.noiseBurst(out, { dur: 0.35, type: 'lowpass', freq: 1800, freqEnd: 300, gain: 1, attack: 0.002 });
     a.tone(out, { dur: 0.25, freq: 80, freqEnd: 35, gain: 0.8 });
     a.noiseBurst(out, { t: 0.04, dur: 0.25, type: 'bandpass', freq: 3200, q: 2, gain: 0.3 });
+  },
+  ignite(a, gain, pan) {
+    const out = a.output(gain * 0.6, pan, 0.2);
+    a.noiseBurst(out, { dur: 0.9, type: 'lowpass', freq: 300, freqEnd: 1400, gain: 1, attack: 0.08, buffer: a.brown });
+    a.tone(out, { dur: 0.4, freq: 70, freqEnd: 40, gain: 0.5, attack: 0.02 });
+  },
+  metalHit(a, gain, pan) {
+    const out = a.output(gain * 0.6, pan, 0.25);
+    a.noiseBurst(out, { dur: 0.12, type: 'bandpass', freq: 1200, q: 1.5, gain: 1 });
+    a.tone(out, { dur: 0.9, type: 'triangle', freq: 410, freqEnd: 380, gain: 0.18 });
+    a.tone(out, { dur: 0.7, type: 'triangle', freq: 1130, freqEnd: 1080, gain: 0.08 });
+  },
+  poleFall(a, gain, pan) {
+    const out = a.output(gain * 0.7, pan, 0.3);
+    a.noiseBurst(out, { dur: 0.3, type: 'lowpass', freq: 900, gain: 1 });
+    a.tone(out, { dur: 1.1, type: 'triangle', freq: 300, freqEnd: 270, gain: 0.2 });
+    a.noiseBurst(out, { t: 0.08, dur: 0.15, type: 'bandpass', freq: 2600, q: 3, gain: 0.4 });
+  },
+  airBrake(a, gain, pan) {
+    const out = a.output(gain * 0.3, pan);
+    a.noiseBurst(out, { dur: 0.7, type: 'highpass', freq: 2500, freqEnd: 1500, gain: 0.8, attack: 0.01 });
+  },
+  busDoor(a, gain, pan) {
+    const out = a.output(gain * 0.3, pan);
+    a.noiseBurst(out, { dur: 0.35, type: 'bandpass', freq: 1800, q: 1, gain: 0.6, attack: 0.02 });
+    a.tone(out, { t: 0.3, dur: 0.12, freq: 120, freqEnd: 80, gain: 0.3 });
+  },
+  jackhammer(a, gain, pan) {
+    const out = a.output(gain * 0.25, pan, 0.2);
+    for (let i = 0; i < 14; i++) a.noiseBurst(out, { t: i * 0.055, dur: 0.035, type: 'bandpass', freq: 700 + Math.random() * 300, q: 1.5, gain: 0.8 });
+  },
+  wingFlap(a, gain, pan) {
+    const out = a.output(gain * 0.2, pan);
+    for (let i = 0; i < 6; i++) a.noiseBurst(out, { t: i * 0.06 + Math.random() * 0.02, dur: 0.05, type: 'bandpass', freq: 600 + Math.random() * 500, q: 1, gain: 0.6 });
   },
   switchClick(a, gain, pan) {
     const out = a.output(gain * 0.3, pan);

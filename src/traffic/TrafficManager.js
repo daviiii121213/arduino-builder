@@ -72,6 +72,7 @@ export class TrafficManager {
 
   trySpawn(playerPos, minDistance = MIN_SPAWN_DISTANCE) {
     const lane = this.network.lanes[Math.floor(this.rng.next() * this.network.lanes.length)];
+    if (lane.closed) return false;
     const distance = 4 + this.rng.next() * Math.max(1, lane.length - 8);
     if (!this.laneSpotFree(lane, distance, playerPos, minDistance)) return false;
     const typeId = VEHICLE_TYPE_IDS[Math.floor(this.rng.next() * VEHICLE_TYPE_IDS.length)];
@@ -97,7 +98,78 @@ export class TrafficManager {
     const lv = { x: Math.sin(driver.yaw) * driver.speed, y: 0, z: Math.cos(driver.yaw) * driver.speed };
     vehicle.setMode('physics');
     vehicle.body.setLinvel(lv, true);
+    vehicle.lastVel.set(lv.x, lv.y, lv.z);
     return driver.rig;
+  }
+
+  /** Over the target (quiet hours): one car far from the player leaves the city. */
+  thin(playerPos) {
+    if (this.drivers.length <= this.target) return;
+    const d = this.drivers.find((x) => !x.parking && !x.reserved && Math.hypot(x.x - playerPos.x, x.z - playerPos.z) > 90);
+    if (d) this.despawn(d);
+  }
+
+  /** Removes a driven car and its occupants from the world (population thinning). */
+  despawn(driver) {
+    const v = driver.vehicle;
+    const i = this.drivers.indexOf(driver);
+    if (i >= 0) this.drivers.splice(i, 1);
+    driver.releaseReservation();
+    driver.rig?.dispose();
+    driver.passengerRig?.dispose();
+    v.driver = null;
+    this.vehicles.remove(v);
+  }
+
+  /**
+   * Two AI cars touching (a distracted driver, a police car running a light):
+   * both drivers lose control, the cars take impact damage and coast to a stop.
+   */
+  collide(a, b) {
+    const da = a.driver;
+    const db = b.driver;
+    const va = { x: Math.sin(da.yaw) * da.speed, z: Math.cos(da.yaw) * da.speed };
+    const vb = { x: Math.sin(db.yaw) * db.speed, z: Math.cos(db.yaw) * db.speed };
+    const rel = Math.hypot(va.x - vb.x, va.z - vb.z);
+    const rigA = this.release(a);
+    const rigB = this.release(b);
+    // Momentum shared out roughly by mass.
+    const ma = a.def.mass;
+    const mb = b.def.mass;
+    const cx = (va.x * ma + vb.x * mb) / (ma + mb);
+    const cz = (va.z * ma + vb.z * mb) / (ma + mb);
+    for (const [car, own] of [[a, va], [b, vb]]) {
+      const nv = { x: cx * 0.85 + own.x * 0.15, y: 0, z: cz * 0.85 + own.z * 0.15 };
+      car.body.setLinvel(nv, true);
+      car.lastVel.set(nv.x, 0, nv.z);
+      car.damage.applyImpact(Math.max(4.5, rel * 1.15), { x: own.x - nv.x, y: 0, z: own.z - nv.z });
+      car.loseControl(1.2, 0);
+      car.hazardOn = true;
+      car.persistent = false;
+    }
+    this.audio.play('carCrash', a.currPos, Math.min(1, 0.4 + rel / 12));
+    this.onCollision?.({ cars: [a, b], rigs: [rigA, rigB], speed: rel, pos: a.currPos.clone().lerp(b.currPos, 0.5) });
+  }
+
+  /** Touching AI cars (cheap broad phase: only cars within a few metres). */
+  checkCollisions() {
+    const ds = this.drivers;
+    for (let i = 0; i < ds.length; i++) {
+      const a = ds[i].vehicle;
+      if (ds[i].ghostTime > 0) continue;
+      for (let j = i + 1; j < ds.length; j++) {
+        const b = ds[j].vehicle;
+        if (ds[j].ghostTime > 0) continue;
+        const dx = a.currPos.x - b.currPos.x;
+        const dz = a.currPos.z - b.currPos.z;
+        if (dx * dx + dz * dz > 49) continue;
+        if (Math.abs(ds[i].speed - ds[j].speed) < 1 && ds[i].speed < 1) continue;
+        if (this.vehicles.footprintsOverlap(a, b, 0.05)) {
+          this.collide(a, b);
+          return;
+        }
+      }
+    }
   }
 
   /**
@@ -159,7 +231,7 @@ export class TrafficManager {
       const dz = pos.z - lane.start.z;
       const s = dx * lane.dir.x + dz * lane.dir.z;
       const lateral = Math.abs(dx * lane.dir.z - dz * lane.dir.x);
-      if (s < 0 || s > lane.length - 6 || lateral > maxLateral) continue;
+      if (s < 0 || s > lane.length - 1.5 || lateral > maxLateral || lane.closed) continue;
       if (!best || lateral < best.lateral) best = { lane, distance: s, lateral };
     }
     return best;
@@ -220,6 +292,7 @@ export class TrafficManager {
   fixedUpdate(dt, ctx) {
     const full = this.context(ctx);
     for (const d of this.drivers) d.update(dt, full);
+    this.checkCollisions();
     this.spawnTimer -= dt;
     if (this.drivers.length < this.target && this.spawnTimer <= 0) {
       this.spawnTimer = 1.5;

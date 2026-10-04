@@ -152,6 +152,11 @@ export class PoliceOfficer extends NPC {
       this.searchTimer = 0;
     }
 
+    if (this.mode === 'return') {
+      this.returnToDuty();
+      return;
+    }
+
     if (this.mode === 'arrest') {
       if (dist > 1.8) this.moveTo(player, RUN);
       else {
@@ -181,9 +186,11 @@ export class PoliceOfficer extends NPC {
       this.searchTimer -= dt;
       if (this.searchTimer <= 0 && lk) {
         // Head for the last known position, then check spots around it.
-        const near = Math.hypot(lk.x - this.currPos.x, lk.z - this.currPos.z) < 4;
+        const near = Math.hypot(lk.x - this.currPos.x, lk.z - this.currPos.z) < 4 || this.searchedLast;
         const a = Math.random() * Math.PI * 2;
-        const r = near ? 5 + Math.random() * 12 : 0;
+        // Check spots around it, wider at higher wanted levels.
+        const r = near ? 4 + Math.random() * wanted.searchRadius * 0.5 : 0;
+        this.searchedLast = near;
         this.moveTo({ x: lk.x + Math.cos(a) * r, z: lk.z + Math.sin(a) * r }, near ? WALK * 1.4 : RUN);
         this.searchTimer = near ? 4 + Math.random() * 3 : 6;
       }

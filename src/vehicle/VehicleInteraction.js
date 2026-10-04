@@ -41,6 +41,9 @@ export class VehicleInteraction {
   prompt() {
     if (this.messageTimer > 0) return this.message;
     if (this.state === 'driving') {
+      const st = this.vehicle.damage.state;
+      if (st === 'burning') return 'O veículo está pegando fogo! Pressione F para sair';
+      if (st !== 'ok') return 'Veículo inutilizado. Pressione F para sair';
       return Math.abs(this.vehicle.speed) > MAX_EXIT_SPEED ? null : 'Pressione F para sair do veículo';
     }
     if (this.state !== 'onFoot') return null;

@@ -69,7 +69,10 @@ export class BlockBuilders {
         a += seg;
       }
     };
-    row('x', x0, x1, z1, dN, 0, rng.chance(0.5) ? 4 : 0, shop(0.75));
+    // One residential block has a new building going up on its north-west corner.
+    const site = ix === 0 && iz === 2 ? 22 : 0;
+    if (site) this.city.construction.buildingSite({ x0, x1: x0 + site, z0: z1 - dN, z1 });
+    row('x', x0 + site, x1, z1, dN, 0, rng.chance(0.5) ? 4 : 0, shop(0.75));
     row('x', x0, x1, z0, dS, Math.PI, rng.chance(0.5) ? 4 : 0, shop(0.75));
     row('z', z0 + dS, z1 - dN, x1, 13, Math.PI / 2, 0, shop(0.5));
     row('z', z0 + dS, z1 - dN, x0, 13, -Math.PI / 2, 0, shop(0.5));

@@ -53,8 +53,15 @@ export class PropFactory {
   }
 
   streetLamp(x, y, z, rotY) {
-    const m = Materials.metal();
     const H = 6.2;
+    if (this.breakables) {
+      // Knock-down-able lamp: drawn and collided by the breakables system.
+      const [hx, hz] = rot(x, z, rotY, 0, 1.45);
+      this.breakables.add('lamp', x, y, z, rotY, { lampIndex: this.lampHeads.length });
+      this.lampHeads.push(new THREE.Vector3(hx, y + H, hz));
+      return;
+    }
+    const m = Materials.metal();
     this.add(m, new THREE.CylinderGeometry(0.16, 0.2, 0.5, 10), mat(x, y + 0.25, z), COLORS.darkMetal);
     this.add(m, new THREE.CylinderGeometry(0.07, 0.1, H, 8), mat(x, y + H / 2, z), COLORS.darkMetal);
     // Curved arm approximated by two segments reaching over the road.
@@ -65,6 +72,11 @@ export class PropFactory {
     this.add(Materials.emissiveWarm(), new THREE.BoxGeometry(0.26, 0.04, 0.6), mat(hx, y + H + 0.01, hz, rotY));
     this.lampHeads.push(new THREE.Vector3(hx, y + H, hz));
     this.physics.addStaticCylinder(x, y + H / 2, z, H / 2, 0.14);
+  }
+
+  /** Small traffic sign on a post (breakable). */
+  sign(x, y, z, rotY) {
+    this.breakables?.add('sign', x, y, z, rotY);
   }
 
   tree(x, y, z, scale = 1, withPit = true) {

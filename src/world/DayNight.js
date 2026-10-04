@@ -42,6 +42,17 @@ export class DayNight {
     this.environment.setTime(this.hour);
   }
 
+  /** A knocked-down lamp stops lighting the street (and comes back when repaired). */
+  setLampBroken(index, broken) {
+    const p = this.lampHeads[index];
+    if (!p) return;
+    p.broken = broken;
+    const m = new THREE.Matrix4();
+    this.pools.setMatrixAt(index, broken ? m.makeScale(0, 0, 0) : m.makeTranslation(p.x, 0.2, p.z));
+    this.pools.instanceMatrix.needsUpdate = true;
+    this.assignTimer = 0;
+  }
+
   get night() {
     return this.environment.night;
   }
@@ -62,11 +73,13 @@ export class DayNight {
     if (this.assignTimer <= 0) {
       this.assignTimer = 0.3;
       const sorted = this.lampHeads
+        .filter((p) => !p.broken)
         .map((p) => ({ p, d: p.distanceToSquared(cameraPos) }))
         .sort((a, b) => a.d - b.d);
       this.lights.forEach((l, i) => sorted[i] && l.position.copy(sorted[i].p).add({ x: 0, y: -0.3, z: 0 }));
+      this.lights.forEach((l, i) => (l.userData.off = !sorted[i]));
     }
-    for (const l of this.lights) l.intensity = n * 14;
+    for (const l of this.lights) l.intensity = l.userData.off ? 0 : n * 14;
 
     if (playerVehicle) {
       const L = playerVehicle.def.length / 2;

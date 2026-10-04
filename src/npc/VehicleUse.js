@@ -52,7 +52,7 @@ export class VehicleUse {
   }
 
   /** Driver leaves a car that has stopped (parked, crashed...) and walks off. */
-  driverExits(vehicle, rig, { flee = false, threat = null } = {}) {
+  driverExits(vehicle, rig, { flee = false, threat = null, onDone = null } = {}) {
     const spot = this.exitSpot(vehicle);
     rig.root.updateMatrixWorld(true);
     const from = rig.root.getWorldPosition(new THREE.Vector3());
@@ -65,7 +65,10 @@ export class VehicleUse {
         rig.root.rotation.y = vehicle.yaw + Math.PI / 2;
         rig.update(1 / 60, t < 0.4 ? { seated: true } : { speed: 1.5, grounded: true });
       },
-      done: () => this.npcs.adoptDriver(rig, spot, flee ? threat ?? vehicle.currPos : null, { calm: !flee }),
+      done: () => {
+        const npc = this.npcs.adoptDriver(rig, spot, flee ? threat ?? vehicle.currPos : null, { calm: !flee });
+        if (npc) onDone?.(npc);
+      },
     });
   }
 

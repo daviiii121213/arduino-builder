@@ -3,6 +3,7 @@ import { Vehicle } from './Vehicle.js';
 import { WheelInstances } from './VehicleModels.js';
 import { VEHICLE_TYPES, VEHICLE_TYPE_IDS } from './VehicleDefinitions.js';
 import { GameConfig } from '../config.js';
+import { VehicleFire } from './VehicleFire.js';
 
 const MAX_VEHICLES = 40;
 const _local = new THREE.Vector3();
@@ -22,6 +23,8 @@ export class VehicleManager {
     this.wheels = new WheelInstances(scene, MAX_VEHICLES * 4 + 8);
     this.list = [];
     this.playerVehicle = null;
+    this.fire = new VehicleFire(scene, effects, audio);
+    this.onDamageEvent = null; // (vehicle, 'disabled' | 'fire' | 'destroyed')
   }
 
   add(vehicle) {
@@ -74,7 +77,7 @@ export class VehicleManager {
     let bestD = maxDistance;
     const door = new THREE.Vector3();
     for (const v of this.list) {
-      if (v.driver === 'player' || v.disposed) continue;
+      if (v.driver === 'player' || v.disposed || !v.damage.usable) continue;
       if (Math.abs(pos.y - v.currPos.y) > 1.6) continue;
       v.doorPosition(door);
       let d = Math.hypot(pos.x - door.x, pos.z - door.z);
@@ -131,11 +134,25 @@ export class VehicleManager {
   }
 
   postStep() {
-    for (const v of this.list) v.postStep();
+    for (const v of this.list) {
+      v.postStep();
+      const ev = v.damage.events;
+      while (ev.length) this.onDamageEvent?.(v, ev.shift());
+    }
   }
 
   /** Removes abandoned cars far from the player when the world holds too many. */
   cleanup(playerPos) {
+    // Burnt-out wrecks are towed away once the player has moved on.
+    for (const v of this.list) {
+      if (!(v.wreck || (v.abandoned && !v.driver)) || v === this.playerVehicle) continue;
+      v.wreckAge = (v.wreckAge ?? 0) + 1 / 60;
+      const d = v.currPos.distanceTo(playerPos);
+      if (d > 70 || (v.wreckAge > 240 && d > 35)) {
+        this.remove(v);
+        return;
+      }
+    }
     if (this.list.length <= GameConfig.parkedCount + GameConfig.trafficCount + 6) return;
     for (const v of this.list) {
       if (v.driver || v === this.playerVehicle || v.persistent) continue;
@@ -149,8 +166,9 @@ export class VehicleManager {
   render(dt, alpha, night) {
     for (const v of this.list) {
       v.render(dt, alpha, night, v === this.playerVehicle);
-      v.damage.update(dt, this.effects);
+      v.damage.update(dt, this.effects, this.fire);
     }
+    this.fire.update(dt, this.listener);
     this.wheels.commit();
   }
 }

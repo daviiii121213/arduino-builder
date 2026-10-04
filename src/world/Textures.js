@@ -569,3 +569,23 @@ export function signTexture(text, bg, fg) {
     return toTexture(c, { repeat: false });
   });
 }
+
+/** Tongue of flame for vehicle fires: hot core fading to orange at the tip. */
+export const flameTexture = () => cached('flame', () => {
+  const w = 64;
+  const h = 128;
+  const c = makeCanvas(w, h);
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(w / 2, h * 0.72, 2, w / 2, h * 0.62, h * 0.5);
+  g.addColorStop(0, 'rgba(255,248,210,1)');
+  g.addColorStop(0.25, 'rgba(255,196,80,0.95)');
+  g.addColorStop(0.6, 'rgba(240,96,24,0.55)');
+  g.addColorStop(1, 'rgba(200,40,10,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(w / 2, 2);
+  ctx.bezierCurveTo(w * 0.95, h * 0.45, w, h * 0.9, w / 2, h - 2);
+  ctx.bezierCurveTo(0, h * 0.9, w * 0.05, h * 0.45, w / 2, 2);
+  ctx.fill();
+  return toTexture(c, { repeat: false });
+});

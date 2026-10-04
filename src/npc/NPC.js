@@ -93,7 +93,23 @@ export class NPC {
   }
 
   get canBeHit() {
-    return this.state !== 'dead' && this.state !== 'down';
+    return this.state !== 'dead' && this.state !== 'down' && !this.inactive;
+  }
+
+  /** Taken out of the population (quiet hours): hidden, no collisions, no updates. */
+  deactivate() {
+    this.inactive = true;
+    this.goal = null;
+    this.state = 'inactive';
+    this.collider.setEnabled(false);
+    this.rig.root.visible = false;
+  }
+
+  activate() {
+    this.inactive = false;
+    this.rig.root.visible = true;
+    this.state = 'walk';
+    this.collider.setEnabled(true);
   }
 
   // ------------------------------------------------------------ reactions
@@ -192,6 +208,15 @@ export class NPC {
     this.witnessPos = { x: pos.x, z: pos.z };
   }
 
+  /** Stops to watch something (an accident, a fire) for a few seconds. */
+  lookAt(pos, seconds) {
+    if (this.state !== 'walk' && this.state !== 'idle') return false;
+    this.state = 'idle';
+    this.stateTimer = seconds;
+    this.lookTarget = { x: pos.x, z: pos.z };
+    return true;
+  }
+
   /** Swaps the visual rig (an evicted driver becomes a pedestrian, or a pedestrian drives off). */
   setRig(rig, disposeOld = true) {
     this.scene.remove(this.rig.root);
@@ -229,6 +254,7 @@ export class NPC {
   // ------------------------------------------------------------ update
 
   fixedUpdate(dt) {
+    if (this.inactive) return;
     this.prevPos.copy(this.currPos);
     if (this.stateTimer > 0) this.stateTimer -= dt;
     this.legInjury = Math.max(0, (this.legInjury ?? 0) - dt);
@@ -243,10 +269,14 @@ export class NPC {
         this.pauseTimer -= dt;
         if (this.pauseTimer <= 0) {
           this.state = 'idle';
-          this.stateTimer = this.rng.range(1.5, 4);
+          this.stateTimer = this.worker ? this.rng.range(4, 10) : this.rng.range(1.5, 4);
         }
         break;
       case 'idle':
+        if (this.lookTarget) {
+          this.yaw = dampAngle(this.yaw, Math.atan2(this.lookTarget.x - this.currPos.x, this.lookTarget.z - this.currPos.z), 5, dt);
+          if (this.stateTimer <= 0) this.lookTarget = null;
+        }
         if (this.stateTimer <= 0 && this.witnessPos) {
           const w = this.witnessPos;
           this.witnessPos = null;
@@ -375,6 +405,7 @@ export class NPC {
 
   /** `far` characters animate at a reduced rate (animation LOD). */
   render(dt, alpha, far = false) {
+    if (this.inactive) return;
     this.renderPos.lerpVectors(this.prevPos, this.currPos, alpha);
     this.rig.root.position.copy(this.renderPos);
     this.rig.root.rotation.y = this.yaw;

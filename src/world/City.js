@@ -10,6 +10,7 @@ import { BlockBuilders } from './BlockBuilders.js';
 import { Interiors } from './Interiors.js';
 import { STREET_NAMES } from './CityLayout.js';
 import { signTexture } from './Textures.js';
+import { Construction } from './Construction.js';
 
 const Y = CITY.curbHeight;
 
@@ -40,6 +41,8 @@ export class City {
     this.buildings = new BuildingFactory(this.batcher, this.physics, this.rng);
     this.props = new PropFactory(this.batcher, this.physics, this.rng);
     this.props.dynamicProps = this.dynamicProps ?? null;
+    this.props.breakables = this.breakables ?? null;
+    this.construction = new Construction(this);
     const blocks = new BlockBuilders(this);
     this.interiors = new Interiors(this, this.interactables);
 
@@ -52,17 +55,23 @@ export class City {
     });
     blocks.outerStrips();
     this.buildSidewalkFurniture();
+    // Road works closing the westbound lane of the street south of the commercial block,
+    // and a small repair in a parking strip.
+    this.construction.roadWorks(-36, 52, 92, { from: [108, -36], to: [36, -36] });
+    this.construction.manholeRepair(0, -41.6, 0);
     this.buildTrafficLights();
     this.buildStreetSigns();
     this.buildBoundary();
 
     this.batcher.build(this.group);
+    this.breakables?.build();
     this.trafficLights = new TrafficLights(this.group, this.props.trafficLightHeads);
     this.buildSkyline();
   }
 
-  update(dt) {
+  update(dt, listener, audio) {
     this.trafficLights.update(dt);
+    if (listener) this.construction.update(dt, listener, audio);
   }
 
   // ------------------------------------------------------------ helpers
@@ -208,6 +217,11 @@ export class City {
         if ((si + blockIndex) % 2 === 0) {
           const [bx, bz] = at(s, s.a1 - 9.5, 0.8);
           p.trashBin(bx, Y, bz);
+        }
+        // A small traffic sign near one end of some sides.
+        if ((si + blockIndex) % 3 === 1 && type !== 'park') {
+          const [sx, sz] = at(s, s.a0 + 5, 0.5);
+          if (!inParkingDriveway(sx, sz)) p.sign(sx, Y, sz, s.rot);
         }
       });
       // Corner bollards.

@@ -39,6 +39,10 @@ export class TrafficDriver {
     this.blockedByPlayer = 0;
     this.health = new NPCHealth(100);
     this.armInjury = 0;
+    this.offset = 0; // lateral shift (negative = toward the centre line) used to pass a stopped car
+    this.targetOffset = 0;
+    this.staticBlockTime = 0;
+    this.distracted = 0; // seconds of not watching the road ahead (staged accidents)
   }
 
   appendLane(lane) {
@@ -225,6 +229,14 @@ export class TrafficDriver {
       }
     }
 
+    // Rubbernecking: slow down past accidents and fires.
+    for (const h of ctx.hazards ?? []) {
+      if (Math.abs(h.x - this.x) < h.r && Math.abs(h.z - this.z) < h.r) {
+        target = Math.min(target, 4.5);
+        break;
+      }
+    }
+
     // Slow for curves: compare heading now with heading a few metres ahead.
     const bend = Math.abs(angleDiff(this.headingAhead(1), this.headingAhead(9)));
     if (bend > 0.35) target = Math.min(target, TURN_SPEED + (this.panicTime > 0 ? 2 : 0));
@@ -264,7 +276,8 @@ export class TrafficDriver {
     let blockedByPlayer = false;
     let blockedByTraffic = false;
     let blockedLegitimately = false;
-    const consider = (x, z, halfLen, halfWidth, isPlayer, isTraffic, legit = false) => {
+    let blockedByStatic = null;
+    const consider = (x, z, halfLen, halfWidth, isPlayer, isTraffic, legit = false, staticCar = null) => {
       const dx = x - this.x;
       const dz = z - this.z;
       const f = dx * fwdX + dz * fwdZ;
@@ -278,19 +291,27 @@ export class TrafficDriver {
         blockedByPlayer = isPlayer;
         blockedByTraffic = isTraffic;
         blockedLegitimately = legit;
+        blockedByStatic = staticCar;
       }
     };
+    const distracted = this.distracted > 0;
+    this.distracted = Math.max(0, this.distracted - dt);
     for (const other of ctx.vehicles) {
       if (other === v || other.disposed) continue;
       const isTraffic = other.mode === 'traffic';
-      if (isTraffic && this.ghostTime > 0) continue;
+      if (isTraffic && (this.ghostTime > 0 || distracted)) continue;
       const p = other.currPos;
       if (Math.abs(p.x - this.x) > 30 || Math.abs(p.z - this.z) > 30) continue;
-      // Use the larger extent of the other car so crossing cars are seen too.
-      const ext = Math.max(other.halfExtents.x, other.halfExtents.z);
+      // Footprint of the other car projected on our heading (sees crossing and long vehicles correctly).
+      const a = other.yaw - this.yaw;
+      const ca = Math.abs(Math.cos(a));
+      const sa = Math.abs(Math.sin(a));
+      const hx = other.halfExtents.x;
+      const hz = other.halfExtents.z;
       // Queuing behind a car that waits at a light (or for its own queue) is not a gridlock.
       const legit = isTraffic && !!(other.driver?.queued || other.driver?.stallTime > 0);
-      consider(p.x, p.z, ext * 0.8, ext * 0.8, other.driver === 'player', isTraffic, legit);
+      const stopped = !isTraffic && Math.abs(other.speed) < 0.5 && other.driver !== 'player' ? other : null;
+      consider(p.x, p.z, (hx * sa + hz * ca) * 0.95, (hx * ca + hz * sa) * 0.95, other.driver === 'player', isTraffic, legit, stopped);
     }
     for (const o of ctx.obstacles) {
       if (Math.abs(o.x - this.x) > 25 || Math.abs(o.z - this.z) > 25) continue;
@@ -312,6 +333,23 @@ export class TrafficDriver {
         this.parking.onParked(this);
         return;
       }
+    }
+
+    // Stuck behind a stopped (crashed, abandoned) car: pass it through the oncoming lane when clear.
+    if (blockedByStatic && target < 0.5) this.staticBlockTime += dt;
+    else if (!blockedByStatic) this.staticBlockTime = 0;
+    if (this.staticBlockTime > 2.5 && this.targetOffset === 0 && this.oncomingClear(ctx, stop)) {
+      this.targetOffset = -(blockedByStatic.halfExtents.x + def.width / 2 + 1.3);
+      this.bypassing = blockedByStatic;
+    }
+    if (this.bypassing) {
+      const b = this.bypassing;
+      const behind = (b.currPos.x - this.x) * fwdX + (b.currPos.z - this.z) * fwdZ < -(def.length / 2 + Math.max(b.halfExtents.x, b.halfExtents.z) + 1.5);
+      if (behind || b.disposed) {
+        this.bypassing = null;
+        this.targetOffset = 0;
+      } else if (Math.abs(this.offset - this.targetOffset) > 0.3) target = Math.min(target, 3);
+      else target = Math.max(target, Math.min(5, this.cruise));
     }
 
     this.queued = target < 0.5 && (this.waitingAtLight || blockedLegitimately);
@@ -336,8 +374,12 @@ export class TrafficDriver {
 
     this.advance(this.speed * dt);
     const p = this.position();
-    this.x = p.x;
-    this.z = p.z;
+    // Lateral shift for passing, applied relative to the route heading.
+    const step = 1.6 * dt * Math.max(0.4, Math.min(1, this.speed / 3));
+    this.offset += clamp(this.targetOffset - this.offset, -step, step);
+    const h = this.headingAhead();
+    this.x = p.x - Math.cos(h) * this.offset;
+    this.z = p.z + Math.sin(h) * this.offset;
     const desiredYaw = this.headingAhead();
     this.yaw += angleDiff(this.yaw, desiredYaw) * Math.min(1, dt * 10);
     let steer = clamp(angleDiff(this.yaw, this.headingAhead(5)) * 1.5, -0.5, 0.5);
@@ -345,6 +387,22 @@ export class TrafficDriver {
     this.armInjury = Math.max(0, this.armInjury - dt);
     if (this.armInjury > 0) steer += Math.sin(performance.now() * 0.006) * 0.25;
     v.driveKinematic(this.x, this.z, this.yaw, this.speed, steer);
+  }
+
+  /** No oncoming car near on the other side of the road, and not about to enter a junction. */
+  oncomingClear(ctx, stop) {
+    if (stop && stop.distance < 22) return false;
+    const fx = Math.sin(this.yaw);
+    const fz = Math.cos(this.yaw);
+    for (const o of ctx.vehicles) {
+      if (o === this.vehicle || o.disposed) continue;
+      const dx = o.currPos.x - this.x;
+      const dz = o.currPos.z - this.z;
+      const f = dx * fx + dz * fz;
+      const l = dx * fz - dz * fx; // positive = to our left
+      if (f > -4 && f < 32 && l > 2 && l < 8 && Math.abs(o.speed) > 0.5) return false;
+    }
+    return true;
   }
 
   stoppingSpeed(distance) {

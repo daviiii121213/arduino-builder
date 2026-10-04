@@ -47,10 +47,19 @@ export class RoadNetwork {
     }
   }
 
-  /** Lanes leaving `lane.to`, excluding a U-turn unless it is the only way out. */
+  /** Temporarily closes lanes (road works): [{from: [x, z], to: [x, z]}]. */
+  close(closures) {
+    for (const c of closures) {
+      const lane = this.lanes.find((l) => l.from.x === c.from[0] && l.from.z === c.from[1] && l.to.x === c.to[0] && l.to.z === c.to[1]);
+      if (lane) lane.closed = true;
+    }
+  }
+
+  /** Lanes leaving `lane.to`, excluding a U-turn (and closed lanes) unless there is no other way. */
   exits(lane) {
-    const options = lane.to.out.filter((l) => l.to !== lane.from);
-    return options.length ? options : lane.to.out;
+    const open = lane.to.out.filter((l) => !l.closed);
+    const options = open.filter((l) => l.to !== lane.from);
+    return options.length ? options : open.length ? open : lane.to.out;
   }
 
   /** Picks the next lane: straight is preferred, turns are common. */
@@ -94,6 +103,7 @@ export class RoadNetwork {
   curbsideSpots(spacing = 6.5, clearance = 16) {
     const spots = [];
     for (const lane of this.lanes) {
+      if (lane.closed) continue;
       const r = rightOf(lane.dir.x, lane.dir.z);
       const len = Math.hypot(lane.to.x - lane.from.x, lane.to.z - lane.from.z);
       for (let s = clearance; s <= len - clearance; s += spacing) {

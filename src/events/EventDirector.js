@@ -14,6 +14,7 @@ export class EventDirector {
     this.log = [];
     this.events = {
       accident: () => this.accident(),
+      collision: () => this.collision(),
       jaywalker: () => this.jaywalker(),
       stall: () => this.stall(),
       panic: () => this.panic(),
@@ -21,7 +22,7 @@ export class EventDirector {
       commute: () => this.commute(),
       park: () => this.parkCar(),
     };
-    this.weights = { accident: 1, jaywalker: 2, stall: 1.5, panic: 1, gust: 1.2, commute: 2, park: 2 };
+    this.weights = { accident: 0.8, collision: 1, jaywalker: 2, stall: 1.5, panic: 1, gust: 1.2, commute: 2, park: 2 };
   }
 
   get playerPos() {
@@ -79,7 +80,7 @@ export class EventDirector {
 
   nearWalkers(max) {
     const p = this.playerPos;
-    return this.game.npcs.npcs.filter((n) => n.state === 'walk' && !n.path.indoor && n.currPos.distanceTo(p) < max);
+    return this.game.npcs.npcs.filter((n) => n.state === 'walk' && !n.worker && !n.path.indoor && n.currPos.distanceTo(p) < max);
   }
 
   // ------------------------------------------------------------ events
@@ -94,10 +95,31 @@ export class EventDirector {
     v.loseControl(2.5, (this.rng.next() < 0.5 ? -1 : 1) * 0.45);
     v.body.setAngvel({ x: 0, y: (this.rng.next() - 0.5) * 2.4, z: 0 }, true);
     this.game.audio.play('carCrash', v.currPos, 0.5);
-    this.later(4, () => {
-      if (rig.root.parent === v.model.root) this.game.vehicleUse.driverExits(v, rig);
-    });
+    this.game.accidents.single(v, rig);
     return true;
+  }
+
+  /** A distracted driver fails to notice the car ahead slowing down: a fender-bender. */
+  collision() {
+    for (const d of this.nearDrivers(18, 75)) {
+      if (d.speed < 3) continue;
+      const fx = Math.sin(d.yaw);
+      const fz = Math.cos(d.yaw);
+      const ahead = this.game.traffic.drivers.find((o) => {
+        if (o === d) return false;
+        const dx = o.x - d.x;
+        const dz = o.z - d.z;
+        const f = dx * fx + dz * fz;
+        const l = Math.abs(dx * fz - dz * fx);
+        return f > 5 && f < 35 && l < 1.2 && Math.cos(o.yaw - d.yaw) > 0.9;
+      });
+      if (!ahead) continue;
+      // Looking at a phone until the car ahead slows down (or the moment passes).
+      d.distracted = 12;
+      d.cruise += 2;
+      return true;
+    }
+    return false;
   }
 
   /** A pedestrian dashes across the road away from the crosswalk. */
@@ -158,7 +180,7 @@ export class EventDirector {
     const cars = this.game.vehicles.list.filter((v) => v.mode === 'parked' && !v.driver && !v.reserved && !v.deadOccupant
       && v.damage.health > 30 && Math.hypot(v.currPos.x - p.x, v.currPos.z - p.z) < 70 && this.game.traffic.laneAt(v.currPos, v.yaw));
     for (const car of cars) {
-      const npc = this.game.npcs.npcs.find((n) => n.state === 'walk' && !n.path.indoor && n.currPos.distanceTo(car.currPos) < 30);
+      const npc = this.game.npcs.npcs.find((n) => n.state === 'walk' && !n.worker && !n.path.indoor && n.currPos.distanceTo(car.currPos) < 30);
       if (npc) {
         this.game.vehicleUse.sendNpcToCar(npc, car);
         return true;

@@ -34,6 +34,7 @@ export class WantedSystem {
     this.identifiedVehicle = null; // vehicle the police saw the player in ('foot' when on foot)
     this.hostileTimer = 0; // > 0 while the player is shooting at / attacking people
     this.reports = [];
+    this.hotspots = []; // recent places of suspicious activity: {x, z, t}
     this.officers = () => [];
     this.cars = () => [];
     this.onAlert = null; // (pos) police hear something and investigate
@@ -58,6 +59,7 @@ export class WantedSystem {
 
   clear() {
     this.setLevel(0);
+    this.hotspots.length = 0;
     this.reports.length = 0;
     this.hostileTimer = 0;
   }
@@ -71,18 +73,50 @@ export class WantedSystem {
     if (!c) return;
     if (type === 'gunshot' || type === 'assault' || type === 'murder' || type.endsWith('Police')) this.hostileTimer = 6;
     // Officers within earshot of gunfire come to look.
-    if (type === 'gunshot' || type === 'murder') this.onAlert?.(pos, HEARING);
+    if ((type === 'gunshot' || type === 'murder') && this.onAlert?.(pos, HEARING)) this.addHotspot(pos);
     const seen = c.policeKnows || this.policeCanSee(pos, player);
     if (seen) {
+      this.addHotspot(pos);
       this.raise(c.seen, c.heat, c.bump);
       this.spotted(player);
       return;
     }
     if (c.reported <= 0) return;
-    const witness = this.npcs.npcs.find((n) => n.state !== 'dead' && !n.isOfficer && n.currPos.distanceTo(pos) < WITNESS_RANGE);
+    const witness = this.npcs.npcs.find((n) => n.state !== 'dead' && !n.inactive && !n.isOfficer && n.currPos.distanceTo(pos) < WITNESS_RANGE);
     if (!witness) return;
     witness.onWitness?.(pos);
     this.reports.push({ t: 3 + Math.random() * 2, witness, level: c.reported, heat: c.heat * 0.5, pos: { x: pos.x, y: pos.y, z: pos.z } });
+  }
+
+  addHotspot(pos) {
+    const last = this.hotspots[this.hotspots.length - 1];
+    if (last && Math.hypot(last.x - pos.x, last.z - pos.z) < 12) {
+      last.t = 0;
+      return;
+    }
+    this.hotspots.push({ x: pos.x, z: pos.z, t: 0 });
+    if (this.hotspots.length > 6) this.hotspots.shift();
+  }
+
+  /** Radius of the area police comb once they have lost the suspect, by wanted level. */
+  get searchRadius() {
+    return [0, 30, 45, 60, 75, 90][this.level];
+  }
+
+  /** Is the suspect currently lost (police working from the last known position)? */
+  get lost() {
+    return this.level > 0 && !!this.lastKnown && this.timeSinceSeen > 8;
+  }
+
+  /** A place to check: around the last known position, sometimes a recent hotspot. */
+  searchPoint(rng = Math.random, radius = this.searchRadius) {
+    let c = this.lastKnown;
+    const recent = this.hotspots.filter((h) => h.t < 120);
+    if (recent.length && rng() < 0.3) c = recent[Math.floor(rng() * recent.length)];
+    if (!c) return null;
+    const a = rng() * Math.PI * 2;
+    const r = Math.sqrt(rng()) * radius;
+    return { x: c.x + Math.cos(a) * r, y: 0, z: c.z + Math.sin(a) * r };
   }
 
   raise(minLevel, heat, bump = false) {
@@ -145,6 +179,7 @@ export class WantedSystem {
 
   update(dt, player) {
     this.hostileTimer = Math.max(0, this.hostileTimer - dt);
+    for (const h of this.hotspots) h.t += dt;
     for (let i = this.reports.length - 1; i >= 0; i--) {
       const r = this.reports[i];
       r.t -= dt;
@@ -157,6 +192,7 @@ export class WantedSystem {
         this.lastKnown = { x: r.pos.x + (Math.random() - 0.5) * 12, y: r.pos.y, z: r.pos.z + (Math.random() - 0.5) * 12 };
         this.timeSinceSeen = 4;
       }
+      this.addHotspot(this.lastKnown ?? r.pos);
       this.audio.play('radio', null, 0.5);
     }
     if (this.level === 0) return;

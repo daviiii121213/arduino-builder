@@ -33,8 +33,17 @@ export class PoliceManager {
     this.wanted.officers = () => this.officers;
     this.wanted.cars = () => this.units.filter((u) => u.driver && u.vehicle.mode === 'traffic').map((u) => ({ eye: () => ({ x: u.vehicle.currPos.x, y: 1.4, z: u.vehicle.currPos.z }) }));
     this.wanted.onAlert = (pos, radius) => {
-      for (const o of this.officers) if (o.currPos.distanceTo(pos) < radius) o.onGunshot(pos);
+      let heard = false;
+      for (const o of this.officers) {
+        if (o.currPos.distanceTo(pos) < radius) {
+          o.onGunshot(pos);
+          heard = true;
+        }
+      }
+      for (const u of this.units) if (u.driver && u.vehicle.currPos.distanceTo(pos) < radius) heard = true;
+      return heard;
     };
+    this.searchRoadblockTimer = 25;
   }
 
   // ------------------------------------------------------------ player helpers
@@ -105,6 +114,36 @@ export class PoliceManager {
     return null;
   }
 
+  /** The nearest patrol car goes to look at an incident (an accident) when things are quiet. */
+  investigate(pos) {
+    if (this.wanted.level > 0) return false;
+    let best = null;
+    for (const u of this.units) {
+      if (u.state !== 'patrol' || !u.driver) continue;
+      const d = u.vehicle.currPos.distanceTo(pos);
+      if (d < 160 && (!best || d < best.d)) best = { u, d };
+    }
+    if (!best) return false;
+    const u = best.u;
+    u.state = 'investigate';
+    u.bestDist = Infinity;
+    u.noProgress = 0;
+    u.incident = { x: pos.x, y: 0, z: pos.z };
+    u.incidentTime = 0;
+    u.driver.setSearch(() => u.incident, true);
+    return true;
+  }
+
+  /** Searching the area where the suspect was lost: drive to a series of points. */
+  search(unit) {
+    if (!unit.driver) return;
+    unit.state = 'search';
+    unit.searchPoint = this.wanted.searchPoint(() => this.rng.next());
+    unit.searchTime = 0;
+    unit.driver.hijacked = false;
+    unit.driver.setSearch(() => unit.searchPoint);
+  }
+
   respond(unit) {
     if (!unit.driver) return;
     unit.bestDist = Infinity;
@@ -117,7 +156,7 @@ export class PoliceManager {
   // ------------------------------------------------------------ crew in and out
 
   /** Officers leave a stopped car and continue on foot. */
-  deploy(unit) {
+  deploy(unit, mode = 'search', pos = null) {
     const v = unit.vehicle;
     unit.driver?.releaseReservation();
     v.driver = null;
@@ -125,6 +164,7 @@ export class PoliceManager {
     v.setMode('parked');
     v.sirenOn = true;
     unit.state = 'deployed';
+    unit.deployMode = mode;
     const spots = v.exitCandidates();
     unit.crew.forEach((rig, i) => {
       if (!rig) return;
@@ -146,7 +186,12 @@ export class PoliceManager {
           o.teleport(spot.x, spot.y, spot.z);
           o.car = v;
           o.unit = unit;
-          o.mode = 'search';
+          o.mode = mode;
+          if (mode === 'investigate' && pos) {
+            o.investigatePos = { x: pos.x, z: pos.z };
+            o.searchTimer = 14 + Math.random() * 6;
+            o.moveTo({ x: pos.x + (Math.random() - 0.5) * 6, z: pos.z + (Math.random() - 0.5) * 6 }, 1.6);
+          }
           unit.officers.push(o);
         },
       });
@@ -207,7 +252,13 @@ export class PoliceManager {
   remount(unit) {
     const v = unit.vehicle;
     const hit = this.traffic.laneAt(v.currPos, v.yaw, 4.5);
-    if (!hit || !unit.crew.length) return;
+    if (!unit.crew.length) return;
+    if (!hit) {
+      // Parked somewhere it cannot drive off from: the car is collected later, out of sight.
+      unit.stranded = true;
+      return;
+    }
+    unit.stranded = false;
     v.setMode('traffic');
     const driver = new PoliceDriver({ vehicle: v, network: this.network, rng: () => this.rng.next(), lane: hit.lane, distance: hit.distance, rig: unit.crew[0] });
     driver.passengerRig = unit.crew[1] ?? null;
@@ -362,10 +413,18 @@ export class PoliceManager {
     const target = this.target();
     // Size of the response.
     const desiredCars = w.level === 0 ? GameConfig.patrolCars : Math.min(GameConfig.maxPoliceCars, w.level + 1);
+    const lost = w.lost;
     if (w.level > 0) {
       this.calmTime = 0;
-      for (const u of this.units) if (u.state === 'patrol' && u.driver) this.respond(u);
+      for (const u of this.units) {
+        if (!u.driver) continue;
+        if (u.state === 'patrol' || u.state === 'investigate') this.respond(u);
+        // Lost the suspect: comb the area; spotted again: back to pursuit.
+        if (u.state === 'respond' && lost) this.search(u);
+        else if (u.state === 'search' && !lost) this.respond(u);
+      }
       if (this.units.length < desiredCars && target) this.spawnUnit(true);
+      if (lost) this.planSearch(dt);
     } else this.calmTime += dt;
 
     for (const u of [...this.units]) {
@@ -383,10 +442,34 @@ export class PoliceManager {
         if ((d < 22 || stuckNear) && !suspectDriving) u.driver.hijacked = true; // pull up
         if (u.driver.hijacked && Math.abs(v.speed) < 0.6) this.deploy(u);
       }
-      // Deployed crews get back in when the suspect drives off, or when it is over.
+      if (u.state === 'investigate' && u.driver) {
+        u.incidentTime += dt;
+        const d = Math.hypot(u.incident.x - v.currPos.x, u.incident.z - v.currPos.z);
+        if (d < (u.bestDist ?? Infinity) - 2) {
+          u.bestDist = d;
+          u.noProgress = 0;
+        } else u.noProgress = (u.noProgress ?? 0) + dt;
+        if (d < 22 || (d < 50 && u.noProgress > 4)) u.driver.hijacked = true;
+        if (u.driver.hijacked && Math.abs(v.speed) < 0.6) this.deploy(u, 'investigate', u.incident);
+        else if (u.incidentTime > 60) {
+          u.driver.setPursuit(null);
+          u.driver.hijacked = false;
+          u.state = 'patrol';
+        }
+      }
+      // Deployed crews get back in when the suspect drives off, when the trail has gone
+      // cold (to search by car), or when it is over.
       if (u.state === 'deployed' && u.officers.length) {
         const away = this.player.vehicle && v.currPos.distanceTo(this.player.position) > 45;
-        if (away || w.level === 0) for (const o of u.officers) if (o.alive && this.officers.includes(o)) o.mode = 'return';
+        u.coldTime = lost ? (u.coldTime ?? 0) + dt : 0;
+        if (away || (w.level === 0 && u.deployMode !== 'investigate') || u.coldTime > 22) for (const o of u.officers) if (o.alive && this.officers.includes(o) && o.mode !== 'combat') o.mode = 'return';
+      }
+      if (u.stranded && u.officers.every((o) => !this.officers.includes(o))) {
+        this.remount(u);
+        if (u.stranded && v.currPos.distanceTo(this.player.position) > 60 && !w.lineOfSight({ x: v.currPos.x, y: 1.4, z: v.currPos.z }, this.player.position, 80)) {
+          this.removeUnit(u);
+          continue;
+        }
       }
       // Leftover cars far from the action are cleared once things are calm.
       if (w.level === 0 && this.calmTime > 15 && this.units.length > GameConfig.patrolCars) {
@@ -395,7 +478,7 @@ export class PoliceManager {
       }
     }
     if (w.level === 0 && this.calmTime > 2) {
-      for (const u of this.units) if (u.state === 'respond' && u.driver) {
+      for (const u of this.units) if ((u.state === 'respond' || u.state === 'search') && u.driver) {
         u.driver.setPursuit(null);
         u.driver.hijacked = false;
         u.state = 'patrol';
@@ -421,6 +504,37 @@ export class PoliceManager {
     }
   }
 
+  /** Search cars pick new points to check; at high levels, roads out of the area get covered. */
+  planSearch(dt) {
+    const w = this.wanted;
+    for (const u of this.units) {
+      if (u.state !== 'search' || !u.driver) continue;
+      u.searchTime += dt;
+      const p = u.searchPoint;
+      const reached = !p || Math.hypot(p.x - u.vehicle.currPos.x, p.z - u.vehicle.currPos.z) < 14;
+      if (reached || u.searchTime > 25) {
+        u.searchPoint = w.searchPoint(() => this.rng.next());
+        u.searchTime = 0;
+      }
+    }
+    this.searchRoadblockTimer -= dt;
+    if (w.level >= 4 && this.searchRoadblockTimer <= 0) {
+      this.searchRoadblockTimer = 35;
+      // Cover a junction on the edge of the search area (police do not know where the suspect is).
+      const lk = w.lastKnown;
+      const p = this.player.position;
+      const nodes = this.network.nodes.filter((n) => {
+        const d = Math.hypot(n.x - lk.x, n.z - lk.z);
+        return d > 25 && d < w.searchRadius + 20 && Math.hypot(n.x - p.x, n.z - p.z) > 45
+          && !w.lineOfSight({ x: n.x, y: 1.4, z: n.z }, p, 70);
+      });
+      if (nodes.length) {
+        const n = nodes[Math.floor(this.rng.next() * nodes.length)];
+        this.roadblockAt(n, n.out[Math.floor(this.rng.next() * n.out.length)]);
+      }
+    }
+  }
+
   /** Parks a car across the road at the next junction ahead of a fleeing driver. */
   roadblock() {
     const pv = this.player.vehicle;
@@ -435,11 +549,17 @@ export class PoliceManager {
       if (d < 45 || d > 110 || (dx * fx + dz * fz) / d < 0.75) continue;
       if (!best || d < best.d) best = { n, d };
     }
-    if (!best || this.units.length >= GameConfig.maxPoliceCars + 1) return;
+    if (!best) return;
     const out = best.n.out.find((l) => l.dir.x * fx + l.dir.z * fz > 0.7) ?? best.n.out[0];
+    this.roadblockAt(best.n, out);
+  }
+
+  /** A police car parked across `out` just past junction `node`, crew deployed. */
+  roadblockAt(node, out) {
+    if (this.units.length >= GameConfig.maxPoliceCars + 1) return;
     const off = CITY.roadHalf + 6;
-    const x = best.n.x + out.dir.x * off;
-    const z = best.n.z + out.dir.z * off;
+    const x = node.x + out.dir.x * off;
+    const z = node.z + out.dir.z * off;
     if (this.vehicles.list.some((v) => Math.hypot(v.currPos.x - x, v.currPos.z - z) < 6)) return;
     const lane = out;
     const driver = this.traffic.createDriven({ typeId: 'police', color: 0xeeeeea, lane, distance: 2, look: POLICE_LOOK, passengerLook: POLICE_LOOK, DriverClass: PoliceDriver });

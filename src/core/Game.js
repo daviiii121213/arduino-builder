@@ -24,6 +24,10 @@ import { VehicleUse } from '../npc/VehicleUse.js';
 import { EventDirector } from '../events/EventDirector.js';
 import { WantedSystem } from '../police/WantedSystem.js';
 import { PoliceManager } from '../police/PoliceManager.js';
+import { Breakables } from '../world/Breakables.js';
+import { Accidents } from '../events/Accidents.js';
+import { TrafficDriver } from '../traffic/TrafficDriver.js';
+import { PopulationCycle } from '../world/PopulationCycle.js';
 
 const MAX_STEPS_PER_FRAME = 5;
 
@@ -59,10 +63,13 @@ export class Game {
     this.audio = new AudioSystem();
     this.interactables = new Interactables(this.scene, physics, this.audio);
     this.city.interactables = this.interactables;
+    this.breakables = new Breakables(this.scene, physics, this.audio);
+    this.city.breakables = this.breakables;
     this.city.build();
     // Register the static world with the query pipeline before anything raycasts against it.
     physics.step();
     this.dayNight = new DayNight({ scene: this.scene, environment: this.environment, lampHeads: this.city.props.lampHeads });
+    this.breakables.onLampChange = (i, broken) => this.dayNight.setLampBroken(i, broken);
 
     this.input = new Input(renderer.domElement);
     this.effects = new Effects(this.scene);
@@ -73,8 +80,10 @@ export class Game {
     this.cameraRig = new ThirdPersonCamera(this.camera, physics);
     this.cameraRig.yaw = spawn.player.yaw;
 
+    const game = this;
     this.npcs = new NPCManager({ physics, scene: this.scene, audio: this.audio, paths: this.city.npcPaths });
     this.network = new RoadNetwork();
+    this.network.close(this.city.construction.roadClosures);
     this.vehicles = new VehicleManager({ physics, scene: this.scene, audio: this.audio, rng, effects: this.effects });
     this.vehicles.spawnParked(this.city.lotSpots, this.network.curbsideSpots(), [
       ...this.city.noParking, { x: spawn.player.x, z: spawn.player.z, r: 4 },
@@ -85,10 +94,18 @@ export class Game {
       lights: this.city.trafficLights, randomLook: () => this.npcs.randomLook(), rng,
     });
     this.traffic.populate(this.player.currPos);
+    for (const path of this.city.construction.workerPaths) this.npcs.addWorker(path);
+    this.population = new PopulationCycle({ npcs: this.npcs, traffic: this.traffic, dayNight: this.dayNight, player: this.player });
     this.npcs.vehicles = this.vehicles;
     this.vehicleUse = new VehicleUse({
       scene: this.scene, physics, npcs: this.npcs, traffic: this.traffic, playerPosition: () => this.player.currPos,
     });
+    this.accidents = new Accidents({
+      npcs: this.npcs, vehicleUse: this.vehicleUse, audio: this.audio, police: null, player: { get position() { return game.player.currPos; } },
+    });
+    this.traffic.onCollision = (e) => this.accidents.onCollision(e);
+    this.vehicles.listener = this.camera.position;
+    this.vehicles.onDamageEvent = (v, ev) => this.onVehicleDamage(v, ev);
     this.eventRng = createRng(9001);
     this.events = new EventDirector(this);
 
@@ -131,7 +148,6 @@ export class Game {
     });
 
     // Police and the wanted level.
-    const game = this;
     this.playerInfo = {
       get position() { return game.player.currPos; },
       get vehicle() { return game.vehicles.playerVehicle ?? null; },
@@ -149,6 +165,7 @@ export class Game {
       rng: createRng(5150), vehicleUse: this.vehicleUse,
     });
     this.police.populate();
+    this.accidents.police = this.police;
     this.police.onArrest = () => this.defeat('VOCÊ FOI DETIDO', true);
     this.player.onDefeated = () => this.defeat('VOCÊ FOI DERROTADO', false);
     this.defeated = false;
@@ -296,14 +313,18 @@ export class Game {
     this.obstacles.length = 0;
     this.npcs.obstacles(this.obstacles);
     this.police.obstacles(this.obstacles);
+    this.breakables.obstacles(this.obstacles);
     if (!this.vehicle.busy) this.obstacles.push({ x: this.player.currPos.x, z: this.player.currPos.z, r: 0.4, player: true });
-    const trafficCtx = { obstacles: this.obstacles, playerPos: this.player.currPos, sirens: this.police.sirens() };
+    const hazards = this.accidents.hazards.slice();
+    for (const v of this.vehicles.fire.burning) hazards.push({ x: v.currPos.x, z: v.currPos.z, r: 22 });
+    const trafficCtx = { obstacles: this.obstacles, playerPos: this.player.currPos, sirens: this.police.sirens(), hazards };
     this.traffic.fixedUpdate(dt, trafficCtx);
     this.police.fixedUpdate(dt, trafficCtx);
     this.wanted.update(dt, this.playerInfo);
 
     this.vehicles.fixedUpdate(dt, driving ? this.carInput() : null);
     this.npcs.fixedUpdate(dt, this.player.currPos);
+    this.breakables.checkVehicles(this.vehicles.list, dt);
     this.physics.step();
     this.vehicles.postStep();
     this.vehicles.checkPlayerContacts((v) => {
@@ -388,10 +409,14 @@ export class Game {
 
     this.vehicleUse.update(dt);
     this.events.update(dt);
+    this.accidents.update(dt);
+    this.population.update(dt);
+    this.breakables.update(dt, this.player.currPos);
+    this.fireHarm(dt);
     this.physicsProps.sync();
     this.interactables.update(dt);
     this.effects.update(dt);
-    this.city.update(dt);
+    this.city.update(dt, this.camera.position, this.audio);
     this.weather.groundY = focus.y;
     this.weather.update(dt, this.camera.position, this.dayNight.night);
     this.dayNight.update(dt, this.camera.position, this.vehicles.playerVehicle);
@@ -405,6 +430,46 @@ export class Game {
     this.updateHud(dt);
     this.renderer.render(this.scene, this.camera);
     this.input.endFrame();
+  }
+
+  /** Sitting in (or standing against) a burning car hurts. */
+  fireHarm(dt) {
+    this.fireHurtTimer = (this.fireHurtTimer ?? 0) - dt;
+    if (this.fireHurtTimer > 0 || this.defeated) return;
+    const pv = this.vehicles.playerVehicle;
+    let amount = 0;
+    if (pv?.damage.state === 'burning') amount = 4;
+    else if (!pv) {
+      for (const v of this.vehicles.fire.burning) if (v.currPos.distanceTo(this.player.currPos) < v.def.length / 2 + 0.6) amount = 2;
+    }
+    if (amount) {
+      this.fireHurtTimer = 0.5;
+      this.player.applyDamage(amount);
+    }
+  }
+
+  /** A car was disabled, caught fire or burnt out. */
+  onVehicleDamage(v, ev) {
+    const unit = v.policeUnit;
+    if (ev === 'disabled' || ev === 'fire') {
+      // Whoever drives an AI car gets out; police crews bail out and continue on foot.
+      if (unit?.driver) this.police.deploy(unit);
+      else if (v.driver instanceof TrafficDriver && !unit) {
+        const rig = this.traffic.release(v);
+        if (rig) this.vehicleUse.driverExits(v, rig, { flee: ev === 'fire', threat: v.currPos });
+      }
+      v.persistent = false;
+    }
+    if (ev === 'fire') {
+      for (const n of this.npcs.npcs) {
+        if (n.currPos.distanceTo(v.currPos) < 16) n.onDanger(v.currPos, 16, 6);
+        else if (n.currPos.distanceTo(v.currPos) < 30) n.lookAt(v.currPos, 4 + Math.random() * 4);
+      }
+    }
+    if (ev === 'destroyed' && unit) {
+      // A burnt-out police car is no longer part of any unit.
+      this.police.onPoliceCarTaken(v);
+    }
   }
 
   updateTrafficHum() {

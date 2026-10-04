@@ -250,14 +250,15 @@ export class Vehicle {
     if (dv > 4 && this.impactCooldown <= 0) {
       this.audio.play('carCrash', this.currPos, clamp(dv / 12, 0.3, 1));
       this.impactCooldown = 0.4;
-      this.damage.applyCrash(dv * 2.4, this.lastVel.clone().sub(_v));
+      this.lastImpact = { tier: this.damage.applyImpact(dv, this.lastVel.clone().sub(_v)), dv };
       this.onCrash?.(this, dv);
     }
     this.lastVel.copy(_v);
+    const linear = _v.length();
     this.recoverIfFlipped(dt);
 
     // An abandoned car that has come to rest is frozen again to save simulation time.
-    const still = absSpeed < 0.2 && _v.length() < 0.3;
+    const still = absSpeed < 0.2 && linear < 0.3;
     this.restTime = !this.driver && still ? this.restTime + dt : 0;
     if (this.restTime > 2.5 && this.isUpright()) this.setMode('parked');
   }
@@ -333,6 +334,12 @@ export class Vehicle {
     const lightsOn = !!this.driver && (this.headlightOverride ?? night > 0.3);
     this.lightsOn = lightsOn;
     this.model.head.material = lightsOn ? VehicleMaterials.headOn : VehicleMaterials.head;
+    if (this.hazardOn) this.hazard = Math.floor(performance.now() / 400) % 2 === 0;
+    if (this.damage.state === 'destroyed') {
+      this.model.head.material = VehicleMaterials.head;
+      this.model.tail.material = VehicleMaterials.tail;
+      return;
+    }
     this.model.tail.material = this.braking || this.hazard ? VehicleMaterials.tailBrake : lightsOn ? VehicleMaterials.tailOn : VehicleMaterials.tail;
     this.model.beam.visible = lightsOn;
     // Emergency lights alternate red/blue while the siren is on.
