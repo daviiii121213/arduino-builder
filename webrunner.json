@@ -1,0 +1,158 @@
+{
+  "projeto": "PROJECT WEBRUNNER",
+  "papel": "Você é um desenvolvedor sênior de jogos, especialista em Stride Game Engine e C#/.NET. Sua tarefa é construir o PROJECT WEBRUNNER de forma incremental. Uma etapa só termina quando está compilável, executável e testada.",
+  "visao": {
+    "descricao": "Jogo 3D de ação e parkour em mundo aberto. O jogador controla um personagem mascarado, original e estilizado, que corre pelos edifícios, salta entre telhados, adere a paredes e tetos e se balança pela cidade com teias que seguem a física.",
+    "pilares": ["Movimentação fluida", "Liberdade de exploração", "Cidade procedural que parece infinita"],
+    "genero": "Ação, parkour, exploração e movimentação em mundo aberto",
+    "estilo_visual": "3D low poly, com formas simples, edifícios geométricos e personagem estilizado",
+    "tecnologia": {
+      "motor": "Stride (versão estável atual)",
+      "linguagem": "C#",
+      "proibido": "Unity"
+    },
+    "plataforma": "Windows, com teclado e mouse, e foco em desempenho"
+  },
+  "restricoes_obrigatorias": [
+    "Use somente APIs que existem na versão do Stride utilizada. Não invente classes, métodos ou propriedades. Em caso de dúvida, confira na documentação ou no código-fonte do Stride.",
+    "Não deixe arquivos vazios, métodos stub, TODOs silenciosos nem NotImplementedException em funcionalidades marcadas como concluídas.",
+    "Não marque nenhum recurso como concluído sem evidência, como build bem-sucedido, teste executado ou log.",
+    "Se algo não puder ser validado no ambiente (por exemplo, por falta de GPU ou de Windows), declare isso explicitamente e explique como validar manualmente.",
+    "Siga a ordem das etapas. Não avance enquanto a etapa atual não estiver funcional.",
+    "Organize o código por responsabilidade, em arquivos C# reais, respeitando as convenções do Stride."
+  ],
+  "protagonista": {
+    "descricao": "Personagem low poly simples, montado inicialmente com formas geométricas e sem depender de modelos 3D complexos.",
+    "requisitos": [
+      "Corpo 3D reconhecível, com cabeça mascarada, tronco, braços e pernas",
+      "Animações básicas de corrida, salto, queda, balanço e aterrissagem, conforme viabilidade",
+      "Orientação adaptada à direção do movimento",
+      "Capacidade de aderir a paredes e tetos",
+      "Transições fluidas entre correr, saltar, escalar e balançar"
+    ],
+    "prioridade": "A jogabilidade deve funcionar antes de qualquer investimento em detalhes visuais."
+  },
+  "controles": {
+    "mapeamento": [
+      { "tecla": "W A S D", "acao": "Movimentar o personagem" },
+      { "tecla": "Espaço", "acao": "Pular" },
+      { "tecla": "Shift", "acao": "Correr" },
+      { "tecla": "Botão esquerdo do mouse", "acao": "Disparar teia" },
+      { "tecla": "Botão direito do mouse", "acao": "Soltar a teia ou executar ação alternativa" },
+      { "tecla": "E", "acao": "Interagir com objetos" },
+      { "tecla": "Ctrl", "acao": "Deslizar ou abaixar" },
+      { "tecla": "R", "acao": "Reiniciar a posição do personagem" },
+      { "tecla": "Esc", "acao": "Pausar ou retomar o jogo" },
+      { "tecla": "Movimento do mouse", "acao": "Girar a câmera" },
+      { "tecla": "Roda do mouse", "acao": "Ajustar a distância da câmera" }
+    ],
+    "regras": [
+      "Quando houver teia conectada, o botão direito sempre a solta primeiro. A ação alternativa não pode atrapalhar essa função.",
+      "R reposiciona o personagem em um ponto seguro sem reiniciar o aplicativo."
+    ]
+  },
+  "mecanicas": {
+    "balanco_por_teias": "A teia se conecta somente a edifícios válidos. O movimento é influenciado pela gravidade, pelo comprimento da teia e pela velocidade acumulada. Soltar a teia preserva o impulso.",
+    "parkour": "Correr, saltar, escalar fachadas e se deslocar horizontalmente pelas paredes, com transições coerentes entre os movimentos.",
+    "aderencia": "Permanecer preso a superfícies compatíveis, adaptar a orientação e se mover sem cair imediatamente.",
+    "impulso": "A velocidade do balanço é convertida em movimento aéreo, permitindo sequências de balanços sem aceleração infinita artificial.",
+    "camera": "Terceira pessoa a uma distância relativamente grande, para mostrar as manobras e os pontos de conexão das teias."
+  },
+  "camera_requisitos": [
+    "Perspectiva em terceira pessoa",
+    "Rotação horizontal e vertical com o mouse",
+    "Ajuste de distância pela roda do mouse",
+    "Limites de rotação para evitar ângulos desconfortáveis",
+    "Detecção de obstáculos para reduzir atravessamentos de geometria",
+    "Enquadramento adequado durante saltos e balanços",
+    "Comportamento estável durante a escalada e quando o personagem estiver aderido ao teto"
+  ],
+  "cidade_procedural": {
+    "inspiracao": "Nova York, gerada por algoritmos em vez de modelada manualmente",
+    "elementos": [
+      "Ruas, cruzamentos e calçadas",
+      "Quarteirões com edifícios de alturas variadas",
+      "Fachadas, telhados e superfícies onde a teia pode se prender",
+      "Obstáculos e estruturas para parkour",
+      "Variações de edifícios e distribuição urbana",
+      "Colisões consistentes para caminhar e balançar"
+    ],
+    "ciclo_de_geracao": [
+      "A posição do jogador determina quais áreas são necessárias",
+      "Novos chunks são gerados perto do jogador",
+      "Chunks distantes são descarregados para economizar memória",
+      "O processo se repete conforme o jogador avança"
+    ],
+    "regras": [
+      "Cada chunk usa suas coordenadas e uma semente determinística, para que a mesma região seja sempre recriada da mesma forma.",
+      "Uma teia nunca pode permanecer ligada a um edifício descarregado.",
+      "Infinita significa geração contínua. Somente as áreas necessárias ficam carregadas na memória."
+    ]
+  },
+  "arquitetura": {
+    "observacao": "Os nomes abaixo são uma proposta organizacional. As implementações devem ser compatíveis com a versão real do Stride.",
+    "arquivos": [
+      { "nome": "PlayerController.cs", "responsabilidade": "Movimentação, corrida e salto" },
+      { "nome": "ThirdPersonCamera.cs", "responsabilidade": "Rotação, distância e acompanhamento" },
+      { "nome": "WebSwingController.cs", "responsabilidade": "Disparo, conexão, balanço e soltura da teia" },
+      { "nome": "ParkourController.cs", "responsabilidade": "Escalada e movimentação em superfícies" },
+      { "nome": "WorldChunkManager.cs", "responsabilidade": "Carregamento e descarregamento de chunks" },
+      { "nome": "ProceduralCityGenerator.cs", "responsabilidade": "Criação de ruas, quarteirões e edifícios" },
+      { "nome": "GameStateController.cs", "responsabilidade": "Pausa, retomada e reinício de posição" }
+    ]
+  },
+  "etapas": [
+    {
+      "numero": 1,
+      "nome": "Protótipo de movimentação",
+      "prioridade": "Primeira prioridade",
+      "escopo": "Criar o projeto Stride e configurar o personagem, o chão, a câmera, a corrida, o salto e as colisões."
+    },
+    {
+      "numero": 2,
+      "nome": "Sistema de teias",
+      "escopo": "Implementar mira, conexão com edifícios, corda física, balanço, soltura e preservação de velocidade."
+    },
+    {
+      "numero": 3,
+      "nome": "Parkour avançado",
+      "escopo": "Adicionar escalada, corrida pelas paredes, aderência a paredes e tetos e transições entre movimentos."
+    },
+    {
+      "numero": 4,
+      "nome": "Cidade procedural",
+      "escopo": "Gerar ruas, edifícios, telhados e chunks, com carregamento e descarregamento dinâmico."
+    },
+    {
+      "numero": 5,
+      "nome": "Integração e testes",
+      "escopo": "Verificar controles, colisões, física das teias, estabilidade da câmera, geração da cidade e desempenho."
+    }
+  ],
+  "testes_minimos": [
+    "O personagem aparece no cenário e não atravessa o chão",
+    "WASD, salto e corrida funcionam",
+    "A câmera acompanha o personagem e permite ajustar a distância",
+    "A teia se conecta somente a superfícies válidas",
+    "O balanço altera fisicamente o movimento",
+    "Soltar a teia preserva o impulso",
+    "A geração de chunks não cria lacunas inesperadas no caminho do jogador",
+    "O descarregamento de áreas distantes não deixa objetos ou referências inválidas",
+    "Pausar, retomar e reiniciar a posição funcionam sem fechar o jogo"
+  ],
+  "entrega_por_etapa": [
+    "Arquivos C# completos criados ou modificados",
+    "Estrutura atualizada do projeto",
+    "Instruções exatas para abrir, compilar e executar",
+    "Resultado real dos testes e erros encontrados",
+    "Lista dos recursos implementados e dos que continuam pendentes, com o motivo",
+    "Próximos passos técnicos, respeitando a ordem das etapas"
+  ],
+  "prioridade_absoluta": [
+    "Jogabilidade funcional",
+    "Física consistente",
+    "Arquitetura organizada",
+    "Compatibilidade real com o Stride"
+  ],
+  "instrucao_inicial": "Comece pela Etapa 1 e entregue um protótipo funcional de movimentação em terceira pessoa no Stride. Depois, implemente e valide o balanço por teias (Etapa 2) antes de avançar para o parkour e a geração da cidade."
+}
