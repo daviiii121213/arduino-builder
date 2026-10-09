@@ -1,0 +1,749 @@
+<title>Webrunner</title>
+<style>
+/* Layout: tela cheia com o jogo; HUD fino nos cantos; painel de pausa centralizado */
+:root {
+  --bg: #0e1726;
+  --panel: rgba(14, 23, 38, 0.86);
+  --ink: #e8eef7;
+  --muted: #8fa3bd;
+  --accent: #ff4d5e;
+  --ok: #4cd18a;
+  --bad: #ff8a4d;
+  --display: "Chakra Petch", "Trebuchet MS", sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); overflow: hidden; }
+#game { position: fixed; inset: 0; }
+#game canvas { display: block; width: 100%; height: 100%; }
+.hud { position: fixed; pointer-events: none; font-family: var(--mono); font-size: 12px; line-height: 1.5;
+  background: var(--panel); padding: 8px 10px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+#stats { top: calc(12px + env(safe-area-inset-top, 0px)); left: 12px; min-width: 170px; }
+#stats b { color: var(--accent); font-weight: 600; }
+#cross { position: fixed; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; pointer-events: none;
+  border: 2px solid var(--muted); border-radius: 50%; transition: border-color .1s, transform .1s; }
+#cross.valid { border-color: var(--ok); transform: scale(1.25); }
+#cross.locked { border-color: var(--accent); }
+#overlay { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(5, 10, 18, 0.55); overflow-y: auto; }
+.card { background: var(--panel); border: 1px solid rgba(143, 163, 189, 0.25); border-radius: 10px; padding: 22px 24px;
+  max-width: 640px; width: 100%; box-sizing: border-box; display: grid; gap: 14px; }
+h1 { font-family: var(--display); font-weight: 700; letter-spacing: 0.06em; margin: 0; font-size: 30px; text-wrap: balance; }
+h1 span { color: var(--accent); }
+.sub { margin: 0; color: var(--muted); font-size: 14px; max-width: 60ch; }
+.keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px 18px; font-size: 13px; }
+.keys div { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+kbd { font-family: var(--mono); font-size: 11px; background: rgba(143, 163, 189, 0.18); border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+button { font-family: var(--display); font-size: 16px; letter-spacing: 0.08em; text-transform: uppercase; background: var(--accent);
+  color: #fff; border: 0; border-radius: 6px; padding: 12px 18px; cursor: pointer; justify-self: start; }
+button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+#tests { font-family: var(--mono); font-size: 12px; display: grid; gap: 2px; }
+#tests .pass { color: var(--ok); } #tests .fail { color: var(--bad); }
+.label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0; }
+#toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); pointer-events: none;
+  font-family: var(--display); background: var(--panel); padding: 8px 14px; border-radius: 6px; opacity: 0; transition: opacity .2s; }
+#toast.show { opacity: 1; }
+#err { color: var(--bad); font-family: var(--mono); font-size: 12px; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+
+<div id="game"></div>
+<div id="cross"></div>
+<div id="stats" class="hud">carregando…</div>
+<div id="toast"></div>
+<div id="overlay">
+  <div class="card">
+    <h1>PROJECT <span>WEBRUNNER</span></h1>
+    <p class="sub">Protótipo jogável no navegador: corrida, salto, balanço por teias com física de corda, escalada de paredes, aderência a tetos e uma cidade procedural gerada em chunks.</p>
+    <p class="label">Controles</p>
+    <div class="keys">
+      <div><kbd>W A S D</kbd> mover / escalar</div>
+      <div><kbd>Espaço</kbd> pular / saltar da parede</div>
+      <div><kbd>Shift</kbd> correr</div>
+      <div><kbd>Clique esq.</kbd> disparar teia</div>
+      <div><kbd>Clique dir.</kbd> soltar teia / impulso aéreo</div>
+      <div><kbd>E</kbd> coletar pacote próximo</div>
+      <div><kbd>C</kbd> ou <kbd>Ctrl</kbd> deslizar / soltar</div>
+      <div><kbd>R</kbd> voltar a um ponto seguro</div>
+      <div><kbd>Esc</kbd> pausar / retomar</div>
+      <div><kbd>Mouse</kbd> câmera · <kbd>Roda</kbd> distância</div>
+    </div>
+    <button id="play" type="button">Jogar</button>
+    <p class="label">Autotestes (executados ao carregar)</p>
+    <div id="tests">executando…</div>
+    <div id="err"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+// ============================================================================
+// Constantes de mundo e física
+// ============================================================================
+const CHUNK = 80;            // tamanho do chunk (quarteirão + metade das ruas em cada borda)
+const STREET = 10;           // metade da largura da rua na borda do chunk
+const LOAD_R = 3;            // raio de carregamento em chunks
+const UNLOAD_R = 4;          // raio de descarregamento (histerese)
+const SEED = 1337;
+const G = 30, WALK = 8, RUN = 15, JUMP = 11.5, MAX_SPEED = 55;
+const WEB_RANGE = 140;
+const PW = 0.4, PH = 1.8, PH_SLIDE = 1.0; // meia-largura e altura do personagem
+const STEP = 1 / 120;
+
+// ============================================================================
+// Geração procedural determinística (dados puros, sem Three.js)
+// ============================================================================
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function chunkSeed(cx, cz) { return (Math.imul(cx, 73856093) ^ Math.imul(cz, 19349663) ^ SEED) >>> 0; }
+function key(cx, cz) { return cx + "," + cz; }
+
+// Divide um intervalo em lotes separados por becos.
+function splitRange(r, a, b, alley) {
+  const parts = 1 + Math.floor(r() * 3);
+  const cuts = [a];
+  for (let i = 1; i < parts; i++) cuts.push(a + (b - a) * (i / parts) + (r() - 0.5) * 6);
+  cuts.push(b);
+  const out = [];
+  for (let i = 0; i < cuts.length - 1; i++) {
+    const s = cuts[i] + (i > 0 ? alley / 2 : 0), e = cuts[i + 1] - (i < cuts.length - 2 ? alley / 2 : 0);
+    if (e - s > 6) out.push([s, e]);
+  }
+  return out;
+}
+
+function genChunkData(cx, cz) {
+  const r = mulberry32(chunkSeed(cx, cz));
+  const ox = cx * CHUNK, oz = cz * CHUNK;
+  const boxes = [];
+  const lo = STREET, hi = CHUNK - STREET;
+  // calçada (caminhável, mas teia não prende)
+  boxes.push({ min: [ox + lo - 2, 0, oz + lo - 2], max: [ox + hi + 2, 0.25, oz + hi + 2], web: false, kind: "walk" });
+  // distância ao centro influencia a altura (centro "Midtown" mais alto)
+  const dist = Math.hypot(cx, cz);
+  const tall = 1 + 0.6 * Math.max(0, Math.cos(dist * 0.35));
+  let tallest = null;
+  for (const [x0, x1] of splitRange(r, ox + lo, ox + hi, 4)) {
+    for (const [z0, z1] of splitRange(r, oz + lo, oz + hi, 4)) {
+      const h = (12 + r() * r() * 80) * tall;
+      const b = { min: [x0, 0.25, z0], max: [x1, 0.25 + h, z1], web: true, kind: "building", hue: r() };
+      boxes.push(b);
+      if (!tallest || h > tallest.max[1] - tallest.min[1]) tallest = b;
+      // telhado escalonado (obstáculo de parkour)
+      if (r() < 0.45 && x1 - x0 > 14 && z1 - z0 > 14) {
+        const ix = (x1 - x0) * 0.25, iz = (z1 - z0) * 0.25;
+        boxes.push({ min: [x0 + ix, b.max[1], z0 + iz], max: [x1 - ix, b.max[1] + 4 + r() * 10, z1 - iz], web: true, kind: "building", hue: b.hue });
+      }
+    }
+  }
+  // passarela suspensa sobre a rua (permite aderir ao teto)
+  if (r() < 0.35) {
+    const y = 14 + r() * 20, z = oz + lo + 6 + r() * (hi - lo - 12);
+    boxes.push({ min: [ox + hi - 4, y, z - 2.5], max: [ox + CHUNK + 4, y + 1.5, z + 2.5], web: true, kind: "bridge" });
+  }
+  const pickup = r() < 0.6 && tallest ? [(tallest.min[0] + tallest.max[0]) / 2, tallest.max[1] + 1.2, (tallest.min[2] + tallest.max[2]) / 2] : null;
+  return { cx, cz, boxes, pickup };
+}
+
+// ============================================================================
+// Geometria: AABB e raio
+// ============================================================================
+function rayBox(o, d, b, maxT) {
+  let tmin = 0, tmax = maxT, axis = -1, sign = 0;
+  for (let i = 0; i < 3; i++) {
+    if (Math.abs(d[i]) < 1e-9) { if (o[i] < b.min[i] || o[i] > b.max[i]) return null; continue; }
+    let t1 = (b.min[i] - o[i]) / d[i], t2 = (b.max[i] - o[i]) / d[i], s = -1;
+    if (t1 > t2) { const tt = t1; t1 = t2; t2 = tt; s = 1; }
+    if (t1 > tmin) { tmin = t1; axis = i; sign = s; }
+    if (t2 < tmax) tmax = t2;
+    if (tmin > tmax) return null;
+  }
+  if (axis < 0) return null; // origem dentro da caixa
+  return { t: tmin, axis, sign };
+}
+
+// ============================================================================
+// Gerenciador de chunks
+// ============================================================================
+const World = {
+  chunks: new Map(),
+  onUnload: null,
+  onLoad: null,
+  update(px, pz) {
+    const ccx = Math.floor(px / CHUNK), ccz = Math.floor(pz / CHUNK);
+    for (let dx = -LOAD_R; dx <= LOAD_R; dx++)
+      for (let dz = -LOAD_R; dz <= LOAD_R; dz++) {
+        const k = key(ccx + dx, ccz + dz);
+        if (!this.chunks.has(k)) {
+          const data = genChunkData(ccx + dx, ccz + dz);
+          data.key = k;
+          for (const b of data.boxes) b.chunk = k;
+          this.chunks.set(k, data);
+          if (this.onLoad) this.onLoad(data);
+        }
+      }
+    for (const [k, c] of this.chunks) {
+      if (Math.abs(c.cx - ccx) > UNLOAD_R || Math.abs(c.cz - ccz) > UNLOAD_R) {
+        this.chunks.delete(k);
+        // uma teia nunca fica presa a um edifício descarregado
+        if (player.web && player.web.box && player.web.box.chunk === k) releaseWeb(false);
+        if (this.onUnload) this.onUnload(c);
+      }
+    }
+  },
+  boxesNear(px, pz, rad) {
+    const out = [];
+    const r = Math.ceil(rad / CHUNK);
+    const ccx = Math.floor(px / CHUNK), ccz = Math.floor(pz / CHUNK);
+    for (let dx = -r; dx <= r; dx++)
+      for (let dz = -r; dz <= r; dz++) {
+        const c = this.chunks.get(key(ccx + dx, ccz + dz));
+        if (c) for (const b of c.boxes) out.push(b);
+      }
+    return out;
+  },
+  raycast(o, d, maxT, webOnly) {
+    let best = null;
+    for (const b of this.boxesNear(o[0], o[2], maxT)) {
+      if (webOnly && !b.web) continue;
+      const h = rayBox(o, d, b, maxT);
+      if (h && (!best || h.t < best.t)) { best = h; best.box = b; }
+    }
+    if (best) best.point = [o[0] + d[0] * best.t, o[1] + d[1] * best.t, o[2] + d[2] * best.t];
+    return best;
+  },
+};
+
+// ============================================================================
+// Jogador (estado e física)
+// ============================================================================
+const player = {
+  p: [0, 0, 0], v: [0, 0, 0], h: PH,
+  state: "air",          // ground | air | wall | ceil | swing
+  wallN: null, lost: 0, clingCd: 0, dashCd: 0,
+  web: null,             // { a:[x,y,z], len, box }
+  facing: 0, slide: 0, score: 0,
+};
+const SAFE = [0, 0.1, 0];
+
+function resetPlayer() {
+  player.p = SAFE.slice(); player.v = [0, 0, 0];
+  player.state = "air"; player.web = null; player.wallN = null; player.h = PH; player.slide = 0;
+}
+
+function overlaps(p, h, b) {
+  return p[0] + PW > b.min[0] && p[0] - PW < b.max[0] &&
+         p[1] + h > b.min[1] && p[1] < b.max[1] &&
+         p[2] + PW > b.min[2] && p[2] - PW < b.max[2];
+}
+
+// Move em um eixo e resolve colisões, registrando normais de contato.
+function moveAxis(p, h, axis, delta, boxes, contacts) {
+  p[axis] += delta;
+  for (const b of boxes) {
+    if (!overlaps(p, h, b)) continue;
+    const n = [0, 0, 0];
+    if (axis === 1) {
+      if (delta > 0) { p[1] = b.min[1] - h - 1e-4; n[1] = -1; } else { p[1] = b.max[1] + 1e-4; n[1] = 1; }
+    } else {
+      if (delta > 0) { p[axis] = b.min[axis] - PW - 1e-4; n[axis] = -1; } else { p[axis] = b.max[axis] + PW + 1e-4; n[axis] = 1; }
+    }
+    contacts.push({ n, box: b });
+  }
+  if (axis === 1 && p[1] < 0) { p[1] = 0; contacts.push({ n: [0, 1, 0], box: null }); }
+}
+
+function integrate(dt) {
+  const boxes = World.boxesNear(player.p[0], player.p[2], 20);
+  const contacts = [];
+  for (let a = 0; a < 3; a++) {
+    const d = player.v[a] * dt;
+    moveAxis(player.p, player.h, a, d, boxes, contacts);
+  }
+  for (const c of contacts) {
+    // zera a velocidade contra a superfície
+    for (let a = 0; a < 3; a++) if (c.n[a] !== 0 && Math.sign(player.v[a]) === -c.n[a]) player.v[a] = 0;
+  }
+  return contacts;
+}
+
+// Restrição de corda: remove a componente radial que estica a teia.
+function ropeConstraint(p, v, web, dt) {
+  const d = [p[0] - web.a[0], p[1] + 1.2 - web.a[1], p[2] - web.a[2]];
+  const len = Math.hypot(d[0], d[1], d[2]);
+  if (len < web.len - 0.01 || len < 1e-6) return;
+  const n = [d[0] / len, d[1] / len, d[2] / len];
+  const vr = v[0] * n[0] + v[1] * n[1] + v[2] * n[2];
+  if (vr > 0) { v[0] -= vr * n[0]; v[1] -= vr * n[1]; v[2] -= vr * n[2]; }
+  const over = len - web.len;
+  if (over > 0) { const k = Math.min(over / dt, 20) * 0.8; v[0] -= n[0] * k; v[1] -= n[1] * k; v[2] -= n[2] * k; }
+}
+
+function clampSpeed(v) {
+  const s = Math.hypot(v[0], v[1], v[2]);
+  if (s > MAX_SPEED) { const k = MAX_SPEED / s; v[0] *= k; v[1] *= k; v[2] *= k; }
+}
+
+const input = { keys: new Set(), pressed: new Set(), mouseDx: 0, mouseDy: 0, wheel: 0, fire: false, alt: false };
+const cam = { yaw: Math.PI * 0.25, pitch: 0.35, dist: 14, target: [0, 0, 0] };
+
+function camBasis() {
+  const s = Math.sin(cam.yaw), c = Math.cos(cam.yaw);
+  return { f: [-s, 0, -c], r: [c, 0, -s] };
+}
+
+function attachWeb(hit) {
+  const d = Math.hypot(player.p[0] - hit.point[0], player.p[1] + 1.2 - hit.point[1], player.p[2] - hit.point[2]);
+  player.web = { a: hit.point, len: Math.max(4, d * 0.92), box: hit.box };
+  player.state = "swing";
+  toast("Teia conectada");
+}
+function releaseWeb(boost) {
+  if (!player.web) return;
+  player.web = null;
+  if (boost) player.v[1] += 4;          // pequeno impulso ao soltar, velocidade é preservada
+  player.state = "air";
+}
+
+function stepPlayer(dt, aimHit) {
+  const P = player, k = input.keys, pr = input.pressed;
+  const { f, r } = camBasis();
+  const ix = (k.has("KeyD") ? 1 : 0) - (k.has("KeyA") ? 1 : 0);
+  const iz = (k.has("KeyW") ? 1 : 0) - (k.has("KeyS") ? 1 : 0);
+  let wish = [f[0] * iz + r[0] * ix, 0, f[2] * iz + r[2] * ix];
+  const wl = Math.hypot(wish[0], wish[2]); if (wl > 0) { wish[0] /= wl; wish[2] /= wl; }
+  const running = k.has("ShiftLeft") || k.has("ShiftRight");
+  const crouch = k.has("KeyC") || k.has("ControlLeft") || k.has("ControlRight");
+  P.clingCd = Math.max(0, P.clingCd - dt); P.dashCd = Math.max(0, P.dashCd - dt);
+
+  // --- teia ---
+  if (input.fire) {
+    if (aimHit && aimHit.box.web) { if (P.web) releaseWeb(false); attachWeb(aimHit); }
+    else toast("Sem superfície válida no alcance");
+  }
+  if (input.alt) {
+    if (P.web) releaseWeb(false);                       // prioridade: soltar a teia
+    else if (P.state === "air" && P.dashCd <= 0) {       // ação alternativa: impulso aéreo
+      P.v[0] += f[0] * 12; P.v[2] += f[2] * 12; P.v[1] = Math.max(P.v[1], 3); P.dashCd = 1.2;
+    }
+  }
+
+  if (P.state === "wall") {
+    const n = P.wallN;
+    let t = [r[0] - n[0] * (r[0] * n[0] + r[2] * n[2]), 0, r[2] - n[2] * (r[0] * n[0] + r[2] * n[2])];
+    const tl = Math.hypot(t[0], t[2]) || 1; t = [t[0] / tl, 0, t[2] / tl];
+    const sp = running ? 11 : 6.5;
+    const vy = iz !== 0 ? iz * sp : -0.6;
+    P.v = [t[0] * ix * sp - n[0] * 3, vy, t[2] * ix * sp - n[2] * 3];
+    if (pr.has("Space")) {
+      P.v = [n[0] * 11 + t[0] * ix * 5, 9, n[2] * 11 + t[2] * ix * 5];
+      P.state = "air"; P.clingCd = 0.35;
+    } else if (crouch) { P.state = "air"; P.clingCd = 0.5; P.v = [n[0] * 2, 0, n[2] * 2]; }
+  } else if (P.state === "ceil") {
+    const sp = running ? 9 : 5;
+    P.v = [wish[0] * sp, 3, wish[2] * sp];
+    if (pr.has("Space") || crouch) { P.state = "air"; P.clingCd = 0.5; P.v[1] = -2; }
+  } else {
+    // chão, ar ou balanço
+    P.v[1] -= G * dt;
+    if (P.state === "ground") {
+      if (crouch && P.slide <= 0 && running && Math.hypot(P.v[0], P.v[2]) > 10) {
+        P.slide = 0.7; P.v[0] *= 1.25; P.v[2] *= 1.25; toast("Deslize");
+      }
+      if (P.slide > 0) {
+        P.slide -= dt; P.h = PH_SLIDE;
+        P.v[0] *= 1 - 1.2 * dt; P.v[2] *= 1 - 1.2 * dt;
+      } else {
+        P.h = crouch ? PH_SLIDE : PH;
+        const sp = crouch ? 4 : running ? RUN : WALK;
+        const acc = 70 * dt;
+        for (const a of [0, 2]) {
+          const tgt = wish[a] * sp, dv = tgt - P.v[a];
+          P.v[a] += Math.max(-acc, Math.min(acc, dv));
+        }
+      }
+      if (pr.has("Space")) { P.v[1] = JUMP; P.state = "air"; P.slide = 0; P.h = PH; }
+    } else {
+      P.h = PH;
+      const airAcc = P.state === "swing" ? 16 : 10;
+      P.v[0] += wish[0] * airAcc * dt; P.v[2] += wish[2] * airAcc * dt;
+      // arrasto leve: o impulso se mantém, mas não cresce sem limite
+      const drag = 1 - 0.08 * dt; P.v[0] *= drag; P.v[2] *= drag;
+      if (P.state === "swing" && pr.has("Space")) releaseWeb(true);
+    }
+    if (P.web) ropeConstraint(P.p, P.v, P.web, dt);
+  }
+  clampSpeed(P.v);
+
+  const contacts = integrate(dt);
+
+  // --- transições a partir dos contatos ---
+  let ground = false, wall = null, ceil = false;
+  for (const c of contacts) {
+    if (c.n[1] === 1) ground = true;
+    else if (c.n[1] === -1) ceil = c.box && c.box.web;
+    else if (c.box && c.box.kind !== "walk") wall = c.n;
+  }
+  if (P.state === "wall") {
+    const still = wall && wall[0] === P.wallN[0] && wall[2] === P.wallN[2];
+    if (ground && iz < 0) P.state = "ground";
+    else if (!still) {
+      P.lost += dt;
+      if (P.lost > 0.05) {
+        P.state = "air";
+        if (iz > 0) { P.v = [-P.wallN[0] * 5, 7.5, -P.wallN[2] * 5]; toast("Escalou o topo"); } // subir no telhado
+      }
+    } else P.lost = 0;
+  } else if (P.state === "ceil") {
+    if (!ceil) { P.lost += dt; if (P.lost > 0.08) P.state = "air"; } else P.lost = 0;
+  } else if (ground) {
+    if (P.state === "swing" && P.web) { /* mantém teia ao tocar o chão */ }
+    else P.state = "ground";
+  } else {
+    if (P.state === "ground") P.state = "air";
+    if (P.clingCd <= 0 && wall && P.state !== "ground") {
+      if (P.web) releaseWeb(false);
+      P.state = "wall"; P.wallN = wall; P.lost = 0; P.v = [0, Math.max(0, P.v[1]) * 0.3, 0];
+    } else if (P.clingCd <= 0 && ceil) {
+      if (P.web) releaseWeb(false);
+      P.state = "ceil"; P.lost = 0;
+    }
+  }
+  if (P.web && P.state !== "swing") P.state = "swing";
+  // caiu fora do mundo (segurança)
+  if (P.p[1] < -50 || !isFinite(P.p[0] + P.p[1] + P.p[2])) resetPlayer();
+}
+
+// ============================================================================
+// Autotestes (lógica pura + gerenciador de chunks)
+// ============================================================================
+function runSelfTests() {
+  const res = [];
+  const t = (name, fn) => { try { const ok = fn(); res.push([name, !!ok]); } catch (e) { res.push([name + " (" + e.message + ")", false]); } };
+  t("Chunk determinístico (mesma semente gera mesma região)", () =>
+    JSON.stringify(genChunkData(5, -3)) === JSON.stringify(genChunkData(5, -3)) &&
+    JSON.stringify(genChunkData(5, -3)) !== JSON.stringify(genChunkData(6, -3)));
+  t("Raio x AABB acerta a face correta", () => {
+    const h = rayBox([0, 5, 0], [1, 0, 0], { min: [10, 0, -1], max: [12, 10, 1] }, 100);
+    return h && Math.abs(h.t - 10) < 1e-6 && h.axis === 0;
+  });
+  t("Personagem não atravessa o chão", () => {
+    const p = [0, 3, 0], c = [];
+    for (let i = 0; i < 200; i++) moveAxis(p, PH, 1, -0.5, [], c);
+    return p[1] === 0;
+  });
+  t("Corda mantém comprimento e balança", () => {
+    const p = [10, -11.2, 0], v = [0, 0, 0], web = { a: [0, 0, 0], len: Math.hypot(10, 10) };
+    let maxLen = 0, minX = 99;
+    for (let i = 0; i < 1200; i++) {
+      v[1] -= G * STEP; ropeConstraint(p, v, web, STEP);
+      p[0] += v[0] * STEP; p[1] += v[1] * STEP; p[2] += v[2] * STEP;
+      maxLen = Math.max(maxLen, Math.hypot(p[0], p[1] + 1.2, p[2])); minX = Math.min(minX, p[0]);
+    }
+    return maxLen < web.len + 0.3 && minX < -5;
+  });
+  t("Soltar a teia preserva a velocidade", () => {
+    const save = JSON.stringify(player);
+    player.v = [12, 3, -4]; player.web = { a: [0, 50, 0], len: 20, box: null }; player.state = "swing";
+    releaseWeb(false);
+    const ok = player.web === null && player.v[0] === 12 && player.v[1] === 3 && player.v[2] === -4;
+    Object.assign(player, JSON.parse(save));
+    return ok;
+  });
+  t("Chunks sem lacunas ao redor do jogador", () => {
+    World.update(1000, -2000);
+    const ccx = Math.floor(1000 / CHUNK), ccz = Math.floor(-2000 / CHUNK);
+    for (let dx = -LOAD_R; dx <= LOAD_R; dx++) for (let dz = -LOAD_R; dz <= LOAD_R; dz++)
+      if (!World.chunks.has(key(ccx + dx, ccz + dz))) return false;
+    return true;
+  });
+  t("Descarregar chunk solta a teia ligada a ele", () => {
+    const c = [...World.chunks.values()].find(ch => ch.boxes.some(b => b.web));
+    const b = c.boxes.find(bb => bb.web);
+    player.web = { a: b.max.slice(), len: 30, box: b }; player.state = "swing";
+    World.update(1000 + CHUNK * 20, -2000);
+    const ok = player.web === null && !World.chunks.has(c.key);
+    World.update(SAFE[0], SAFE[2]);
+    return ok;
+  });
+  t("Memória limitada (só chunks próximos carregados)", () => World.chunks.size <= (2 * UNLOAD_R + 1) ** 2);
+  resetPlayer();
+  return res;
+}
+
+// ============================================================================
+// Renderização (Three.js)
+// ============================================================================
+let renderer, scene, camera, unitBox, chunkMeshes = new Map(), playerRig, webLine, pickupGeo, pickupMat;
+
+function makeGroundTexture() {
+  const c = document.createElement("canvas"); c.width = c.height = 256;
+  const g = c.getContext("2d");
+  g.fillStyle = "#2b3140"; g.fillRect(0, 0, 256, 256);
+  g.fillStyle = "#f2c94c";
+  for (let i = 0; i < 256; i += 20) { g.fillRect(i, 0, 10, 2); g.fillRect(i, 254, 10, 2); g.fillRect(0, i, 2, 10); g.fillRect(254, i, 2, 10); }
+  g.fillStyle = "#e8eef7";
+  for (let i = 8; i < 32; i += 6) { g.fillRect(i, 40, 3, 30); g.fillRect(i, 186, 3, 30); g.fillRect(40, i, 30, 3); g.fillRect(186, i, 30, 3); }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1600 / CHUNK, 1600 / CHUNK);
+  t.offset.set(0.5, 0.5); // centro da rua na borda do chunk
+  return t;
+}
+
+const PALETTE = [0x8a9bb5, 0xb7a58f, 0x6f7f99, 0xc9c2b6, 0x9b6b5e, 0x5f6b7d, 0xa3b0a0, 0xd0b48a];
+function buildChunkMesh(data) {
+  const group = new THREE.Group();
+  const bs = data.boxes;
+  const mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const im = new THREE.InstancedMesh(unitBox, mat, bs.length);
+  const m = new THREE.Matrix4(), col = new THREE.Color();
+  bs.forEach((b, i) => {
+    const sx = b.max[0] - b.min[0], sy = b.max[1] - b.min[1], sz = b.max[2] - b.min[2];
+    m.makeScale(sx, sy, sz).setPosition((b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2, (b.min[2] + b.max[2]) / 2);
+    im.setMatrixAt(i, m);
+    if (b.kind === "walk") col.setHex(0x59606e);
+    else if (b.kind === "bridge") col.setHex(0x3d4a5e);
+    else col.setHex(PALETTE[Math.floor(b.hue * PALETTE.length)]);
+    im.setColorAt(i, col);
+  });
+  im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true;
+  group.add(im);
+  if (data.pickup && !data.collected) {
+    const pk = new THREE.Mesh(pickupGeo, pickupMat);
+    pk.position.set(...data.pickup); group.add(pk); data.pickupMesh = pk;
+  }
+  scene.add(group);
+  chunkMeshes.set(data.key, { group, mat, im });
+}
+function disposeChunkMesh(data) {
+  const cm = chunkMeshes.get(data.key);
+  if (!cm) return;
+  scene.remove(cm.group); cm.im.dispose(); cm.mat.dispose();
+  chunkMeshes.delete(data.key);
+}
+
+function buildPlayer() {
+  const rig = new THREE.Group(), body = new THREE.Group();
+  const red = new THREE.MeshLambertMaterial({ color: 0xd8344a }), blue = new THREE.MeshLambertMaterial({ color: 0x23395d });
+  const white = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const box = (w, h, d, mat, x, y, z) => { const mm = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); mm.position.set(x, y, z); return mm; };
+  const torso = box(0.62, 0.7, 0.34, red, 0, 1.15, 0);
+  const head = box(0.42, 0.42, 0.42, red, 0, 1.72, 0);
+  const eyeL = box(0.14, 0.09, 0.02, white, -0.1, 1.76, 0.215), eyeR = box(0.14, 0.09, 0.02, white, 0.1, 1.76, 0.215);
+  const limb = (w, h, mat, x, y) => { const pv = new THREE.Group(); pv.position.set(x, y, 0); const mm = box(w, h, w, mat, 0, -h / 2, 0); pv.add(mm); return pv; };
+  const armL = limb(0.18, 0.62, red, -0.42, 1.48), armR = limb(0.18, 0.62, red, 0.42, 1.48);
+  const legL = limb(0.22, 0.8, blue, -0.16, 0.8), legR = limb(0.22, 0.8, blue, 0.16, 0.8);
+  body.add(torso, head, eyeL, eyeR, armL, armR, legL, legR);
+  rig.add(body);
+  rig.userData = { body, armL, armR, legL, legR, phase: 0 };
+  return rig;
+}
+
+function animatePlayer(dt) {
+  const P = player, u = playerRig.userData;
+  const hs = Math.hypot(P.v[0], P.v[2]);
+  if (hs > 0.5 && P.state !== "wall") P.facing = Math.atan2(P.v[0], P.v[2]);
+  if (P.state === "wall") P.facing = Math.atan2(-P.wallN[0], -P.wallN[2]);
+  playerRig.position.set(P.p[0], P.p[1], P.p[2]);
+  playerRig.rotation.set(0, P.facing, 0);
+  u.body.rotation.set(0, 0, 0); u.body.position.set(0, 0, 0); u.body.scale.set(1, 1, 1);
+  let a = 0, l = 0;
+  if (P.state === "ground") {
+    u.phase += dt * hs * 1.1;
+    a = Math.sin(u.phase) * Math.min(1, hs / 8); l = a;
+    if (P.h < PH) { u.body.scale.set(1, P.h / PH, 1); u.body.rotation.x = P.slide > 0 ? -0.6 : 0; }
+  } else if (P.state === "wall") {
+    u.phase += dt * 8 * (Math.abs(P.v[1]) + Math.hypot(P.v[0], P.v[2]) > 1 ? 1 : 0);
+    u.armL.rotation.x = Math.PI * 0.85 + Math.sin(u.phase) * 0.4; u.armR.rotation.x = Math.PI * 0.85 - Math.sin(u.phase) * 0.4;
+    u.legL.rotation.x = -0.5 - Math.sin(u.phase) * 0.4; u.legR.rotation.x = -0.5 + Math.sin(u.phase) * 0.4;
+    return;
+  } else if (P.state === "ceil") {
+    u.body.rotation.z = Math.PI; u.body.position.y = P.h;
+    u.phase += dt * hs; a = Math.sin(u.phase) * 0.6; l = a;
+  } else if (P.state === "swing") {
+    u.armR.rotation.x = Math.PI; u.armL.rotation.x = 0.4;
+    u.legL.rotation.x = 0.5; u.legR.rotation.x = -0.3;
+    u.body.rotation.x = Math.max(-0.6, Math.min(0.6, -P.v[1] * 0.02));
+    return;
+  } else { a = P.v[1] > 0 ? -2.4 : -2.9; l = 0.4; u.armL.rotation.x = a; u.armR.rotation.x = a; u.legL.rotation.x = l; u.legR.rotation.x = -l; return; }
+  u.armL.rotation.x = a; u.armR.rotation.x = -a; u.legL.rotation.x = -l; u.legR.rotation.x = l;
+}
+
+let toastTimer = 0;
+function toast(msg) { const el = document.getElementById("toast"); el.textContent = msg; el.classList.add("show"); toastTimer = 1.4; }
+
+// ============================================================================
+// Câmera em terceira pessoa
+// ============================================================================
+function updateCamera(dt) {
+  cam.yaw -= input.mouseDx * 0.0025;
+  cam.pitch = Math.max(-0.25, Math.min(1.3, cam.pitch + input.mouseDy * 0.0025));
+  cam.dist = Math.max(5, Math.min(32, cam.dist + input.wheel * 0.01));
+  input.mouseDx = input.mouseDy = input.wheel = 0;
+  const P = player;
+  const tgt = [P.p[0], P.p[1] + 1.6, P.p[2]];
+  const k = 1 - Math.exp(-dt * 12);
+  for (let i = 0; i < 3; i++) cam.target[i] += (tgt[i] - cam.target[i]) * k;
+  const dir = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];
+  let dist = cam.dist + (P.state === "swing" ? 4 : 0);
+  const hit = World.raycast(cam.target, dir, dist, false);
+  if (hit) dist = Math.max(1.5, hit.t - 0.6);
+  const camY = Math.max(0.5, cam.target[1] + dir[1] * dist);
+  camera.position.set(cam.target[0] + dir[0] * dist, camY, cam.target[2] + dir[2] * dist);
+  camera.lookAt(cam.target[0], cam.target[1], cam.target[2]);
+}
+
+function aim() {
+  const d = new THREE.Vector3(); camera.getWorldDirection(d);
+  const o = [camera.position.x, camera.position.y, camera.position.z];
+  const hit = World.raycast(o, [d.x, d.y, d.z], WEB_RANGE + cam.dist, true);
+  if (!hit) return null;
+  const toP = Math.hypot(hit.point[0] - player.p[0], hit.point[1] - player.p[1], hit.point[2] - player.p[2]);
+  return toP <= WEB_RANGE ? hit : null;
+}
+
+// ============================================================================
+// Loop principal, pausa e entrada
+// ============================================================================
+let paused = true, wasLocked = false, lockMode = "lock", acc = 0, last = 0, fps = 60;
+const overlay = document.getElementById("overlay");
+
+function setPaused(v) { paused = v; overlay.hidden = !v; document.getElementById("cross").hidden = v; }
+
+function frame(t) {
+  const dt = Math.min(0.1, (t - last) / 1000 || 0); last = t;
+  fps += ((dt > 0 ? 1 / dt : 60) - fps) * 0.05;
+  if (!paused) {
+    updateCamera(dt);
+    const hit = aim();
+    const cross = document.getElementById("cross");
+    cross.className = player.web ? "locked" : hit ? "valid" : "";
+    acc += dt;
+    let first = true;
+    while (acc >= STEP) {
+      stepPlayer(STEP, hit);
+      if (first) { input.fire = input.alt = false; input.pressed.clear(); first = false; }
+      acc -= STEP;
+    }
+    World.update(player.p[0], player.p[2]);
+    // coletáveis
+    if (input.keys.has("KeyE")) {
+      for (const c of World.chunks.values()) if (c.pickupMesh && !c.collected) {
+        const q = c.pickup;
+        if (Math.hypot(q[0] - player.p[0], q[1] - player.p[1] - 1, q[2] - player.p[2]) < 3.5) {
+          c.collected = true; collected.add(c.key); c.pickupMesh.visible = false; player.score++; toast("Pacote coletado");
+        }
+      }
+    }
+  }
+  for (const c of World.chunks.values()) if (c.pickupMesh) c.pickupMesh.rotation.y += dt * 2;
+  animatePlayer(dt);
+  // teia visual
+  if (player.web) {
+    const pos = webLine.geometry.attributes.position;
+    pos.setXYZ(0, player.p[0], player.p[1] + (player.state === "ceil" ? 0.3 : 1.9), player.p[2]);
+    pos.setXYZ(1, ...player.web.a); pos.needsUpdate = true; webLine.visible = true;
+  } else webLine.visible = false;
+  // chão segue o jogador em múltiplos do chunk
+  ground.position.set(Math.round(player.p[0] / CHUNK) * CHUNK, 0, Math.round(player.p[2] / CHUNK) * CHUNK);
+  sun.position.set(player.p[0] + 60, 120, player.p[2] + 30); sun.target.position.set(player.p[0], 0, player.p[2]);
+  if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) document.getElementById("toast").classList.remove("show"); }
+  const sp = Math.hypot(player.v[0], player.v[1], player.v[2]);
+  document.getElementById("stats").innerHTML =
+    `estado <b>${({ ground: "chão", air: "ar", wall: "parede", ceil: "teto", swing: "teia" })[player.state]}</b><br>` +
+    `velocidade ${sp.toFixed(1)} m/s<br>altura ${player.p[1].toFixed(1)} m<br>` +
+    `chunks ${World.chunks.size} · pacotes ${player.score}<br>${fps.toFixed(0)} fps`;
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+let ground, sun;
+const collected = new Set();
+function init() {
+  const testRes = runSelfTests();
+  document.getElementById("tests").innerHTML = testRes.map(([n, ok]) =>
+    `<div class="${ok ? "pass" : "fail"}">${ok ? "OK  " : "FALHA"} ${n}</div>`).join("");
+  window.__selfTests = testRes;
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+  document.getElementById("game").appendChild(renderer.domElement);
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x9cc3e6);
+  scene.fog = new THREE.Fog(0x9cc3e6, 120, CHUNK * LOAD_R);
+  camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
+  scene.add(new THREE.HemisphereLight(0xdfefff, 0x3a4150, 0.75));
+  sun = new THREE.DirectionalLight(0xfff1d6, 0.7); scene.add(sun, sun.target);
+  unitBox = new THREE.BoxGeometry(1, 1, 1);
+  pickupGeo = new THREE.OctahedronGeometry(0.6); pickupMat = new THREE.MeshBasicMaterial({ color: 0xffd23f });
+  ground = new THREE.Mesh(new THREE.PlaneGeometry(1600, 1600), new THREE.MeshLambertMaterial({ map: makeGroundTexture() }));
+  ground.rotation.x = -Math.PI / 2; scene.add(ground);
+  playerRig = buildPlayer(); scene.add(playerRig);
+  const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
+  webLine = new THREE.Line(lg, new THREE.LineBasicMaterial({ color: 0xf5f7fa })); webLine.frustumCulled = false; scene.add(webLine);
+
+  World.onLoad = d => { if (collected.has(d.key)) d.collected = true; buildChunkMesh(d); };
+  World.onUnload = d => disposeChunkMesh(d);
+  for (const c of World.chunks.values()) { if (collected.has(c.key)) c.collected = true; buildChunkMesh(c); }
+  World.update(SAFE[0], SAFE[2]);
+  resetPlayer();
+
+  const resize = () => { const w = innerWidth, h = innerHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); };
+  addEventListener("resize", resize); resize();
+  setPaused(true);
+  requestAnimationFrame(frame);
+}
+
+// --- entrada ---
+const canvasEl = () => renderer.domElement;
+function start() {
+  setPaused(false);
+  try {
+    const p = canvasEl().requestPointerLock && canvasEl().requestPointerLock();
+    if (p && p.catch) p.catch(() => { lockMode = "free"; });
+  } catch (e) { lockMode = "free"; }
+}
+document.getElementById("play").addEventListener("click", start);
+document.addEventListener("pointerlockchange", () => {
+  if (document.pointerLockElement) { lockMode = "lock"; wasLocked = true; }
+  else if (wasLocked && !paused) { wasLocked = false; setPaused(true); } // Esc do navegador libera o mouse = pausa
+});
+document.addEventListener("pointerlockerror", () => { lockMode = "free"; });
+addEventListener("keydown", e => {
+  if (e.code === "Escape") { if (paused) start(); else { setPaused(true); if (document.exitPointerLock) document.exitPointerLock(); } return; }
+  if (["Space", "KeyW", "KeyA", "KeyS", "KeyD", "ControlLeft", "ControlRight", "KeyC"].includes(e.code)) e.preventDefault();
+  if (!input.keys.has(e.code)) input.pressed.add(e.code);
+  input.keys.add(e.code);
+  if (e.code === "KeyR" && !paused) { resetPlayer(); toast("Posição reiniciada"); }
+});
+addEventListener("keyup", e => input.keys.delete(e.code));
+addEventListener("blur", () => input.keys.clear());
+addEventListener("mousemove", e => {
+  if (paused) return;
+  if (lockMode === "lock" && !document.pointerLockElement) return;
+  input.mouseDx += e.movementX || 0; input.mouseDy += e.movementY || 0;
+});
+addEventListener("mousedown", e => {
+  if (paused || e.target.closest("#overlay")) return;
+  if (lockMode === "lock" && !document.pointerLockElement) { start(); return; }
+  if (e.button === 0) input.fire = true;
+  if (e.button === 2) input.alt = true;
+});
+addEventListener("contextmenu", e => e.preventDefault());
+addEventListener("wheel", e => { if (!paused) input.wheel += e.deltaY; }, { passive: true });
+
+try {
+  if (!window.THREE) throw new Error("Three.js não carregou.");
+  init();
+} catch (e) {
+  document.getElementById("err").textContent = "Erro ao iniciar: " + e.message;
+}
+</script>
