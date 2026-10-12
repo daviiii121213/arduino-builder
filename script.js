@@ -332,6 +332,50 @@
     });
   }
 
+  /* ---------- Vídeo da Experiência ----------
+     Carrega só quando chega perto da tela. Toca em loop enquanto visível;
+     ao sair da tela (ou da aba) pausa, e ao voltar recomeça do início. */
+  const video = $('#xpVideo');
+  if (video) {
+    let loaded = false, inView = false, left = false;
+    const load = () => {
+      if (loaded) return;
+      loaded = true;
+      // 1080p em telas grandes/densas, 720p no celular; WebM (menor) quando suportado, senão MP4
+      const big = window.matchMedia('(min-width: 760px) and (min-resolution: 1.5dppx), (min-width: 1200px)').matches;
+      const webm = video.canPlayType('video/webm; codecs="vp9"') === 'probably';
+      video.src = `${video.dataset.src}-${big ? 1080 : 720}.${webm ? 'webm' : 'mp4'}`;
+    };
+    const play = () => { const p = video.play(); if (p) p.catch(() => {}); };
+    const restart = () => { try { video.currentTime = 0; } catch (e) { /* ainda sem metadados */ } play(); };
+
+    if (reduced) {
+      // movimento reduzido: sem reprodução automática; controles para tocar se quiser
+      video.controls = true;
+      video.preload = 'metadata';
+      load();
+    } else {
+      new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            load();
+            inView = true;
+            if (left) { left = false; restart(); } else play();
+          } else if (inView) {
+            inView = false;
+            left = true;
+            video.pause();
+          }
+        });
+      }, { rootMargin: '200px 0px', threshold: 0.25 }).observe(video.closest('.xp__main'));
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { if (!video.paused) { video.pause(); left = true; } }
+        else if (inView && left) { left = false; restart(); }
+      });
+    }
+  }
+
   /* ---------- Ano ---------- */
   $('#year').textContent = new Date().getFullYear();
 })();

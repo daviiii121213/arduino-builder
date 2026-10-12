@@ -253,8 +253,11 @@
       <div class="wrap xp__grid">
         <figure class="xp__main" data-reveal="mask">
           <div class="xp__frame" data-parallax="0.08">
-            <img src="assets/img/lavatorios.webp" srcset="assets/img/lavatorios-sm.webp 560w, assets/img/lavatorios.webp 1164w" sizes="(min-width: 960px) 40vw, 90vw"
-                 alt="Área de lavatórios da AT/TUDE Barbearia, com armários escuros e parede verde" width="1164" height="1716" loading="lazy" decoding="async">
+            <!-- Vídeo em loop; reinicia do começo quando volta à tela ou à aba (script.js) -->
+            <video class="xp__video" id="xpVideo" muted loop playsinline preload="none"
+                   poster="assets/video/experiencia-poster.webp"
+                   data-src="assets/video/experiencia"
+                   aria-label="Vídeo da AT/TUDE Barbearia: finalização de corte com spray e o resultado no cliente"></video>
           </div>
         </figure>
         <figure class="xp__aside" data-reveal="fade-left">

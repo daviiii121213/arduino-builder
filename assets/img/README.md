@@ -17,3 +17,9 @@ Logo oficial: `../logo-light.webp|png` (fundo escuro), `../logo-dark.png` (fundo
 
 As originais têm ~290 × 425 px (exceto a fachada). A super-resolução melhora bastante,
 mas fotos originais em alta resolução continuam sendo a melhor opção.
+
+## Vídeo
+
+`../video/experiencia-{1080,720}.{webm,mp4}` — vídeo enviado pelo cliente (4K, 12 s),
+sem áudio, comprimido para a web. O site escolhe WebM (menor) ou MP4 conforme o
+navegador, e 1080p ou 720p conforme a tela. `experiencia-poster.webp` é a capa.

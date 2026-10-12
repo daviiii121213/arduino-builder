@@ -365,13 +365,13 @@ body.menu-open { overflow: hidden; }
 .js [data-reveal="clip-right"] { clip-path: inset(0 0 0 100%); }
 .js [data-reveal="clip-up"]    { clip-path: inset(100% 0 0 0); }
 .js [data-reveal="mask"]       { clip-path: inset(100% 0 0 0); }
-.js [data-reveal="mask"] img   { transform: scale(1.3); transition: transform 1.6s var(--ease-out) calc(var(--i, 0) * 90ms); }
+.js [data-reveal="mask"] img, .js [data-reveal="mask"] video { transform: scale(1.3); transition: transform 1.6s var(--ease-out) calc(var(--i, 0) * 90ms); }
 .js [data-reveal="bar"]        { transform: scaleX(0); transform-origin: left; }
 .js [data-reveal="lines"] .w   { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .08em; margin-bottom: -.08em; }
 .js [data-reveal="lines"] .w > span { display: inline-block; transform: translateY(110%); transition: transform 1s var(--ease-out); transition-delay: calc(var(--w, 0) * 60ms); }
 
 .js [data-reveal].is-in { opacity: 1; transform: none; filter: none; clip-path: inset(0 0 0 0); }
-.js [data-reveal="mask"].is-in img { transform: none; }
+.js [data-reveal="mask"].is-in img, .js [data-reveal="mask"].is-in video { transform: none; }
 .js [data-reveal="lines"].is-in .w > span { transform: none; }
 
 /* ==========================================================================
@@ -436,9 +436,9 @@ html:not(.js) .svc__icon { stroke-dashoffset: 0; }
   color: transparent; -webkit-text-stroke: 1px rgba(125, 147, 220, .14);
 }
 .xp__grid { position: relative; display: grid; gap: 32px; }
-.xp__main { overflow: hidden; aspect-ratio: 4 / 5; max-width: 100%; }
+.xp__main { overflow: hidden; aspect-ratio: 3 / 4; max-width: 100%; background: var(--surface); }
 .xp__frame { position: relative; height: 112%; top: -6%; }
-.xp__frame img { width: 100%; height: 100%; object-fit: cover; }
+.xp__frame img, .xp__video { display: block; width: 100%; height: 100%; object-fit: cover; }
 .xp__aside {
   width: 46%; margin: -30% 0 0 auto; position: relative; z-index: 1;
   aspect-ratio: 3 / 4; overflow: hidden; outline: 10px solid var(--bg-2);
