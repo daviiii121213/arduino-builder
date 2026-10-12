@@ -28,7 +28,7 @@ button{font:inherit;background:var(--accent);color:#08210f;border:0;border-radiu
 </head>
 <body>
 <h1>🚗 Mestre do Estacionamento</h1>
-<div id="hud"><span>Fase <b id="lvl">1</b>/3</span><span>Batidas <b id="hits">0</b></span><span>Tempo <b id="time">0.0</b>s</span></div>
+<div id="hud"><span>Fase <b id="lvl">1</b>/<b id="tot">18</b></span><span>Tentativa <b id="hits">1</b></span><span>Tempo <b id="time">0.0</b>s</span></div>
 <div id="wrap">
   <canvas id="c" width="900" height="600"></canvas>
   <div id="overlay"><div class="card" id="card"></div></div>
@@ -36,7 +36,7 @@ button{font:inherit;background:var(--accent);color:#08210f;border:0;border-radiu
 <div id="touch">
   <button data-k="left">◀</button><button data-k="up">▲</button><button data-k="down">▼</button><button data-k="right">▶</button>
 </div>
-<p class="help">Setas ou WASD para dirigir · Espaço = freio · R = reiniciar fase<br>Pare o carro inteiro dentro da vaga brilhante, alinhado e parado.</p>
+<p class="help">Setas ou WASD para dirigir · Espaço = freio · R = reiniciar fase<br>Pare o carro inteiro dentro da vaga brilhante, alinhado e parado. Bateu = recomeça a fase.</p>
 <script>
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 const W=900,H=600,CW=26,CL=48;
@@ -53,13 +53,48 @@ const LEVELS=[
   parked:[[390,90,Math.PI/2],[510,90,Math.PI/2],[330,90,Math.PI/2],[570,90,Math.PI/2],[270,90,Math.PI/2],
           [330,510,-Math.PI/2],[450,510,-Math.PI/2],[570,510,-Math.PI/2],[690,510,-Math.PI/2]],
   moving:[{y:300,x0:-60,x1:960,v:90,dir:1}]},
- {name:'Difícil — Baliza',start:{x:80,y:260,a:0},
+ {name:'Difícil — Baliza',start:{x:80,y:290,a:0},
   spot:{x:520,y:445,a:0,w:36,l:70},
   parked:[[436,445,0],[604,445,0],[350,445,0],[690,445,0],[780,445,0],[180,445,0],
           [300,120,0],[400,120,0],[500,120,0],[600,120,0],[700,120,0]],
   cones:[[470,478],[570,478],[200,330],[650,330]],
   moving:[{y:240,x0:960,x1:-60,v:120,dir:-1},{y:330,x0:-60,x1:960,v:80,dir:1}]}
 ];
+
+// Gera mais 15 fases com dificuldade crescente
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};}
+const NAMES=['Vaga Apertada','Hora do Rush','Shopping Lotado','Cones na Pista','Baliza Rápida','Trânsito Duplo',
+ 'Centro da Cidade','Feriado','Estádio','Aeroporto','Labirinto','Garagem Estreita','Avenida Louca','Quase Impossível','Mestre Final'];
+for(let n=0;n<15;n++){
+ const d=(n+1)/15,r=rng(1000+n*97),type=n%3,parked=[],cones=[],moving=[];
+ let spot;
+ if(type<2){ // vaga perpendicular em cima (0) ou embaixo (1)
+  const y=type===0?90:510,a=type===0?Math.PI/2:-Math.PI/2,w=44-10*d,gap=w+16;
+  const sx=260+Math.round(r()*480);spot={x:sx,y,a,w,l:72-6*d};
+  for(let x=sx-gap;x>40;x-=gap)parked.push([x,y,a]);
+  for(let x=sx+gap;x<W-40;x+=gap)parked.push([x,y,a]);
+  const oy=type===0?510:90,oa=-a; // outra fileira, parcialmente cheia
+  for(let x=200;x<W-40;x+=gap)if(r()<0.4+0.5*d)parked.push([x,oy,oa]);
+ }else{ // baliza embaixo
+  const y=445,l=76-10*d,sx=280+Math.round(r()*420);spot={x:sx,y,a:0,w:36,l};
+  const step=CL+12;
+  parked.push([sx-l/2-CL/2-2,y,0],[sx+l/2+CL/2+2,y,0]);
+  for(let x=sx-l/2-CL/2-2-step;x>40;x-=step)parked.push([x,y,0]);
+  for(let x=sx+l/2+CL/2+2+step;x<W-40;x+=step)parked.push([x,y,0]);
+  for(let x=200;x<W-40;x+=step)if(r()<0.5+0.4*d)parked.push([x,110,0]);
+ }
+ const lanes=type===0?[200,400]:type===1?[200,400]:[200,370];
+ const nLanes=Math.min(2,1+Math.floor(d*2.2));
+ for(let i=0;i<nLanes;i++){const dir=(i+n)%2?1:-1,v=70+110*d+r()*30;
+  moving.push({y:lanes[i],x0:dir>0?-60:960,x1:dir>0?960:-60,v,dir});
+  if(d>0.6&&i===0)moving.push({y:lanes[i],x0:dir>0?-60:960,x1:dir>0?960:-60,v,dir,delay:0.5});}
+ const nCones=Math.floor(d*7);
+ for(let i=0,tries=0;i<nCones&&tries<200;tries++){
+  const cx=180+r()*660,cy=150+r()*300;
+  if(Math.hypot(cx-spot.x,cy-spot.y)<110||lanes.some(ly=>Math.abs(cy-ly)<30))continue;
+  cones.push([cx,cy]);i++;}
+ LEVELS.push({name:NAMES[n],start:{x:80,y:300,a:0},spot,parked,cones,moving});
+}
 
 let L,car,parked,moving,hits,t,state,keys={},level=0,flash=0,holdOk=0;
 
@@ -70,16 +105,16 @@ function sat(A,B){for(const P of [A,B])for(let i=0;i<4;i++){const p1=P[i],p2=P[(
  for(const q of B){const d=q[0]*nx+q[1]*ny;b0=Math.min(b0,d);b1=Math.max(b1,d);}if(a1<b0||b1<a0)return false;}return true;}
 function inside(pt,R){for(let i=0;i<4;i++){const p1=R[i],p2=R[(i+1)%4];if((p2[0]-p1[0])*(pt[1]-p1[1])-(p2[1]-p1[1])*(pt[0]-p1[0])>0)return false;}return true;}
 
-function loadLevel(i){level=i;L=LEVELS[i];car={x:L.start.x,y:L.start.y,a:L.start.a,v:0,steer:0};
+function loadLevel(i,keepTries){level=i;L=LEVELS[i];car={x:L.start.x,y:L.start.y,a:L.start.a,v:0,steer:0};
  parked=L.parked.map((p,k)=>({x:p[0],y:p[1],a:p[2],col:colors[k%colors.length]}));
- moving=L.moving.map((m,k)=>({...m,x:m.x0,col:colors[(k+3)%colors.length]}));
- hits=0;t=0;holdOk=0;state='play';overlay.classList.add('hide');
+ moving=L.moving.map((m,k)=>({...m,x:m.delay?m.x0+(m.x1-m.x0)*m.delay:m.x0,col:colors[(k+3)%colors.length]}));
+ if(!keepTries)hits=1;t=0;holdOk=0;state='play';overlay.classList.add('hide');
  document.getElementById('lvl').textContent=i+1;}
 
 function show(html,btn,fn){card.innerHTML=html+`<br><button id="b">${btn}</button>`;overlay.classList.remove('hide');
  document.getElementById('b').onclick=fn;}
 
-function crash(){hits++;flash=.3;car.v*=-0.3;}
+function crash(){hits++;loadLevel(level,true);flash=.5;}
 
 function update(dt){if(state!=='play')return;t+=dt;
  const up=keys.up,dn=keys.down,brake=keys.brake;
@@ -97,16 +132,16 @@ function update(dt){if(state!=='play')return;t+=dt;
  const obs=[...parked.map(p=>rectCorners(p.x,p.y,p.a,CW,CL)),...moving.map(m=>rectCorners(m.x,m.y,m.dir>0?0:Math.PI,CW,CL)),
   ...(L.cones||[]).map(c=>rectCorners(c[0],c[1],0,12,12))];
  if(!hit)hit=obs.some(o=>sat(C,o));
- if(hit){car.x=ox;car.y=oy;car.a=oa;crash();}
+ if(hit){crash();return;}
  if(flash>0)flash-=dt;
  // checar estacionamento
  const S=L.spot,SR=rectCorners(S.x,S.y,S.a,S.w,S.l);
  let da=Math.abs(((car.a-S.a)%Math.PI+Math.PI)%Math.PI);da=Math.min(da,Math.PI-da);
  const ok=C.every(p=>inside(p,SR))&&da<0.25&&Math.abs(car.v)<3;
  holdOk=ok?holdOk+dt:0;
- if(holdOk>0.6){state='win';const stars=hits===0?'⭐⭐⭐':hits<3?'⭐⭐':'⭐';
-  if(level<2)show(`<h2>Fase ${level+1} concluída! ${stars}</h2><p>Tempo: ${t.toFixed(1)}s · Batidas: ${hits}</p>`,'Próxima fase',()=>loadLevel(level+1));
-  else show(`<h2>🏆 Você venceu o jogo! ${stars}</h2><p>Todas as 3 fases concluídas.</p>`,'Jogar de novo',()=>loadLevel(0));}
+ if(holdOk>0.6){state='win';const stars=hits===1?'⭐⭐⭐':hits<4?'⭐⭐':'⭐';
+  if(level<LEVELS.length-1)show(`<h2>Fase ${level+1} concluída! ${stars}</h2><p>Tempo: ${t.toFixed(1)}s · Tentativas: ${hits}</p>`,'Próxima fase',()=>loadLevel(level+1));
+  else show(`<h2>🏆 Você venceu o jogo! ${stars}</h2><p>Todas as ${LEVELS.length} fases concluídas.</p>`,'Jogar de novo',()=>loadLevel(0));}
  document.getElementById('hits').textContent=hits;document.getElementById('time').textContent=t.toFixed(1);}
 
 function drawCar(x,y,a,col,player){ctx.save();ctx.translate(x,y);ctx.rotate(a);
@@ -155,7 +190,7 @@ document.querySelectorAll('#touch button').forEach(b=>{const k=b.dataset.k;
  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false));});
 
 loadLevel(0);state='menu';
-show('<h2>Mestre do Estacionamento</h2><p>Estacione na vaga verde brilhante.</p><p>3 fases, cada uma mais difícil, com carros em volta e trânsito!</p>','Começar',()=>loadLevel(0));
+show('<h2>Mestre do Estacionamento</h2><p>Estacione na vaga verde brilhante.</p><p>18 fases, cada uma mais difícil. Bateu? A fase recomeça!</p>','Começar',()=>loadLevel(0));
 requestAnimationFrame(loop);
 </script>
 </body>
