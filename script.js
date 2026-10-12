@@ -376,6 +376,57 @@
     }
   }
 
+  /* ---------- Short do YouTube (Profissionais) ----------
+     Mesmo comportamento do vídeo da Experiência: loop sem som, pausa fora da
+     tela/aba e recomeça do início ao voltar. Controle via postMessage
+     (enablejsapi=1), sem carregar a biblioteca do YouTube. */
+  const yt = $('#prosVideo');
+  if (yt && !reduced) {
+    const id = yt.dataset.yt;
+    let loaded = false, inView = false, left = false;
+    const cmd = (func, args = []) => {
+      yt.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
+    };
+    const load = () => {
+      if (loaded) return;
+      loaded = true;
+      yt.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}` +
+        '&controls=0&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&enablejsapi=1';
+      // só mostra o vídeo quando o player responde; se o YouTube falhar, a foto continua
+      yt.addEventListener('load', () => {
+        yt.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 'prosVideo' }), '*');
+      }, { once: true });
+      window.addEventListener('message', (e) => {
+        if (e.source !== yt.contentWindow || !/youtube(-nocookie)?\.com$/.test(new URL(e.origin).hostname)) return;
+        let data; try { data = JSON.parse(e.data); } catch { return; }
+        if (data.event === 'onReady' || data.event === 'infoDelivery' || data.event === 'initialDelivery') {
+          if (!yt.classList.contains('is-ready')) {
+            yt.classList.add('is-ready');
+            if (!inView) cmd('pauseVideo');
+          }
+        }
+      });
+    };
+    const restart = () => { cmd('seekTo', [0, true]); cmd('playVideo'); };
+    new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          load();
+          inView = true;
+          if (left) { left = false; restart(); } else cmd('playVideo');
+        } else if (inView) {
+          inView = false;
+          left = true;
+          cmd('pauseVideo');
+        }
+      });
+    }, { rootMargin: '200px 0px', threshold: 0.25 }).observe(yt.closest('.pros__photo'));
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { cmd('pauseVideo'); left = true; }
+      else if (inView && left) { left = false; restart(); }
+    });
+  }
+
   /* ---------- Ano ---------- */
   $('#year').textContent = new Date().getFullYear();
 })();
