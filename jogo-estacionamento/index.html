@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mestre do Estacionamento</title>
+<style>
+:root{--bg:#0f1115;--fg:#eef1f5;--muted:#9aa3ad;--panel:#1a1e25;--accent:#3ddc84;--danger:#ff5a5a}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#eef1f5;--fg:#14181f;--muted:#5b6470;--panel:#ffffff}}
+:root[data-theme="dark"]{--bg:#0f1115;--fg:#eef1f5;--muted:#9aa3ad;--panel:#1a1e25}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:12px 16px;gap:10px}
+h1{font-size:1.2rem;margin:0}
+#hud{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;font-size:.95rem;color:var(--muted)}
+#hud b{color:var(--fg)}
+#wrap{position:relative;width:100%;max-width:900px}
+canvas{width:100%;height:auto;display:block;border-radius:12px;background:#2b2f36;touch-action:none}
+#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);border-radius:12px}
+#overlay.hide{display:none}
+.card{background:var(--panel);color:var(--fg);padding:20px 24px;border-radius:12px;text-align:center;max-width:90%}
+.card h2{margin:0 0 8px}
+.card p{margin:6px 0;color:var(--muted)}
+button{font:inherit;background:var(--accent);color:#08210f;border:0;border-radius:8px;padding:10px 18px;font-weight:700;cursor:pointer;margin-top:10px}
+#touch{display:grid;grid-template-columns:repeat(4,64px);gap:8px;justify-content:center}
+#touch button{margin:0;padding:14px 0;background:var(--panel);color:var(--fg);border:1px solid var(--muted);user-select:none}
+.help{font-size:.85rem;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<h1>🚗 Mestre do Estacionamento</h1>
+<div id="hud"><span>Fase <b id="lvl">1</b>/3</span><span>Batidas <b id="hits">0</b></span><span>Tempo <b id="time">0.0</b>s</span></div>
+<div id="wrap">
+  <canvas id="c" width="900" height="600"></canvas>
+  <div id="overlay"><div class="card" id="card"></div></div>
+</div>
+<div id="touch">
+  <button data-k="left">◀</button><button data-k="up">▲</button><button data-k="down">▼</button><button data-k="right">▶</button>
+</div>
+<p class="help">Setas ou WASD para dirigir · Espaço = freio · R = reiniciar fase<br>Pare o carro inteiro dentro da vaga brilhante, alinhado e parado.</p>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const W=900,H=600,CW=26,CL=48;
+const overlay=document.getElementById('overlay'),card=document.getElementById('card');
+const colors=['#e74c3c','#3498db','#f1c40f','#9b59b6','#ecf0f1','#e67e22','#1abc9c','#7f8c8d'];
+
+// Fases: carro inicial, vaga (x,y,ang), carros parados, carros em movimento
+const LEVELS=[
+ {name:'Fácil',start:{x:120,y:500,a:-Math.PI/2},
+  spot:{x:600,y:140,a:Math.PI/2,w:44,l:72},
+  parked:[[540,140,Math.PI/2],[660,140,Math.PI/2],[480,140,Math.PI/2]],moving:[]},
+ {name:'Médio',start:{x:80,y:300,a:0},
+  spot:{x:450,y:90,a:Math.PI/2,w:40,l:66},
+  parked:[[390,90,Math.PI/2],[510,90,Math.PI/2],[330,90,Math.PI/2],[570,90,Math.PI/2],[270,90,Math.PI/2],
+          [330,510,-Math.PI/2],[450,510,-Math.PI/2],[570,510,-Math.PI/2],[690,510,-Math.PI/2]],
+  moving:[{y:300,x0:-60,x1:960,v:90,dir:1}]},
+ {name:'Difícil — Baliza',start:{x:80,y:260,a:0},
+  spot:{x:520,y:445,a:0,w:36,l:70},
+  parked:[[436,445,0],[604,445,0],[350,445,0],[690,445,0],[780,445,0],[180,445,0],
+          [300,120,0],[400,120,0],[500,120,0],[600,120,0],[700,120,0]],
+  cones:[[470,478],[570,478],[200,330],[650,330]],
+  moving:[{y:240,x0:960,x1:-60,v:120,dir:-1},{y:330,x0:-60,x1:960,v:80,dir:1}]}
+];
+
+let L,car,parked,moving,hits,t,state,keys={},level=0,flash=0,holdOk=0;
+
+function rectCorners(x,y,a,w,l){const c=Math.cos(a),s=Math.sin(a),hl=l/2,hw=w/2;
+ return [[hl,hw],[hl,-hw],[-hl,-hw],[-hl,hw]].map(([px,py])=>[x+px*c-py*s,y+px*s+py*c]);}
+function sat(A,B){for(const P of [A,B])for(let i=0;i<4;i++){const p1=P[i],p2=P[(i+1)%4],nx=p2[1]-p1[1],ny=p1[0]-p2[0];
+ let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9;for(const q of A){const d=q[0]*nx+q[1]*ny;a0=Math.min(a0,d);a1=Math.max(a1,d);}
+ for(const q of B){const d=q[0]*nx+q[1]*ny;b0=Math.min(b0,d);b1=Math.max(b1,d);}if(a1<b0||b1<a0)return false;}return true;}
+function inside(pt,R){for(let i=0;i<4;i++){const p1=R[i],p2=R[(i+1)%4];if((p2[0]-p1[0])*(pt[1]-p1[1])-(p2[1]-p1[1])*(pt[0]-p1[0])>0)return false;}return true;}
+
+function loadLevel(i){level=i;L=LEVELS[i];car={x:L.start.x,y:L.start.y,a:L.start.a,v:0,steer:0};
+ parked=L.parked.map((p,k)=>({x:p[0],y:p[1],a:p[2],col:colors[k%colors.length]}));
+ moving=L.moving.map((m,k)=>({...m,x:m.x0,col:colors[(k+3)%colors.length]}));
+ hits=0;t=0;holdOk=0;state='play';overlay.classList.add('hide');
+ document.getElementById('lvl').textContent=i+1;}
+
+function show(html,btn,fn){card.innerHTML=html+`<br><button id="b">${btn}</button>`;overlay.classList.remove('hide');
+ document.getElementById('b').onclick=fn;}
+
+function crash(){hits++;flash=.3;car.v*=-0.3;}
+
+function update(dt){if(state!=='play')return;t+=dt;
+ const up=keys.up,dn=keys.down,brake=keys.brake;
+ const tgt=(keys.left?-1:0)+(keys.right?1:0);car.steer+=(tgt*0.6-car.steer)*Math.min(1,dt*8);
+ if(up)car.v+=220*dt;if(dn)car.v-=180*dt;
+ if(brake)car.v*=Math.pow(.02,dt);car.v*=Math.pow(.5,dt);
+ if(!up&&!dn&&Math.abs(car.v)<4)car.v=0;
+ car.v=Math.max(-110,Math.min(190,car.v));
+ const ox=car.x,oy=car.y,oa=car.a;
+ car.a+=car.v/CL*Math.tan(car.steer)*dt;
+ car.x+=Math.cos(car.a)*car.v*dt;car.y+=Math.sin(car.a)*car.v*dt;
+ for(const m of moving){m.x+=m.v*m.dir*dt;if((m.dir>0&&m.x>m.x1)||(m.dir<0&&m.x<m.x1))m.x=m.x0;}
+ const C=rectCorners(car.x,car.y,car.a,CW,CL);
+ let hit=C.some(p=>p[0]<0||p[0]>W||p[1]<0||p[1]>H);
+ const obs=[...parked.map(p=>rectCorners(p.x,p.y,p.a,CW,CL)),...moving.map(m=>rectCorners(m.x,m.y,m.dir>0?0:Math.PI,CW,CL)),
+  ...(L.cones||[]).map(c=>rectCorners(c[0],c[1],0,12,12))];
+ if(!hit)hit=obs.some(o=>sat(C,o));
+ if(hit){car.x=ox;car.y=oy;car.a=oa;crash();}
+ if(flash>0)flash-=dt;
+ // checar estacionamento
+ const S=L.spot,SR=rectCorners(S.x,S.y,S.a,S.w,S.l);
+ let da=Math.abs(((car.a-S.a)%Math.PI+Math.PI)%Math.PI);da=Math.min(da,Math.PI-da);
+ const ok=C.every(p=>inside(p,SR))&&da<0.25&&Math.abs(car.v)<3;
+ holdOk=ok?holdOk+dt:0;
+ if(holdOk>0.6){state='win';const stars=hits===0?'⭐⭐⭐':hits<3?'⭐⭐':'⭐';
+  if(level<2)show(`<h2>Fase ${level+1} concluída! ${stars}</h2><p>Tempo: ${t.toFixed(1)}s · Batidas: ${hits}</p>`,'Próxima fase',()=>loadLevel(level+1));
+  else show(`<h2>🏆 Você venceu o jogo! ${stars}</h2><p>Todas as 3 fases concluídas.</p>`,'Jogar de novo',()=>loadLevel(0));}
+ document.getElementById('hits').textContent=hits;document.getElementById('time').textContent=t.toFixed(1);}
+
+function drawCar(x,y,a,col,player){ctx.save();ctx.translate(x,y);ctx.rotate(a);
+ ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(-CL/2+3,-CW/2+3,CL,CW);
+ ctx.fillStyle=col;roundRect(-CL/2,-CW/2,CL,CW,6);ctx.fill();
+ ctx.fillStyle='rgba(20,30,45,.85)';ctx.fillRect(CL/2-17,-CW/2+4,8,CW-8);ctx.fillRect(-CL/2+6,-CW/2+4,6,CW-8);
+ ctx.fillStyle='#fff8c0';ctx.fillRect(CL/2-3,-CW/2+3,3,5);ctx.fillRect(CL/2-3,CW/2-8,3,5);
+ ctx.fillStyle='#c0392b';ctx.fillRect(-CL/2,-CW/2+3,2,5);ctx.fillRect(-CL/2,CW/2-8,2,5);
+ if(player){ctx.strokeStyle='#fff';ctx.lineWidth=2;roundRect(-CL/2,-CW/2,CL,CW,6);ctx.stroke();}
+ ctx.restore();}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+function draw(now){
+ ctx.fillStyle='#3a3f47';ctx.fillRect(0,0,W,H);
+ // marcações de vagas
+ ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=2;
+ for(const p of [...parked,{...L.spot}]){const w=L.spot.w,l=L.spot.l;const R=rectCorners(p.x,p.y,p.a,w+16,l+6);
+  ctx.beginPath();ctx.moveTo(...R[0]);R.forEach(q=>ctx.lineTo(...q));ctx.closePath();ctx.stroke();}
+ // faixas de pista
+ ctx.setLineDash([20,16]);ctx.strokeStyle='rgba(255,220,80,.4)';
+ for(const m of moving){ctx.beginPath();ctx.moveTo(0,m.y-22);ctx.lineTo(W,m.y-22);ctx.stroke();}
+ ctx.setLineDash([]);
+ // vaga brilhante
+ const S=L.spot,g=.55+.45*Math.sin(now/220);
+ ctx.save();ctx.translate(S.x,S.y);ctx.rotate(S.a);
+ ctx.shadowColor='#3ddc84';ctx.shadowBlur=25*g+10;
+ ctx.fillStyle=`rgba(61,220,132,${.18+.22*g})`;ctx.fillRect(-S.l/2,-S.w/2,S.l,S.w);
+ ctx.strokeStyle=holdOk>0?'#fff':`rgba(61,255,150,${.6+.4*g})`;ctx.lineWidth=3;ctx.strokeRect(-S.l/2,-S.w/2,S.l,S.w);
+ ctx.restore();
+ for(const c of (L.cones||[])){ctx.fillStyle='#ff7a1a';ctx.beginPath();ctx.arc(c[0],c[1],7,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(c[0],c[1],3,0,7);ctx.fill();}
+ for(const p of parked)drawCar(p.x,p.y,p.a,p.col);
+ for(const m of moving)drawCar(m.x,m.y,m.dir>0?0:Math.PI,m.col);
+ drawCar(car.x,car.y,car.a,'#2ecc71',true);
+ if(flash>0){ctx.fillStyle=`rgba(255,60,60,${flash})`;ctx.fillRect(0,0,W,H);}
+ ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='bold 16px system-ui';ctx.fillText(`Fase ${level+1}: ${L.name}`,12,24);
+}
+
+let last=performance.now();
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw(now);requestAnimationFrame(loop);}
+
+const map={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'brake'};
+addEventListener('keydown',e=>{if(map[e.code]){keys[map[e.code]]=true;e.preventDefault();}if(e.code==='KeyR'&&state==='play')loadLevel(level);});
+addEventListener('keyup',e=>{if(map[e.code])keys[map[e.code]]=false;});
+document.querySelectorAll('#touch button').forEach(b=>{const k=b.dataset.k;
+ b.addEventListener('pointerdown',e=>{keys[k]=true;e.preventDefault();});
+ ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false));});
+
+loadLevel(0);state='menu';
+show('<h2>Mestre do Estacionamento</h2><p>Estacione na vaga verde brilhante.</p><p>3 fases, cada uma mais difícil, com carros em volta e trânsito!</p>','Começar',()=>loadLevel(0));
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
