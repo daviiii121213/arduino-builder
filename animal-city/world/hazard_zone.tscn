@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://world/hazard_zone.gd" id="1_hazard"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hazard"]
+size = Vector3(4, 0.6, 3)
+
+[sub_resource type="BoxMesh" id="BoxMesh_hazard"]
+size = Vector3(4, 0.02, 3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hazard"]
+albedo_color = Color(0.7, 0.15, 0.1, 1)
+
+[node name="HazardZone" type="Area3D"]
+script = ExtResource("1_hazard")
+
+[node name="Shape" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.3, 0)
+shape = SubResource("BoxShape3D_hazard")
+
+[node name="Visual" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.02, 0)
+mesh = SubResource("BoxMesh_hazard")
+material_override = SubResource("StandardMaterial3D_hazard")

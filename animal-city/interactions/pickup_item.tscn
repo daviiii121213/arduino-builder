@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://interactions/pickup_item.gd" id="1_pickup"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_pickup"]
+size = Vector3(0.4, 0.4, 0.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_pickup"]
+size = Vector3(0.3, 0.3, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pickup"]
+albedo_color = Color(0.95, 0.75, 0.2, 1)
+metallic = 0.4
+roughness = 0.35
+
+[node name="PickupItem" type="StaticBody3D"]
+script = ExtResource("1_pickup")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_pickup")
+material_override = SubResource("StandardMaterial3D_pickup")
+
+[node name="Shape" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_pickup")

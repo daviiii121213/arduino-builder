@@ -1,0 +1,113 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://world/test_city.gd" id="1_city"]
+[ext_resource type="PackedScene" path="res://characters/player_animal.tscn" id="2_player"]
+[ext_resource type="Script" path="res://world/day_night_controller.gd" id="3_daynight"]
+[ext_resource type="PackedScene" path="res://world/checkpoint.tscn" id="4_checkpoint"]
+[ext_resource type="PackedScene" path="res://world/hazard_zone.tscn" id="5_hazard"]
+[ext_resource type="PackedScene" path="res://interactions/pickup_item.tscn" id="6_pickup"]
+[ext_resource type="Script" path="res://interactions/door.gd" id="7_door"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_city"]
+sky_top_color = Color(0.32, 0.5, 0.78, 1)
+sky_horizon_color = Color(0.7, 0.76, 0.84, 1)
+
+[sub_resource type="Sky" id="Sky_city"]
+sky_material = SubResource("ProceduralSkyMaterial_city")
+
+[sub_resource type="Environment" id="Environment_city"]
+background_mode = 2
+sky = SubResource("Sky_city")
+ambient_light_source = 3
+ambient_light_energy = 0.5
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_gate"]
+size = Vector3(0.2, 2.2, 2.0)
+
+[sub_resource type="BoxMesh" id="BoxMesh_gate"]
+size = Vector3(0.2, 2.2, 2.0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gate"]
+albedo_color = Color(0.45, 0.3, 0.18, 1)
+
+[node name="TestCity" type="Node3D"]
+script = ExtResource("1_city")
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_city")
+
+[node name="DayNight" type="Node" parent="."]
+script = ExtResource("3_daynight")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector3(0, 0, 14)
+
+[node name="Interactables" type="Node3D" parent="."]
+
+[node name="Chave_Predio" parent="Interactables" instance=ExtResource("6_pickup")]
+position = Vector3(-6, 0.25, 14)
+prompt_text = "Pegar chave"
+pickup_id = "chave_predio"
+item_id = "chave_predio"
+
+[node name="Moeda_Calcada" parent="Interactables" instance=ExtResource("6_pickup")]
+position = Vector3(6, 0.25, -12)
+prompt_text = "Pegar moeda"
+pickup_id = "moeda_calcada"
+money_reward = 10
+
+[node name="Moeda_Oeste" parent="Interactables" instance=ExtResource("6_pickup")]
+position = Vector3(-22, 0.25, 6)
+prompt_text = "Pegar moeda"
+pickup_id = "moeda_oeste"
+money_reward = 10
+
+[node name="Osso_Calcada" parent="Interactables" instance=ExtResource("6_pickup")]
+position = Vector3(25, 0.25, 6)
+prompt_text = "Pegar osso"
+pickup_id = "osso_calcada"
+item_id = "osso"
+
+[node name="Segredo_Beco" parent="Interactables" instance=ExtResource("6_pickup")]
+position = Vector3(-35, 0.25, -35)
+prompt_text = "Examinar"
+pickup_id = "segredo_beco"
+money_reward = 50
+is_secret = true
+
+[node name="Portao_Beco" type="StaticBody3D" parent="Interactables"]
+position = Vector3(-30, 0, -36)
+script = ExtResource("7_door")
+prompt_text = "Abrir portão"
+required_item_id = "chave_predio"
+
+[node name="Pivot" type="Node3D" parent="Interactables/Portao_Beco"]
+
+[node name="Panel" type="MeshInstance3D" parent="Interactables/Portao_Beco/Pivot"]
+position = Vector3(0, 1.1, 1)
+mesh = SubResource("BoxMesh_gate")
+material_override = SubResource("StandardMaterial3D_gate")
+
+[node name="Shape" type="CollisionShape3D" parent="Interactables/Portao_Beco/Pivot"]
+position = Vector3(0, 1.1, 1)
+shape = SubResource("BoxShape3D_gate")
+
+[node name="Checkpoints" type="Node3D" parent="."]
+
+[node name="Ponto_Norte" parent="Checkpoints" instance=ExtResource("4_checkpoint")]
+position = Vector3(0, 0, -30)
+checkpoint_label = "Ponto de controle (norte)"
+
+[node name="Ponto_Leste" parent="Checkpoints" instance=ExtResource("4_checkpoint")]
+position = Vector3(20, 0, 0)
+checkpoint_label = "Ponto de controle (leste)"
+
+[node name="Hazards" type="Node3D" parent="."]
+
+[node name="Vidro_Quebrado" parent="Hazards" instance=ExtResource("5_hazard")]
+position = Vector3(0, 0, 22)
