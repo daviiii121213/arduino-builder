@@ -7,15 +7,15 @@
   "edgeFiltering": false,
   "collisionTolerance": 0,
   "swfPrecision": 2.525,
-  "bbox_left": 9,
-  "bbox_right": 22,
-  "bbox_top": 4,
-  "bbox_bottom": 31,
+  "bbox_left": 4,
+  "bbox_right": 11,
+  "bbox_top": 3,
+  "bbox_bottom": 15,
   "HTile": false,
   "VTile": false,
   "For3D": false,
-  "width": 32,
-  "height": 32,
+  "width": 16,
+  "height": 16,
   "textureGroupId": {
     "name": "Default",
     "path": "texturegroups/Default"
@@ -27,7 +27,7 @@
     {
       "compositeImage": {
         "FrameId": {
-          "name": "bc4fc3e3-7e68-49a6-b808-68babc14ffce",
+          "name": "79932663-8ac4-4817-ae48-ab565f5d66be",
           "path": "sprites/spr_player_jump/spr_player_jump.yy"
         },
         "LayerId": null,
@@ -39,11 +39,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "bc4fc3e3-7e68-49a6-b808-68babc14ffce",
+            "name": "79932663-8ac4-4817-ae48-ab565f5d66be",
             "path": "sprites/spr_player_jump/spr_player_jump.yy"
           },
           "LayerId": {
-            "name": "5200ae15-11a0-4159-bfce-18c0871305fa",
+            "name": "f8eaa4c0-cd9d-43ed-acdb-def570ed7a2f",
             "path": "sprites/spr_player_jump/spr_player_jump.yy"
           },
           "resourceVersion": "1.0",
@@ -57,7 +57,7 @@
         "path": "sprites/spr_player_jump/spr_player_jump.yy"
       },
       "resourceVersion": "1.0",
-      "name": "bc4fc3e3-7e68-49a6-b808-68babc14ffce",
+      "name": "79932663-8ac4-4817-ae48-ab565f5d66be",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     }
@@ -91,7 +91,7 @@
         "keyframes": {
           "Keyframes": [
             {
-              "id": "628a2b39-3eeb-4e55-9895-11e02faee975",
+              "id": "3283eca8-a2b0-4ca1-9eb6-7e9270e39fc1",
               "Key": 0.0,
               "Length": 1.0,
               "Stretch": false,
@@ -100,7 +100,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "bc4fc3e3-7e68-49a6-b808-68babc14ffce",
+                    "name": "79932663-8ac4-4817-ae48-ab565f5d66be",
                     "path": "sprites/spr_player_jump/spr_player_jump.yy"
                   },
                   "resourceVersion": "1.0",
@@ -138,8 +138,8 @@
     "backdropHeight": 768,
     "backdropXOffset": 0.0,
     "backdropYOffset": 0.0,
-    "xorigin": 16,
-    "yorigin": 16,
+    "xorigin": 8,
+    "yorigin": 8,
     "eventToFunction": {},
     "eventStubScript": null,
     "parent": {
@@ -159,7 +159,7 @@
       "opacity": 100.0,
       "displayName": "default",
       "resourceVersion": "1.0",
-      "name": "5200ae15-11a0-4159-bfce-18c0871305fa",
+      "name": "f8eaa4c0-cd9d-43ed-acdb-def570ed7a2f",
       "tags": [],
       "resourceType": "GMImageLayer"
     }

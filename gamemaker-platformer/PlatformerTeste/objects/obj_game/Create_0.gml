@@ -2,6 +2,16 @@
 game_set_speed(60, gamespeed_fps);
 randomize();
 
+// Pixel perfect: o jogo é desenhado em 480x272 e a janela mostra em 2x
+surface_resize(application_surface, 480, 272);
+display_set_gui_size(480, 272);
+
+// Fonte pixelada feita de sprite (criada uma vez só)
+if (!variable_global_exists("font")) {
+	global.font = font_add_sprite_ext(spr_font, " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ:!/.-,", false, 1);
+}
+draw_set_font(global.font);
+
 if (!variable_global_exists("level")) {
 	global.level  = 0;
 	global.lives  = 3;
@@ -9,7 +19,7 @@ if (!variable_global_exists("level")) {
 	global.screen = "title"; // "", "title", "gameover", "end"
 }
 
-tile        = 32;
+tile        = 16;
 cam         = view_camera[0];
 cam_w       = camera_get_view_width(cam);
 cam_h       = camera_get_view_height(cam);
@@ -37,9 +47,9 @@ if (global.screen == "") {
 					// bloco com outro bloco em cima vira terra (sem grama)
 					if (_j > 0 && string_char_at(_map[_j - 1], _i) == "#") _b.image_index = 1;
 					break;
-				case "P": instance_create_layer(_xx + 16, _yy + 16, "Instances", obj_player); break;
+				case "P": instance_create_layer(_xx + 8, _yy + 8, "Instances", obj_player); break;
 				case "C": instance_create_layer(_xx, _yy, "Instances", obj_coin); coins_total++; break;
-				case "E": instance_create_layer(_xx + 16, _yy + 16, "Instances", obj_enemy); break;
+				case "E": instance_create_layer(_xx + 8, _yy + 8, "Instances", obj_enemy); break;
 				case "^": instance_create_layer(_xx, _yy, "Instances", obj_spike); break;
 				case "F": instance_create_layer(_xx, _yy - tile, "Instances", obj_flag); break;
 			}
@@ -50,7 +60,7 @@ if (global.screen == "") {
 // Nuvens do fundo: [x, y, velocidade de parallax]
 clouds = [];
 for (var _k = 0; _k < 8; _k++) {
-	clouds[_k] = [random(cam_w + 192), random_range(16, 200), random_range(0.15, 0.45)];
+	clouds[_k] = [random(cam_w + 64), irandom_range(8, 110), random_range(0.15, 0.45)];
 }
 
 // Posiciona a câmera direto no jogador
@@ -60,4 +70,4 @@ if (instance_exists(obj_player)) {
 	cam_x = clamp(obj_player.x - cam_w / 2, 0, max(0, level_w - cam_w));
 	cam_y = clamp(obj_player.y - cam_h / 2, 0, max(0, level_h - cam_h));
 }
-camera_set_view_pos(cam, cam_x, cam_y);
+camera_set_view_pos(cam, round(cam_x), round(cam_y));

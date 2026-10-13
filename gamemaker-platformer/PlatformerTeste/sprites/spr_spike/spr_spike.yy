@@ -7,15 +7,15 @@
   "edgeFiltering": false,
   "collisionTolerance": 0,
   "swfPrecision": 2.525,
-  "bbox_left": 2,
-  "bbox_right": 29,
-  "bbox_top": 20,
-  "bbox_bottom": 31,
+  "bbox_left": 1,
+  "bbox_right": 14,
+  "bbox_top": 9,
+  "bbox_bottom": 15,
   "HTile": false,
   "VTile": false,
   "For3D": false,
-  "width": 32,
-  "height": 32,
+  "width": 16,
+  "height": 16,
   "textureGroupId": {
     "name": "Default",
     "path": "texturegroups/Default"
@@ -27,7 +27,7 @@
     {
       "compositeImage": {
         "FrameId": {
-          "name": "27b166ed-371f-4efc-81d5-f3535beb0212",
+          "name": "0f79ef20-6cd0-48f3-8552-e123d846096c",
           "path": "sprites/spr_spike/spr_spike.yy"
         },
         "LayerId": null,
@@ -39,11 +39,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "27b166ed-371f-4efc-81d5-f3535beb0212",
+            "name": "0f79ef20-6cd0-48f3-8552-e123d846096c",
             "path": "sprites/spr_spike/spr_spike.yy"
           },
           "LayerId": {
-            "name": "b53d7088-f6f6-4069-8ad5-f540b4c36fc6",
+            "name": "76a54aa6-83a1-4866-955d-ab0a93dcd7b7",
             "path": "sprites/spr_spike/spr_spike.yy"
           },
           "resourceVersion": "1.0",
@@ -57,7 +57,7 @@
         "path": "sprites/spr_spike/spr_spike.yy"
       },
       "resourceVersion": "1.0",
-      "name": "27b166ed-371f-4efc-81d5-f3535beb0212",
+      "name": "0f79ef20-6cd0-48f3-8552-e123d846096c",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     }
@@ -91,7 +91,7 @@
         "keyframes": {
           "Keyframes": [
             {
-              "id": "a38e8a6d-a065-42ca-bc4a-8c402f7c2fc7",
+              "id": "1af0ea9f-a464-4cd1-aaa6-655dac2ead84",
               "Key": 0.0,
               "Length": 1.0,
               "Stretch": false,
@@ -100,7 +100,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "27b166ed-371f-4efc-81d5-f3535beb0212",
+                    "name": "0f79ef20-6cd0-48f3-8552-e123d846096c",
                     "path": "sprites/spr_spike/spr_spike.yy"
                   },
                   "resourceVersion": "1.0",
@@ -159,7 +159,7 @@
       "opacity": 100.0,
       "displayName": "default",
       "resourceVersion": "1.0",
-      "name": "b53d7088-f6f6-4069-8ad5-f540b4c36fc6",
+      "name": "76a54aa6-83a1-4866-955d-ab0a93dcd7b7",
       "tags": [],
       "resourceType": "GMImageLayer"
     }

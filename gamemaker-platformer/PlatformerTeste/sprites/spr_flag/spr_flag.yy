@@ -7,15 +7,15 @@
   "edgeFiltering": false,
   "collisionTolerance": 0,
   "swfPrecision": 2.525,
-  "bbox_left": 2,
-  "bbox_right": 20,
+  "bbox_left": 0,
+  "bbox_right": 9,
   "bbox_top": 0,
-  "bbox_bottom": 63,
+  "bbox_bottom": 31,
   "HTile": false,
   "VTile": false,
   "For3D": false,
-  "width": 32,
-  "height": 64,
+  "width": 16,
+  "height": 32,
   "textureGroupId": {
     "name": "Default",
     "path": "texturegroups/Default"
@@ -27,7 +27,7 @@
     {
       "compositeImage": {
         "FrameId": {
-          "name": "dbef9620-c1bc-461b-aafe-3291fb8b7a4b",
+          "name": "170f0d7a-ab10-47fb-976b-682f88536e74",
           "path": "sprites/spr_flag/spr_flag.yy"
         },
         "LayerId": null,
@@ -39,11 +39,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "dbef9620-c1bc-461b-aafe-3291fb8b7a4b",
+            "name": "170f0d7a-ab10-47fb-976b-682f88536e74",
             "path": "sprites/spr_flag/spr_flag.yy"
           },
           "LayerId": {
-            "name": "93ba7a9c-5da6-459f-98a3-c2396e2955ad",
+            "name": "05359cf4-d7cf-4713-b305-0f61d32eb392",
             "path": "sprites/spr_flag/spr_flag.yy"
           },
           "resourceVersion": "1.0",
@@ -57,14 +57,14 @@
         "path": "sprites/spr_flag/spr_flag.yy"
       },
       "resourceVersion": "1.0",
-      "name": "dbef9620-c1bc-461b-aafe-3291fb8b7a4b",
+      "name": "170f0d7a-ab10-47fb-976b-682f88536e74",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     },
     {
       "compositeImage": {
         "FrameId": {
-          "name": "2d42f4c2-cc05-4ce4-a872-9d1bc8e6f93a",
+          "name": "9a57045b-3af8-473f-9ad6-7420572ec878",
           "path": "sprites/spr_flag/spr_flag.yy"
         },
         "LayerId": null,
@@ -76,11 +76,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "2d42f4c2-cc05-4ce4-a872-9d1bc8e6f93a",
+            "name": "9a57045b-3af8-473f-9ad6-7420572ec878",
             "path": "sprites/spr_flag/spr_flag.yy"
           },
           "LayerId": {
-            "name": "93ba7a9c-5da6-459f-98a3-c2396e2955ad",
+            "name": "05359cf4-d7cf-4713-b305-0f61d32eb392",
             "path": "sprites/spr_flag/spr_flag.yy"
           },
           "resourceVersion": "1.0",
@@ -94,7 +94,7 @@
         "path": "sprites/spr_flag/spr_flag.yy"
       },
       "resourceVersion": "1.0",
-      "name": "2d42f4c2-cc05-4ce4-a872-9d1bc8e6f93a",
+      "name": "9a57045b-3af8-473f-9ad6-7420572ec878",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     }
@@ -128,7 +128,7 @@
         "keyframes": {
           "Keyframes": [
             {
-              "id": "1053600f-7a57-4a57-baf9-00cfb9f816bf",
+              "id": "c4e4704c-bb61-452e-8af4-ec9ac059380b",
               "Key": 0.0,
               "Length": 1.0,
               "Stretch": false,
@@ -137,7 +137,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "dbef9620-c1bc-461b-aafe-3291fb8b7a4b",
+                    "name": "170f0d7a-ab10-47fb-976b-682f88536e74",
                     "path": "sprites/spr_flag/spr_flag.yy"
                   },
                   "resourceVersion": "1.0",
@@ -148,7 +148,7 @@
               "resourceType": "Keyframe<SpriteFrameKeyframe>"
             },
             {
-              "id": "39783f7f-cbcf-423e-a307-7d10378c9e94",
+              "id": "39b630bf-b94d-429d-a6e9-45212a884ab3",
               "Key": 1.0,
               "Length": 1.0,
               "Stretch": false,
@@ -157,7 +157,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "2d42f4c2-cc05-4ce4-a872-9d1bc8e6f93a",
+                    "name": "9a57045b-3af8-473f-9ad6-7420572ec878",
                     "path": "sprites/spr_flag/spr_flag.yy"
                   },
                   "resourceVersion": "1.0",
@@ -216,7 +216,7 @@
       "opacity": 100.0,
       "displayName": "default",
       "resourceVersion": "1.0",
-      "name": "93ba7a9c-5da6-459f-98a3-c2396e2955ad",
+      "name": "05359cf4-d7cf-4713-b305-0f61d32eb392",
       "tags": [],
       "resourceType": "GMImageLayer"
     }

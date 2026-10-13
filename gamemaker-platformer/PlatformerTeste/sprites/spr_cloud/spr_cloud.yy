@@ -8,14 +8,14 @@
   "collisionTolerance": 0,
   "swfPrecision": 2.525,
   "bbox_left": 0,
-  "bbox_right": 95,
+  "bbox_right": 31,
   "bbox_top": 0,
-  "bbox_bottom": 47,
+  "bbox_bottom": 8,
   "HTile": false,
   "VTile": false,
   "For3D": false,
-  "width": 96,
-  "height": 48,
+  "width": 32,
+  "height": 9,
   "textureGroupId": {
     "name": "Default",
     "path": "texturegroups/Default"
@@ -27,7 +27,7 @@
     {
       "compositeImage": {
         "FrameId": {
-          "name": "1e890e32-8829-40fd-b0b4-c908433f6a14",
+          "name": "2869b134-b0a1-486e-8b83-44daf8caf05e",
           "path": "sprites/spr_cloud/spr_cloud.yy"
         },
         "LayerId": null,
@@ -39,11 +39,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "1e890e32-8829-40fd-b0b4-c908433f6a14",
+            "name": "2869b134-b0a1-486e-8b83-44daf8caf05e",
             "path": "sprites/spr_cloud/spr_cloud.yy"
           },
           "LayerId": {
-            "name": "5178c57d-a234-4202-b8aa-07304b49d6b3",
+            "name": "6deb1d52-3375-42bf-b699-b51267dab645",
             "path": "sprites/spr_cloud/spr_cloud.yy"
           },
           "resourceVersion": "1.0",
@@ -57,7 +57,7 @@
         "path": "sprites/spr_cloud/spr_cloud.yy"
       },
       "resourceVersion": "1.0",
-      "name": "1e890e32-8829-40fd-b0b4-c908433f6a14",
+      "name": "2869b134-b0a1-486e-8b83-44daf8caf05e",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     }
@@ -91,7 +91,7 @@
         "keyframes": {
           "Keyframes": [
             {
-              "id": "fbf0ac42-0028-429e-b8fc-a693569b96e4",
+              "id": "0fefbbe7-7506-4509-b56f-50fc1c03b1c6",
               "Key": 0.0,
               "Length": 1.0,
               "Stretch": false,
@@ -100,7 +100,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "1e890e32-8829-40fd-b0b4-c908433f6a14",
+                    "name": "2869b134-b0a1-486e-8b83-44daf8caf05e",
                     "path": "sprites/spr_cloud/spr_cloud.yy"
                   },
                   "resourceVersion": "1.0",
@@ -159,7 +159,7 @@
       "opacity": 100.0,
       "displayName": "default",
       "resourceVersion": "1.0",
-      "name": "5178c57d-a234-4202-b8aa-07304b49d6b3",
+      "name": "6deb1d52-3375-42bf-b699-b51267dab645",
       "tags": [],
       "resourceType": "GMImageLayer"
     }

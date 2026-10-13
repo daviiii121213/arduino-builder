@@ -7,15 +7,15 @@
   "edgeFiltering": false,
   "collisionTolerance": 0,
   "swfPrecision": 2.525,
-  "bbox_left": 4,
-  "bbox_right": 27,
-  "bbox_top": 12,
-  "bbox_bottom": 31,
+  "bbox_left": 2,
+  "bbox_right": 13,
+  "bbox_top": 6,
+  "bbox_bottom": 15,
   "HTile": false,
   "VTile": false,
   "For3D": false,
-  "width": 32,
-  "height": 32,
+  "width": 16,
+  "height": 16,
   "textureGroupId": {
     "name": "Default",
     "path": "texturegroups/Default"
@@ -27,7 +27,7 @@
     {
       "compositeImage": {
         "FrameId": {
-          "name": "445d2dd0-4579-44d0-a95e-fe24dd1752eb",
+          "name": "3c008265-055b-465f-8a56-585ac1d4c365",
           "path": "sprites/spr_enemy/spr_enemy.yy"
         },
         "LayerId": null,
@@ -39,11 +39,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "445d2dd0-4579-44d0-a95e-fe24dd1752eb",
+            "name": "3c008265-055b-465f-8a56-585ac1d4c365",
             "path": "sprites/spr_enemy/spr_enemy.yy"
           },
           "LayerId": {
-            "name": "ad1c32d3-2f0b-43d1-893e-d2af3963078c",
+            "name": "8a90fd8c-541a-48f3-a6f7-f3926abdc7ff",
             "path": "sprites/spr_enemy/spr_enemy.yy"
           },
           "resourceVersion": "1.0",
@@ -57,14 +57,14 @@
         "path": "sprites/spr_enemy/spr_enemy.yy"
       },
       "resourceVersion": "1.0",
-      "name": "445d2dd0-4579-44d0-a95e-fe24dd1752eb",
+      "name": "3c008265-055b-465f-8a56-585ac1d4c365",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     },
     {
       "compositeImage": {
         "FrameId": {
-          "name": "6f8993d5-2870-49de-9407-907daac77101",
+          "name": "7fdfabfd-2cb6-427e-b156-63b4682877bb",
           "path": "sprites/spr_enemy/spr_enemy.yy"
         },
         "LayerId": null,
@@ -76,11 +76,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "6f8993d5-2870-49de-9407-907daac77101",
+            "name": "7fdfabfd-2cb6-427e-b156-63b4682877bb",
             "path": "sprites/spr_enemy/spr_enemy.yy"
           },
           "LayerId": {
-            "name": "ad1c32d3-2f0b-43d1-893e-d2af3963078c",
+            "name": "8a90fd8c-541a-48f3-a6f7-f3926abdc7ff",
             "path": "sprites/spr_enemy/spr_enemy.yy"
           },
           "resourceVersion": "1.0",
@@ -94,7 +94,7 @@
         "path": "sprites/spr_enemy/spr_enemy.yy"
       },
       "resourceVersion": "1.0",
-      "name": "6f8993d5-2870-49de-9407-907daac77101",
+      "name": "7fdfabfd-2cb6-427e-b156-63b4682877bb",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     }
@@ -106,7 +106,7 @@
     },
     "timeUnits": 1,
     "playback": 1,
-    "playbackSpeed": 4.0,
+    "playbackSpeed": 3.0,
     "playbackSpeedType": 0,
     "autoRecord": true,
     "volume": 1.0,
@@ -128,7 +128,7 @@
         "keyframes": {
           "Keyframes": [
             {
-              "id": "a0d4c76f-a0b6-4e0b-a1b9-7b94e7204774",
+              "id": "c2912f25-6431-492a-af2d-66a721468e1d",
               "Key": 0.0,
               "Length": 1.0,
               "Stretch": false,
@@ -137,7 +137,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "445d2dd0-4579-44d0-a95e-fe24dd1752eb",
+                    "name": "3c008265-055b-465f-8a56-585ac1d4c365",
                     "path": "sprites/spr_enemy/spr_enemy.yy"
                   },
                   "resourceVersion": "1.0",
@@ -148,7 +148,7 @@
               "resourceType": "Keyframe<SpriteFrameKeyframe>"
             },
             {
-              "id": "39f2b811-2197-458e-b9bf-5a05c9b92e38",
+              "id": "9a1f38c9-0c5f-4d4b-931b-861bd0810003",
               "Key": 1.0,
               "Length": 1.0,
               "Stretch": false,
@@ -157,7 +157,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "6f8993d5-2870-49de-9407-907daac77101",
+                    "name": "7fdfabfd-2cb6-427e-b156-63b4682877bb",
                     "path": "sprites/spr_enemy/spr_enemy.yy"
                   },
                   "resourceVersion": "1.0",
@@ -195,8 +195,8 @@
     "backdropHeight": 768,
     "backdropXOffset": 0.0,
     "backdropYOffset": 0.0,
-    "xorigin": 16,
-    "yorigin": 16,
+    "xorigin": 8,
+    "yorigin": 8,
     "eventToFunction": {},
     "eventStubScript": null,
     "parent": {
@@ -216,7 +216,7 @@
       "opacity": 100.0,
       "displayName": "default",
       "resourceVersion": "1.0",
-      "name": "ad1c32d3-2f0b-43d1-893e-d2af3963078c",
+      "name": "8a90fd8c-541a-48f3-a6f7-f3926abdc7ff",
       "tags": [],
       "resourceType": "GMImageLayer"
     }

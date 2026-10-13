@@ -1,6 +1,6 @@
 # Plataforma Teste (GameMaker)
 
-Jogo de plataforma 2D completo feito para o GameMaker: sprites, animações, sons, 2 fases, inimigos, moedas, espinhos, bandeira de fim de fase, HUD, vidas, pontuação, tela de título, game over e vitória.
+Jogo de plataforma 2D em **pixel art 16x16** para o GameMaker: sprites desenhados pixel a pixel com paleta limitada, fonte pixelada própria, animações, sons, 2 fases, inimigos, moedas, espinhos, bandeira de fim de fase, HUD, vidas, pontuação, tela de título, game over e vitória.
 
 ![Fase 1](preview_fase1.png)
 
@@ -19,10 +19,17 @@ O projeto está no formato GameMaker Studio 2.3; o GameMaker atual converte auto
 | R | Reiniciar a fase |
 | Esc | Sair |
 
+## Visual
+- Tudo em 16x16 (bandeira 16x32), sem anti-aliasing nem degradê.
+- O jogo roda em 480x272 e a janela mostra em 2x (pixel perfect).
+- Fonte 3x5 feita como sprite (`spr_font`), efeitos de poeira e brilho também em pixel art.
+
+![Sprites](sprites_sheet.png)
+
 ## Estrutura
 - `obj_game` – monta a fase a partir do mapa de texto, câmera com parallax, HUD e telas.
 - `obj_player` – física com aceleração, coyote time, buffer de pulo e pulo variável.
 - `obj_enemy` – patrulha e vira em paredes/beiradas; morre ao ser pisado.
-- `obj_block`, `obj_coin`, `obj_spike`, `obj_flag`.
+- `obj_block`, `obj_coin`, `obj_spike`, `obj_flag`, `obj_fx` (efeitos).
 - `scr_levels` – as fases em texto (`#` bloco, `P` jogador, `C` moeda, `E` inimigo, `^` espinho, `F` bandeira). Para criar fases novas, basta editar/adicionar strings.
 - Sons (`snd_jump`, `snd_coin`, `snd_stomp`, `snd_death`, `snd_win`) e sprites são originais, gerados para este projeto.

@@ -8,14 +8,14 @@
   "collisionTolerance": 0,
   "swfPrecision": 2.525,
   "bbox_left": 0,
-  "bbox_right": 31,
+  "bbox_right": 15,
   "bbox_top": 0,
-  "bbox_bottom": 31,
+  "bbox_bottom": 15,
   "HTile": false,
   "VTile": false,
   "For3D": false,
-  "width": 32,
-  "height": 32,
+  "width": 16,
+  "height": 16,
   "textureGroupId": {
     "name": "Default",
     "path": "texturegroups/Default"
@@ -27,7 +27,7 @@
     {
       "compositeImage": {
         "FrameId": {
-          "name": "42d61500-425c-43b4-8406-f99158c83ac9",
+          "name": "b2f5b5b1-4ba8-403b-a681-6178158251e1",
           "path": "sprites/spr_block/spr_block.yy"
         },
         "LayerId": null,
@@ -39,11 +39,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "42d61500-425c-43b4-8406-f99158c83ac9",
+            "name": "b2f5b5b1-4ba8-403b-a681-6178158251e1",
             "path": "sprites/spr_block/spr_block.yy"
           },
           "LayerId": {
-            "name": "cac29070-cd39-4b94-bdc7-9862029909ec",
+            "name": "277eda1f-7f03-425c-83c7-87591442ac76",
             "path": "sprites/spr_block/spr_block.yy"
           },
           "resourceVersion": "1.0",
@@ -57,14 +57,14 @@
         "path": "sprites/spr_block/spr_block.yy"
       },
       "resourceVersion": "1.0",
-      "name": "42d61500-425c-43b4-8406-f99158c83ac9",
+      "name": "b2f5b5b1-4ba8-403b-a681-6178158251e1",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     },
     {
       "compositeImage": {
         "FrameId": {
-          "name": "73b86561-97c2-4449-8fe4-a0e4634493ad",
+          "name": "6c2e6a39-2bba-4f4e-be37-f9467f420f94",
           "path": "sprites/spr_block/spr_block.yy"
         },
         "LayerId": null,
@@ -76,11 +76,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "73b86561-97c2-4449-8fe4-a0e4634493ad",
+            "name": "6c2e6a39-2bba-4f4e-be37-f9467f420f94",
             "path": "sprites/spr_block/spr_block.yy"
           },
           "LayerId": {
-            "name": "cac29070-cd39-4b94-bdc7-9862029909ec",
+            "name": "277eda1f-7f03-425c-83c7-87591442ac76",
             "path": "sprites/spr_block/spr_block.yy"
           },
           "resourceVersion": "1.0",
@@ -94,7 +94,7 @@
         "path": "sprites/spr_block/spr_block.yy"
       },
       "resourceVersion": "1.0",
-      "name": "73b86561-97c2-4449-8fe4-a0e4634493ad",
+      "name": "6c2e6a39-2bba-4f4e-be37-f9467f420f94",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     }
@@ -128,7 +128,7 @@
         "keyframes": {
           "Keyframes": [
             {
-              "id": "7e3fa4e0-c434-4882-959b-1db83dbb5e89",
+              "id": "b1a15a41-76b5-4e1b-8a17-92845c4a4f39",
               "Key": 0.0,
               "Length": 1.0,
               "Stretch": false,
@@ -137,7 +137,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "42d61500-425c-43b4-8406-f99158c83ac9",
+                    "name": "b2f5b5b1-4ba8-403b-a681-6178158251e1",
                     "path": "sprites/spr_block/spr_block.yy"
                   },
                   "resourceVersion": "1.0",
@@ -148,7 +148,7 @@
               "resourceType": "Keyframe<SpriteFrameKeyframe>"
             },
             {
-              "id": "f590c719-9818-4f5f-a5bd-85b4a6b33433",
+              "id": "860bac05-a03d-4991-baaa-f4ceabe440e6",
               "Key": 1.0,
               "Length": 1.0,
               "Stretch": false,
@@ -157,7 +157,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "73b86561-97c2-4449-8fe4-a0e4634493ad",
+                    "name": "6c2e6a39-2bba-4f4e-be37-f9467f420f94",
                     "path": "sprites/spr_block/spr_block.yy"
                   },
                   "resourceVersion": "1.0",
@@ -216,7 +216,7 @@
       "opacity": 100.0,
       "displayName": "default",
       "resourceVersion": "1.0",
-      "name": "cac29070-cd39-4b94-bdc7-9862029909ec",
+      "name": "277eda1f-7f03-425c-83c7-87591442ac76",
       "tags": [],
       "resourceType": "GMImageLayer"
     }

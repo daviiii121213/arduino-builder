@@ -1,2 +1,2 @@
-t += 0.08;
-y = base_y + sin(t) * 3;
+t += 0.06;
+y = base_y + round(sin(t) * 1.5);

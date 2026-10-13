@@ -8,14 +8,14 @@
   "collisionTolerance": 0,
   "swfPrecision": 2.525,
   "bbox_left": 0,
-  "bbox_right": 255,
+  "bbox_right": 95,
   "bbox_top": 0,
-  "bbox_bottom": 127,
+  "bbox_bottom": 39,
   "HTile": false,
   "VTile": false,
   "For3D": false,
-  "width": 256,
-  "height": 128,
+  "width": 96,
+  "height": 40,
   "textureGroupId": {
     "name": "Default",
     "path": "texturegroups/Default"
@@ -27,7 +27,7 @@
     {
       "compositeImage": {
         "FrameId": {
-          "name": "acb29b01-f519-4ba2-95f6-586444421576",
+          "name": "33f4e996-ad43-48fe-8af6-146cecdb4563",
           "path": "sprites/spr_hill/spr_hill.yy"
         },
         "LayerId": null,
@@ -39,11 +39,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "acb29b01-f519-4ba2-95f6-586444421576",
+            "name": "33f4e996-ad43-48fe-8af6-146cecdb4563",
             "path": "sprites/spr_hill/spr_hill.yy"
           },
           "LayerId": {
-            "name": "dafe4199-c789-4a19-a105-d85d828565ac",
+            "name": "b456a5bd-71e3-4b4a-b5e9-af2adf5164fe",
             "path": "sprites/spr_hill/spr_hill.yy"
           },
           "resourceVersion": "1.0",
@@ -57,7 +57,7 @@
         "path": "sprites/spr_hill/spr_hill.yy"
       },
       "resourceVersion": "1.0",
-      "name": "acb29b01-f519-4ba2-95f6-586444421576",
+      "name": "33f4e996-ad43-48fe-8af6-146cecdb4563",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     }
@@ -91,7 +91,7 @@
         "keyframes": {
           "Keyframes": [
             {
-              "id": "a51e938b-05ed-4848-8124-fbdb71f0cce2",
+              "id": "65d935b5-494d-48bd-b183-c3eab24b94a7",
               "Key": 0.0,
               "Length": 1.0,
               "Stretch": false,
@@ -100,7 +100,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "acb29b01-f519-4ba2-95f6-586444421576",
+                    "name": "33f4e996-ad43-48fe-8af6-146cecdb4563",
                     "path": "sprites/spr_hill/spr_hill.yy"
                   },
                   "resourceVersion": "1.0",
@@ -159,7 +159,7 @@
       "opacity": 100.0,
       "displayName": "default",
       "resourceVersion": "1.0",
-      "name": "dafe4199-c789-4a19-a105-d85d828565ac",
+      "name": "b456a5bd-71e3-4b4a-b5e9-af2adf5164fe",
       "tags": [],
       "resourceType": "GMImageLayer"
     }

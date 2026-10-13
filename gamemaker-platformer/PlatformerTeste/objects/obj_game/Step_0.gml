@@ -27,7 +27,7 @@ var _sy = 0;
 if (shake > 0) {
 	_sx = random_range(-shake, shake);
 	_sy = random_range(-shake, shake);
-	shake = max(0, shake - 0.4);
+	shake = max(0, shake - 0.25);
 }
 camera_set_view_pos(cam, round(cam_x + _sx), round(cam_y + _sy));
 

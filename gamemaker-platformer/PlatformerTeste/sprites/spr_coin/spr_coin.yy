@@ -7,15 +7,15 @@
   "edgeFiltering": false,
   "collisionTolerance": 0,
   "swfPrecision": 2.525,
-  "bbox_left": 6,
-  "bbox_right": 25,
-  "bbox_top": 4,
-  "bbox_bottom": 27,
+  "bbox_left": 4,
+  "bbox_right": 11,
+  "bbox_top": 3,
+  "bbox_bottom": 12,
   "HTile": false,
   "VTile": false,
   "For3D": false,
-  "width": 32,
-  "height": 32,
+  "width": 16,
+  "height": 16,
   "textureGroupId": {
     "name": "Default",
     "path": "texturegroups/Default"
@@ -27,7 +27,7 @@
     {
       "compositeImage": {
         "FrameId": {
-          "name": "3c9be97c-96cd-4cd0-a1bf-058ad6ccbc4a",
+          "name": "9ec41475-0db3-47ba-a579-4889e12c85b1",
           "path": "sprites/spr_coin/spr_coin.yy"
         },
         "LayerId": null,
@@ -39,11 +39,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "3c9be97c-96cd-4cd0-a1bf-058ad6ccbc4a",
+            "name": "9ec41475-0db3-47ba-a579-4889e12c85b1",
             "path": "sprites/spr_coin/spr_coin.yy"
           },
           "LayerId": {
-            "name": "46c4b337-50d4-4dfd-bd47-995e66e87b66",
+            "name": "c4299c10-135a-494c-bd5a-20f43845aff8",
             "path": "sprites/spr_coin/spr_coin.yy"
           },
           "resourceVersion": "1.0",
@@ -57,14 +57,14 @@
         "path": "sprites/spr_coin/spr_coin.yy"
       },
       "resourceVersion": "1.0",
-      "name": "3c9be97c-96cd-4cd0-a1bf-058ad6ccbc4a",
+      "name": "9ec41475-0db3-47ba-a579-4889e12c85b1",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     },
     {
       "compositeImage": {
         "FrameId": {
-          "name": "d99706d1-8c1f-459d-85b5-98856b1870a0",
+          "name": "ad0ca437-6987-49ee-9a4c-8fd5a03fc501",
           "path": "sprites/spr_coin/spr_coin.yy"
         },
         "LayerId": null,
@@ -76,11 +76,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "d99706d1-8c1f-459d-85b5-98856b1870a0",
+            "name": "ad0ca437-6987-49ee-9a4c-8fd5a03fc501",
             "path": "sprites/spr_coin/spr_coin.yy"
           },
           "LayerId": {
-            "name": "46c4b337-50d4-4dfd-bd47-995e66e87b66",
+            "name": "c4299c10-135a-494c-bd5a-20f43845aff8",
             "path": "sprites/spr_coin/spr_coin.yy"
           },
           "resourceVersion": "1.0",
@@ -94,14 +94,14 @@
         "path": "sprites/spr_coin/spr_coin.yy"
       },
       "resourceVersion": "1.0",
-      "name": "d99706d1-8c1f-459d-85b5-98856b1870a0",
+      "name": "ad0ca437-6987-49ee-9a4c-8fd5a03fc501",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     },
     {
       "compositeImage": {
         "FrameId": {
-          "name": "8b548af0-16ff-4add-b1ef-2d0891a902c0",
+          "name": "2b3e212f-7f87-4636-9068-e91f4413d8aa",
           "path": "sprites/spr_coin/spr_coin.yy"
         },
         "LayerId": null,
@@ -113,11 +113,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "8b548af0-16ff-4add-b1ef-2d0891a902c0",
+            "name": "2b3e212f-7f87-4636-9068-e91f4413d8aa",
             "path": "sprites/spr_coin/spr_coin.yy"
           },
           "LayerId": {
-            "name": "46c4b337-50d4-4dfd-bd47-995e66e87b66",
+            "name": "c4299c10-135a-494c-bd5a-20f43845aff8",
             "path": "sprites/spr_coin/spr_coin.yy"
           },
           "resourceVersion": "1.0",
@@ -131,14 +131,14 @@
         "path": "sprites/spr_coin/spr_coin.yy"
       },
       "resourceVersion": "1.0",
-      "name": "8b548af0-16ff-4add-b1ef-2d0891a902c0",
+      "name": "2b3e212f-7f87-4636-9068-e91f4413d8aa",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     },
     {
       "compositeImage": {
         "FrameId": {
-          "name": "19f1f80d-d676-4ad9-9842-199344e32bb0",
+          "name": "db2cc499-473b-46d6-8929-f39f55a50f52",
           "path": "sprites/spr_coin/spr_coin.yy"
         },
         "LayerId": null,
@@ -150,11 +150,11 @@
       "images": [
         {
           "FrameId": {
-            "name": "19f1f80d-d676-4ad9-9842-199344e32bb0",
+            "name": "db2cc499-473b-46d6-8929-f39f55a50f52",
             "path": "sprites/spr_coin/spr_coin.yy"
           },
           "LayerId": {
-            "name": "46c4b337-50d4-4dfd-bd47-995e66e87b66",
+            "name": "c4299c10-135a-494c-bd5a-20f43845aff8",
             "path": "sprites/spr_coin/spr_coin.yy"
           },
           "resourceVersion": "1.0",
@@ -168,7 +168,7 @@
         "path": "sprites/spr_coin/spr_coin.yy"
       },
       "resourceVersion": "1.0",
-      "name": "19f1f80d-d676-4ad9-9842-199344e32bb0",
+      "name": "db2cc499-473b-46d6-8929-f39f55a50f52",
       "tags": [],
       "resourceType": "GMSpriteFrame"
     }
@@ -180,7 +180,7 @@
     },
     "timeUnits": 1,
     "playback": 1,
-    "playbackSpeed": 10.0,
+    "playbackSpeed": 8.0,
     "playbackSpeedType": 0,
     "autoRecord": true,
     "volume": 1.0,
@@ -202,7 +202,7 @@
         "keyframes": {
           "Keyframes": [
             {
-              "id": "66f4d576-09ca-49b6-a1bf-c5bf9d0cc41b",
+              "id": "42d30737-10fc-456b-adc1-b9fa1deb2942",
               "Key": 0.0,
               "Length": 1.0,
               "Stretch": false,
@@ -211,7 +211,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "3c9be97c-96cd-4cd0-a1bf-058ad6ccbc4a",
+                    "name": "9ec41475-0db3-47ba-a579-4889e12c85b1",
                     "path": "sprites/spr_coin/spr_coin.yy"
                   },
                   "resourceVersion": "1.0",
@@ -222,7 +222,7 @@
               "resourceType": "Keyframe<SpriteFrameKeyframe>"
             },
             {
-              "id": "d68e9103-e2dc-4275-af22-edf41600079a",
+              "id": "0b0905a7-91c9-420c-8533-0b11ae69481d",
               "Key": 1.0,
               "Length": 1.0,
               "Stretch": false,
@@ -231,7 +231,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "d99706d1-8c1f-459d-85b5-98856b1870a0",
+                    "name": "ad0ca437-6987-49ee-9a4c-8fd5a03fc501",
                     "path": "sprites/spr_coin/spr_coin.yy"
                   },
                   "resourceVersion": "1.0",
@@ -242,7 +242,7 @@
               "resourceType": "Keyframe<SpriteFrameKeyframe>"
             },
             {
-              "id": "b451644c-0ffd-4425-9f25-2bb341ba8c99",
+              "id": "d834c309-9104-4dd1-b60c-5eda402eceae",
               "Key": 2.0,
               "Length": 1.0,
               "Stretch": false,
@@ -251,7 +251,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "8b548af0-16ff-4add-b1ef-2d0891a902c0",
+                    "name": "2b3e212f-7f87-4636-9068-e91f4413d8aa",
                     "path": "sprites/spr_coin/spr_coin.yy"
                   },
                   "resourceVersion": "1.0",
@@ -262,7 +262,7 @@
               "resourceType": "Keyframe<SpriteFrameKeyframe>"
             },
             {
-              "id": "e02dcc6a-7143-41f5-8381-ac826e06e192",
+              "id": "9b9675f2-1ac7-4d15-864d-91475f907bd9",
               "Key": 3.0,
               "Length": 1.0,
               "Stretch": false,
@@ -271,7 +271,7 @@
               "Channels": {
                 "0": {
                   "Id": {
-                    "name": "19f1f80d-d676-4ad9-9842-199344e32bb0",
+                    "name": "db2cc499-473b-46d6-8929-f39f55a50f52",
                     "path": "sprites/spr_coin/spr_coin.yy"
                   },
                   "resourceVersion": "1.0",
@@ -330,7 +330,7 @@
       "opacity": 100.0,
       "displayName": "default",
       "resourceVersion": "1.0",
-      "name": "46c4b337-50d4-4dfd-bd47-995e66e87b66",
+      "name": "c4299c10-135a-494c-bd5a-20f43845aff8",
       "tags": [],
       "resourceType": "GMImageLayer"
     }
