@@ -3,17 +3,33 @@ using Silk.NET.OpenGL;
 
 namespace ShootingRange;
 
-// Furos de bala e clarão do disparo. A geometria é montada a cada quadro num buffer dinâmico
+// Furos de bala, cápsulas ejetadas e clarão do disparo. A geometria é montada a cada quadro num buffer dinâmico
 // com o mesmo formato de vértice do cenário (posição, normal, uv).
 public sealed unsafe class Effects : IDisposable
 {
-    private const int MaxBulletHoles = 150;
+    private const int MaxBulletHoles = 300;
     private const float PaperHoleRadius = 0.8f;
     private const float PaperRimRadius = 1.4f;
-    private const float WallHoleRadius = 1.2f;
+    // Na parede: furo escuro com um halo claro de reboco lascado, para aparecer até nas paredes escuras.
+    private const float WallHoleRadius = 1.0f;
+    private const float WallDustRadius = 2.4f;
     private const float SurfaceOffset = 0.05f;
+    // Estojo de 7,62x39 mm: ~1,1 cm de diâmetro e 3,9 cm de comprimento.
+    private static readonly Vector3 CasingSize = new(1.1f, 1.1f, 3.9f);
+    private const float CasingLife = 0.9f;
+    private const float Gravity = 800f;
 
     private readonly record struct BulletHole(ShootingTarget? Target, Vector3 Point, Vector3 Normal, bool OnPaper);
+
+    private sealed class Casing
+    {
+        public Vector3 Position, Velocity, SpinAxis;
+        public Quaternion Rotation;
+        public float Spin, Age;
+    }
+
+    private readonly List<Casing> _casings = new();
+    private readonly Random _random = new();
 
     private readonly GL _gl;
     private readonly uint _vao, _vbo, _white;
@@ -65,7 +81,8 @@ public sealed unsafe class Effects : IDisposable
         // Borda clara de papel rasgado (aparece sobre a silhueta preta), depois o furo escuro.
         DrawDiscs(colorLocation, new Vector4(0.85f, 0.83f, 0.78f, 1f), h => h.OnPaper ? PaperRimRadius : 0);
         DrawDiscs(colorLocation, new Vector4(0.03f, 0.03f, 0.03f, 1f), h => h.OnPaper ? PaperHoleRadius : 0);
-        DrawDiscs(colorLocation, new Vector4(0.05f, 0.05f, 0.05f, 0.85f), h => h.OnPaper ? 0 : WallHoleRadius);
+        DrawDiscs(colorLocation, new Vector4(0.55f, 0.53f, 0.5f, 0.7f), h => h.OnPaper ? 0 : WallDustRadius);
+        DrawDiscs(colorLocation, new Vector4(0.03f, 0.03f, 0.03f, 0.95f), h => h.OnPaper ? 0 : WallHoleRadius);
 
         _gl.Disable(EnableCap.PolygonOffsetFill);
         _gl.DepthMask(true);
@@ -92,6 +109,58 @@ public sealed unsafe class Effects : IDisposable
             }
         }
         Flush(colorLocation, color);
+    }
+
+    // Estojo ejetado pela janela do lado direito: para a direita, um pouco para cima e para trás.
+    public void EjectCasing(Vector3 position, Vector3 right, Vector3 up, Vector3 forward)
+    {
+        float R() => (float)_random.NextDouble();
+        _casings.Add(new Casing
+        {
+            Position = position,
+            Velocity = right * (180 + R() * 60) + up * (120 + R() * 60) - forward * (20 + R() * 30),
+            Rotation = Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateWorld(Vector3.Zero, forward, up)),
+            SpinAxis = Vector3.Normalize(up + right * 0.3f),
+            Spin = 20 + R() * 15,
+        });
+    }
+
+    public void Update(float dt)
+    {
+        foreach (var c in _casings)
+        {
+            c.Age += dt;
+            c.Velocity.Y -= Gravity * dt;
+            c.Position += c.Velocity * dt;
+            c.Rotation = Quaternion.Normalize(Quaternion.CreateFromAxisAngle(c.SpinAxis, c.Spin * dt) * c.Rotation);
+        }
+        _casings.RemoveAll(c => c.Age > CasingLife);
+    }
+
+    // Cada estojo é uma caixinha cor de latão (com luz normal da cena).
+    public void DrawCasings(int colorLocation, int modelLocation)
+    {
+        if (_casings.Count == 0) return;
+        _gl.BindTexture(TextureTarget.Texture2D, _white);
+        SetModel(modelLocation, Matrix4x4.Identity);
+        Vector3 h = CasingSize / 2;
+        foreach (var c in _casings)
+        {
+            var m = Matrix4x4.CreateFromQuaternion(c.Rotation) * Matrix4x4.CreateTranslation(c.Position);
+            foreach (var axis in new[] { Vector3.UnitX, Vector3.UnitY, Vector3.UnitZ })
+            foreach (float sign in new[] { -1f, 1f })
+            {
+                Vector3 n = axis * sign;
+                Vector3 a = new(axis.Y, axis.Z, axis.X), b = Vector3.Cross(n, a);
+                Vector3 center = n * h;
+                Vector3 ea = a * h, eb = b * h;
+                Vector3 p0 = center - ea - eb, p1 = center + ea - eb, p2 = center + ea + eb, p3 = center - ea + eb;
+                Vector3 wn = Vector3.Normalize(Vector3.TransformNormal(n, m));
+                foreach (var p in new[] { p0, p1, p2, p0, p2, p3 })
+                    AddVertex(Vector3.Transform(p, m), wn);
+            }
+        }
+        Flush(colorLocation, new Vector4(0.47f, 0.26f, 0.04f, 1f));
     }
 
     // Clarão em forma de estrela, sempre de frente para a câmera, com mistura aditiva.

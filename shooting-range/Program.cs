@@ -12,19 +12,17 @@ public static class Program
     private const string ModelPath = "models/shooting_range.fbx";
     private const string TextureDir = "models/tex";
     private const string ArmsPath = "models/arms.fbx";
-    private const string GunPath = "models/glock.glb";
+    private const string GunPath = "models/akm.glb";
+    private const string RigPath = "models/ak_viewmodel.json";
     private const string TargetPaperTexture = "models/tex/Target Paper_C.jpeg";
     private static readonly Vector3 Spawn = new(0, 0, -680);
     private const float MouseSensitivity = 0.0025f;
     private const float BulletRange = 10000f;
 
-    // Arma e braços em primeira pessoa (estilo CS), em coordenadas da câmera (x direita, y cima, -z frente).
-    // A arma fica na mão direita; o conjunto todo é girado em volta do cabo para mostrar a lateral da pistola.
-    private static readonly Vector3 ArmsOffset = new(0f, -17f, -4f);
-    private static readonly Vector3 GunOffset = new(6.5f, -15f, -44f);
-    private static readonly Vector3 ViewmodelPosition = new(9f, -1f, 14f);
-    private static readonly Vector3 ViewmodelRotation = new(0f, 15f, -6f); // graus: inclinação, giro, rolagem
+    // Arma e braços em primeira pessoa (estilo CS). Posição, poses e animações vêm de models/ak_viewmodel.json.
     private const float ViewmodelFov = 68f;
+    private const float KickBack = 3f;               // cm que a arma recua no tiro
+    private const float KickPitch = 4f;              // graus que o cano sobe no tiro
     private const float BobAmount = 0.8f;            // altura do balanço ao andar
     private const float BobFrequency = 11f;
     private const float SwayAmount = 0.04f;          // quanto a arma atrasa ao girar o mouse
@@ -75,6 +73,10 @@ public static class Program
     private static SceneModel _scene = null!;
     private static SceneModel _arms = null!;
     private static SceneModel _gun = null!;
+    private static ViewmodelRig _rig = null!;
+    private static Weapon _weapon = null!;
+    // Peças do AKM agrupadas pelo nome do nó: body, mag, bolt, magrelease, selector.
+    private static Dictionary<string, List<DrawMesh>> _gunParts = null!;
     private static List<ShootingTarget> _targets = null!;
     private static CollisionWorld _collision = null!;
     private static TargetScoring _scoring = null!;
@@ -84,13 +86,14 @@ public static class Program
     private static int _viewProjectionLocation, _modelLocation, _colorLocation, _unlitLocation;
 
     private static readonly Player _player = new(Spawn);
-    private static readonly Weapon _weapon = new();
     private static readonly Random _random = new();
     private static Vector2? _lastMouse;
     private static float _bobTime;
     private static Vector2 _sway;
     private static bool _jumpQueued;
-    private static Vector3 _muzzleLocal;
+    private static bool _drawn;
+    private static bool _armsAnimated = true;
+    private static int _pendingCasings;
 
     private static int _score, _shotsFired, _hits;
     private static string _popupText = "";
@@ -134,10 +137,12 @@ public static class Program
             if (!MouseCaptured)
             {
                 _mouse.Cursor.CursorMode = CursorMode.Raw;
+                // Na primeira vez a arma é sacada (animação de "deploy").
+                if (!_drawn) _weapon.Draw();
+                _drawn = true;
                 return;
             }
             if (button == MouseButton.Left) _weapon.Trigger();
-            if (button == MouseButton.Right) _weapon.ToggleMode();
         };
         _mouse.MouseMove += OnMouseMove;
         _keyboard.KeyDown += (_, key, _) =>
@@ -145,6 +150,7 @@ public static class Program
             if (key == Key.Escape) _mouse.Cursor.CursorMode = CursorMode.Normal;
             if (!MouseCaptured) return;
             if (key == Key.R) _weapon.StartReload();
+            if (key == Key.F) _weapon.Inspect();
             if (key == Key.Space) _jumpQueued = true;
         };
 
@@ -160,15 +166,15 @@ public static class Program
         _collision = new CollisionWorld(_scene.Meshes.Where(m => !targetMeshes.Contains(m)));
         _scoring = new TargetScoring(TargetPaperTexture);
 
-        _arms = new SceneModel(_gl, ArmsPath, TextureDir, ArmPose.Create());
+        _rig = new ViewmodelRig(RigPath);
+        _weapon = new Weapon(_rig);
+        _arms = new SceneModel(_gl, ArmsPath, TextureDir);
         _gun = new SceneModel(_gl, GunPath, TextureDir);
-        foreach (var mesh in _gun.Meshes) mesh.Color = new Vector4(0.035f, 0.035f, 0.04f, 1f);
-        // Boca do cano: o ponto mais à frente do modelo, na altura do cano.
-        _muzzleLocal = new Vector3(0, _gun.BoundsMax.Y - 2.3f, _gun.BoundsMax.Z + 0.5f);
+        _gunParts = _gun.Meshes.GroupBy(m => m.Name.Split('_')[0]).ToDictionary(g => g.Key, g => g.ToList());
 
         Console.WriteLine($"Pronto! {_targets.Count} alvos, {_collision.TriangleCount} triângulos de colisão.");
-        Console.WriteLine("Clique para jogar. WASD mover, mouse mirar, botão esquerdo atirar, botão direito semi/rajada,");
-        Console.WriteLine("R recarregar, Espaço pular, Ctrl agachar, Shift correr, Esc soltar o mouse.");
+        Console.WriteLine("Clique para jogar. WASD mover, mouse mirar, botão esquerdo atirar (um tiro por clique),");
+        Console.WriteLine("R recarregar, F inspecionar, Espaço pular, Ctrl agachar, Shift correr, Esc soltar o mouse.");
 
         _program = CreateProgram(VertexShader, FragmentShader);
         _viewProjectionLocation = _gl.GetUniformLocation(_program, "uViewProjection");
@@ -221,7 +227,11 @@ public static class Program
         _jumpQueued = false;
 
         foreach (var shot in _weapon.Update(dt, _player))
+        {
             ProcessShot(shot);
+            _pendingCasings++;
+        }
+        _effects.Update(dt);
         foreach (var target in _targets)
             target.Update(dt);
         _popupTime = MathF.Max(_popupTime - dt, 0);
@@ -310,42 +320,72 @@ public static class Program
         // limpar a profundidade impede que eles atravessem paredes.
         _gl.Clear(ClearBufferMask.DepthBufferBit);
         Matrix4x4.Invert(view, out var cameraToWorld);
-        var viewmodel = ViewmodelTransform();
+        var frame = _rig.Evaluate(_weapon.Animation, _weapon.AnimationTime, _weapon.TimeSinceShot);
+        var viewmodel = ViewmodelTransform(frame);
         SetViewProjection(view * Matrix4x4.CreatePerspectiveFieldOfView(ViewmodelFov * MathF.PI / 180f, aspect, 1f, 500f));
+
+        // A pele dos braços só é recalculada quando a pose muda (durante animações).
+        if (_weapon.Animation != null || _armsAnimated)
+        {
+            _arms.SetPose(frame.ArmPose);
+            _armsAnimated = _weapon.Animation != null;
+        }
         // Os modelos apontam para +Z; a câmera olha para -Z, então giram 180° em Y.
-        var armsLocal = Matrix4x4.CreateRotationY(MathF.PI) * Matrix4x4.CreateTranslation(ArmsOffset) * viewmodel;
-        var gunLocal = Matrix4x4.CreateRotationY(MathF.PI) * Matrix4x4.CreateTranslation(GunOffset) * viewmodel;
-        DrawMeshes(_arms.Meshes, armsLocal * cameraToWorld);
-        DrawMeshes(_gun.Meshes, gunLocal * cameraToWorld);
+        var armsWorld = Matrix4x4.CreateRotationY(MathF.PI) * Matrix4x4.CreateTranslation(_rig.ArmsOffset) * viewmodel * cameraToWorld;
+        var gunWorld = Matrix4x4.CreateRotationY(MathF.PI) * Matrix4x4.CreateTranslation(_rig.GunOffset) * viewmodel * cameraToWorld;
+        SetPartTransforms(frame);
+        DrawMeshes(_arms.Meshes, armsWorld);
+        DrawMeshes(_gun.Meshes, gunWorld);
+
+        for (; _pendingCasings > 0; _pendingCasings--)
+        {
+            var right = Vector3.Normalize(new Vector3(cameraToWorld.M11, cameraToWorld.M12, cameraToWorld.M13));
+            var up = Vector3.Normalize(new Vector3(cameraToWorld.M21, cameraToWorld.M22, cameraToWorld.M23));
+            _effects.EjectCasing(Vector3.Transform(_rig.EjectionPort, gunWorld), right, up, look);
+        }
+        _effects.DrawCasings(_colorLocation, _modelLocation);
         if (_weapon.MuzzleFlash > 0)
-            _effects.DrawMuzzleFlash(Vector3.Transform(_muzzleLocal, gunLocal * cameraToWorld), cameraToWorld,
+            _effects.DrawMuzzleFlash(Vector3.Transform(_rig.Muzzle, gunWorld), cameraToWorld,
                 _colorLocation, _modelLocation, _unlitLocation, _random);
 
         DrawHud(size.X, size.Y);
     }
 
-    // Balanço ao andar, atraso do mouse, coice do tiro e animação de recarga (em coordenadas da câmera).
-    private static Matrix4x4 ViewmodelTransform()
+    // Balanço ao andar, atraso do mouse, coice do tiro e a animação atual (em coordenadas da câmera).
+    private static Matrix4x4 ViewmodelTransform(ViewmodelFrame frame)
     {
         var offset = new Vector3(
             MathF.Sin(_bobTime * 0.5f) * BobAmount + _sway.X,
             -MathF.Abs(MathF.Sin(_bobTime)) * BobAmount - _sway.Y,
-            0f);
+            0f) + frame.RootOffset;
         float kick = _weapon.Kick * _weapon.Kick;
-        offset.Z += kick * 2.5f;
-        float pitchUp = kick * 7f * MathF.PI / 180f;
+        offset.Z += kick * KickBack;
 
-        float reload = _weapon.Reloading ? MathF.Sin(_weapon.ReloadProgress * MathF.PI) : 0;
-        offset.Y -= reload * 12f;
-        float roll = reload * 25f * MathF.PI / 180f;
-
-        // Todas as rotações acontecem em volta do cabo da arma.
+        // Todas as rotações acontecem em volta do punho da arma.
         const float deg = MathF.PI / 180f;
-        var rotation = Matrix4x4.CreateRotationZ(ViewmodelRotation.Z * deg + roll)
-                       * Matrix4x4.CreateRotationX(ViewmodelRotation.X * deg + pitchUp)
-                       * Matrix4x4.CreateRotationY(ViewmodelRotation.Y * deg);
-        return Matrix4x4.CreateTranslation(-GunOffset) * rotation * Matrix4x4.CreateTranslation(GunOffset)
-               * Matrix4x4.CreateTranslation(ViewmodelPosition + offset);
+        var angles = (_rig.Rotation + frame.RootRotation) * deg;
+        var rotation = Matrix4x4.CreateRotationZ(angles.Z)
+                       * Matrix4x4.CreateRotationX(angles.X + kick * KickPitch * deg)
+                       * Matrix4x4.CreateRotationY(angles.Y);
+        return Matrix4x4.CreateTranslation(-_rig.GunOffset) * rotation * Matrix4x4.CreateTranslation(_rig.GunOffset)
+               * Matrix4x4.CreateTranslation(offset);
+    }
+
+    // Peças móveis do AKM, no espaço da arma: carregador (balança em volta da frente e desce),
+    // retém do carregador, porta-ferrolho (corre para trás).
+    private static void SetPartTransforms(ViewmodelFrame frame)
+    {
+        const float deg = MathF.PI / 180f;
+        var mag = Matrix4x4.CreateTranslation(-_rig.MagPivot) * Matrix4x4.CreateRotationX(frame.MagRotation * deg)
+                  * Matrix4x4.CreateTranslation(_rig.MagPivot + frame.MagOffset);
+        var release = Matrix4x4.CreateTranslation(-_rig.MagReleasePivot) * Matrix4x4.CreateRotationX(frame.MagRelease * deg)
+                      * Matrix4x4.CreateTranslation(_rig.MagReleasePivot);
+        var bolt = Matrix4x4.CreateTranslation(0, 0, frame.Bolt);
+        foreach (var (part, meshes) in _gunParts)
+        {
+            var transform = part switch { "mag" => mag, "magrelease" => release, "bolt" => bolt, _ => Matrix4x4.Identity };
+            foreach (var mesh in meshes) mesh.Transform = transform;
+        }
     }
 
     private static unsafe void SetViewProjection(Matrix4x4 viewProjection)
@@ -375,11 +415,37 @@ public static class Program
         _gl.DepthMask(true);
     }
 
+    // Mira do CS (verde, quatro traços): a abertura acompanha a imprecisão atual da arma,
+    // então ela abre ao andar, pular ou atirar rápido e fecha parado.
+    private static void DrawCrosshair(int width, int height)
+    {
+        const float length = 9, thickness = 2, outline = 1;
+        float tanHalfFov = MathF.Tan(75f * MathF.PI / 360f);
+        float spread = MathF.Tan(_weapon.Inaccuracy(_player)) / tanHalfFov * (height / 2f);
+        float gap = MathF.Min(4 + spread, height * 0.3f);
+        float cx = MathF.Round(width / 2f), cy = MathF.Round(height / 2f);
+        var color = new Vector4(0.3f, 1f, 0.3f, 0.95f);
+        var shadow = new Vector4(0, 0, 0, 0.8f);
+        var lines = new[]
+        {
+            (cx - thickness / 2, cy - gap - length, thickness, length),
+            (cx - thickness / 2, cy + gap, thickness, length),
+            (cx - gap - length, cy - thickness / 2, length, thickness),
+            (cx + gap, cy - thickness / 2, length, thickness),
+        };
+        foreach (var (x, y, w, h) in lines)
+            _hud.Rect(x - outline, y - outline, w + outline * 2, h + outline * 2, shadow);
+        foreach (var (x, y, w, h) in lines)
+            _hud.Rect(x, y, w, h, color);
+    }
+
     private static void DrawHud(int width, int height)
     {
         var white = new Vector4(1, 1, 1, 0.95f);
         var dim = new Vector4(1, 1, 1, 0.6f);
         float margin = 28;
+
+        if (MouseCaptured) DrawCrosshair(width, height);
 
         // Pontos no canto superior direito.
         _hud.Text("PONTOS", width - margin, margin, 3, dim, Hud.Align.Right);
@@ -397,7 +463,7 @@ public static class Program
 
         // Munição no canto inferior direito.
         _hud.Text($"{_weapon.Clip} / {_weapon.Reserve}", width - margin, height - margin - 42, 6, white, Hud.Align.Right);
-        _hud.Text(_weapon.BurstMode ? "RAJADA" : "SEMI", width - margin, height - margin - 72, 3, dim, Hud.Align.Right);
+        _hud.Text("AK-47", width - margin, height - margin - 72, 3, dim, Hud.Align.Right);
         if (_weapon.Reloading)
         {
             float barWidth = 220;
@@ -417,8 +483,8 @@ public static class Program
             string[] help =
             {
                 "WASD MOVER   MOUSE MIRAR   SHIFT CORRER",
-                "BOTAO ESQUERDO ATIRAR   BOTAO DIREITO SEMI/RAJADA",
-                "R RECARREGAR   ESPACO PULAR   CTRL AGACHAR   ESC SOLTAR O MOUSE",
+                "CLIQUE ATIRAR (UM TIRO POR CLIQUE)   R RECARREGAR   F INSPECIONAR",
+                "ESPACO PULAR   CTRL AGACHAR   ESC SOLTAR O MOUSE",
             };
             for (int i = 0; i < help.Length; i++)
                 _hud.Text(help[i], width / 2f, height / 2f + 10 + i * 28, 3, dim, Hud.Align.Center);

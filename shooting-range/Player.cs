@@ -6,7 +6,7 @@ namespace ShootingRange;
 // pulo com gravidade e agachar. Unidades em centímetros (1 unidade do CS ≈ 1 cm aqui).
 public sealed class Player
 {
-    public const float MaxSpeed = 240f;         // velocidade máxima andando com a Glock no CS2
+    public const float MaxSpeed = 215f;         // velocidade máxima andando com o AK-47 no CS2
     public const float RunMultiplier = 1.6f;    // Shift (não existe no CS, mas foi pedido)
     public const float CrouchMultiplier = 0.34f;
     private const float Friction = 5.2f;

@@ -5,46 +5,49 @@ namespace ShootingRange;
 // Um disparo já com o desvio aplicado: direção final da bala.
 public readonly record struct Shot(Vector3 Origin, Vector3 Direction);
 
-// Glock com a mecânica do CS2: imprecisão (parado, agachado, andando, no ar e por disparo, com recuperação
-// exponencial), espalhamento aleatório, recuo ("aim punch") que a câmera acompanha só em parte,
-// modo semiautomático ou rajada de 3 (botão direito), pente de 20 e recarga.
-// Valores da Glock-18 no CS2 (csdb.gg): imprecisão parado 0.0056, agachado 0.0042, andando 0.010,
-// recuo 18 com variação de 20°, recuperação 0.20 s, 400 disparos/min, recarga 2.17 s, 20/120 balas.
+// AK-47 com a mecânica do CS2, um tiro por clique: imprecisão (parado, agachado, andando, no ar e por disparo,
+// com recuperação exponencial), espalhamento aleatório, recuo ("aim punch") que a câmera acompanha só em parte,
+// pente de 30 e recarga (mais longa com o pente vazio, porque é preciso puxar a alavanca de manejo).
+// Valores do AK-47 no CS2 (csdb.gg): imprecisão parado 0.00641, agachado 0.00481, andando 0.17506,
+// recuperação 0.368 s, 600 disparos/min, recuo 30 com variação de 70°, 30/90 balas.
 public sealed class Weapon
 {
-    public const int ClipSize = 20;
-    private const float CycleTime = 0.15f;          // 400 RPM
-    private const float BurstShotInterval = 0.05f;
-    private const float BurstCooldown = 0.5f;
-    private const float ReloadTime = 2.17f;
+    public const int ClipSize = 30;
+    private const float CycleTime = 0.1f;            // 600 RPM: tempo mínimo entre cliques
 
     // Imprecisão em radianos (raio do círculo onde a bala pode cair).
-    private const float InaccuracyStand = 0.0056f;
-    private const float InaccuracyCrouch = 0.0042f;
-    private const float InaccuracyMove = 0.010f;
-    private const float InaccuracyAir = 0.15f;
-    private const float InaccuracyFire = 0.056f;     // somado a cada disparo
-    private const float InaccuracyBurstExtra = 0.012f;
-    private const float Spread = 0.002f;
-    private const float RecoveryTime = 0.20f;        // tempo para a penalidade cair a 10%
+    private const float InaccuracyStand = 0.00641f;
+    private const float InaccuracyCrouch = 0.00481f;
+    private const float InaccuracyMove = 0.17506f;
+    private const float InaccuracyAir = 0.4f;          // estimativa: as fontes não trazem o valor do pulo
+    private const float InaccuracyFire = 0.0078f;      // somado a cada disparo (valor do CS:GO)
+    private const float Spread = 0.0006f;
+    private const float RecoveryTime = 0.368f;         // tempo para a penalidade cair a 10%
 
     // Recuo (graus). Os decaimentos e a escala são os padrões da Source (weapon_recoil_*).
-    private const float RecoilMagnitude = 18f;
-    private const float RecoilAngleVariance = 20f;
+    private const float RecoilMagnitude = 30f;
+    private const float RecoilAngleVariance = 70f;
     private const float RecoilScale = 2f;
     private const float RecoilDecayExp = 8f;
     private const float RecoilDecayLinear = 18f;
     private const float RecoilVelocityDecay = 4.5f;
-    // A unidade da magnitude na Source não é graus/s; este fator foi calibrado para o primeiro tiro
-    // subir ~3° (a câmera mostra ~1.4°) e voltar ao centro em ~0.4 s, como a Glock no CS2.
+    // A unidade da magnitude na Source não é graus/s; este fator foi calibrado com a Glock (recuo 18)
+    // para o primeiro tiro subir ~3°; no AK (recuo 30) o mesmo fator dá ~5°.
     private const float RecoilImpulseScale = 3f;
     public const float ViewRecoilTracking = 0.45f;   // a câmera mostra 45% do recuo; a bala segue 100%
 
+    private readonly ViewmodelRig _rig;
+
     public int Clip { get; private set; } = ClipSize;
-    public int Reserve { get; private set; } = 120;
-    public bool BurstMode { get; private set; }
-    public bool Reloading => _reloadLeft > 0;
-    public float ReloadProgress => Reloading ? 1 - _reloadLeft / ReloadTime : 1;
+    public int Reserve { get; private set; } = 90;
+
+    // Animação em andamento (reload, reloadEmpty, inspect, draw) e há quanto tempo começou.
+    public string? Animation { get; private set; }
+    public float AnimationTime { get; private set; }
+    public float TimeSinceShot { get; private set; } = 10f;
+
+    public bool Reloading => Animation is "reload" or "reloadEmpty";
+    public float ReloadProgress => Reloading ? AnimationTime / _rig.Duration(Animation!) : 1;
 
     // Recuo atual em graus: X = para cima, Y = para a direita. A bala usa AimPunch * RecoilScale.
     public Vector2 AimPunch { get; private set; }
@@ -56,32 +59,41 @@ public sealed class Weapon
     private Vector2 _aimPunchVelocity;
     private float _accuracyPenalty;
     private float _cooldown;
-    private float _reloadLeft;
-    private int _burstLeft;
+    private bool _fireQueued;
     private readonly Random _random = new();
 
-    public void ToggleMode()
-    {
-        if (_burstLeft == 0) BurstMode = !BurstMode;
-    }
+    public Weapon(ViewmodelRig rig) => _rig = rig;
+
+    public void Draw() => Play("draw");
 
     public void StartReload()
     {
-        if (Reloading || Clip == ClipSize || Reserve == 0) return;
-        _reloadLeft = ReloadTime;
-        _burstLeft = 0;
+        if (Reloading || Animation == "draw" || Clip == ClipSize || Reserve == 0) return;
+        // Com o pente vazio o AK não trava o ferrolho aberto: depois de trocar o carregador é preciso manejar.
+        Play(Clip == 0 ? "reloadEmpty" : "reload");
     }
 
-    // Um clique dispara 1 bala (semi) ou 3 (rajada). Pente vazio: começa a recarregar, como no CS2.
+    public void Inspect()
+    {
+        if (Animation == null) Play("inspect");
+    }
+
+    // Um clique = um tiro. Pente vazio: começa a recarregar, como no CS2.
     public void Trigger()
     {
-        if (Reloading || _cooldown > 0 || _burstLeft > 0) return;
+        if (Reloading || Animation == "draw" || _cooldown > 0) return;
         if (Clip == 0)
         {
             StartReload();
             return;
         }
-        _burstLeft = BurstMode ? 3 : 1;
+        _fireQueued = true;
+    }
+
+    private void Play(string animation)
+    {
+        Animation = animation;
+        AnimationTime = 0;
     }
 
     public float Inaccuracy(Player player)
@@ -90,34 +102,38 @@ public sealed class Weapon
         if (!player.OnGround) baseInaccuracy += InaccuracyAir;
         // Como no CS: até 34% da velocidade máxima a arma continua precisa ("counter-strafe").
         float moveFactor = Math.Clamp((player.HorizontalSpeed - 0.34f * Player.MaxSpeed) / (0.61f * Player.MaxSpeed), 0, 1);
-        return baseInaccuracy + InaccuracyMove * moveFactor + _accuracyPenalty + (BurstMode ? InaccuracyBurstExtra : 0);
+        return baseInaccuracy + InaccuracyMove * moveFactor + _accuracyPenalty;
     }
 
     public List<Shot> Update(float dt, Player player)
     {
         var shots = new List<Shot>();
+        TimeSinceShot += dt;
 
-        if (_reloadLeft > 0)
+        if (Animation != null)
         {
-            _reloadLeft -= dt;
-            if (_reloadLeft <= 0)
+            AnimationTime += dt;
+            if (AnimationTime >= _rig.Duration(Animation))
             {
-                _reloadLeft = 0;
-                int moved = Math.Min(ClipSize - Clip, Reserve);
-                Clip += moved;
-                Reserve -= moved;
+                if (Reloading)
+                {
+                    int moved = Math.Min(ClipSize - Clip, Reserve);
+                    Clip += moved;
+                    Reserve -= moved;
+                }
+                Animation = null;
             }
         }
 
-        _cooldown -= dt;
-        while (_burstLeft > 0 && _cooldown <= 0 && Clip > 0 && !Reloading)
+        _cooldown = MathF.Max(_cooldown - dt, 0);
+        if (_fireQueued && !Reloading && Clip > 0)
         {
+            // Atirar interrompe a inspeção, como no CS2.
+            if (Animation == "inspect") Animation = null;
             shots.Add(Fire(player));
-            _burstLeft--;
-            _cooldown += _burstLeft > 0 ? BurstShotInterval : (BurstMode ? BurstCooldown : CycleTime);
+            _cooldown = CycleTime;
         }
-        if (Clip == 0) _burstLeft = 0;
-        if (_cooldown < 0) _cooldown = 0;
+        _fireQueued = false;
 
         // Penalidade de disparo: decai exponencialmente (cai a 10% em RecoveryTime).
         _accuracyPenalty *= MathF.Exp(-dt * MathF.Log(10) / RecoveryTime);
@@ -139,6 +155,7 @@ public sealed class Weapon
     private Shot Fire(Player player)
     {
         Clip--;
+        TimeSinceShot = 0;
         float inaccuracy = Inaccuracy(player);
 
         // Ângulos finais: visão + recuo inteiro (a câmera só mostra parte dele).

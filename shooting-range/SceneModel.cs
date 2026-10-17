@@ -27,24 +27,36 @@ public sealed class DrawMesh
 
 // Carrega um modelo (FBX, GLB...) com o Assimp e envia para a GPU. Cada malha mantém o nome do seu nó,
 // para que partes como os alvos possam ser tratadas separadamente.
-// Se bonePose for informado, malhas com ossos são deformadas uma vez na carga com essas rotações extras.
+// Malhas com ossos podem ser deformadas de novo a qualquer momento com SetPose (pele calculada na CPU).
 public sealed unsafe class SceneModel : IDisposable
 {
+    private sealed class SkinData
+    {
+        public Vector3[] BindPositions = Array.Empty<Vector3>();
+        public Vector3[] BindNormals = Array.Empty<Vector3>();
+        public List<(string Bone, Matrix4x4 Offset, uint[] Ids, float[] Weights)> Bones = new();
+        public float[] Vertices = Array.Empty<float>();
+        public uint Vbo;
+    }
+
+    private static readonly IReadOnlyDictionary<string, Quaternion> NoPose = new Dictionary<string, Quaternion>();
+
     private readonly GL _gl;
     private readonly List<uint> _buffers = new();
     private readonly Dictionary<string, uint> _textureCache = new();
+    // Nós em ordem de profundidade (pai antes dos filhos), para recalcular as matrizes globais com outra pose.
+    private readonly List<(string Name, Matrix4x4 Local, int Parent)> _nodes = new();
     private readonly Dictionary<string, Matrix4x4> _nodeGlobals = new();
-    private readonly IReadOnlyDictionary<string, Quaternion> _bonePose;
+    private readonly List<(DrawMesh Mesh, SkinData Skin)> _skinned = new();
     private uint _whiteTexture;
 
     public List<DrawMesh> Meshes { get; } = new();
     public Vector3 BoundsMin { get; private set; } = new(float.MaxValue);
     public Vector3 BoundsMax { get; private set; } = new(float.MinValue);
 
-    public SceneModel(GL gl, string path, string textureDir, IReadOnlyDictionary<string, Quaternion>? bonePose = null)
+    public SceneModel(GL gl, string path, string textureDir)
     {
         _gl = gl;
-        _bonePose = bonePose ?? new Dictionary<string, Quaternion>();
         _whiteTexture = CreateTexture(new byte[] { 255, 255, 255, 255 }, 1, 1);
         // O OpenGL espera a primeira linha da imagem embaixo.
         StbImage.stbi_set_flip_vertically_on_load(1);
@@ -60,7 +72,8 @@ public sealed unsafe class SceneModel : IDisposable
 
         try
         {
-            CollectNodeGlobals(scene->MRootNode, Matrix4x4.Identity);
+            CollectNodes(scene->MRootNode, -1);
+            ComputeGlobals(NoPose);
             LoadNode(assimp, scene, scene->MRootNode, textureDir);
         }
         finally
@@ -75,17 +88,65 @@ public sealed unsafe class SceneModel : IDisposable
     // O Assimp guarda as matrizes com a translação na última coluna; o System.Numerics, na última linha.
     private static Matrix4x4 ToNumerics(Matrix4x4 m) => Matrix4x4.Transpose(m);
 
-    private void CollectNodeGlobals(Node* node, Matrix4x4 parent)
+    private void CollectNodes(Node* node, int parent)
     {
-        string name = node->MName.AsString;
-        var local = ToNumerics(node->MTransformation);
-        // A pose usa os nomes sem ponto ("arm.R" vira "armR"), como o three.js faz.
-        if (_bonePose.TryGetValue(name.Replace(".", ""), out var extra))
-            local = Matrix4x4.CreateFromQuaternion(extra) * local;
-        var global = local * parent;
-        _nodeGlobals[name] = global;
+        int index = _nodes.Count;
+        _nodes.Add((node->MName.AsString, ToNumerics(node->MTransformation), parent));
         for (uint i = 0; i < node->MNumChildren; i++)
-            CollectNodeGlobals(node->MChildren[i], global);
+            CollectNodes(node->MChildren[i], index);
+    }
+
+    // pose: rotação extra no espaço local de cada osso. Usa os nomes sem ponto ("arm.R" vira "armR"), como o three.js.
+    private void ComputeGlobals(IReadOnlyDictionary<string, Quaternion> pose)
+    {
+        var globals = new Matrix4x4[_nodes.Count];
+        for (int i = 0; i < _nodes.Count; i++)
+        {
+            var (name, local, parent) = _nodes[i];
+            if (pose.TryGetValue(name.Replace(".", ""), out var extra))
+                local = Matrix4x4.CreateFromQuaternion(extra) * local;
+            globals[i] = parent >= 0 ? local * globals[parent] : local;
+            _nodeGlobals[name] = globals[i];
+        }
+    }
+
+    // Deforma de novo as malhas com ossos e atualiza os vértices na GPU.
+    public void SetPose(IReadOnlyDictionary<string, Quaternion> pose)
+    {
+        if (_skinned.Count == 0) return;
+        ComputeGlobals(pose);
+        foreach (var (mesh, skin) in _skinned)
+        {
+            var normals = new Vector3[skin.BindPositions.Length];
+            Skin(skin, mesh.Positions, normals);
+            for (int v = 0; v < mesh.Positions.Length; v++)
+            {
+                Vector3 p = mesh.Positions[v];
+                Vector3 n = normals[v].LengthSquared() > 0 ? Vector3.Normalize(normals[v]) : Vector3.UnitY;
+                int o = v * 8;
+                skin.Vertices[o + 0] = p.X; skin.Vertices[o + 1] = p.Y; skin.Vertices[o + 2] = p.Z;
+                skin.Vertices[o + 3] = n.X; skin.Vertices[o + 4] = n.Y; skin.Vertices[o + 5] = n.Z;
+            }
+            _gl.BindBuffer(BufferTargetARB.ArrayBuffer, skin.Vbo);
+            fixed (float* data = skin.Vertices)
+                _gl.BufferSubData(BufferTargetARB.ArrayBuffer, 0, (nuint)(skin.Vertices.Length * sizeof(float)), data);
+        }
+    }
+
+    // Pele: cada vértice é a média ponderada da posição que cada osso lhe daria.
+    private void Skin(SkinData skin, Vector3[] positions, Vector3[] normals)
+    {
+        Array.Clear(positions);
+        foreach (var (bone, offset, ids, weights) in skin.Bones)
+        {
+            var matrix = offset * _nodeGlobals[bone];
+            for (int w = 0; w < ids.Length; w++)
+            {
+                uint id = ids[w];
+                positions[id] += Vector3.Transform(skin.BindPositions[id], matrix) * weights[w];
+                normals[id] += Vector3.TransformNormal(skin.BindNormals[id], matrix) * weights[w];
+            }
+        }
     }
 
     private void LoadNode(Assimp assimp, Scene* scene, Node* node, string textureDir)
@@ -105,21 +166,28 @@ public sealed unsafe class SceneModel : IDisposable
         var normals = new Vector3[count];
         var uvs = new Vector2[count];
 
+        SkinData? skin = null;
         if (mesh->MNumBones > 0)
         {
-            // Pele: cada vértice é a média ponderada da posição que cada osso lhe daria.
+            skin = new SkinData { BindPositions = new Vector3[count], BindNormals = new Vector3[count] };
+            for (int v = 0; v < count; v++)
+            {
+                skin.BindPositions[v] = mesh->MVertices[v];
+                if (mesh->MNormals != null) skin.BindNormals[v] = mesh->MNormals[v];
+            }
             for (uint b = 0; b < mesh->MNumBones; b++)
             {
                 Bone* bone = mesh->MBones[b];
-                var skin = ToNumerics(bone->MOffsetMatrix) * _nodeGlobals[bone->MName.AsString];
+                var ids = new uint[bone->MNumWeights];
+                var weights = new float[bone->MNumWeights];
                 for (uint w = 0; w < bone->MNumWeights; w++)
                 {
-                    VertexWeight vw = bone->MWeights[w];
-                    positions[vw.MVertexId] += Vector3.Transform(mesh->MVertices[vw.MVertexId], skin) * vw.MWeight;
-                    if (mesh->MNormals != null)
-                        normals[vw.MVertexId] += Vector3.TransformNormal(mesh->MNormals[vw.MVertexId], skin) * vw.MWeight;
+                    ids[w] = bone->MWeights[w].MVertexId;
+                    weights[w] = bone->MWeights[w].MWeight;
                 }
+                skin.Bones.Add((bone->MName.AsString, ToNumerics(bone->MOffsetMatrix), ids, weights));
             }
+            Skin(skin, positions, normals);
         }
         else
         {
@@ -193,8 +261,15 @@ public sealed unsafe class SceneModel : IDisposable
         uint vbo = _gl.GenBuffer();
         _buffers.Add(vbo);
         _gl.BindBuffer(BufferTargetARB.ArrayBuffer, vbo);
+        var usage = skin != null ? BufferUsageARB.DynamicDraw : BufferUsageARB.StaticDraw;
         fixed (float* data = vertices)
-            _gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(vertices.Length * sizeof(float)), data, BufferUsageARB.StaticDraw);
+            _gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(vertices.Length * sizeof(float)), data, usage);
+        if (skin != null)
+        {
+            skin.Vertices = vertices;
+            skin.Vbo = vbo;
+            _skinned.Add((draw, skin));
+        }
 
         uint ebo = _gl.GenBuffer();
         _buffers.Add(ebo);
