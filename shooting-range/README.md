@@ -1,29 +1,37 @@
 # Shooting Range
 
-Cenário 3D (FBX) com movimentação em primeira pessoa usando Three.js.
+Cenário 3D (FBX) com movimentação em primeira pessoa, feito em C# (.NET 8) com
+OpenGL, sem engine.
 
 ## Controles
 
 - **W A S D**: mover
-- **Mouse**: olhar em volta (clique na tela para capturar o mouse)
+- **Mouse**: olhar em volta (clique na janela para capturar o mouse)
 - **Shift**: correr
 - **Esc**: soltar o mouse
 
 ## Como rodar
 
-O navegador não carrega o modelo abrindo o `index.html` direto (`file://`),
-então é preciso um servidor local. Dentro desta pasta:
+Precisa do [.NET 8 SDK](https://dotnet.microsoft.com/download). Dentro desta pasta:
 
 ```sh
-python3 -m http.server 8000
+dotnet run -c Release
 ```
 
-Depois abra http://localhost:8000.
+O carregamento do cenário leva alguns segundos (as texturas são grandes).
+
+## Bibliotecas
+
+- [Silk.NET](https://github.com/dotnet/Silk.NET): janela, OpenGL, teclado e mouse
+- Silk.NET.Assimp: leitura do arquivo FBX
+- [StbImageSharp](https://github.com/StbSharp/StbImageSharp): leitura das imagens (jpg/png)
 
 ## Estrutura
 
-- `index.html` / `style.css`: página e tela inicial
-- `main.js`: carregamento do modelo, luzes, controles e colisão
-- `models/shooting_range.fbx`: o cenário (as texturas já vêm embutidas no FBX)
-- `models/tex/`: opcional; texturas que não estiverem embutidas no FBX são
-  procuradas aqui pelo nome do arquivo (ex.: `Floor 01_C.jpg`)
+- `Program.cs`: janela, câmera, controles, movimentação e desenho
+- `SceneModel.cs`: carrega o FBX, as texturas e envia tudo para a GPU
+- `CollisionWorld.cs`: colisão por raycast contra os triângulos do cenário
+- `models/shooting_range.fbx`: o cenário
+- `models/tex/`: texturas. Cada material procura aqui um arquivo com o mesmo
+  nome (`.jpg`, `.jpeg` ou `.png`, ex.: `Floor 01_C.jpeg`); se não achar, usa a
+  textura embutida no FBX. Para trocar uma textura, basta substituir o arquivo.
