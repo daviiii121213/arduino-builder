@@ -18,7 +18,15 @@ internal static class Program
             Flags = OpenTK.Windowing.Common.ContextFlags.ForwardCompatible,
         };
 
-        using var game = new Game(gameSettings, nativeSettings);
-        game.Run();
+        try
+        {
+            using var game = new Game(gameSettings, nativeSettings);
+            game.Run();
+        }
+        catch (TextureLoadException ex)
+        {
+            Console.Error.WriteLine("TEXTURE ERROR: " + ex.Message);
+            Environment.ExitCode = 2;
+        }
     }
 }

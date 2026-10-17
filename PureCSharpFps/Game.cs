@@ -17,8 +17,11 @@ public sealed class Game : GameWindow
     private PlayerController _player = null!;
     private Shader _shader = null!;
     private Mesh _cube = null!;
+    private TextureLoader _textures = null!;
+    private readonly List<(Material Material, InstanceBatch Batch)> _batches = new();
 
     private int _locViewProjection, _locCameraPos, _locSunDirection, _locSkyColor;
+    private int _locTexture, _locHasTexture, _locTileSize, _locRegion, _locMirror, _locTint;
 
     private bool _mouseCaptured;
     private bool _skipNextMouseDelta;
@@ -49,13 +52,24 @@ public sealed class Game : GameWindow
         _locCameraPos = _shader.GetUniformLocation("uCameraPos");
         _locSunDirection = _shader.GetUniformLocation("uSunDirection");
         _locSkyColor = _shader.GetUniformLocation("uSkyColor");
+        _locTexture = _shader.GetUniformLocation("uTexture");
+        _locHasTexture = _shader.GetUniformLocation("uHasTexture");
+        _locTileSize = _shader.GetUniformLocation("uTileSize");
+        _locRegion = _shader.GetUniformLocation("uRegion");
+        _locMirror = _shader.GetUniformLocation("uMirror");
+        _locTint = _shader.GetUniformLocation("uTint");
 
-        var environment = new EnvironmentBuilder();
+        // Throws TextureLoadException with the exact file/problem if a texture is missing or unusable.
+        _textures = new TextureLoader(Path.Combine(AppContext.BaseDirectory, "Assets", "Textures"));
+        var materials = new EnvironmentMaterials(_textures);
+
+        var environment = new EnvironmentBuilder(materials);
         environment.Build();
         _collision = environment.Collision;
 
         _cube = Mesh.CreateUnitCube();
-        _cube.SetInstances(environment.InstanceData, environment.InstanceCount);
+        foreach (var (material, data, count) in environment.GetBatches())
+            _batches.Add((material, _cube.CreateBatch(data, count)));
 
         _player = new PlayerController(environment.SpawnPoint);
         _camera.Position = _player.EyePosition;
@@ -167,7 +181,21 @@ public sealed class Game : GameWindow
         _shader.SetVector3(_locCameraPos, _camera.Position);
         _shader.SetVector3(_locSunDirection, SunDirection);
         _shader.SetVector3(_locSkyColor, SkyColor);
-        _cube.Draw();
+        GL.Uniform1(_locTexture, 0);
+        foreach (var (material, batch) in _batches)
+        {
+            bool textured = material.Texture != null;
+            GL.Uniform1(_locHasTexture, textured ? 1 : 0);
+            if (textured)
+            {
+                material.Texture!.Bind();
+                GL.Uniform2(_locTileSize, material.TileSize.X, material.TileSize.Y);
+                GL.Uniform4(_locRegion, material.Region.X, material.Region.Y, material.Region.Z, material.Region.W);
+                GL.Uniform1(_locMirror, material.Mirror ? 1 : 0);
+                _shader.SetVector3(_locTint, material.Tint);
+            }
+            batch.Draw();
+        }
 
         SwapBuffers();
 
@@ -185,6 +213,7 @@ public sealed class Game : GameWindow
     protected override void OnUnload()
     {
         _cube?.Dispose();
+        _textures?.Dispose();
         _shader?.Dispose();
         base.OnUnload();
     }
