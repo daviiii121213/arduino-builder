@@ -1,0 +1,4186 @@
+{
+ "parts": [
+  {
+   "name": "SR_Target_Holder_dup_6",
+   "material": "Target Holder",
+   "texture": "Target Holder_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 7549,
+   "positionOffset": 0,
+   "positionMin": [
+    55.6038932800293,
+    198.7863006591797,
+    724.8626098632812
+   ],
+   "positionMax": [
+    110.20391082763672,
+    231.18629455566406,
+    733.2626342773438
+   ],
+   "uvOffset": 45296,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.988813579082489
+   ],
+   "indexOffset": 75492,
+   "indexCount": 35442,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_6",
+   "material": "Target Paper",
+   "texture": "Target Paper_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 146376,
+   "positionMin": [
+    55.093910217285156,
+    113.31629943847656,
+    729.0626220703125
+   ],
+   "positionMax": [
+    111.0138931274414,
+    201.85630798339844,
+    729.0626220703125
+   ],
+   "uvOffset": 146400,
+   "uvMin": [
+    0.15098389983177185,
+    0.026829270645976067
+   ],
+   "uvMax": [
+    0.8550161719322205,
+    0.973170816898346
+   ],
+   "indexOffset": 146416,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_7",
+   "material": "Target Holder",
+   "texture": "Target Holder_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 7549,
+   "positionOffset": 146428,
+   "positionMin": [
+    221.8398895263672,
+    198.7863006591797,
+    724.8626098632812
+   ],
+   "positionMax": [
+    276.4399108886719,
+    231.18629455566406,
+    733.2626342773438
+   ],
+   "uvOffset": 191724,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.988813579082489
+   ],
+   "indexOffset": 221920,
+   "indexCount": 35442,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_7",
+   "material": "Target Paper",
+   "texture": "Target Paper_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 292804,
+   "positionMin": [
+    221.3299102783203,
+    113.31629943847656,
+    729.0626220703125
+   ],
+   "positionMax": [
+    277.2498779296875,
+    201.85630798339844,
+    729.0626220703125
+   ],
+   "uvOffset": 292828,
+   "uvMin": [
+    0.15098389983177185,
+    0.026829270645976067
+   ],
+   "uvMax": [
+    0.8550161719322205,
+    0.973170816898346
+   ],
+   "indexOffset": 292844,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Signage",
+   "material": "Signage",
+   "texture": "Signage_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 292856,
+   "positionMin": [
+    278.3200988769531,
+    173.4552001953125,
+    -828.35009765625
+   ],
+   "positionMax": [
+    362.3200988769531,
+    233.9552001953125,
+    -827.35009765625
+   ],
+   "uvOffset": 293000,
+   "uvMin": [
+    0.009715287014842033,
+    0.029138900339603424
+   ],
+   "uvMax": [
+    0.9513415098190308,
+    0.9061532020568848
+   ],
+   "indexOffset": 293096,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Signage_dup_2",
+   "material": "Signage",
+   "texture": "Signage_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 293168,
+   "positionMin": [
+    -571.5518798828125,
+    173.4552001953125,
+    -828.35009765625
+   ],
+   "positionMax": [
+    -487.5518798828125,
+    233.9552001953125,
+    -827.35009765625
+   ],
+   "uvOffset": 293312,
+   "uvMin": [
+    0.009715287014842033,
+    0.029138900339603424
+   ],
+   "uvMax": [
+    0.9513415098190308,
+    0.9061532020568848
+   ],
+   "indexOffset": 293408,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_2",
+   "material": "Target Holder",
+   "texture": "Target Holder_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 7549,
+   "positionOffset": 293480,
+   "positionMin": [
+    -277.0368957519531,
+    198.7863006591797,
+    -344.7861022949219
+   ],
+   "positionMax": [
+    -222.4368896484375,
+    231.18629455566406,
+    -336.3860778808594
+   ],
+   "uvOffset": 338776,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.988813579082489
+   ],
+   "indexOffset": 368972,
+   "indexCount": 35442,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_2",
+   "material": "Target Paper",
+   "texture": "Target Paper_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 439856,
+   "positionMin": [
+    -277.546875,
+    113.31629943847656,
+    -340.5860900878906
+   ],
+   "positionMax": [
+    -221.6269073486328,
+    201.85630798339844,
+    -340.5860900878906
+   ],
+   "uvOffset": 439880,
+   "uvMin": [
+    0.15098389983177185,
+    0.026829270645976067
+   ],
+   "uvMax": [
+    0.8550161719322205,
+    0.973170816898346
+   ],
+   "indexOffset": 439896,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller",
+   "material": "Controller",
+   "texture": "Controller_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 336,
+   "positionOffset": 439908,
+   "positionMin": [
+    -695.6911010742188,
+    110.40188598632812,
+    -391.3940124511719
+   ],
+   "positionMax": [
+    -676.0911254882812,
+    123.40190124511719,
+    -369.39404296875
+   ],
+   "uvOffset": 441924,
+   "uvMin": [
+    0.19947920739650726,
+    0.10025370121002197
+   ],
+   "uvMax": [
+    0.8631380200386047,
+    0.899746298789978
+   ],
+   "indexOffset": 443268,
+   "indexCount": 1500,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller",
+   "material": "Button",
+   "texture": "Button_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 204,
+   "positionOffset": 446268,
+   "positionMin": [
+    -688.4548950195312,
+    117.14044189453125,
+    -390.1964111328125
+   ],
+   "positionMax": [
+    -683.2874145507812,
+    123.15440368652344,
+    -377.5406494140625
+   ],
+   "uvOffset": 447492,
+   "uvMin": [
+    0.6817854046821594,
+    0.10148409754037857
+   ],
+   "uvMax": [
+    0.9921112060546875,
+    0.8961008787155151
+   ],
+   "indexOffset": 448308,
+   "indexCount": 762,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller",
+   "material": "Rubber",
+   "texture": null,
+   "color": [
+    0.016,
+    0.016,
+    0.016
+   ],
+   "vertexCount": 3132,
+   "positionOffset": 449832,
+   "positionMin": [
+    -692.7821044921875,
+    110.25550079345703,
+    -369.8940124511719
+   ],
+   "positionMax": [
+    -670.5911254882812,
+    113.30188751220703,
+    -354.1440124511719
+   ],
+   "uvOffset": 468624,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.19352160394191742,
+    0.9900000095367432
+   ],
+   "indexOffset": 481152,
+   "indexCount": 17208,
+   "index32": false
+  },
+  {
+   "name": "SR_Wall_Front",
+   "material": "Outer",
+   "texture": null,
+   "color": [
+    0.0343,
+    0.0343,
+    0.0343
+   ],
+   "vertexCount": 20,
+   "positionOffset": 515568,
+   "positionMin": [
+    -852.9835205078125,
+    0,
+    835.3469848632812
+   ],
+   "positionMax": [
+    852.9835205078125,
+    298,
+    851.3469848632812
+   ],
+   "uvOffset": 515688,
+   "uvMin": [
+    0.25810569524765015,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.8311172127723694,
+    0.9009302258491516
+   ],
+   "indexOffset": 515768,
+   "indexCount": 30,
+   "index32": false
+  },
+  {
+   "name": "SR_Wall_Front",
+   "material": "Inner Wall 02",
+   "texture": "Inner Wall 02_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 515828,
+   "positionMin": [
+    -852.9835205078125,
+    0,
+    835.3469848632812
+   ],
+   "positionMax": [
+    852.9835205078125,
+    298,
+    835.3469848632812
+   ],
+   "uvOffset": 515852,
+   "uvMin": [
+    0.012195119634270668,
+    0.011363640427589417
+   ],
+   "uvMax": [
+    0.9878048896789551,
+    0.23863640427589417
+   ],
+   "indexOffset": 515868,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder",
+   "material": "Target Holder",
+   "texture": "Target Holder_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 7549,
+   "positionOffset": 515880,
+   "positionMin": [
+    -110.78359985351562,
+    198.7863006591797,
+    724.8626098632812
+   ],
+   "positionMax": [
+    -56.18357849121094,
+    231.18629455566406,
+    733.2626342773438
+   ],
+   "uvOffset": 561176,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.988813579082489
+   ],
+   "indexOffset": 591372,
+   "indexCount": 35442,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder",
+   "material": "Target Paper",
+   "texture": "Target Paper_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 662256,
+   "positionMin": [
+    -111.2935791015625,
+    113.31629943847656,
+    729.0626220703125
+   ],
+   "positionMax": [
+    -55.37359619140625,
+    201.85630798339844,
+    729.0626220703125
+   ],
+   "uvOffset": 662280,
+   "uvMin": [
+    0.15098389983177185,
+    0.026829270645976067
+   ],
+   "uvMax": [
+    0.8550161719322205,
+    0.973170816898346
+   ],
+   "indexOffset": 662296,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_3",
+   "material": "Black",
+   "texture": null,
+   "color": [
+    0.0116,
+    0.0116,
+    0.0116
+   ],
+   "vertexCount": 528,
+   "positionOffset": 662308,
+   "positionMin": [
+    -486.2701721191406,
+    68.94061279296875,
+    -511.93603515625
+   ],
+   "positionMax": [
+    -347.3424072265625,
+    104.44061279296875,
+    -477.333740234375
+   ],
+   "uvOffset": 665476,
+   "uvMin": [
+    0.13812319934368134,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.7111899852752686,
+    0.55048668384552
+   ],
+   "indexOffset": 667588,
+   "indexCount": 2400,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_3",
+   "material": "Chrome",
+   "texture": null,
+   "color": [
+    0.9131,
+    0.9216,
+    0.9216
+   ],
+   "vertexCount": 674,
+   "positionOffset": 672388,
+   "positionMin": [
+    -487.4890441894531,
+    73.14461517333984,
+    -507.482421875
+   ],
+   "positionMax": [
+    -485.23138427734375,
+    100.25861358642578,
+    -505.2247314453125
+   ],
+   "uvOffset": 676432,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.6985223889350891,
+    0.9439458847045898
+   ],
+   "indexOffset": 679128,
+   "indexCount": 3024,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_3",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 685176,
+   "positionMin": [
+    -481.9617004394531,
+    73.14060974121094,
+    -509.98760986328125
+   ],
+   "positionMax": [
+    -351.6053771972656,
+    100.24060821533203,
+    -479.49749755859375
+   ],
+   "uvOffset": 685320,
+   "uvMin": [
+    0.009999999776482582,
+    0.3286021947860718
+   ],
+   "uvMax": [
+    0.9072363972663879,
+    0.9782866835594177
+   ],
+   "indexOffset": 685416,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_9",
+   "material": "Controller",
+   "texture": "Controller_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 336,
+   "positionOffset": 685488,
+   "positionMin": [
+    635.4534912109375,
+    110.40188598632812,
+    -391.3940124511719
+   ],
+   "positionMax": [
+    655.053466796875,
+    123.40190124511719,
+    -369.39404296875
+   ],
+   "uvOffset": 687504,
+   "uvMin": [
+    0.19947920739650726,
+    0.10025370121002197
+   ],
+   "uvMax": [
+    0.8631380200386047,
+    0.899746298789978
+   ],
+   "indexOffset": 688848,
+   "indexCount": 1500,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_9",
+   "material": "Button",
+   "texture": "Button_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 204,
+   "positionOffset": 691848,
+   "positionMin": [
+    642.689697265625,
+    117.14044189453125,
+    -390.1964111328125
+   ],
+   "positionMax": [
+    647.857177734375,
+    123.15440368652344,
+    -377.5406494140625
+   ],
+   "uvOffset": 693072,
+   "uvMin": [
+    0.6817854046821594,
+    0.10148409754037857
+   ],
+   "uvMax": [
+    0.9921112060546875,
+    0.8961008787155151
+   ],
+   "indexOffset": 693888,
+   "indexCount": 762,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_9",
+   "material": "Rubber",
+   "texture": null,
+   "color": [
+    0.016,
+    0.016,
+    0.016
+   ],
+   "vertexCount": 3132,
+   "positionOffset": 695412,
+   "positionMin": [
+    638.3624877929688,
+    110.25550079345703,
+    -369.8940124511719
+   ],
+   "positionMax": [
+    660.553466796875,
+    113.30188751220703,
+    -354.1440124511719
+   ],
+   "uvOffset": 714204,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.19352160394191742,
+    0.9900000095367432
+   ],
+   "indexOffset": 726732,
+   "indexCount": 17208,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_4",
+   "material": "Black",
+   "texture": null,
+   "color": [
+    0.0116,
+    0.0116,
+    0.0116
+   ],
+   "vertexCount": 528,
+   "positionOffset": 761148,
+   "positionMin": [
+    -319.9741516113281,
+    68.94061279296875,
+    -512.1334838867188
+   ],
+   "positionMax": [
+    -179.02420043945312,
+    104.44061279296875,
+    -506.3536071777344
+   ],
+   "uvOffset": 764316,
+   "uvMin": [
+    0.13812319934368134,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.7111899852752686,
+    0.55048668384552
+   ],
+   "indexOffset": 766428,
+   "indexCount": 2400,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_4",
+   "material": "Chrome",
+   "texture": null,
+   "color": [
+    0.9131,
+    0.9216,
+    0.9216
+   ],
+   "vertexCount": 674,
+   "positionOffset": 771228,
+   "positionMin": [
+    -321.1046447753906,
+    73.14461517333984,
+    -507.4841003417969
+   ],
+   "positionMax": [
+    -318.84368896484375,
+    100.25861358642578,
+    -505.2231140136719
+   ],
+   "uvOffset": 775272,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.6985223889350891,
+    0.9439458847045898
+   ],
+   "indexOffset": 777968,
+   "indexCount": 3024,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_4",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 784016,
+   "positionMin": [
+    -315.774169921875,
+    73.14060974121094,
+    -510.95361328125
+   ],
+   "positionMax": [
+    -183.22409057617188,
+    100.24061584472656,
+    -507.75360107421875
+   ],
+   "uvOffset": 784160,
+   "uvMin": [
+    0.009999999776482582,
+    0.3286021947860718
+   ],
+   "uvMax": [
+    0.9072363972663879,
+    0.9782866835594177
+   ],
+   "indexOffset": 784256,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_5",
+   "material": "Black",
+   "texture": null,
+   "color": [
+    0.0116,
+    0.0116,
+    0.0116
+   ],
+   "vertexCount": 528,
+   "positionOffset": 784328,
+   "positionMin": [
+    -153.64120483398438,
+    68.94061279296875,
+    -506.35406494140625
+   ],
+   "positionMax": [
+    -147.86131286621094,
+    104.44061279296875,
+    -365.40411376953125
+   ],
+   "uvOffset": 787496,
+   "uvMin": [
+    0.13812319934368134,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.7111899852752686,
+    0.55048668384552
+   ],
+   "indexOffset": 789608,
+   "indexCount": 2400,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_5",
+   "material": "Chrome",
+   "texture": null,
+   "color": [
+    0.9131,
+    0.9216,
+    0.9216
+   ],
+   "vertexCount": 674,
+   "positionOffset": 794408,
+   "positionMin": [
+    -154.7716827392578,
+    73.14461517333984,
+    -507.48455810546875
+   ],
+   "positionMax": [
+    -152.51071166992188,
+    100.25861358642578,
+    -505.22357177734375
+   ],
+   "uvOffset": 798452,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.6985223889350891,
+    0.9439458847045898
+   ],
+   "indexOffset": 801148,
+   "indexCount": 3024,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_5",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 807196,
+   "positionMin": [
+    -152.2412109375,
+    73.14060974121094,
+    -502.1540832519531
+   ],
+   "positionMax": [
+    -149.04119873046875,
+    100.24061584472656,
+    -369.60400390625
+   ],
+   "uvOffset": 807340,
+   "uvMin": [
+    0.009999999776482582,
+    0.3286021947860718
+   ],
+   "uvMax": [
+    0.9072363972663879,
+    0.9782866835594177
+   ],
+   "indexOffset": 807436,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_2",
+   "material": "Black",
+   "texture": null,
+   "color": [
+    0.0116,
+    0.0116,
+    0.0116
+   ],
+   "vertexCount": 528,
+   "positionOffset": 807508,
+   "positionMin": [
+    -819.0577392578125,
+    68.94061279296875,
+    -512.1334838867188
+   ],
+   "positionMax": [
+    -678.1077880859375,
+    104.44061279296875,
+    -506.3536071777344
+   ],
+   "uvOffset": 810676,
+   "uvMin": [
+    0.13812319934368134,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.7111899852752686,
+    0.55048668384552
+   ],
+   "indexOffset": 812788,
+   "indexCount": 2400,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_2",
+   "material": "Chrome",
+   "texture": null,
+   "color": [
+    0.9131,
+    0.9216,
+    0.9216
+   ],
+   "vertexCount": 674,
+   "positionOffset": 817588,
+   "positionMin": [
+    -820.188232421875,
+    73.14461517333984,
+    -507.4841003417969
+   ],
+   "positionMax": [
+    -817.92724609375,
+    100.25861358642578,
+    -505.2231140136719
+   ],
+   "uvOffset": 821632,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.6985223889350891,
+    0.9439458847045898
+   ],
+   "indexOffset": 824328,
+   "indexCount": 3024,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_2",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 830376,
+   "positionMin": [
+    -814.8577880859375,
+    73.14060974121094,
+    -510.95361328125
+   ],
+   "positionMax": [
+    -682.3076782226562,
+    100.24061584472656,
+    -507.75360107421875
+   ],
+   "uvOffset": 830520,
+   "uvMin": [
+    0.009999999776482582,
+    0.3286021947860718
+   ],
+   "uvMax": [
+    0.9072363972663879,
+    0.9782866835594177
+   ],
+   "indexOffset": 830616,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_10",
+   "material": "Target Holder",
+   "texture": "Target Holder_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 7549,
+   "positionOffset": 830688,
+   "positionMin": [
+    720.7322387695312,
+    198.7863006591797,
+    724.8626098632812
+   ],
+   "positionMax": [
+    775.3322143554688,
+    231.18629455566406,
+    733.2626342773438
+   ],
+   "uvOffset": 875984,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.988813579082489
+   ],
+   "indexOffset": 906180,
+   "indexCount": 35442,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_10",
+   "material": "Target Paper",
+   "texture": "Target Paper_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 977064,
+   "positionMin": [
+    720.2222290039062,
+    113.31629943847656,
+    729.0626220703125
+   ],
+   "positionMax": [
+    776.1422119140625,
+    201.85630798339844,
+    729.0626220703125
+   ],
+   "uvOffset": 977088,
+   "uvMin": [
+    0.15098389983177185,
+    0.026829270645976067
+   ],
+   "uvMax": [
+    0.8550161719322205,
+    0.973170816898346
+   ],
+   "indexOffset": 977104,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_2",
+   "material": "Controller",
+   "texture": "Controller_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 336,
+   "positionOffset": 977116,
+   "positionMin": [
+    -529.2117919921875,
+    110.40188598632812,
+    -391.3940124511719
+   ],
+   "positionMax": [
+    -509.61181640625,
+    123.40190124511719,
+    -369.39404296875
+   ],
+   "uvOffset": 979132,
+   "uvMin": [
+    0.19947920739650726,
+    0.10025370121002197
+   ],
+   "uvMax": [
+    0.8631380200386047,
+    0.899746298789978
+   ],
+   "indexOffset": 980476,
+   "indexCount": 1500,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_2",
+   "material": "Button",
+   "texture": "Button_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 204,
+   "positionOffset": 983476,
+   "positionMin": [
+    -521.9755859375,
+    117.14044189453125,
+    -390.1964111328125
+   ],
+   "positionMax": [
+    -516.80810546875,
+    123.15440368652344,
+    -377.5406494140625
+   ],
+   "uvOffset": 984700,
+   "uvMin": [
+    0.6817854046821594,
+    0.10148409754037857
+   ],
+   "uvMax": [
+    0.9921112060546875,
+    0.8961008787155151
+   ],
+   "indexOffset": 985516,
+   "indexCount": 762,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_2",
+   "material": "Rubber",
+   "texture": null,
+   "color": [
+    0.016,
+    0.016,
+    0.016
+   ],
+   "vertexCount": 3132,
+   "positionOffset": 987040,
+   "positionMin": [
+    -526.3027954101562,
+    110.25550079345703,
+    -369.8940124511719
+   ],
+   "positionMax": [
+    -504.11181640625,
+    113.30188751220703,
+    -354.1440124511719
+   ],
+   "uvOffset": 1005832,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.19352160394191742,
+    0.9900000095367432
+   ],
+   "indexOffset": 1018360,
+   "indexCount": 17208,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_4",
+   "material": "Controller",
+   "texture": "Controller_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 336,
+   "positionOffset": 1052776,
+   "positionMin": [
+    -196.4197998046875,
+    110.40188598632812,
+    -391.3940124511719
+   ],
+   "positionMax": [
+    -176.81980895996094,
+    123.40190124511719,
+    -369.39404296875
+   ],
+   "uvOffset": 1054792,
+   "uvMin": [
+    0.19947920739650726,
+    0.10025370121002197
+   ],
+   "uvMax": [
+    0.8631380200386047,
+    0.899746298789978
+   ],
+   "indexOffset": 1056136,
+   "indexCount": 1500,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_4",
+   "material": "Button",
+   "texture": "Button_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 204,
+   "positionOffset": 1059136,
+   "positionMin": [
+    -189.18357849121094,
+    117.14044189453125,
+    -390.1964111328125
+   ],
+   "positionMax": [
+    -184.01609802246094,
+    123.15440368652344,
+    -377.5406494140625
+   ],
+   "uvOffset": 1060360,
+   "uvMin": [
+    0.6817854046821594,
+    0.10148409754037857
+   ],
+   "uvMax": [
+    0.9921112060546875,
+    0.8961008787155151
+   ],
+   "indexOffset": 1061176,
+   "indexCount": 762,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_4",
+   "material": "Rubber",
+   "texture": null,
+   "color": [
+    0.016,
+    0.016,
+    0.016
+   ],
+   "vertexCount": 3132,
+   "positionOffset": 1062700,
+   "positionMin": [
+    -193.51077270507812,
+    110.25550079345703,
+    -369.8940124511719
+   ],
+   "positionMax": [
+    -171.31979370117188,
+    113.30188751220703,
+    -354.1440124511719
+   ],
+   "uvOffset": 1081492,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.19352160394191742,
+    0.9900000095367432
+   ],
+   "indexOffset": 1094020,
+   "indexCount": 17208,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_9",
+   "material": "Target Holder",
+   "texture": "Target Holder_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 7549,
+   "positionOffset": 1128436,
+   "positionMin": [
+    554.54541015625,
+    198.7863006591797,
+    724.8626098632812
+   ],
+   "positionMax": [
+    609.1453857421875,
+    231.18629455566406,
+    733.2626342773438
+   ],
+   "uvOffset": 1173732,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.988813579082489
+   ],
+   "indexOffset": 1203928,
+   "indexCount": 35442,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_9",
+   "material": "Target Paper",
+   "texture": "Target Paper_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 1274812,
+   "positionMin": [
+    554.035400390625,
+    113.31629943847656,
+    729.0626220703125
+   ],
+   "positionMax": [
+    609.9553833007812,
+    201.85630798339844,
+    729.0626220703125
+   ],
+   "uvOffset": 1274836,
+   "uvMin": [
+    0.15098389983177185,
+    0.026829270645976067
+   ],
+   "uvMax": [
+    0.8550161719322205,
+    0.973170816898346
+   ],
+   "indexOffset": 1274852,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_5",
+   "material": "Controller",
+   "texture": "Controller_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 336,
+   "positionOffset": 1274864,
+   "positionMin": [
+    -29.95193862915039,
+    110.40188598632812,
+    -391.3940124511719
+   ],
+   "positionMax": [
+    -10.351947784423828,
+    123.40190124511719,
+    -369.39404296875
+   ],
+   "uvOffset": 1276880,
+   "uvMin": [
+    0.19947920739650726,
+    0.10025370121002197
+   ],
+   "uvMax": [
+    0.8631380200386047,
+    0.899746298789978
+   ],
+   "indexOffset": 1278224,
+   "indexCount": 1500,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_5",
+   "material": "Button",
+   "texture": "Button_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 204,
+   "positionOffset": 1281224,
+   "positionMin": [
+    -22.71571922302246,
+    117.14044189453125,
+    -390.1964111328125
+   ],
+   "positionMax": [
+    -17.548233032226562,
+    123.15440368652344,
+    -377.5406494140625
+   ],
+   "uvOffset": 1282448,
+   "uvMin": [
+    0.6817854046821594,
+    0.10148409754037857
+   ],
+   "uvMax": [
+    0.9921112060546875,
+    0.8961008787155151
+   ],
+   "indexOffset": 1283264,
+   "indexCount": 762,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_5",
+   "material": "Rubber",
+   "texture": null,
+   "color": [
+    0.016,
+    0.016,
+    0.016
+   ],
+   "vertexCount": 3132,
+   "positionOffset": 1284788,
+   "positionMin": [
+    -27.042919158935547,
+    110.25550079345703,
+    -369.8940124511719
+   ],
+   "positionMax": [
+    -4.8519392013549805,
+    113.30188751220703,
+    -354.1440124511719
+   ],
+   "uvOffset": 1303580,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.19352160394191742,
+    0.9900000095367432
+   ],
+   "indexOffset": 1316108,
+   "indexCount": 17208,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_8",
+   "material": "Target Holder",
+   "texture": "Target Holder_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 7549,
+   "positionOffset": 1350524,
+   "positionMin": [
+    388.1455993652344,
+    198.7863006591797,
+    724.8626098632812
+   ],
+   "positionMax": [
+    442.7456359863281,
+    231.18629455566406,
+    733.2626342773438
+   ],
+   "uvOffset": 1395820,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.988813579082489
+   ],
+   "indexOffset": 1426016,
+   "indexCount": 35442,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_8",
+   "material": "Target Paper",
+   "texture": "Target Paper_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 1496900,
+   "positionMin": [
+    387.6356201171875,
+    113.31629943847656,
+    729.0626220703125
+   ],
+   "positionMax": [
+    443.55560302734375,
+    201.85630798339844,
+    729.0626220703125
+   ],
+   "uvOffset": 1496924,
+   "uvMin": [
+    0.15098389983177185,
+    0.026829270645976067
+   ],
+   "uvMax": [
+    0.8550161719322205,
+    0.973170816898346
+   ],
+   "indexOffset": 1496940,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_6",
+   "material": "Controller",
+   "texture": "Controller_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 336,
+   "positionOffset": 1496952,
+   "positionMin": [
+    136.26039123535156,
+    110.40188598632812,
+    -391.3940124511719
+   ],
+   "positionMax": [
+    155.86038208007812,
+    123.40190124511719,
+    -369.39404296875
+   ],
+   "uvOffset": 1498968,
+   "uvMin": [
+    0.19947920739650726,
+    0.10025370121002197
+   ],
+   "uvMax": [
+    0.8631380200386047,
+    0.899746298789978
+   ],
+   "indexOffset": 1500312,
+   "indexCount": 1500,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_6",
+   "material": "Button",
+   "texture": "Button_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 204,
+   "positionOffset": 1503312,
+   "positionMin": [
+    143.49661254882812,
+    117.14044189453125,
+    -390.1964111328125
+   ],
+   "positionMax": [
+    148.66409301757812,
+    123.15440368652344,
+    -377.5406494140625
+   ],
+   "uvOffset": 1504536,
+   "uvMin": [
+    0.6817854046821594,
+    0.10148409754037857
+   ],
+   "uvMax": [
+    0.9921112060546875,
+    0.8961008787155151
+   ],
+   "indexOffset": 1505352,
+   "indexCount": 762,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_6",
+   "material": "Rubber",
+   "texture": null,
+   "color": [
+    0.016,
+    0.016,
+    0.016
+   ],
+   "vertexCount": 3132,
+   "positionOffset": 1506876,
+   "positionMin": [
+    139.16941833496094,
+    110.25550079345703,
+    -369.8940124511719
+   ],
+   "positionMax": [
+    161.3603973388672,
+    113.30188751220703,
+    -354.1440124511719
+   ],
+   "uvOffset": 1525668,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.19352160394191742,
+    0.9900000095367432
+   ],
+   "indexOffset": 1538196,
+   "indexCount": 17208,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_7",
+   "material": "Controller",
+   "texture": "Controller_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 336,
+   "positionOffset": 1572612,
+   "positionMin": [
+    302.75579833984375,
+    110.40188598632812,
+    -391.3940124511719
+   ],
+   "positionMax": [
+    322.35577392578125,
+    123.40190124511719,
+    -369.39404296875
+   ],
+   "uvOffset": 1574628,
+   "uvMin": [
+    0.19947920739650726,
+    0.10025370121002197
+   ],
+   "uvMax": [
+    0.8631380200386047,
+    0.899746298789978
+   ],
+   "indexOffset": 1575972,
+   "indexCount": 1500,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_7",
+   "material": "Button",
+   "texture": "Button_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 204,
+   "positionOffset": 1578972,
+   "positionMin": [
+    309.99200439453125,
+    117.14044189453125,
+    -390.1964111328125
+   ],
+   "positionMax": [
+    315.15948486328125,
+    123.15440368652344,
+    -377.5406494140625
+   ],
+   "uvOffset": 1580196,
+   "uvMin": [
+    0.6817854046821594,
+    0.10148409754037857
+   ],
+   "uvMax": [
+    0.9921112060546875,
+    0.8961008787155151
+   ],
+   "indexOffset": 1581012,
+   "indexCount": 762,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_7",
+   "material": "Rubber",
+   "texture": null,
+   "color": [
+    0.016,
+    0.016,
+    0.016
+   ],
+   "vertexCount": 3132,
+   "positionOffset": 1582536,
+   "positionMin": [
+    305.664794921875,
+    110.25550079345703,
+    -369.8940124511719
+   ],
+   "positionMax": [
+    327.85577392578125,
+    113.30188751220703,
+    -354.1440124511719
+   ],
+   "uvOffset": 1601328,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.19352160394191742,
+    0.9900000095367432
+   ],
+   "indexOffset": 1613856,
+   "indexCount": 17208,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_3",
+   "material": "Controller",
+   "texture": "Controller_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 336,
+   "positionOffset": 1648272,
+   "positionMin": [
+    -362.7177734375,
+    110.40188598632812,
+    -391.3940124511719
+   ],
+   "positionMax": [
+    -343.1177978515625,
+    123.40190124511719,
+    -369.39404296875
+   ],
+   "uvOffset": 1650288,
+   "uvMin": [
+    0.19947920739650726,
+    0.10025370121002197
+   ],
+   "uvMax": [
+    0.8631380200386047,
+    0.899746298789978
+   ],
+   "indexOffset": 1651632,
+   "indexCount": 1500,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_3",
+   "material": "Button",
+   "texture": "Button_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 204,
+   "positionOffset": 1654632,
+   "positionMin": [
+    -355.4815673828125,
+    117.14044189453125,
+    -390.1964111328125
+   ],
+   "positionMax": [
+    -350.3140869140625,
+    123.15440368652344,
+    -377.5406494140625
+   ],
+   "uvOffset": 1655856,
+   "uvMin": [
+    0.6817854046821594,
+    0.10148409754037857
+   ],
+   "uvMax": [
+    0.9921112060546875,
+    0.8961008787155151
+   ],
+   "indexOffset": 1656672,
+   "indexCount": 762,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_3",
+   "material": "Rubber",
+   "texture": null,
+   "color": [
+    0.016,
+    0.016,
+    0.016
+   ],
+   "vertexCount": 3132,
+   "positionOffset": 1658196,
+   "positionMin": [
+    -359.80877685546875,
+    110.25550079345703,
+    -369.8940124511719
+   ],
+   "positionMax": [
+    -337.6177978515625,
+    113.30188751220703,
+    -354.1440124511719
+   ],
+   "uvOffset": 1676988,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.19352160394191742,
+    0.9900000095367432
+   ],
+   "indexOffset": 1689516,
+   "indexCount": 17208,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_8",
+   "material": "Controller",
+   "texture": "Controller_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 336,
+   "positionOffset": 1723932,
+   "positionMin": [
+    469.0848083496094,
+    110.40188598632812,
+    -391.3940124511719
+   ],
+   "positionMax": [
+    488.6847839355469,
+    123.40190124511719,
+    -369.39404296875
+   ],
+   "uvOffset": 1725948,
+   "uvMin": [
+    0.19947920739650726,
+    0.10025370121002197
+   ],
+   "uvMax": [
+    0.8631380200386047,
+    0.899746298789978
+   ],
+   "indexOffset": 1727292,
+   "indexCount": 1500,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_8",
+   "material": "Button",
+   "texture": "Button_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 204,
+   "positionOffset": 1730292,
+   "positionMin": [
+    476.3210144042969,
+    117.14044189453125,
+    -390.1964111328125
+   ],
+   "positionMax": [
+    481.4884948730469,
+    123.15440368652344,
+    -377.5406494140625
+   ],
+   "uvOffset": 1731516,
+   "uvMin": [
+    0.6817854046821594,
+    0.10148409754037857
+   ],
+   "uvMax": [
+    0.9921112060546875,
+    0.8961008787155151
+   ],
+   "indexOffset": 1732332,
+   "indexCount": 762,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_8",
+   "material": "Rubber",
+   "texture": null,
+   "color": [
+    0.016,
+    0.016,
+    0.016
+   ],
+   "vertexCount": 3132,
+   "positionOffset": 1733856,
+   "positionMin": [
+    471.9938049316406,
+    110.25550079345703,
+    -369.8940124511719
+   ],
+   "positionMax": [
+    494.1847839355469,
+    113.30188751220703,
+    -354.1440124511719
+   ],
+   "uvOffset": 1752648,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.19352160394191742,
+    0.9900000095367432
+   ],
+   "indexOffset": 1765176,
+   "indexCount": 17208,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_10",
+   "material": "Controller",
+   "texture": "Controller_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 336,
+   "positionOffset": 1799592,
+   "positionMin": [
+    801.8197021484375,
+    110.40188598632812,
+    -391.3940124511719
+   ],
+   "positionMax": [
+    821.419677734375,
+    123.40190124511719,
+    -369.39404296875
+   ],
+   "uvOffset": 1801608,
+   "uvMin": [
+    0.19947920739650726,
+    0.10025370121002197
+   ],
+   "uvMax": [
+    0.8631380200386047,
+    0.899746298789978
+   ],
+   "indexOffset": 1802952,
+   "indexCount": 1500,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_10",
+   "material": "Button",
+   "texture": "Button_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 204,
+   "positionOffset": 1805952,
+   "positionMin": [
+    809.055908203125,
+    117.14044189453125,
+    -390.1964111328125
+   ],
+   "positionMax": [
+    814.223388671875,
+    123.15440368652344,
+    -377.5406494140625
+   ],
+   "uvOffset": 1807176,
+   "uvMin": [
+    0.6817854046821594,
+    0.10148409754037857
+   ],
+   "uvMax": [
+    0.9921112060546875,
+    0.8961008787155151
+   ],
+   "indexOffset": 1807992,
+   "indexCount": 762,
+   "index32": false
+  },
+  {
+   "name": "SR_Controller_dup_10",
+   "material": "Rubber",
+   "texture": null,
+   "color": [
+    0.016,
+    0.016,
+    0.016
+   ],
+   "vertexCount": 3132,
+   "positionOffset": 1809516,
+   "positionMin": [
+    804.7286987304688,
+    110.25550079345703,
+    -369.8940124511719
+   ],
+   "positionMax": [
+    826.919677734375,
+    113.30188751220703,
+    -354.1440124511719
+   ],
+   "uvOffset": 1828308,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.19352160394191742,
+    0.9900000095367432
+   ],
+   "indexOffset": 1840836,
+   "indexCount": 17208,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_3",
+   "material": "Target Holder",
+   "texture": "Target Holder_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 7549,
+   "positionOffset": 1875252,
+   "positionMin": [
+    -443.3755187988281,
+    198.7863006591797,
+    724.8626098632812
+   ],
+   "positionMax": [
+    -388.7754821777344,
+    231.18629455566406,
+    733.2626342773438
+   ],
+   "uvOffset": 1920548,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.988813579082489
+   ],
+   "indexOffset": 1950744,
+   "indexCount": 35442,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_3",
+   "material": "Target Paper",
+   "texture": "Target Paper_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 2021628,
+   "positionMin": [
+    -443.885498046875,
+    113.31629943847656,
+    729.0626220703125
+   ],
+   "positionMax": [
+    -387.96551513671875,
+    201.85630798339844,
+    729.0626220703125
+   ],
+   "uvOffset": 2021652,
+   "uvMin": [
+    0.15098389983177185,
+    0.026829270645976067
+   ],
+   "uvMax": [
+    0.8550161719322205,
+    0.973170816898346
+   ],
+   "indexOffset": 2021668,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_5",
+   "material": "Target Holder",
+   "texture": "Target Holder_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 7549,
+   "positionOffset": 2021680,
+   "positionMin": [
+    -775.9221801757812,
+    198.7863006591797,
+    724.8626098632812
+   ],
+   "positionMax": [
+    -721.3222045898438,
+    231.18629455566406,
+    733.2626342773438
+   ],
+   "uvOffset": 2066976,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.988813579082489
+   ],
+   "indexOffset": 2097172,
+   "indexCount": 35442,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_5",
+   "material": "Target Paper",
+   "texture": "Target Paper_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 2168056,
+   "positionMin": [
+    -776.4321899414062,
+    113.31629943847656,
+    729.0626220703125
+   ],
+   "positionMax": [
+    -720.51220703125,
+    201.85630798339844,
+    729.0626220703125
+   ],
+   "uvOffset": 2168080,
+   "uvMin": [
+    0.15098389983177185,
+    0.026829270645976067
+   ],
+   "uvMax": [
+    0.8550161719322205,
+    0.973170816898346
+   ],
+   "indexOffset": 2168096,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_4",
+   "material": "Target Holder",
+   "texture": "Target Holder_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 7549,
+   "positionOffset": 2168108,
+   "positionMin": [
+    -609.705810546875,
+    198.7863006591797,
+    724.8626098632812
+   ],
+   "positionMax": [
+    -555.1058349609375,
+    231.18629455566406,
+    733.2626342773438
+   ],
+   "uvOffset": 2213404,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.988813579082489
+   ],
+   "indexOffset": 2243600,
+   "indexCount": 35442,
+   "index32": false
+  },
+  {
+   "name": "SR_Target_Holder_dup_4",
+   "material": "Target Paper",
+   "texture": "Target Paper_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 2314484,
+   "positionMin": [
+    -610.2158203125,
+    113.31629943847656,
+    729.0626220703125
+   ],
+   "positionMax": [
+    -554.2958374023438,
+    201.85630798339844,
+    729.0626220703125
+   ],
+   "uvOffset": 2314508,
+   "uvMin": [
+    0.15098389983177185,
+    0.026829270645976067
+   ],
+   "uvMax": [
+    0.8550161719322205,
+    0.973170816898346
+   ],
+   "indexOffset": 2314524,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door",
+   "material": "Black",
+   "texture": null,
+   "color": [
+    0.0116,
+    0.0116,
+    0.0116
+   ],
+   "vertexCount": 528,
+   "positionOffset": 2314536,
+   "positionMin": [
+    -652.5769653320312,
+    68.94061279296875,
+    -508.1866149902344
+   ],
+   "positionMax": [
+    -599.4927368164062,
+    104.44061279296875,
+    -373.9110412597656
+   ],
+   "uvOffset": 2317704,
+   "uvMin": [
+    0.13812319934368134,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.7111899852752686,
+    0.55048668384552
+   ],
+   "indexOffset": 2319816,
+   "indexCount": 2400,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door",
+   "material": "Chrome",
+   "texture": null,
+   "color": [
+    0.9131,
+    0.9216,
+    0.9216
+   ],
+   "vertexCount": 674,
+   "positionOffset": 2324616,
+   "positionMin": [
+    -653.8132934570312,
+    73.14461517333984,
+    -507.4802551269531
+   ],
+   "positionMax": [
+    -651.5604248046875,
+    100.25861358642578,
+    -505.2274169921875
+   ],
+   "uvOffset": 2328660,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.6985223889350891,
+    0.9439458847045898
+   ],
+   "indexOffset": 2331356,
+   "indexCount": 3024,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 2337404,
+   "positionMin": [
+    -649.9437255859375,
+    73.14060974121094,
+    -503.9656677246094
+   ],
+   "positionMax": [
+    -601.9189453125,
+    100.24061584472656,
+    -378.2066345214844
+   ],
+   "uvOffset": 2337548,
+   "uvMin": [
+    0.009999999776482582,
+    0.3286021947860718
+   ],
+   "uvMax": [
+    0.9072363972663879,
+    0.9782866835594177
+   ],
+   "indexOffset": 2337644,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Left_Door",
+   "material": "Door",
+   "texture": "Door_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 1008,
+   "positionOffset": 2337716,
+   "positionMin": [
+    660.876220703125,
+    0,
+    -837.1281127929688
+   ],
+   "positionMax": [
+    778.6876220703125,
+    235.99850463867188,
+    -827.3680419921875
+   ],
+   "uvOffset": 2343764,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.668830394744873,
+    0.9900000095367432
+   ],
+   "indexOffset": 2347796,
+   "indexCount": 4800,
+   "index32": false
+  },
+  {
+   "name": "SR_Left_Door",
+   "material": "Chrome",
+   "texture": null,
+   "color": [
+    0.9131,
+    0.9216,
+    0.9216
+   ],
+   "vertexCount": 1620,
+   "positionOffset": 2357396,
+   "positionMin": [
+    777.6954345703125,
+    15.525360107421875,
+    -828.3627319335938
+   ],
+   "positionMax": [
+    779.684814453125,
+    221.95460510253906,
+    -826.3732299804688
+   ],
+   "uvOffset": 2367116,
+   "uvMin": [
+    0.023518849164247513,
+    0.013004190288484097
+   ],
+   "uvMax": [
+    0.9163967967033386,
+    0.9900000095367432
+   ],
+   "indexOffset": 2373596,
+   "indexCount": 6144,
+   "index32": false
+  },
+  {
+   "name": "SR_Left_Door",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    0.0273,
+    0.0273,
+    0.0273
+   ],
+   "vertexCount": 8,
+   "positionOffset": 2385884,
+   "positionMin": [
+    691.3751220703125,
+    119,
+    -835.3480224609375
+   ],
+   "positionMax": [
+    747.8751220703125,
+    201.5,
+    -829.14794921875
+   ],
+   "uvOffset": 2385932,
+   "uvMin": [
+    0.5149543881416321,
+    0.5254744291305542
+   ],
+   "uvMax": [
+    0.5971931219100952,
+    0.8321893215179443
+   ],
+   "indexOffset": 2385964,
+   "indexCount": 12,
+   "index32": false
+  },
+  {
+   "name": "SR_Left_Door",
+   "material": "Door Handle",
+   "texture": null,
+   "color": [
+    0.1878,
+    0.1912,
+    0.1912
+   ],
+   "vertexCount": 4846,
+   "positionOffset": 2385988,
+   "positionMin": [
+    666.505126953125,
+    105.80000305175781,
+    -847.8982543945312
+   ],
+   "positionMax": [
+    694.0401611328125,
+    119,
+    -816.5977172851562
+   ],
+   "uvOffset": 2415064,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9847391247749329,
+    0.9900000095367432
+   ],
+   "indexOffset": 2434448,
+   "indexCount": 24624,
+   "index32": false
+  },
+  {
+   "name": "SR_Left_Door",
+   "material": "Warning Sign",
+   "texture": "Warning Sign_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 2483696,
+   "positionMin": [
+    700.7251586914062,
+    87.28752136230469,
+    -837.7479858398438
+   ],
+   "positionMax": [
+    738.525146484375,
+    114.51249694824219,
+    -836.7479858398438
+   ],
+   "uvOffset": 2483840,
+   "uvMin": [
+    0.009715287014842033,
+    0.029138900339603424
+   ],
+   "uvMax": [
+    0.8469188809394836,
+    0.7448958158493042
+   ],
+   "indexOffset": 2483936,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Floor",
+   "material": "Outer",
+   "texture": null,
+   "color": [
+    0.0343,
+    0.0343,
+    0.0343
+   ],
+   "vertexCount": 26,
+   "positionOffset": 2484008,
+   "positionMin": [
+    -852.9088134765625,
+    -26.999990463256836,
+    -843.6749267578125
+   ],
+   "positionMax": [
+    852.9912109375,
+    -0.0000095367431640625,
+    851.3250732421875
+   ],
+   "uvOffset": 2484164,
+   "uvMin": [
+    0.009999999776482582,
+    0.3994506895542145
+   ],
+   "uvMax": [
+    0.7404711246490479,
+    0.9894253015518188
+   ],
+   "indexOffset": 2484268,
+   "indexCount": 48,
+   "index32": false
+  },
+  {
+   "name": "SR_Floor",
+   "material": "Floor 02",
+   "texture": "Floor 02_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 2484364,
+   "positionMin": [
+    -852.9088134765625,
+    -0.0000095367431640625,
+    -353.2998962402344
+   ],
+   "positionMax": [
+    852.9912109375,
+    -0.0000095367431640625,
+    851.3250732421875
+   ],
+   "uvOffset": 2484388,
+   "uvMin": [
+    0.012195119634270668,
+    0.012096770107746124
+   ],
+   "uvMax": [
+    0.9878048896789551,
+    0.7379031777381897
+   ],
+   "indexOffset": 2484404,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Floor",
+   "material": "Floor 01",
+   "texture": "Floor 01_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 2484416,
+   "positionMin": [
+    -852.9088134765625,
+    -0.0000095367431640625,
+    -843.6749267578125
+   ],
+   "positionMax": [
+    852.9912109375,
+    -0.0000095367431640625,
+    -353.2998962402344
+   ],
+   "uvOffset": 2484440,
+   "uvMin": [
+    0.012195119634270668,
+    0.01171875
+   ],
+   "uvMax": [
+    0.9878048896789551,
+    0.3632811903953552
+   ],
+   "indexOffset": 2484456,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Wall_Right",
+   "material": "Outer",
+   "texture": null,
+   "color": [
+    0.0343,
+    0.0343,
+    0.0343
+   ],
+   "vertexCount": 26,
+   "positionOffset": 2484468,
+   "positionMin": [
+    -852.7891235351562,
+    0,
+    -831.4998779296875
+   ],
+   "positionMax": [
+    -836.7891235351562,
+    298,
+    831.4998779296875
+   ],
+   "uvOffset": 2484624,
+   "uvMin": [
+    0.1919441968202591,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.8978846073150635,
+    0.9900000095367432
+   ],
+   "indexOffset": 2484728,
+   "indexCount": 48,
+   "index32": false
+  },
+  {
+   "name": "SR_Wall_Right",
+   "material": "Inner Wall 01",
+   "texture": "Inner Wall 01_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 2484824,
+   "positionMin": [
+    -836.7891235351562,
+    0,
+    -831.4998779296875
+   ],
+   "positionMax": [
+    -836.7891235351562,
+    298,
+    -357.125
+   ],
+   "uvOffset": 2484848,
+   "uvMin": [
+    0.011491370387375355,
+    0.4776608943939209
+   ],
+   "uvMax": [
+    0.2859087884426117,
+    0.6500486135482788
+   ],
+   "indexOffset": 2484864,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Wall_Right",
+   "material": "Wall Accent",
+   "texture": "Wall Accent_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 5760,
+   "positionOffset": 2484876,
+   "positionMin": [
+    -836.7891235351562,
+    0,
+    -357.125
+   ],
+   "positionMax": [
+    -835.7891235351562,
+    298,
+    831.4998779296875
+   ],
+   "uvOffset": 2519436,
+   "uvMin": [
+    0.008933891542255878,
+    0.011529089882969856
+   ],
+   "uvMax": [
+    0.928536593914032,
+    0.9899924993515015
+   ],
+   "indexOffset": 2542476,
+   "indexCount": 25560,
+   "index32": false
+  },
+  {
+   "name": "SR_Wall_Left",
+   "material": "Outer",
+   "texture": null,
+   "color": [
+    0.0343,
+    0.0343,
+    0.0343
+   ],
+   "vertexCount": 26,
+   "positionOffset": 2593596,
+   "positionMin": [
+    836.7891235351562,
+    0,
+    -831.4998779296875
+   ],
+   "positionMax": [
+    852.7891235351562,
+    298,
+    831.4998779296875
+   ],
+   "uvOffset": 2593752,
+   "uvMin": [
+    0.1919441968202591,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9640461206436157,
+    0.8877503871917725
+   ],
+   "indexOffset": 2593856,
+   "indexCount": 48,
+   "index32": false
+  },
+  {
+   "name": "SR_Wall_Left",
+   "material": "Inner Wall 01",
+   "texture": "Inner Wall 01_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 4,
+   "positionOffset": 2593952,
+   "positionMin": [
+    836.7891235351562,
+    0,
+    -831.4998779296875
+   ],
+   "positionMax": [
+    836.7891235351562,
+    298,
+    -357.125
+   ],
+   "uvOffset": 2593976,
+   "uvMin": [
+    0.2927913963794708,
+    0.47758030891418457
+   ],
+   "uvMax": [
+    0.5672088265419006,
+    0.6499679088592529
+   ],
+   "indexOffset": 2593992,
+   "indexCount": 6,
+   "index32": false
+  },
+  {
+   "name": "SR_Wall_Left",
+   "material": "Wall Accent",
+   "texture": "Wall Accent_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 5760,
+   "positionOffset": 2594004,
+   "positionMin": [
+    835.7891235351562,
+    0,
+    -357.125
+   ],
+   "positionMax": [
+    836.7891235351562,
+    298,
+    831.4998779296875
+   ],
+   "uvOffset": 2628564,
+   "uvMin": [
+    0.008871559984982014,
+    0.01988852024078369
+   ],
+   "uvMax": [
+    0.9900332093238831,
+    0.9785904884338379
+   ],
+   "indexOffset": 2651604,
+   "indexCount": 25560,
+   "index32": false
+  },
+  {
+   "name": "SR_Right_Door",
+   "material": "Door",
+   "texture": "Door_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 1008,
+   "positionOffset": 2702724,
+   "positionMin": [
+    543.4014282226562,
+    0,
+    -837.1281127929688
+   ],
+   "positionMax": [
+    661.212890625,
+    235.99850463867188,
+    -827.3680419921875
+   ],
+   "uvOffset": 2708772,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.668830394744873,
+    0.9900000095367432
+   ],
+   "indexOffset": 2712804,
+   "indexCount": 4800,
+   "index32": false
+  },
+  {
+   "name": "SR_Right_Door",
+   "material": "Chrome",
+   "texture": null,
+   "color": [
+    0.9131,
+    0.9216,
+    0.9216
+   ],
+   "vertexCount": 1620,
+   "positionOffset": 2722404,
+   "positionMin": [
+    542.4071044921875,
+    15.525360107421875,
+    -828.3627319335938
+   ],
+   "positionMax": [
+    544.396484375,
+    221.95460510253906,
+    -826.3732299804688
+   ],
+   "uvOffset": 2732124,
+   "uvMin": [
+    0.10763610154390335,
+    0.013004190288484097
+   ],
+   "uvMax": [
+    0.929915726184845,
+    0.9900000095367432
+   ],
+   "indexOffset": 2738604,
+   "indexCount": 6144,
+   "index32": false
+  },
+  {
+   "name": "SR_Right_Door",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    0.0273,
+    0.0273,
+    0.0273
+   ],
+   "vertexCount": 8,
+   "positionOffset": 2750892,
+   "positionMin": [
+    574.0117797851562,
+    119,
+    -835.3480224609375
+   ],
+   "positionMax": [
+    630.51171875,
+    201.5,
+    -829.14794921875
+   ],
+   "uvOffset": 2750940,
+   "uvMin": [
+    0.5149543881416321,
+    0.4217784106731415
+   ],
+   "uvMax": [
+    0.5971931219100952,
+    0.7284932732582092
+   ],
+   "indexOffset": 2750972,
+   "indexCount": 12,
+   "index32": false
+  },
+  {
+   "name": "SR_Right_Door",
+   "material": "Door Handle",
+   "texture": null,
+   "color": [
+    0.1878,
+    0.1912,
+    0.1912
+   ],
+   "vertexCount": 4846,
+   "positionOffset": 2750996,
+   "positionMin": [
+    628.0467529296875,
+    105.80000305175781,
+    -847.8982543945312
+   ],
+   "positionMax": [
+    655.581787109375,
+    119,
+    -816.5977172851562
+   ],
+   "uvOffset": 2780072,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9802305102348328,
+    0.9896402955055237
+   ],
+   "indexOffset": 2799456,
+   "indexCount": 24624,
+   "index32": false
+  },
+  {
+   "name": "SR_Right_Door",
+   "material": "Warning Sign",
+   "texture": "Warning Sign_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 2848704,
+   "positionMin": [
+    583.561767578125,
+    87.28752136230469,
+    -837.7479858398438
+   ],
+   "positionMax": [
+    621.36181640625,
+    114.51249694824219,
+    -836.7479858398438
+   ],
+   "uvOffset": 2848848,
+   "uvMin": [
+    0.009715287014842033,
+    0.029138900339603424
+   ],
+   "uvMax": [
+    0.8469188809394836,
+    0.7448958158493042
+   ],
+   "indexOffset": 2848944,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Wall_Back",
+   "material": "Outer",
+   "texture": null,
+   "color": [
+    0.0343,
+    0.0343,
+    0.0343
+   ],
+   "vertexCount": 70,
+   "positionOffset": 2849016,
+   "positionMin": [
+    -852.9835205078125,
+    0,
+    -843.5831298828125
+   ],
+   "positionMax": [
+    852.9835205078125,
+    298,
+    -827.5831298828125
+   ],
+   "uvOffset": 2849436,
+   "uvMin": [
+    0.14984139800071716,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9856206774711609,
+    0.986187219619751
+   ],
+   "indexOffset": 2849716,
+   "indexCount": 156,
+   "index32": false
+  },
+  {
+   "name": "SR_Wall_Back",
+   "material": "Inner Wall 01",
+   "texture": "Inner Wall 01_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 18,
+   "positionOffset": 2850028,
+   "positionMin": [
+    -852.9835205078125,
+    0,
+    -827.5831298828125
+   ],
+   "positionMax": [
+    852.9835205078125,
+    298,
+    -827.5831298828125
+   ],
+   "uvOffset": 2850136,
+   "uvMin": [
+    0.007000030018389225,
+    0.6634417176246643
+   ],
+   "uvMax": [
+    0.9929999709129333,
+    0.8356773257255554
+   ],
+   "indexOffset": 2850208,
+   "indexCount": 42,
+   "index32": false
+  },
+  {
+   "name": "SR_Wall_Back",
+   "material": "Wall Counter",
+   "texture": "Wall Counter_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 20,
+   "positionOffset": 2850292,
+   "positionMin": [
+    -852.9835205078125,
+    86.66609954833984,
+    -827.5831298828125
+   ],
+   "positionMax": [
+    543.1884765625,
+    92.66609191894531,
+    -791.0831298828125
+   ],
+   "uvOffset": 2850412,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.15171580016613007
+   ],
+   "indexOffset": 2850492,
+   "indexCount": 30,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "Ceiling",
+   "texture": "Ceiling_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 1698,
+   "positionOffset": 2850552,
+   "positionMin": [
+    -852.9824829101562,
+    235.57102966308594,
+    -517.2000122070312
+   ],
+   "positionMax": [
+    852.9824829101562,
+    297.5710144042969,
+    847.5001220703125
+   ],
+   "uvOffset": 2860740,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9614828824996948,
+    0.9900000095367432
+   ],
+   "indexOffset": 2867532,
+   "indexCount": 4368,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "Outer",
+   "texture": null,
+   "color": [
+    0.0343,
+    0.0343,
+    0.0343
+   ],
+   "vertexCount": 554,
+   "positionOffset": 2876268,
+   "positionMin": [
+    -852.9824829101562,
+    297.5710144042969,
+    -847.5001220703125
+   ],
+   "positionMax": [
+    852.9824829101562,
+    360.57098388671875,
+    847.5001220703125
+   ],
+   "uvOffset": 2879592,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.7991142272949219,
+    0.9894254207611084
+   ],
+   "indexOffset": 2881808,
+   "indexCount": 2568,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "Gray",
+   "texture": null,
+   "color": [
+    0.1022,
+    0.1022,
+    0.1022
+   ],
+   "vertexCount": 240,
+   "positionOffset": 2886944,
+   "positionMin": [
+    -759.751220703125,
+    280.48223876953125,
+    -524.5435791015625
+   ],
+   "positionMax": [
+    759.6463012695312,
+    287.3597717285156,
+    -516.356201171875
+   ],
+   "uvOffset": 2888384,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.9232653975486755
+   ],
+   "indexOffset": 2889344,
+   "indexCount": 480,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "Black",
+   "texture": null,
+   "color": [
+    0.0116,
+    0.0116,
+    0.0116
+   ],
+   "vertexCount": 692,
+   "positionOffset": 2890304,
+   "positionMin": [
+    -852.9824829101562,
+    280.48223876953125,
+    -847.5001220703125
+   ],
+   "positionMax": [
+    852.9824829101562,
+    297.5710144042969,
+    -516.5
+   ],
+   "uvOffset": 2894456,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.42600250244140625,
+    0.9899935722351074
+   ],
+   "indexOffset": 2897224,
+   "indexCount": 2496,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "Small LED",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 750,
+   "positionOffset": 2902216,
+   "positionMin": [
+    -758.060302734375,
+    282.05426025390625,
+    -522.852783203125
+   ],
+   "positionMax": [
+    757.955322265625,
+    282.05426025390625,
+    -518.047119140625
+   ],
+   "uvOffset": 2906716,
+   "uvMin": [
+    0.03402826935052872,
+    0.014505299739539623
+   ],
+   "uvMax": [
+    0.9884272217750549,
+    0.9899287819862366
+   ],
+   "indexOffset": 2909716,
+   "indexCount": 2160,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "LED Frame",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 25360,
+   "positionOffset": 2914036,
+   "positionMin": [
+    -818.8925170898438,
+    235.02102661132812,
+    -523.3973999023438
+   ],
+   "positionMax": [
+    819.0374145507812,
+    284.24853515625,
+    -377.2398986816406
+   ],
+   "uvOffset": 3066196,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.984746515750885,
+    0.9900000095367432
+   ],
+   "indexOffset": 3167636,
+   "indexCount": 114720,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "LED",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 120,
+   "positionOffset": 3397076,
+   "positionMin": [
+    -747.0524291992188,
+    289.571044921875,
+    -140.5
+   ],
+   "positionMax": [
+    746.6473999023438,
+    289.791015625,
+    614.4600219726562
+   ],
+   "uvOffset": 3397796,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.866879403591156,
+    0.9439613223075867
+   ],
+   "indexOffset": 3398276,
+   "indexCount": 180,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "Number",
+   "texture": null,
+   "color": [
+    0.5333,
+    0.521,
+    0.521
+   ],
+   "vertexCount": 9301,
+   "positionOffset": 3398636,
+   "positionMin": [
+    -763.8198852539062,
+    251.4131317138672,
+    -518.6998901367188
+   ],
+   "positionMax": [
+    754.6663208007812,
+    274.12042236328125,
+    -516.0999145507812
+   ],
+   "uvOffset": 3454444,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9783934950828552,
+    0.9900000095367432
+   ],
+   "indexOffset": 3491648,
+   "indexCount": 27105,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "Ceiling Accent",
+   "texture": "Ceiling Accent_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 48,
+   "positionOffset": 3545860,
+   "positionMin": [
+    -836.9824829101562,
+    244.42816162109375,
+    -516.5
+   ],
+   "positionMax": [
+    836.9824829101562,
+    297.5710144042969,
+    -516.5
+   ],
+   "uvOffset": 3546148,
+   "uvMin": [
+    0.012195119634270668,
+    0.010416669771075249
+   ],
+   "uvMax": [
+    0.9878048896789551,
+    0.11458329856395721
+   ],
+   "indexOffset": 3546340,
+   "indexCount": 138,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "Rail",
+   "texture": "Rail_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 5736,
+   "positionOffset": 3546616,
+   "positionMin": [
+    -751.9644775390625,
+    226.36700439453125,
+    -357.1249084472656
+   ],
+   "positionMax": [
+    751.5795288085938,
+    235.57101440429688,
+    831.5001220703125
+   ],
+   "uvOffset": 3581032,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.946790874004364,
+    0.9900000095367432
+   ],
+   "indexOffset": 3603976,
+   "indexCount": 23880,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "Circle LED",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 1320,
+   "positionOffset": 3651736,
+   "positionMin": [
+    -817.0767211914062,
+    235.4710235595703,
+    -477.3442077636719
+   ],
+   "positionMax": [
+    817.2216186523438,
+    235.47210693359375,
+    -379.0556945800781
+   ],
+   "uvOffset": 3659656,
+   "uvMin": [
+    0.6272261142730713,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9779850244522095,
+    0.9900000095367432
+   ],
+   "indexOffset": 3664936,
+   "indexCount": 3840,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "Ceiling Tile",
+   "texture": "Ceiling Tile_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 480,
+   "positionOffset": 3672616,
+   "positionMin": [
+    -834.3823852539062,
+    297.5710144042969,
+    -844.9000244140625
+   ],
+   "positionMax": [
+    834.3823852539062,
+    309.0710144042969,
+    -519.0999755859375
+   ],
+   "uvOffset": 3675496,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9900000095367432,
+    0.9531288146972656
+   ],
+   "indexOffset": 3677416,
+   "indexCount": 720,
+   "index32": false
+  },
+  {
+   "name": "SR_Ceiling",
+   "material": "Ceiling LED",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 40,
+   "positionOffset": 3678856,
+   "positionMin": [
+    -774.4525756835938,
+    309.0710144042969,
+    -764.5667114257812
+   ],
+   "positionMax": [
+    774.048095703125,
+    309.0710144042969,
+    -609.4332885742188
+   ],
+   "uvOffset": 3679096,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.504440188407898,
+    0.7760812044143677
+   ],
+   "indexOffset": 3679256,
+   "indexCount": 60,
+   "index32": false
+  },
+  {
+   "name": "SR_Range_Divider",
+   "material": "Black",
+   "texture": null,
+   "color": [
+    0.0116,
+    0.0116,
+    0.0116
+   ],
+   "vertexCount": 20344,
+   "positionOffset": 3679376,
+   "positionMin": [
+    -836.9835205078125,
+    0,
+    -512.1558837890625
+   ],
+   "positionMax": [
+    836.9835205078125,
+    236,
+    -352.7809753417969
+   ],
+   "uvOffset": 3801440,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9662882089614868,
+    0.9900000095367432
+   ],
+   "indexOffset": 3882816,
+   "indexCount": 88800,
+   "index32": false
+  },
+  {
+   "name": "SR_Range_Divider",
+   "material": "Frosted Glass",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 264,
+   "positionOffset": 4060416,
+   "positionMin": [
+    -834.8355712890625,
+    7.229994773864746,
+    -432.4759521484375
+   ],
+   "positionMax": [
+    834.8303833007812,
+    228.77000427246094,
+    -358.575927734375
+   ],
+   "uvOffset": 4062000,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.8715115785598755,
+    0.9900000095367432
+   ],
+   "indexOffset": 4063056,
+   "indexCount": 396,
+   "index32": false
+  },
+  {
+   "name": "SR_Range_Divider",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 424,
+   "positionOffset": 4063848,
+   "positionMin": [
+    -833.2479248046875,
+    0,
+    -502.0959777832031
+   ],
+   "positionMax": [
+    833.2542724609375,
+    224.49000549316406,
+    -353.6559753417969
+   ],
+   "uvOffset": 4066392,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.9643992185592651,
+    0.9900000095367432
+   ],
+   "indexOffset": 4068088,
+   "indexCount": 636,
+   "index32": false
+  },
+  {
+   "name": "SR_Range_Divider",
+   "material": "Counter",
+   "texture": "Counter_C.jpg",
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 2160,
+   "positionOffset": 4069360,
+   "positionMin": [
+    -826.5186157226562,
+    104.5,
+    -399.78118896484375
+   ],
+   "positionMax": [
+    826.5186157226562,
+    110.30000305175781,
+    -352.7809753417969
+   ],
+   "uvOffset": 4082320,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.8039175271987915,
+    0.9900000095367432
+   ],
+   "indexOffset": 4090960,
+   "indexCount": 9000,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_6",
+   "material": "Black",
+   "texture": null,
+   "color": [
+    0.0116,
+    0.0116,
+    0.0116
+   ],
+   "vertexCount": 528,
+   "positionOffset": 4108960,
+   "positionMin": [
+    12.724316596984863,
+    68.94061279296875,
+    -512.1334838867188
+   ],
+   "positionMax": [
+    153.6742706298828,
+    104.44061279296875,
+    -506.3536071777344
+   ],
+   "uvOffset": 4112128,
+   "uvMin": [
+    0.13812319934368134,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.7111899852752686,
+    0.55048668384552
+   ],
+   "indexOffset": 4114240,
+   "indexCount": 2400,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_6",
+   "material": "Chrome",
+   "texture": null,
+   "color": [
+    0.9131,
+    0.9216,
+    0.9216
+   ],
+   "vertexCount": 674,
+   "positionOffset": 4119040,
+   "positionMin": [
+    11.593831062316895,
+    73.14461517333984,
+    -507.4841003417969
+   ],
+   "positionMax": [
+    13.854802131652832,
+    100.25861358642578,
+    -505.2231140136719
+   ],
+   "uvOffset": 4123084,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.6985223889350891,
+    0.9439458847045898
+   ],
+   "indexOffset": 4125780,
+   "indexCount": 3024,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_6",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 4131828,
+   "positionMin": [
+    16.924297332763672,
+    73.14060974121094,
+    -510.95361328125
+   ],
+   "positionMax": [
+    149.47438049316406,
+    100.24061584472656,
+    -507.75360107421875
+   ],
+   "uvOffset": 4131972,
+   "uvMin": [
+    0.009999999776482582,
+    0.3286021947860718
+   ],
+   "uvMax": [
+    0.9072363972663879,
+    0.9782866835594177
+   ],
+   "indexOffset": 4132068,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_7",
+   "material": "Black",
+   "texture": null,
+   "color": [
+    0.0116,
+    0.0116,
+    0.0116
+   ],
+   "vertexCount": 528,
+   "positionOffset": 4132140,
+   "positionMin": [
+    179.03720092773438,
+    68.94061279296875,
+    -506.35406494140625
+   ],
+   "positionMax": [
+    184.8170928955078,
+    104.44061279296875,
+    -365.40411376953125
+   ],
+   "uvOffset": 4135308,
+   "uvMin": [
+    0.13812319934368134,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.7111899852752686,
+    0.55048668384552
+   ],
+   "indexOffset": 4137420,
+   "indexCount": 2400,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_7",
+   "material": "Chrome",
+   "texture": null,
+   "color": [
+    0.9131,
+    0.9216,
+    0.9216
+   ],
+   "vertexCount": 674,
+   "positionOffset": 4142220,
+   "positionMin": [
+    177.90672302246094,
+    73.14461517333984,
+    -507.48455810546875
+   ],
+   "positionMax": [
+    180.16769409179688,
+    100.25861358642578,
+    -505.22357177734375
+   ],
+   "uvOffset": 4146264,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.6985223889350891,
+    0.9439458847045898
+   ],
+   "indexOffset": 4148960,
+   "indexCount": 3024,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_7",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 4155008,
+   "positionMin": [
+    180.43719482421875,
+    73.14060974121094,
+    -502.1540832519531
+   ],
+   "positionMax": [
+    183.63720703125,
+    100.24061584472656,
+    -369.60400390625
+   ],
+   "uvOffset": 4155152,
+   "uvMin": [
+    0.009999999776482582,
+    0.3286021947860718
+   ],
+   "uvMax": [
+    0.9072363972663879,
+    0.9782866835594177
+   ],
+   "indexOffset": 4155248,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_8",
+   "material": "Black",
+   "texture": null,
+   "color": [
+    0.0116,
+    0.0116,
+    0.0116
+   ],
+   "vertexCount": 528,
+   "positionOffset": 4155320,
+   "positionMin": [
+    345.5273132324219,
+    68.94061279296875,
+    -511.93603515625
+   ],
+   "positionMax": [
+    484.455078125,
+    104.44061279296875,
+    -477.333740234375
+   ],
+   "uvOffset": 4158488,
+   "uvMin": [
+    0.13812319934368134,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.7111899852752686,
+    0.55048668384552
+   ],
+   "indexOffset": 4160600,
+   "indexCount": 2400,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_8",
+   "material": "Chrome",
+   "texture": null,
+   "color": [
+    0.9131,
+    0.9216,
+    0.9216
+   ],
+   "vertexCount": 674,
+   "positionOffset": 4165400,
+   "positionMin": [
+    344.3084411621094,
+    73.14461517333984,
+    -507.482421875
+   ],
+   "positionMax": [
+    346.56610107421875,
+    100.25861358642578,
+    -505.2247314453125
+   ],
+   "uvOffset": 4169444,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.6985223889350891,
+    0.9439458847045898
+   ],
+   "indexOffset": 4172140,
+   "indexCount": 3024,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_8",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 4178188,
+   "positionMin": [
+    349.8357849121094,
+    73.14060974121094,
+    -509.98760986328125
+   ],
+   "positionMax": [
+    480.1921081542969,
+    100.24060821533203,
+    -479.49749755859375
+   ],
+   "uvOffset": 4178332,
+   "uvMin": [
+    0.009999999776482582,
+    0.3286021947860718
+   ],
+   "uvMax": [
+    0.9072363972663879,
+    0.9782866835594177
+   ],
+   "indexOffset": 4178428,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_9",
+   "material": "Black",
+   "texture": null,
+   "color": [
+    0.0116,
+    0.0116,
+    0.0116
+   ],
+   "vertexCount": 528,
+   "positionOffset": 4178500,
+   "positionMin": [
+    511.69744873046875,
+    68.94061279296875,
+    -512.1334838867188
+   ],
+   "positionMax": [
+    652.6473999023438,
+    104.44061279296875,
+    -506.3536071777344
+   ],
+   "uvOffset": 4181668,
+   "uvMin": [
+    0.13812319934368134,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.7111899852752686,
+    0.55048668384552
+   ],
+   "indexOffset": 4183780,
+   "indexCount": 2400,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_9",
+   "material": "Chrome",
+   "texture": null,
+   "color": [
+    0.9131,
+    0.9216,
+    0.9216
+   ],
+   "vertexCount": 674,
+   "positionOffset": 4188580,
+   "positionMin": [
+    510.56695556640625,
+    73.14461517333984,
+    -507.4841003417969
+   ],
+   "positionMax": [
+    512.8279418945312,
+    100.25861358642578,
+    -505.2231140136719
+   ],
+   "uvOffset": 4192624,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.6985223889350891,
+    0.9439458847045898
+   ],
+   "indexOffset": 4195320,
+   "indexCount": 3024,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_9",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 4201368,
+   "positionMin": [
+    515.8973999023438,
+    73.14060974121094,
+    -510.95361328125
+   ],
+   "positionMax": [
+    648.447509765625,
+    100.24061584472656,
+    -507.75360107421875
+   ],
+   "uvOffset": 4201512,
+   "uvMin": [
+    0.009999999776482582,
+    0.3286021947860718
+   ],
+   "uvMax": [
+    0.9072363972663879,
+    0.9782866835594177
+   ],
+   "indexOffset": 4201608,
+   "indexCount": 36,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_10",
+   "material": "Black",
+   "texture": null,
+   "color": [
+    0.0116,
+    0.0116,
+    0.0116
+   ],
+   "vertexCount": 528,
+   "positionOffset": 4201680,
+   "positionMin": [
+    678.0827026367188,
+    68.94061279296875,
+    -506.35406494140625
+   ],
+   "positionMax": [
+    683.862548828125,
+    104.44061279296875,
+    -365.40411376953125
+   ],
+   "uvOffset": 4204848,
+   "uvMin": [
+    0.13812319934368134,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.7111899852752686,
+    0.55048668384552
+   ],
+   "indexOffset": 4206960,
+   "indexCount": 2400,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_10",
+   "material": "Chrome",
+   "texture": null,
+   "color": [
+    0.9131,
+    0.9216,
+    0.9216
+   ],
+   "vertexCount": 674,
+   "positionOffset": 4211760,
+   "positionMin": [
+    676.9522094726562,
+    73.14461517333984,
+    -507.48455810546875
+   ],
+   "positionMax": [
+    679.213134765625,
+    100.25861358642578,
+    -505.22357177734375
+   ],
+   "uvOffset": 4215804,
+   "uvMin": [
+    0.009999999776482582,
+    0.009999999776482582
+   ],
+   "uvMax": [
+    0.6985223889350891,
+    0.9439458847045898
+   ],
+   "indexOffset": 4218500,
+   "indexCount": 3024,
+   "index32": false
+  },
+  {
+   "name": "SR_Divider_Door_dup_10",
+   "material": "Glass",
+   "texture": null,
+   "color": [
+    1,
+    1,
+    1
+   ],
+   "vertexCount": 24,
+   "positionOffset": 4224548,
+   "positionMin": [
+    679.482666015625,
+    73.14060974121094,
+    -502.1540832519531
+   ],
+   "positionMax": [
+    682.6826782226562,
+    100.24061584472656,
+    -369.60400390625
+   ],
+   "uvOffset": 4224692,
+   "uvMin": [
+    0.009999999776482582,
+    0.3286021947860718
+   ],
+   "uvMax": [
+    0.9072363972663879,
+    0.9782866835594177
+   ],
+   "indexOffset": 4224788,
+   "indexCount": 36,
+   "index32": false
+  }
+ ]
+}

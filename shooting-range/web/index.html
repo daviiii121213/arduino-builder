@@ -1,0 +1,163 @@
+<meta charset="utf-8">
+<title>Shooting Range</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+  /* Layout: o jogo ocupa a tela inteira; HUD nos cantos como no CS, painel de início centralizado. */
+  :root {
+    --ink: #ece9e1;          /* texto do HUD, branco de papel de alvo */
+    --ink-dim: #a9a69d;
+    --scrim: rgba(12, 13, 12, 0.72);
+    --panel: #16171a;
+    --line: #34363b;
+    --signal: #f2b134;       /* amarelo de segurança do estande */
+    --hit-x: #f2b134;
+    --hit-ring: #7fd46b;
+    --hit-miss: #ef6a5c;
+    --font-display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #121212;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+  }
+  #game, #game canvas { position: fixed; inset: 0; display: block; width: 100%; height: 100%; }
+
+  .hud { position: fixed; pointer-events: none; font-family: var(--font-display); text-shadow: 0 2px 0 rgba(0,0,0,.55); font-variant-numeric: tabular-nums; }
+  .label { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-dim); }
+
+  #score-box { top: calc(20px + env(safe-area-inset-top, 0px)); right: calc(24px + env(safe-area-inset-right, 0px)); text-align: right; }
+  #score { display: block; font-size: 64px; font-weight: 700; line-height: 1; }
+  #popup { display: block; height: 40px; font-size: 32px; font-weight: 700; opacity: 0; }
+  #popup.show { animation: rise 1.2s ease-out forwards; }
+  #popup[data-tier="x"] { color: var(--hit-x); }
+  #popup[data-tier="ring"] { color: var(--hit-ring); }
+  #popup[data-tier="body"] { color: var(--ink); }
+  #popup[data-tier="miss"] { color: var(--hit-miss); }
+  @keyframes rise { 0% { opacity: 1; transform: translateY(0); } 65% { opacity: 1; } 100% { opacity: 0; transform: translateY(-26px); } }
+
+  #stats { left: calc(24px + env(safe-area-inset-left, 0px)); bottom: calc(22px + env(safe-area-inset-bottom, 0px)); font-size: 16px; color: var(--ink-dim); }
+
+  #ammo-box { right: calc(24px + env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: right; }
+  #ammo { font-size: 56px; font-weight: 700; line-height: 1; }
+  #reserve { font-size: 24px; color: var(--ink-dim); }
+  #mode { display: block; margin-bottom: 4px; }
+
+  #reload { left: 50%; top: 62%; transform: translateX(-50%); text-align: center; }
+  #reload .track { width: 220px; height: 5px; margin-top: 8px; background: rgba(0,0,0,.5); }
+  #reload-bar { height: 100%; background: var(--ink); transform-origin: left; }
+  #notice { left: 50%; top: 62%; transform: translateX(-50%); color: var(--hit-miss); }
+
+  #overlay {
+    position: fixed; inset: 0; z-index: 10;
+    display: grid; place-items: center;
+    overflow-y: auto;
+    background: var(--scrim);
+    padding-block: calc(24px + env(safe-area-inset-top, 0px)) calc(24px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .panel {
+    width: min(560px, 100%);
+    background: var(--panel);
+    border-top: 4px solid var(--signal);
+    padding: 28px clamp(18px, 5vw, 36px);
+    display: grid; gap: 20px;
+  }
+  .panel h1 { margin: 0; font-family: var(--font-display); font-size: clamp(30px, 7vw, 42px); letter-spacing: .02em; line-height: 1; text-wrap: balance; }
+  .panel p { margin: 0; color: var(--ink-dim); line-height: 1.5; max-width: 60ch; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 18px; margin: 0; }
+  .controls div { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
+  .controls dt { font-family: var(--font-display); font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .controls dd { margin: 0; color: var(--ink-dim); }
+  .zones { display: flex; flex-wrap: wrap; gap: 6px; }
+  .zone { font-family: var(--font-display); font-size: 13px; padding: 4px 9px; border: 1px solid var(--line); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+  .zone b { color: var(--ink); }
+  .zone.x { border-color: var(--signal); }
+  .zone.x b { color: var(--signal); }
+  .start-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+  #start {
+    font: 700 17px var(--font-display); letter-spacing: .08em; text-transform: uppercase;
+    color: #16171a; background: var(--signal); border: 0; padding: 12px 22px; cursor: pointer;
+  }
+  #start:disabled { background: var(--line); color: var(--ink-dim); cursor: progress; }
+  #start:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  #status { font-size: 13px; color: var(--ink-dim); }
+  .touch-note { display: none; color: var(--hit-miss); font-size: 13px; }
+  @media (pointer: coarse) { .touch-note { display: block; } }
+  @media (max-width: 520px) {
+    #score { font-size: 44px; }
+    #ammo { font-size: 40px; }
+  }
+  @media (prefers-reduced-motion: reduce) { #popup.show { animation-duration: .01s; opacity: 1; } }
+</style>
+
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+</script>
+
+<div id="game"></div>
+
+<div class="hud" id="score-box">
+  <span class="label">Pontos</span>
+  <span id="score">0</span>
+  <span id="popup" aria-live="polite"></span>
+</div>
+<div class="hud" id="stats">Acertos 0/0 · 0%</div>
+<div class="hud" id="ammo-box">
+  <span class="label" id="mode">Semi</span>
+  <span id="ammo">20</span> <span id="reserve">/ 120</span>
+</div>
+<div class="hud" id="reload" hidden>
+  <span class="label">Recarregando</span>
+  <div class="track"><div id="reload-bar"></div></div>
+</div>
+<div class="hud label" id="notice" hidden>Sem munição</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h1>Shooting Range</h1>
+    <p>Estande de tiro com Glock e mecânica do CS2: imprecisão ao andar e ao atirar rápido, recuo que sobe a mira, rajada de 3. Acerte o papel e o alvo corre no trilho para outra distância.</p>
+    <dl class="controls">
+      <div><dt>WASD</dt><dd>mover</dd></div>
+      <div><dt>Mouse</dt><dd>mirar</dd></div>
+      <div><dt>Clique</dt><dd>atirar</dd></div>
+      <div><dt>Botão dir.</dt><dd>semi / rajada</dd></div>
+      <div><dt>R</dt><dd>recarregar</dd></div>
+      <div><dt>Espaço</dt><dd>pular</dd></div>
+      <div><dt>Ctrl / C</dt><dd>agachar</dd></div>
+      <div><dt>Shift</dt><dd>correr</dd></div>
+      <div><dt>Esc</dt><dd>pausar</dd></div>
+    </dl>
+    <div class="zones" aria-label="Pontuação do alvo">
+      <span class="zone x"><b>X</b> 10</span>
+      <span class="zone"><b>9</b> anel</span>
+      <span class="zone"><b>8</b> anel</span>
+      <span class="zone"><b>7</b> anel</span>
+      <span class="zone"><b>5</b> silhueta</span>
+      <span class="zone"><b>10/9/8</b> miras redondas</span>
+      <span class="zone"><b>0</b> papel branco</span>
+    </div>
+    <div class="start-row">
+      <button id="start" type="button" disabled>Carregando…</button>
+      <span id="status" role="status">Carregando cenário…</span>
+    </div>
+    <p class="touch-note">Este jogo precisa de teclado e mouse.</p>
+  </div>
+</div>
+
+<script type="module" src="game.js"></script>

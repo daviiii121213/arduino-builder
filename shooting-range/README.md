@@ -48,6 +48,18 @@ dotnet run -c Release
 
 O carregamento do cenário leva alguns segundos (as texturas são grandes).
 
+## Versão web
+
+A pasta `web/` tem o mesmo jogo em JavaScript (three.js), publicado como Artifact:
+https://claude.ai/artifact/E6bcqKj5akxTfG5bdfCJ9N
+
+- `web/index.html` e `web/game.js`: página e jogo (mesma mecânica da versão em C#)
+- `web/assets/`: cenário compactado (`scene.bin.txt` + `scene.json`, gerados por
+  `web/tools/export-scene.mjs`), texturas em 1024 px e os modelos dos braços e da arma.
+  Os binários ficam em base64 dentro de `.txt` porque o Artifact só serve tipos conhecidos.
+
+Para testar localmente: `cd web && python3 -m http.server` e abra http://localhost:8000.
+
 ## Bibliotecas
 
 - [Silk.NET](https://github.com/dotnet/Silk.NET): janela, OpenGL, teclado e mouse
