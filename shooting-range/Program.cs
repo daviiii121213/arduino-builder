@@ -8,25 +8,26 @@ namespace ShootingRange;
 
 public static class Program
 {
-    // O modelo está em centímetros, então todas as medidas abaixo também estão.
+    // O cenário está em centímetros, então todas as medidas abaixo também estão.
     private const string ModelPath = "models/shooting_range.fbx";
     private const string TextureDir = "models/tex";
     private const string ArmsPath = "models/arms.fbx";
+    private const string GunPath = "models/glock.glb";
+    private const string TargetPaperTexture = "models/tex/Target Paper_C.jpeg";
     private static readonly Vector3 Spawn = new(0, 0, -680);
-    private const float EyeHeight = 165f;
-    private const float PlayerRadius = 30f;
-    private const float WalkSpeed = 250f;
-    private const float RunSpeed = 450f;
-    private const float Acceleration = 10f;
     private const float MouseSensitivity = 0.0025f;
-    private static readonly float[] RayHeights = { 40f, 140f }; // alturas (a partir do pé) dos raios de colisão
+    private const float BulletRange = 10000f;
 
-    // Braços em primeira pessoa (estilo CS): posição em relação à câmera (x direita, y cima, -z frente).
-    private static readonly Vector3 ArmsOffset = new(0f, -15f, -4f);
-    private const float ArmsFov = 68f;
-    private const float BobAmount = 0.8f;      // altura do balanço ao andar
+    // Arma e braços em primeira pessoa (estilo CS), em coordenadas da câmera (x direita, y cima, -z frente).
+    // A arma fica na mão direita; o conjunto todo é girado em volta do cabo para mostrar a lateral da pistola.
+    private static readonly Vector3 ArmsOffset = new(0f, -17f, -4f);
+    private static readonly Vector3 GunOffset = new(6.5f, -15f, -44f);
+    private static readonly Vector3 ViewmodelPosition = new(9f, -1f, 14f);
+    private static readonly Vector3 ViewmodelRotation = new(0f, 15f, -6f); // graus: inclinação, giro, rolagem
+    private const float ViewmodelFov = 68f;
+    private const float BobAmount = 0.8f;            // altura do balanço ao andar
     private const float BobFrequency = 11f;
-    private const float SwayAmount = 0.04f;    // quanto os braços atrasam ao girar o mouse
+    private const float SwayAmount = 0.04f;          // quanto a arma atrasa ao girar o mouse
     private const float SwayMax = 2.5f;
 
     private const string VertexShader = """
@@ -52,6 +53,7 @@ public static class Program
         in vec2 vUv;
         uniform sampler2D uTexture;
         uniform vec4 uColor;
+        uniform float uUnlit;
         out vec4 FragColor;
         void main()
         {
@@ -59,7 +61,7 @@ public static class Program
             // Luz ambiente + luz vinda de cima + uma direcional leve para dar volume (sem acentos: GLSL so aceita ASCII).
             float sky = mix(0.35, 1.0, n.y * 0.5 + 0.5);
             float sun = max(dot(n, normalize(vec3(0.3, 1.0, 0.5))), 0.0);
-            float light = 0.35 + 0.5 * sky + 0.25 * sun;
+            float light = mix(0.35 + 0.5 * sky + 0.25 * sun, 1.0, uUnlit);
             vec4 albedo = texture(uTexture, vUv) * uColor;
             FragColor = vec4(albedo.rgb * light, albedo.a);
         }
@@ -72,16 +74,28 @@ public static class Program
     private static IMouse _mouse = null!;
     private static SceneModel _scene = null!;
     private static SceneModel _arms = null!;
+    private static SceneModel _gun = null!;
+    private static List<ShootingTarget> _targets = null!;
     private static CollisionWorld _collision = null!;
+    private static TargetScoring _scoring = null!;
+    private static Hud _hud = null!;
+    private static Effects _effects = null!;
     private static uint _program;
-    private static int _viewProjectionLocation, _modelLocation, _colorLocation;
+    private static int _viewProjectionLocation, _modelLocation, _colorLocation, _unlitLocation;
 
-    private static Vector3 _feet = Spawn;
-    private static Vector3 _velocity;
-    private static float _yaw, _pitch;
+    private static readonly Player _player = new(Spawn);
+    private static readonly Weapon _weapon = new();
+    private static readonly Random _random = new();
     private static Vector2? _lastMouse;
     private static float _bobTime;
     private static Vector2 _sway;
+    private static bool _jumpQueued;
+    private static Vector3 _muzzleLocal;
+
+    private static int _score, _shotsFired, _hits;
+    private static string _popupText = "";
+    private static Vector4 _popupColor;
+    private static float _popupTime;
 
     public static void Main()
     {
@@ -91,7 +105,7 @@ public static class Program
         var options = WindowOptions.Default with
         {
             Size = new Vector2D<int>(1280, 720),
-            Title = "Shooting Range - clique para jogar | WASD mover | Shift correr | Esc soltar o mouse",
+            Title = "Shooting Range",
             API = new GraphicsAPI(ContextAPI.OpenGL, ContextProfile.Core, ContextFlags.ForwardCompatible, new APIVersion(3, 3)),
             Samples = 4,
         };
@@ -105,6 +119,8 @@ public static class Program
         _window.Dispose();
     }
 
+    private static bool MouseCaptured => _mouse.Cursor.CursorMode == CursorMode.Raw;
+
     private static void OnLoad()
     {
         _gl = GL.GetApi(_window);
@@ -112,25 +128,55 @@ public static class Program
         _keyboard = _input.Keyboards[0];
         _mouse = _input.Mice[0];
 
-        _mouse.Click += (_, _, _) => _mouse.Cursor.CursorMode = CursorMode.Raw;
+        _mouse.MouseDown += (_, button) =>
+        {
+            // O primeiro clique só captura o mouse, sem atirar.
+            if (!MouseCaptured)
+            {
+                _mouse.Cursor.CursorMode = CursorMode.Raw;
+                return;
+            }
+            if (button == MouseButton.Left) _weapon.Trigger();
+            if (button == MouseButton.Right) _weapon.ToggleMode();
+        };
         _mouse.MouseMove += OnMouseMove;
         _keyboard.KeyDown += (_, key, _) =>
         {
             if (key == Key.Escape) _mouse.Cursor.CursorMode = CursorMode.Normal;
+            if (!MouseCaptured) return;
+            if (key == Key.R) _weapon.StartReload();
+            if (key == Key.Space) _jumpQueued = true;
         };
 
         Console.WriteLine("Carregando cenário...");
         _scene = new SceneModel(_gl, ModelPath, TextureDir);
-        _collision = new CollisionWorld(_scene.CollisionTriangles);
-        _arms = new SceneModel(_gl, ArmsPath, TextureDir);
-        Console.WriteLine($"Braços: {_arms.BoundsMin} -> {_arms.BoundsMax}");
-        Console.WriteLine($"Pronto! {_scene.Meshes.Count} partes, {_scene.CollisionTriangles.Count / 3} triângulos.");
-        Console.WriteLine("Clique na janela para capturar o mouse. WASD mover, Shift correr, Esc soltar o mouse.");
+        // Os alvos (suporte + papel) viram objetos móveis; o resto do cenário é fixo e tem colisão.
+        _targets = _scene.Meshes
+            .Where(m => m.Name.Contains("Target", StringComparison.OrdinalIgnoreCase))
+            .GroupBy(m => m.Name)
+            .Select(g => new ShootingTarget(g.Key, g.ToList()))
+            .ToList();
+        var targetMeshes = _targets.SelectMany(t => t.Meshes).ToHashSet();
+        _collision = new CollisionWorld(_scene.Meshes.Where(m => !targetMeshes.Contains(m)));
+        _scoring = new TargetScoring(TargetPaperTexture);
+
+        _arms = new SceneModel(_gl, ArmsPath, TextureDir, ArmPose.Create());
+        _gun = new SceneModel(_gl, GunPath, TextureDir);
+        foreach (var mesh in _gun.Meshes) mesh.Color = new Vector4(0.035f, 0.035f, 0.04f, 1f);
+        // Boca do cano: o ponto mais à frente do modelo, na altura do cano.
+        _muzzleLocal = new Vector3(0, _gun.BoundsMax.Y - 2.3f, _gun.BoundsMax.Z + 0.5f);
+
+        Console.WriteLine($"Pronto! {_targets.Count} alvos, {_collision.TriangleCount} triângulos de colisão.");
+        Console.WriteLine("Clique para jogar. WASD mover, mouse mirar, botão esquerdo atirar, botão direito semi/rajada,");
+        Console.WriteLine("R recarregar, Espaço pular, Ctrl agachar, Shift correr, Esc soltar o mouse.");
 
         _program = CreateProgram(VertexShader, FragmentShader);
         _viewProjectionLocation = _gl.GetUniformLocation(_program, "uViewProjection");
         _modelLocation = _gl.GetUniformLocation(_program, "uModel");
         _colorLocation = _gl.GetUniformLocation(_program, "uColor");
+        _unlitLocation = _gl.GetUniformLocation(_program, "uUnlit");
+        _hud = new Hud(_gl, CompileShader);
+        _effects = new Effects(_gl);
 
         _gl.Enable(EnableCap.DepthTest);
         _gl.Enable(EnableCap.FramebufferSrgb);
@@ -141,7 +187,7 @@ public static class Program
 
     private static void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        if (mouse.Cursor.CursorMode != CursorMode.Raw)
+        if (!MouseCaptured)
         {
             _lastMouse = null;
             return;
@@ -149,66 +195,93 @@ public static class Program
         if (_lastMouse is Vector2 last)
         {
             Vector2 delta = position - last;
-            _yaw -= delta.X * MouseSensitivity;
-            _pitch = Math.Clamp(_pitch - delta.Y * MouseSensitivity, -1.5f, 1.5f);
+            _player.Yaw -= delta.X * MouseSensitivity;
+            _player.Pitch = Math.Clamp(_player.Pitch - delta.Y * MouseSensitivity, -1.5f, 1.5f);
             _sway -= delta * SwayAmount;
         }
         _lastMouse = position;
     }
 
-    private static Vector3 LookDirection() =>
-        new(MathF.Cos(_pitch) * MathF.Sin(_yaw), MathF.Sin(_pitch), MathF.Cos(_pitch) * MathF.Cos(_yaw));
-
     private static void OnUpdate(double deltaTime)
     {
         float dt = MathF.Min((float)deltaTime, 0.05f);
 
-        var forward = new Vector3(MathF.Sin(_yaw), 0, MathF.Cos(_yaw));
-        var right = Vector3.Normalize(Vector3.Cross(forward, Vector3.UnitY));
-
-        var wish = Vector3.Zero;
-        if (_mouse.Cursor.CursorMode == CursorMode.Raw)
+        var move = Vector2.Zero;
+        bool crouch = false, run = false;
+        if (MouseCaptured)
         {
-            if (_keyboard.IsKeyPressed(Key.W)) wish += forward;
-            if (_keyboard.IsKeyPressed(Key.S)) wish -= forward;
-            if (_keyboard.IsKeyPressed(Key.D)) wish += right;
-            if (_keyboard.IsKeyPressed(Key.A)) wish -= right;
+            if (_keyboard.IsKeyPressed(Key.W)) move.Y += 1;
+            if (_keyboard.IsKeyPressed(Key.S)) move.Y -= 1;
+            if (_keyboard.IsKeyPressed(Key.D)) move.X += 1;
+            if (_keyboard.IsKeyPressed(Key.A)) move.X -= 1;
+            crouch = _keyboard.IsKeyPressed(Key.ControlLeft) || _keyboard.IsKeyPressed(Key.ControlRight);
+            run = _keyboard.IsKeyPressed(Key.ShiftLeft) || _keyboard.IsKeyPressed(Key.ShiftRight);
         }
-        if (wish != Vector3.Zero) wish = Vector3.Normalize(wish);
+        _player.Update(dt, move, _jumpQueued, crouch, run, _collision);
+        _jumpQueued = false;
 
-        bool running = _keyboard.IsKeyPressed(Key.ShiftLeft) || _keyboard.IsKeyPressed(Key.ShiftRight);
-        wish *= running ? RunSpeed : WalkSpeed;
-        _velocity = Vector3.Lerp(_velocity, wish, MathF.Min(1f, Acceleration * dt));
+        foreach (var shot in _weapon.Update(dt, _player))
+            ProcessShot(shot);
+        foreach (var target in _targets)
+            target.Update(dt);
+        _popupTime = MathF.Max(_popupTime - dt, 0);
 
-        // Move em cada eixo separadamente para deslizar ao longo das paredes.
-        MoveAxis(new Vector3(_velocity.X * dt, 0, 0));
-        MoveAxis(new Vector3(0, 0, _velocity.Z * dt));
-        _feet.Y = GroundHeight();
-
-        // Balanço dos braços proporcional à velocidade; o atraso do mouse volta suavemente ao centro.
-        _bobTime += dt * BobFrequency * (_velocity.Length() / WalkSpeed);
+        // Balanço da arma proporcional à velocidade; o atraso do mouse volta suavemente ao centro.
+        float speedFactor = _player.OnGround ? _player.HorizontalSpeed / Player.MaxSpeed : 0;
+        _bobTime += dt * BobFrequency * speedFactor;
         _sway = Vector2.Clamp(_sway, new Vector2(-SwayMax), new Vector2(SwayMax));
         _sway = Vector2.Lerp(_sway, Vector2.Zero, MathF.Min(1f, 8f * dt));
     }
 
-    private static void MoveAxis(Vector3 move)
+    private static void ProcessShot(Shot shot)
     {
-        float distance = move.Length();
-        if (distance == 0) return;
-        Vector3 dir = move / distance;
-        foreach (float h in RayHeights)
+        _shotsFired++;
+        // As balas atravessam vidro, como no CS.
+        RayHit? wall = _collision.Raycast(shot.Origin, shot.Direction, BulletRange, ignoreGlass: true);
+        float wallDistance = wall?.Distance ?? BulletRange;
+
+        ShootingTarget? hitTarget = null;
+        TargetHit best = default;
+        foreach (var target in _targets)
         {
-            var origin = new Vector3(_feet.X, _feet.Y + h, _feet.Z);
-            if (_collision.Raycast(origin, dir, distance + PlayerRadius) != null) return;
+            if (target.Raycast(shot.Origin, shot.Direction, wallDistance) is TargetHit hit
+                && (hitTarget == null || hit.Distance < best.Distance))
+            {
+                hitTarget = target;
+                best = hit;
+            }
         }
-        _feet += move;
+
+        if (hitTarget != null)
+        {
+            _effects.AddBulletHole(hitTarget, best.LocalPoint, best.Normal, onPaper: best.OnPaper);
+            if (!best.OnPaper) return;
+            int points = _scoring.Score(best.Uv);
+            ShowPopup(points);
+            if (points > 0)
+            {
+                _hits++;
+                _score += points;
+                hitTarget.Relocate(_random);
+            }
+        }
+        else if (wall is RayHit w)
+        {
+            _effects.AddBulletHole(null, shot.Origin + shot.Direction * w.Distance, w.Normal, onPaper: false);
+        }
     }
 
-    private static float GroundHeight()
+    private static void ShowPopup(int points)
     {
-        var origin = new Vector3(_feet.X, _feet.Y + 60f, _feet.Z);
-        float? hit = _collision.Raycast(origin, -Vector3.UnitY, 200f);
-        return hit is float d ? origin.Y - d : _feet.Y;
+        _popupTime = 1.2f;
+        _popupText = points > 0 ? "+" + points : "ERROU";
+        _popupColor = points switch
+        {
+            10 => new Vector4(1f, 0.8f, 0.2f, 1f),
+            >= 7 => new Vector4(0.4f, 1f, 0.4f, 1f),
+            > 0 => new Vector4(1f, 1f, 1f, 1f),
+            _ => new Vector4(1f, 0.35f, 0.35f, 1f),
+        };
     }
 
     private static void OnRender(double deltaTime)
@@ -217,35 +290,73 @@ public static class Program
 
         var size = _window.FramebufferSize;
         float aspect = size.Y > 0 ? (float)size.X / size.Y : 1f;
-        var eye = new Vector3(_feet.X, _feet.Y + EyeHeight, _feet.Z);
-        var view = Matrix4x4.CreateLookAt(eye, eye + LookDirection(), Vector3.UnitY);
+
+        // A câmera mostra só parte do recuo (ViewPunch); a bala usa o recuo inteiro.
+        var punch = _weapon.ViewPunch * (MathF.PI / 180f);
+        float pitch = _player.Pitch + punch.X, yaw = _player.Yaw - punch.Y;
+        var look = new Vector3(MathF.Cos(pitch) * MathF.Sin(yaw), MathF.Sin(pitch), MathF.Cos(pitch) * MathF.Cos(yaw));
+        var eye = _player.Eye;
+        var view = Matrix4x4.CreateLookAt(eye, eye + look, Vector3.UnitY);
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(75f * MathF.PI / 180f, aspect, 5f, 5000f);
 
         _gl.UseProgram(_program);
         _gl.ActiveTexture(TextureUnit.Texture0);
-        DrawModel(_scene, Matrix4x4.Identity, view * projection);
+        _gl.Uniform1(_unlitLocation, 0f);
+        SetViewProjection(view * projection);
+        DrawMeshes(_scene.Meshes, Matrix4x4.Identity);
+        _effects.DrawBulletHoles(_colorLocation, _modelLocation);
 
-        // Os braços são desenhados por cima de tudo, com FOV próprio, como nos jogos de tiro:
+        // A arma e os braços são desenhados por cima de tudo, com FOV próprio, como nos jogos de tiro:
         // limpar a profundidade impede que eles atravessem paredes.
         _gl.Clear(ClearBufferMask.DepthBufferBit);
-        var offset = ArmsOffset + new Vector3(
+        Matrix4x4.Invert(view, out var cameraToWorld);
+        var viewmodel = ViewmodelTransform();
+        SetViewProjection(view * Matrix4x4.CreatePerspectiveFieldOfView(ViewmodelFov * MathF.PI / 180f, aspect, 1f, 500f));
+        // Os modelos apontam para +Z; a câmera olha para -Z, então giram 180° em Y.
+        var armsLocal = Matrix4x4.CreateRotationY(MathF.PI) * Matrix4x4.CreateTranslation(ArmsOffset) * viewmodel;
+        var gunLocal = Matrix4x4.CreateRotationY(MathF.PI) * Matrix4x4.CreateTranslation(GunOffset) * viewmodel;
+        DrawMeshes(_arms.Meshes, armsLocal * cameraToWorld);
+        DrawMeshes(_gun.Meshes, gunLocal * cameraToWorld);
+        if (_weapon.MuzzleFlash > 0)
+            _effects.DrawMuzzleFlash(Vector3.Transform(_muzzleLocal, gunLocal * cameraToWorld), cameraToWorld,
+                _colorLocation, _modelLocation, _unlitLocation, _random);
+
+        DrawHud(size.X, size.Y);
+    }
+
+    // Balanço ao andar, atraso do mouse, coice do tiro e animação de recarga (em coordenadas da câmera).
+    private static Matrix4x4 ViewmodelTransform()
+    {
+        var offset = new Vector3(
             MathF.Sin(_bobTime * 0.5f) * BobAmount + _sway.X,
             -MathF.Abs(MathF.Sin(_bobTime)) * BobAmount - _sway.Y,
             0f);
-        // O modelo aponta para +Z; a câmera olha para -Z, então gira 180° em Y.
-        var armsInView = Matrix4x4.CreateRotationY(MathF.PI) * Matrix4x4.CreateTranslation(offset);
-        Matrix4x4.Invert(view, out var cameraToWorld);
-        var armsProjection = Matrix4x4.CreatePerspectiveFieldOfView(ArmsFov * MathF.PI / 180f, aspect, 1f, 500f);
-        DrawModel(_arms, armsInView * cameraToWorld, view * armsProjection);
+        float kick = _weapon.Kick * _weapon.Kick;
+        offset.Z += kick * 2.5f;
+        float pitchUp = kick * 7f * MathF.PI / 180f;
+
+        float reload = _weapon.Reloading ? MathF.Sin(_weapon.ReloadProgress * MathF.PI) : 0;
+        offset.Y -= reload * 12f;
+        float roll = reload * 25f * MathF.PI / 180f;
+
+        // Todas as rotações acontecem em volta do cabo da arma.
+        const float deg = MathF.PI / 180f;
+        var rotation = Matrix4x4.CreateRotationZ(ViewmodelRotation.Z * deg + roll)
+                       * Matrix4x4.CreateRotationX(ViewmodelRotation.X * deg + pitchUp)
+                       * Matrix4x4.CreateRotationY(ViewmodelRotation.Y * deg);
+        return Matrix4x4.CreateTranslation(-GunOffset) * rotation * Matrix4x4.CreateTranslation(GunOffset)
+               * Matrix4x4.CreateTranslation(ViewmodelPosition + offset);
     }
 
-    private static unsafe void DrawModel(SceneModel model, Matrix4x4 world, Matrix4x4 viewProjection)
+    private static unsafe void SetViewProjection(Matrix4x4 viewProjection)
     {
         _gl.UniformMatrix4(_viewProjectionLocation, 1, false, (float*)&viewProjection);
-        _gl.UniformMatrix4(_modelLocation, 1, false, (float*)&world);
+    }
 
+    private static unsafe void DrawMeshes(IEnumerable<DrawMesh> meshes, Matrix4x4 world)
+    {
         bool blending = false;
-        foreach (var mesh in model.Meshes)
+        foreach (var mesh in meshes)
         {
             if (mesh.Transparent && !blending)
             {
@@ -253,6 +364,8 @@ public static class Program
                 _gl.DepthMask(false);
                 blending = true;
             }
+            var model = mesh.Transform * world;
+            _gl.UniformMatrix4(_modelLocation, 1, false, (float*)&model);
             _gl.Uniform4(_colorLocation, mesh.Color);
             _gl.BindTexture(TextureTarget.Texture2D, mesh.Texture);
             _gl.BindVertexArray(mesh.Vao);
@@ -260,6 +373,58 @@ public static class Program
         }
         _gl.Disable(EnableCap.Blend);
         _gl.DepthMask(true);
+    }
+
+    private static void DrawHud(int width, int height)
+    {
+        var white = new Vector4(1, 1, 1, 0.95f);
+        var dim = new Vector4(1, 1, 1, 0.6f);
+        float margin = 28;
+
+        // Pontos no canto superior direito.
+        _hud.Text("PONTOS", width - margin, margin, 3, dim, Hud.Align.Right);
+        _hud.Text(_score.ToString(), width - margin, margin + 30, 8, white, Hud.Align.Right);
+        if (_popupTime > 0)
+        {
+            var c = _popupColor with { W = MathF.Min(1, _popupTime / 0.4f) };
+            float rise = (1.2f - _popupTime) * 25;
+            _hud.Text(_popupText, width - margin, margin + 105 - rise, 5, c, Hud.Align.Right);
+        }
+
+        // Precisão no canto inferior esquerdo.
+        int accuracy = _shotsFired > 0 ? (int)MathF.Round(100f * _hits / _shotsFired) : 0;
+        _hud.Text($"ACERTOS {_hits}/{_shotsFired}  {accuracy}%", margin, height - margin - 21, 3, dim);
+
+        // Munição no canto inferior direito.
+        _hud.Text($"{_weapon.Clip} / {_weapon.Reserve}", width - margin, height - margin - 42, 6, white, Hud.Align.Right);
+        _hud.Text(_weapon.BurstMode ? "RAJADA" : "SEMI", width - margin, height - margin - 72, 3, dim, Hud.Align.Right);
+        if (_weapon.Reloading)
+        {
+            float barWidth = 220;
+            _hud.Text("RECARREGANDO", width / 2f, height * 0.62f, 3, white, Hud.Align.Center);
+            _hud.Rect(width / 2f - barWidth / 2, height * 0.62f + 30, barWidth, 6, new Vector4(0, 0, 0, 0.5f));
+            _hud.Rect(width / 2f - barWidth / 2, height * 0.62f + 30, barWidth * _weapon.ReloadProgress, 6, white);
+        }
+        else if (_weapon.Clip == 0 && _weapon.Reserve == 0)
+        {
+            _hud.Text("SEM MUNICAO", width / 2f, height * 0.62f, 3, new Vector4(1, 0.4f, 0.4f, 1), Hud.Align.Center);
+        }
+
+        if (!MouseCaptured)
+        {
+            _hud.Rect(0, 0, width, height, new Vector4(0, 0, 0, 0.45f));
+            _hud.Text("CLIQUE PARA JOGAR", width / 2f, height / 2f - 60, 6, white, Hud.Align.Center);
+            string[] help =
+            {
+                "WASD MOVER   MOUSE MIRAR   SHIFT CORRER",
+                "BOTAO ESQUERDO ATIRAR   BOTAO DIREITO SEMI/RAJADA",
+                "R RECARREGAR   ESPACO PULAR   CTRL AGACHAR   ESC SOLTAR O MOUSE",
+            };
+            for (int i = 0; i < help.Length; i++)
+                _hud.Text(help[i], width / 2f, height / 2f + 10 + i * 28, 3, dim, Hud.Align.Center);
+        }
+
+        _hud.Flush(width, height);
     }
 
     private static uint CreateProgram(string vertexSource, string fragmentSource)
@@ -291,6 +456,9 @@ public static class Program
     {
         _scene.Dispose();
         _arms.Dispose();
+        _gun.Dispose();
+        _hud.Dispose();
+        _effects.Dispose();
         _gl.DeleteProgram(_program);
         _input.Dispose();
     }
