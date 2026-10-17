@@ -33,7 +33,7 @@ scripts again does not duplicate objects.
 
 ## Verified environment
 - The pipeline ran with the **`bpy` 5.2.2 LTS** module on Python 3.13 (Linux, CPU Cycles).
-- Render: Cycles CPU, 96 samples, denoised, 1600×1000, AgX view transform. Takes about 2 minutes on CPU.
+- Render: Cycles CPU, 96 samples, denoised, 1600×1000, AgX view transform, light depth of field (f/5.6). Takes about 2 minutes on CPU.
 - After a rerun the scene holds 23 objects: 6 in MODEL, 11 in MATERIALS_AND_DETAILS, 4 lights, 1 camera, 1 floor.
 - Both export operators returned `FINISHED`. GLB is about 240 KB and FBX about 221 KB.
 
@@ -41,7 +41,8 @@ scripts again does not duplicate objects.
 Collections: `MODEL`, `MATERIALS_AND_DETAILS`, `LIGHTING`, `CAMERAS`, `ENVIRONMENT`.
 Every part is parented to the `PISTOL_ROOT` empty. Bevel modifiers stay live in the `.blend` so they remain
 editable, and they are applied on export. The cosmetic grooves on the slide and frame are boolean cuts,
-applied at generation time.
+applied at generation time, as are the 45° chamfers on the top edges of the slide and the angled cut at the muzzle.
+Every material gets subtle procedural roughness variation (Noise → Map Range → Roughness).
 
 Materials (Principled BSDF). Their values are in the `MATERIALS` dict at the top of `generate_model.py`:
 - `Matte_Black_Polymer` – frame, beavertail, trigger guard
@@ -59,5 +60,6 @@ Materials (Principled BSDF). Their values are in the `MATERIALS` dict at the top
 - The exported files were checked for operator result and non-zero size only. They were not
   re-imported or inspected in a game engine.
 - The proportions are stylized and approximate, and the geometry is deliberately simple (box and torus based).
-- The far edge of the floor plane shows as a horizon line at the top of the preview. A curved
-  cyclorama backdrop would remove it.
+- The angled cut at the front of the slide exposes part of the barrel cylinder; it could be cleaner.
+- The GLB exporter logs that the Draco/MeshOptimizer libraries are missing from the `bpy` wheel.
+  They are only needed for optional compression, which is not used.

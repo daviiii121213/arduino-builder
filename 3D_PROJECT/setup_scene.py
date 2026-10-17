@@ -49,7 +49,7 @@ def setup():
         raise RuntimeError("Model not found. Run generate_model.py first.")
 
     env = clear_collection("ENVIRONMENT")
-    bpy.ops.mesh.primitive_plane_add(size=4.0, location=(0, 0, -0.1265))
+    bpy.ops.mesh.primitive_plane_add(size=60.0, location=(0, 0, -0.1265))
     floor = bpy.context.active_object
     floor.name = "Studio_Floor"
     for c in list(floor.users_collection):
@@ -79,11 +79,13 @@ def setup():
     cams = clear_collection("CAMERAS")
     cam_data = bpy.data.cameras.new("Main_Camera")
     cam_data.lens = 85
-    cam_data.dof.use_dof = False
+    cam_data.dof.use_dof = True
+    cam_data.dof.aperture_fstop = 5.6
     cam = bpy.data.objects.new("Main_Camera", cam_data)
     cam.location = TARGET + Vector((0.34, -0.7, 0.16))
     look_at(cam, TARGET)
     cams.objects.link(cam)
+    cam_data.dof.focus_distance = (TARGET - cam.location).length
     scene.camera = cam
 
     scene.render.engine = "CYCLES"

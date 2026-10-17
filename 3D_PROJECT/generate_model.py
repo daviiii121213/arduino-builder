@@ -44,6 +44,15 @@ def make_material(name, color, roughness, specular, bump, metallic=0.0):
     bsdf.inputs["Metallic"].default_value = metallic
     bsdf.inputs["Specular IOR Level"].default_value = specular
     nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    # Subtle roughness variation so large flat faces don't look synthetic.
+    rnoise = nt.nodes.new("ShaderNodeTexNoise"); rnoise.location = (-500, 300)
+    rnoise.inputs["Scale"].default_value = 60.0
+    rnoise.inputs["Detail"].default_value = 6.0
+    rmap = nt.nodes.new("ShaderNodeMapRange"); rmap.location = (-250, 300)
+    rmap.inputs["To Min"].default_value = max(roughness - 0.08, 0.0)
+    rmap.inputs["To Max"].default_value = min(roughness + 0.08, 1.0)
+    nt.links.new(rnoise.outputs["Fac"], rmap.inputs["Value"])
+    nt.links.new(rmap.outputs["Result"], bsdf.inputs["Roughness"])
     if bump > 0:
         # Fine stippling for the grip: noise-driven bump.
         coord = nt.nodes.new("ShaderNodeTexCoord"); coord.location = (-700, 0)
@@ -144,6 +153,11 @@ def build():
         x = -0.088 + i * 0.0036
         cutters.append(box(f"_cut_serr_L{i}", model, accent, (x, 0.0135, 0.0145), (0.0013, 0.004, 0.022), bevel=0))
         cutters.append(box(f"_cut_serr_R{i}", model, accent, (x, -0.0135, 0.0145), (0.0013, 0.004, 0.022), bevel=0))
+    for side in (1, -1):
+        cutters.append(box(f"_cut_chamfer_{side}", model, accent, (-0.0025, side * 0.0155, 0.0335), (0.2, 0.008, 0.008),
+                           rot=(math.radians(45), 0, 0), bevel=0))
+    cutters.append(box("_cut_muzzle_bevel", model, accent, (0.0935, 0, 0.034), (0.012, 0.04, 0.03),
+                       rot=(0, math.radians(35), 0), bevel=0))
     cutters.append(box("_cut_port", model, accent, (0.012, 0.004, 0.031), (0.034, 0.016, 0.006), bevel=0))
     boolean_cut(slide, cutters)
     parts.append(slide)
@@ -167,7 +181,7 @@ def build():
     parts.append(box("Frame_ParkingLine", details, accent, (0.0, 0, 0.0002), (0.17, 0.0262, 0.0012), bevel=0))
 
     # Grip, beavertail, magazine base.
-    grip = box("Grip", model, grip_mat, (-0.064, 0, -0.064), (0.044, 0.0285, 0.108), rot=(0, grip_angle, 0), bevel=0.004)
+    grip = box("Grip", model, grip_mat, (-0.064, 0, -0.064), (0.044, 0.0285, 0.108), rot=(0, grip_angle, 0), bevel=0.0075, segments=5)
     parts.append(grip)
     parts.append(box("Grip_Beavertail", model, poly, (-0.083, 0, -0.012), (0.024, 0.026, 0.012),
                      rot=(0, math.radians(-8), 0), bevel=0.003))
