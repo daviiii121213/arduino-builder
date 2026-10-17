@@ -172,7 +172,7 @@ function triangleNormal(tr, i, d) {
 // ---------------------------------------------------------------- jogador (Player.cs)
 
 class Player {
-  static MAX_SPEED = 240;
+  static MAX_SPEED = 215; // velocidade máxima andando com o AK-47 no CS2
   static RUN_MULTIPLIER = 1.6;
   static CROUCH_MULTIPLIER = 0.34;
 
@@ -257,74 +257,84 @@ class Player {
 
 // ---------------------------------------------------------------- arma (Weapon.cs)
 
+// AK-47 com a mecânica do CS2, um tiro por clique (valores em Weapon.cs).
 class Weapon {
-  static CLIP_SIZE = 20;
+  static CLIP_SIZE = 30;
   static VIEW_RECOIL_TRACKING = 0.45;
 
-  constructor() {
+  constructor(rig) {
+    this.rig = rig;
     this.clip = Weapon.CLIP_SIZE;
-    this.reserve = 120;
-    this.burstMode = false;
+    this.reserve = 90;
+    this.animation = null;
+    this.animationTime = 0;
+    this.timeSinceShot = 10;
     this.aimPunch = new THREE.Vector2();
     this.aimPunchVelocity = new THREE.Vector2();
     this.accuracyPenalty = 0;
     this.cooldown = 0;
-    this.reloadLeft = 0;
-    this.burstLeft = 0;
+    this.fireQueued = false;
     this.kick = 0;
     this.muzzleFlash = 0;
   }
 
-  get reloading() { return this.reloadLeft > 0; }
-  get reloadProgress() { return this.reloading ? 1 - this.reloadLeft / 2.17 : 1; }
+  get reloading() { return this.animation === 'reload' || this.animation === 'reloadEmpty'; }
+  get reloadProgress() { return this.reloading ? this.animationTime / this.rig.duration(this.animation) : 1; }
   get viewPunch() { return this.aimPunch.clone().multiplyScalar(2 * Weapon.VIEW_RECOIL_TRACKING); }
 
-  toggleMode() { if (this.burstLeft === 0) this.burstMode = !this.burstMode; }
+  play(animation) { this.animation = animation; this.animationTime = 0; }
+  draw() { this.play('draw'); }
+  inspect() { if (!this.animation) this.play('inspect'); }
 
   startReload() {
-    if (this.reloading || this.clip === Weapon.CLIP_SIZE || this.reserve === 0) return false;
-    this.reloadLeft = 2.17;
-    this.burstLeft = 0;
+    if (this.reloading || this.animation === 'draw' || this.clip === Weapon.CLIP_SIZE || this.reserve === 0) return false;
+    // Com o pente vazio o AK não trava o ferrolho aberto: depois de trocar o carregador é preciso manejar.
+    this.play(this.clip === 0 ? 'reloadEmpty' : 'reload');
     return true;
   }
 
-  // Retorna 'empty' quando o pente está vazio (e começa a recarregar, como no CS2).
+  // Um clique = um tiro. Retorna 'empty' quando o pente está vazio (e começa a recarregar, como no CS2).
   trigger() {
-    if (this.reloading || this.cooldown > 0 || this.burstLeft > 0) return null;
+    if (this.reloading || this.animation === 'draw' || this.cooldown > 0) return null;
     if (this.clip === 0) { this.startReload(); return 'empty'; }
-    this.burstLeft = this.burstMode ? 3 : 1;
+    this.fireQueued = true;
     return 'fire';
   }
 
   inaccuracy(player) {
-    let base = 0.0056 + (0.0042 - 0.0056) * player.crouch;
-    if (!player.onGround) base += 0.15;
+    let base = 0.00641 + (0.00481 - 0.00641) * player.crouch;
+    if (!player.onGround) base += 0.4;
     // Até 34% da velocidade máxima a arma continua precisa ("counter-strafe").
     const moveFactor = THREE.MathUtils.clamp((player.horizontalSpeed - 0.34 * Player.MAX_SPEED) / (0.61 * Player.MAX_SPEED), 0, 1);
-    return base + 0.010 * moveFactor + this.accuracyPenalty + (this.burstMode ? 0.012 : 0);
+    return base + 0.17506 * moveFactor + this.accuracyPenalty;
   }
 
-  update(dt, player) {
+  update(dt, player, onCue) {
     const shots = [];
-    if (this.reloadLeft > 0) {
-      this.reloadLeft -= dt;
-      if (this.reloadLeft <= 0) {
-        this.reloadLeft = 0;
-        const moved = Math.min(Weapon.CLIP_SIZE - this.clip, this.reserve);
-        this.clip += moved;
-        this.reserve -= moved;
+    this.timeSinceShot += dt;
+    if (this.animation) {
+      const before = this.animationTime;
+      this.animationTime += dt;
+      for (const [t, cue] of SOUND_CUES[this.animation] || []) if (before < t && this.animationTime >= t) onCue(cue);
+      if (this.animationTime >= this.rig.duration(this.animation)) {
+        if (this.reloading) {
+          const moved = Math.min(Weapon.CLIP_SIZE - this.clip, this.reserve);
+          this.clip += moved;
+          this.reserve -= moved;
+        }
+        this.animation = null;
       }
     }
-    this.cooldown -= dt;
-    while (this.burstLeft > 0 && this.cooldown <= 0 && this.clip > 0 && !this.reloading) {
+    this.cooldown = Math.max(this.cooldown - dt, 0);
+    if (this.fireQueued && !this.reloading && this.clip > 0) {
+      // Atirar interrompe a inspeção, como no CS2.
+      if (this.animation === 'inspect') this.animation = null;
       shots.push(this.fire(player));
-      this.burstLeft--;
-      this.cooldown += this.burstLeft > 0 ? 0.05 : this.burstMode ? 0.5 : 0.15;
+      this.cooldown = 0.1; // 600 RPM
     }
-    if (this.clip === 0) this.burstLeft = 0;
-    if (this.cooldown < 0) this.cooldown = 0;
+    this.fireQueued = false;
 
-    this.accuracyPenalty *= Math.exp(-dt * Math.log(10) / 0.2);
+    this.accuracyPenalty *= Math.exp(-dt * Math.log(10) / 0.368);
 
     // Recuo da Source: integra a velocidade e decai (exponencial 8 + linear 18 graus/s).
     this.aimPunch.addScaledVector(this.aimPunchVelocity, dt * 0.5);
@@ -341,6 +351,7 @@ class Weapon {
 
   fire(player) {
     this.clip--;
+    this.timeSinceShot = 0;
     const inaccuracy = this.inaccuracy(player);
     const pitch = player.pitch + this.aimPunch.x * 2 * DEG;
     const yaw = player.yaw - this.aimPunch.y * 2 * DEG;
@@ -349,18 +360,94 @@ class Weapon {
     const up = right.clone().cross(forward);
     // Espalhamento do CS: um círculo da imprecisão somado a um do spread fixo.
     const a0 = Math.random() * Math.PI * 2, r0 = Math.random() * inaccuracy;
-    const a1 = Math.random() * Math.PI * 2, r1 = Math.random() * 0.002;
+    const a1 = Math.random() * Math.PI * 2, r1 = Math.random() * 0.0006;
     const x = Math.cos(a0) * r0 + Math.cos(a1) * r1;
     const y = Math.sin(a0) * r0 + Math.sin(a1) * r1;
     const direction = forward.addScaledVector(right, x).addScaledVector(up, y).normalize();
 
-    this.accuracyPenalty += 0.056;
-    const angle = (Math.random() * 2 - 1) * 20 * DEG;
-    this.aimPunchVelocity.add(new THREE.Vector2(Math.cos(angle), Math.sin(angle)).multiplyScalar(18 * 3));
+    this.accuracyPenalty += 0.0078;
+    const angle = (Math.random() * 2 - 1) * 70 * DEG;
+    this.aimPunchVelocity.add(new THREE.Vector2(Math.cos(angle), Math.sin(angle)).multiplyScalar(30 * 3));
     this.kick = 1;
     this.muzzleFlash = 0.06;
     return { origin: player.eye, direction };
   }
+}
+
+// Sons das animações (instante em segundos): retém, carregador saindo/entrando, ferrolho.
+const SOUND_CUES = {
+  reload: [[0.42, 'click'], [0.55, 'mag'], [1.65, 'mag']],
+  reloadEmpty: [[0.42, 'click'], [0.55, 'mag'], [1.65, 'mag'], [2.22, 'bolt'], [2.28, 'bolt']],
+  draw: [[0.48, 'bolt'], [0.53, 'bolt']],
+};
+
+// ---------------------------------------------------------------- arma e braços em primeira pessoa (ViewmodelRig.cs)
+
+// Lê ak_viewmodel.json (o mesmo da versão em C#) e interpola poses e trilhas das animações.
+class ViewmodelRig {
+  constructor(data) {
+    this.data = data;
+    this.armsOffset = new THREE.Vector3(...data.armsOffset);
+    this.gunOffset = new THREE.Vector3(...data.gunOffset);
+    this.rotation = new THREE.Vector3(...data.rotation);
+    this.magPivot = new THREE.Vector3(...data.magPivot);
+    this.magReleasePivot = new THREE.Vector3(...data.magReleasePivot);
+    this.ejectionPort = new THREE.Vector3(...data.ejectionPort);
+    this.muzzle = new THREE.Vector3(...data.muzzle);
+    this.poses = {};
+    for (const [name, bones] of Object.entries(data.poses))
+      this.poses[name] = Object.fromEntries(Object.entries(bones).map(([b, q]) => [b, new THREE.Quaternion(...q)]));
+  }
+
+  duration(name) { return this.data.animations[name].duration; }
+
+  evaluate(animation, time, fireTime) {
+    const frame = { armPose: this.poses.hold, rootRotation: new THREE.Vector3(), rootOffset: new THREE.Vector3(),
+      magRotation: 0, magOffset: new THREE.Vector3(), magRelease: 0, bolt: 0 };
+    const a = animation && this.data.animations[animation];
+    if (a) {
+      if (a.arms) frame.armPose = this.evaluatePose(a.arms, time);
+      if (a.root) {
+        const r = evaluateTrack(a.root.map(([t, rot, pos]) => [t, ...rot, ...pos]), time);
+        frame.rootRotation.set(r[0], r[1], r[2]);
+        frame.rootOffset.set(r[3], r[4], r[5]);
+      }
+      if (a.mag) { const m = evaluateTrack(a.mag, time); frame.magRotation = m[0]; frame.magOffset.set(m[1], m[2], m[3]); }
+      if (a.magRelease) frame.magRelease = evaluateTrack(a.magRelease, time)[0];
+      if (a.bolt) frame.bolt = evaluateTrack(a.bolt, time)[0];
+    }
+    // O ferrolho também corre a cada tiro (o gás empurra o porta-ferrolho para trás e a mola o devolve).
+    const fire = this.data.animations.fire;
+    if (fireTime < fire.duration) frame.bolt = Math.min(frame.bolt, evaluateTrack(fire.bolt, fireTime)[0]);
+    return frame;
+  }
+
+  evaluatePose(keys, t) {
+    const [i, u] = segment(keys.map((k) => k[0]), t);
+    const a = this.poses[keys[i][1]], b = this.poses[keys[Math.min(i + 1, keys.length - 1)][1]];
+    const result = {};
+    for (const bone of new Set([...Object.keys(a), ...Object.keys(b)]))
+      result[bone] = (a[bone] || new THREE.Quaternion()).clone().slerp(b[bone] || new THREE.Quaternion(), u);
+    return result;
+  }
+}
+
+// Índice da chave anterior a t e o avanço (0..1, suavizado) até a próxima.
+function segment(times, t) {
+  if (t <= times[0]) return [0, 0];
+  for (let i = 0; i < times.length - 1; i++) {
+    if (t < times[i + 1]) {
+      const x = (t - times[i]) / (times[i + 1] - times[i]);
+      return [i, x * x * (3 - 2 * x)];
+    }
+  }
+  return [times.length - 1, 0];
+}
+
+function evaluateTrack(keys, t) {
+  const [i, u] = segment(keys.map((k) => k[0]), t);
+  const a = keys[i], b = keys[Math.min(i + 1, keys.length - 1)];
+  return a.slice(1).map((v, k) => v + (b[k + 1] - v) * u);
 }
 
 // ---------------------------------------------------------------- alvos (Targets.cs)
@@ -455,21 +542,6 @@ class TargetScoring {
   }
 }
 
-// ---------------------------------------------------------------- pose dos braços (ArmPose.cs)
-
-function armPose() {
-  const pose = { armR: [0, 0, -12], forearmR: [0, 35, 0], armL: [0, 0, 15], forearmL: [0, -35, 0] };
-  const curl = (side, amount, thumb) => {
-    const s = side === 'R' ? -1 : 1;
-    for (const f of ['point', 'middle', 'ring', 'pink'])
-      for (let j = 1; j <= 3; j++) pose[`${f}${j}${side}`] = [0, 0, s * amount * (j === 1 ? 0.6 : 1)];
-    for (let j = 1; j <= 3; j++) pose[`thumb${j}${side}`] = [0, 0, s * thumb];
-  };
-  curl('R', 40, 15);
-  curl('L', 25, 5);
-  return pose;
-}
-
 // ---------------------------------------------------------------- som (sintetizado, sem arquivos)
 
 class Sound {
@@ -494,8 +566,11 @@ class Sound {
     src.connect(filter).connect(g).connect(this.ctx.destination);
     src.start(t); src.stop(t + duration);
   }
-  shot() { this.burst(0.25, 2400, 0.9); this.burst(0.12, 180, 1.2); }
+  shot() { this.burst(0.3, 1800, 1.0); this.burst(0.16, 140, 1.4); }
   click() { this.burst(0.03, 3000, 0.3, 'highpass'); }
+  mag() { this.burst(0.05, 900, 0.45, 'bandpass'); this.burst(0.03, 2600, 0.25, 'highpass'); }
+  bolt() { this.burst(0.06, 1500, 0.5, 'bandpass'); }
+  cue(name) { if (this[name]) this[name](); }
   hit() { this.burst(0.08, 1200, 0.25, 'bandpass'); }
 }
 
@@ -514,6 +589,7 @@ const ui = {
   reload: document.getElementById('reload'),
   reloadBar: document.getElementById('reload-bar'),
   notice: document.getElementById('notice'),
+  crosshair: document.getElementById('crosshair'),
 };
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -623,18 +699,20 @@ async function loadScene() {
 // ---------------------------------------------------------------- jogo
 
 const player = new Player(SPAWN);
-const weapon = new Weapon();
+let weapon, rig;
 const sound = new Sound();
 const keys = {};
-let world, targets, scoring, armsRoot, gunRoot, viewmodel, muzzleLocal, flashOuter, flashInner;
-const holes = { rim: null, core: null, wall: null, list: [] };
+let world, targets, scoring, armsRoot, gunRoot, viewmodel, flashOuter, flashInner, casingMesh;
+let armBones = {}, armRest = {}, armsAnimated = true, drawn = false;
+const gunParts = {};
+const casings = [];
+const holes = { rim: null, core: null, dust: null, wall: null, list: [] };
 const state = { score: 0, hits: 0, shots: 0, popupTime: 0, bobTime: 0, sway: new THREE.Vector2(), jump: false };
 let playing = false, ready = false;
 
-const ARMS_OFFSET = new THREE.Vector3(0, -17, -4);
-const GUN_OFFSET = new THREE.Vector3(6.5, -15, -44);
-const VIEWMODEL_POSITION = new THREE.Vector3(9, -1, 14);
-const VIEWMODEL_ROTATION = new THREE.Vector3(0, 15, -6);
+const KICK_BACK = 3;   // cm que a arma recua no tiro
+const KICK_PITCH = 4;  // graus que o cano sobe no tiro
+const MAX_HOLES = 300;
 
 async function boot(saved) {
   try {
@@ -655,6 +733,8 @@ async function boot(saved) {
       img.src = assetUrl('Target Paper_C.jpg');
     });
     scoring = new TargetScoring(paperImage);
+    rig = new ViewmodelRig(await (await fetch(ASSETS + 'ak_viewmodel.json')).json());
+    weapon = new Weapon(rig);
     await loadViewmodel();
     setupHoles();
 
@@ -675,29 +755,26 @@ async function loadViewmodel() {
   manager.setURLModifier((url) => (url.endsWith('.fbx') ? url : EMPTY_IMAGE));
   const arms = new FBXLoader(manager).parse(await fetchBinary('arms.fbx'), ASSETS);
   const armTexture = loadTexture('armColor.jpg');
-  const bones = {};
   arms.traverse((o) => {
     if (o.isMesh) { o.material = makeMaterial({ map: armTexture }); o.frustumCulled = false; }
-    if (o.isBone) bones[o.name] = o;
+    if (o.isBone) { armBones[o.name] = o; armRest[o.name] = o.quaternion.clone(); }
   });
-  for (const [name, [x, y, z]] of Object.entries(armPose()))
-    bones[name]?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(x * DEG, y * DEG, z * DEG)));
 
-  const gltf = await new GLTFLoader().parseAsync(await fetchBinary('glock.glb'), ASSETS);
-  const gunMaterial = makeMaterial({ color: [0.035, 0.035, 0.04] });
-  const gunBox = new THREE.Box3();
+  // AKM em peças (body, mag, bolt, magrelease, selector), já em cm com o cano em +Z e origem no punho.
+  const gltf = await new GLTFLoader().parseAsync(await fetchBinary('akm.glb'), ASSETS);
   gltf.scene.traverse((o) => {
     if (!o.isMesh) return;
     if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
-    o.material = gunMaterial;
-    o.geometry.computeBoundingBox();
-    gunBox.union(o.geometry.boundingBox);
+    o.material = makeMaterial({ color: o.material.color.toArray() });
+    o.frustumCulled = false;
+    const part = o.name.split('_')[0];
+    (gunParts[part] ||= []).push(o);
+    o.matrixAutoUpdate = false;
   });
-  muzzleLocal = new THREE.Vector3(0, gunBox.max.y - 2.3, gunBox.max.z + 0.5);
 
   // Os modelos apontam para +Z; a câmera olha para -Z, então giram 180° em Y.
-  armsRoot = new THREE.Group(); armsRoot.add(arms); armsRoot.rotation.y = Math.PI; armsRoot.position.copy(ARMS_OFFSET);
-  gunRoot = new THREE.Group(); gunRoot.add(gltf.scene); gunRoot.rotation.y = Math.PI; gunRoot.position.copy(GUN_OFFSET);
+  armsRoot = new THREE.Group(); armsRoot.add(arms); armsRoot.rotation.y = Math.PI; armsRoot.position.copy(rig.armsOffset);
+  gunRoot = new THREE.Group(); gunRoot.add(gltf.scene); gunRoot.rotation.y = Math.PI; gunRoot.position.copy(rig.gunOffset);
   viewmodel = new THREE.Group();
   viewmodel.matrixAutoUpdate = false;
   viewmodel.add(armsRoot, gunRoot);
@@ -708,6 +785,64 @@ async function loadViewmodel() {
   for (const f of [flashOuter, flashInner]) {
     f.material.depthTest = false; f.renderOrder = 10; f.frustumCulled = false; f.visible = false; vmScene.add(f);
   }
+
+  // Estojos de 7,62x39 mm (~1,1 x 3,9 cm), cor de latão.
+  casingMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1.1, 1.1, 3.9), makeMaterial({ color: [0.47, 0.26, 0.04] }), 32);
+  casingMesh.count = 0; casingMesh.frustumCulled = false;
+  vmScene.add(casingMesh);
+}
+
+// Peças móveis do AKM, no espaço da arma: carregador (balança em volta da frente e desce),
+// retém do carregador e porta-ferrolho (corre para trás).
+function setPartTransforms(frame) {
+  const around = (pivot, rotation, extra = new THREE.Vector3()) => new THREE.Matrix4()
+    .makeTranslation(pivot.clone().add(extra))
+    .multiply(new THREE.Matrix4().makeRotationX(rotation * DEG))
+    .multiply(new THREE.Matrix4().makeTranslation(pivot.clone().negate()));
+  const transforms = {
+    mag: around(rig.magPivot, frame.magRotation, frame.magOffset),
+    magrelease: around(rig.magReleasePivot, frame.magRelease),
+    bolt: new THREE.Matrix4().makeTranslation(0, 0, frame.bolt),
+  };
+  for (const [part, meshes] of Object.entries(gunParts))
+    for (const mesh of meshes) { mesh.matrix.copy(transforms[part] || new THREE.Matrix4()); mesh.matrixWorldNeedsUpdate = true; }
+}
+
+// Pose dos braços: rotação extra sobre a pose original de cada osso.
+function setArmPose(pose) {
+  for (const [name, bone] of Object.entries(armBones)) {
+    bone.quaternion.copy(armRest[name]);
+    if (pose[name]) bone.quaternion.multiply(pose[name]);
+  }
+}
+
+function ejectCasing() {
+  viewmodel.updateMatrixWorld(true);
+  const position = rig.ejectionPort.clone().applyMatrix4(gunRoot.matrixWorld);
+  const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+  const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+  const forward = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
+  casings.push({
+    position,
+    velocity: right.multiplyScalar(180 + Math.random() * 60).addScaledVector(up, 120 + Math.random() * 60).addScaledVector(forward, -(20 + Math.random() * 30)),
+    quaternion: camera.quaternion.clone(),
+    spinAxis: new THREE.Vector3(Math.random(), 1, Math.random()).normalize(),
+    age: 0,
+  });
+  if (casings.length > 32) casings.shift();
+}
+
+function updateCasings(dt) {
+  for (const c of casings) {
+    c.age += dt;
+    c.velocity.y -= 800 * dt;
+    c.position.addScaledVector(c.velocity, dt);
+    c.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(c.spinAxis, 25 * dt));
+  }
+  while (casings.length && casings[0].age > 0.9) casings.shift();
+  casings.forEach((c, i) => casingMesh.setMatrixAt(i, tmpMatrix.compose(c.position, c.quaternion, new THREE.Vector3(1, 1, 1))));
+  casingMesh.count = casings.length;
+  casingMesh.instanceMatrix.needsUpdate = true;
 }
 
 // Furos de bala: discos instanciados que acompanham o alvo quando ele anda.
@@ -717,24 +852,26 @@ function setupHoles() {
     const material = makeMaterial({ color, opacity });
     material.transparent = true; material.depthWrite = false;
     material.polygonOffset = true; material.polygonOffsetFactor = -2; material.polygonOffsetUnits = -2;
-    const mesh = new THREE.InstancedMesh(disc, material, 150);
+    const mesh = new THREE.InstancedMesh(disc, material, MAX_HOLES);
     mesh.count = 0; mesh.frustumCulled = false; mesh.renderOrder = 5;
     scene.add(mesh);
     return mesh;
   };
   holes.rim = make([0.85, 0.83, 0.78], 1);
   holes.core = make([0.03, 0.03, 0.03], 1);
-  holes.wall = make([0.05, 0.05, 0.05], 0.85);
+  // Na parede: halo claro de reboco lascado (aparece até nas paredes escuras) e o furo escuro por cima.
+  holes.dust = make([0.55, 0.53, 0.5], 0.7);
+  holes.wall = make([0.03, 0.03, 0.03], 0.95);
 }
 
 function addHole(target, point, normal, onPaper) {
   holes.list.push({ target, point, normal, onPaper });
-  if (holes.list.length > 150) holes.list.shift();
+  if (holes.list.length > MAX_HOLES) holes.list.shift();
 }
 
 const tmpMatrix = new THREE.Matrix4(), tmpQuat = new THREE.Quaternion(), zAxis = new THREE.Vector3(0, 0, 1);
 function updateHoles() {
-  const counts = { rim: 0, core: 0, wall: 0 };
+  const counts = { rim: 0, core: 0, dust: 0, wall: 0 };
   const put = (mesh, key, position, quaternion, radius) => {
     tmpMatrix.compose(position, quaternion, new THREE.Vector3(radius, radius, radius));
     mesh.setMatrixAt(counts[key]++, tmpMatrix);
@@ -744,9 +881,9 @@ function updateHoles() {
     if (h.target) position.z += h.target.offsetZ;
     tmpQuat.setFromUnitVectors(zAxis, h.normal);
     if (h.onPaper) { put(holes.rim, 'rim', position, tmpQuat, 1.4); put(holes.core, 'core', position, tmpQuat, 0.8); }
-    else put(holes.wall, 'wall', position, tmpQuat, 1.2);
+    else { put(holes.dust, 'dust', position, tmpQuat, 2.4); put(holes.wall, 'wall', position.addScaledVector(h.normal, 0.02), tmpQuat, 1.0); }
   }
-  for (const key of ['rim', 'core', 'wall']) {
+  for (const key of ['rim', 'core', 'dust', 'wall']) {
     holes[key].count = counts[key];
     holes[key].instanceMatrix.needsUpdate = true;
   }
@@ -801,8 +938,9 @@ function update(dt) {
   player.update(dt, move, state.jump, crouch, run, world);
   state.jump = false;
 
-  const shots = weapon.update(dt, player);
-  for (const shot of shots) { sound.shot(); processShot(shot); }
+  const shots = weapon.update(dt, player, (cue) => sound.cue(cue));
+  for (const shot of shots) { sound.shot(); processShot(shot); state.pendingCasings = (state.pendingCasings || 0) + 1; }
+  updateCasings(dt);
   for (const target of targets) target.update(dt);
   state.popupTime = Math.max(state.popupTime - dt, 0);
 
@@ -811,24 +949,22 @@ function update(dt) {
   state.sway.clampScalar(-2.5, 2.5).lerp(new THREE.Vector2(), Math.min(1, 8 * dt));
 }
 
-function viewmodelMatrix() {
+// Balanço ao andar, atraso do mouse, coice do tiro e a animação atual (em coordenadas da câmera).
+function viewmodelMatrix(frame) {
   const offset = new THREE.Vector3(
     Math.sin(state.bobTime * 0.5) * 0.8 + state.sway.x,
     -Math.abs(Math.sin(state.bobTime)) * 0.8 - state.sway.y,
-    0);
+    0).add(frame.rootOffset);
   const kick = weapon.kick * weapon.kick;
-  offset.z += kick * 2.5;
-  const reload = weapon.reloading ? Math.sin(weapon.reloadProgress * Math.PI) : 0;
-  offset.y -= reload * 12;
-  // Rotações em volta do cabo: rolagem, inclinação (com o coice) e giro.
+  offset.z += kick * KICK_BACK;
+  // Rotações em volta do punho: giro, inclinação (com o coice) e rolagem.
+  const angles = rig.rotation.clone().add(frame.rootRotation);
   const rotation = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(
-    VIEWMODEL_ROTATION.x * DEG + kick * 7 * DEG,
-    VIEWMODEL_ROTATION.y * DEG,
-    VIEWMODEL_ROTATION.z * DEG + reload * 25 * DEG, 'YXZ'));
-  return new THREE.Matrix4().makeTranslation(VIEWMODEL_POSITION.clone().add(offset))
-    .multiply(new THREE.Matrix4().makeTranslation(GUN_OFFSET))
+    angles.x * DEG + kick * KICK_PITCH * DEG, angles.y * DEG, angles.z * DEG, 'YXZ'));
+  return new THREE.Matrix4().makeTranslation(offset)
+    .multiply(new THREE.Matrix4().makeTranslation(rig.gunOffset))
     .multiply(rotation)
-    .multiply(new THREE.Matrix4().makeTranslation(GUN_OFFSET.clone().negate()));
+    .multiply(new THREE.Matrix4().makeTranslation(rig.gunOffset.clone().negate()));
 }
 
 function render() {
@@ -847,8 +983,12 @@ function render() {
   renderer.render(scene, camera);
 
   // Arma e braços por cima de tudo: limpa a profundidade para não atravessarem paredes.
-  viewmodel.matrix.copy(camera.matrixWorld).multiply(viewmodelMatrix());
+  const frame = rig.evaluate(weapon.animation, weapon.animationTime, weapon.timeSinceShot);
+  if (weapon.animation || armsAnimated) { setArmPose(frame.armPose); armsAnimated = !!weapon.animation; }
+  setPartTransforms(frame);
+  viewmodel.matrix.copy(camera.matrixWorld).multiply(viewmodelMatrix(frame));
   viewmodel.matrixWorldNeedsUpdate = true;
+  for (; state.pendingCasings > 0; state.pendingCasings--) ejectCasing();
   updateMuzzleFlash();
   renderer.clearDepth();
   renderer.render(vmScene, vmCamera);
@@ -860,7 +1000,7 @@ function updateMuzzleFlash() {
   flashOuter.visible = flashInner.visible = visible;
   if (!visible) return;
   viewmodel.updateMatrixWorld(true);
-  const position = muzzleLocal.clone().applyMatrix4(gunRoot.matrixWorld);
+  const position = rig.muzzle.clone().applyMatrix4(gunRoot.matrixWorld);
   const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
   const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
   const spin = Math.random() * Math.PI;
@@ -882,16 +1022,23 @@ function updateMuzzleFlash() {
   spikes(flashInner, 2.2, 1.2, 8);
 }
 
+// Mira do CS (verde, quatro traços): a abertura acompanha a imprecisão atual da arma.
+function updateCrosshair() {
+  const spread = Math.tan(weapon.inaccuracy(player)) / Math.tan((75 * DEG) / 2) * (window.innerHeight / 2);
+  ui.crosshair.style.setProperty('--gap', `${Math.min(4 + spread, window.innerHeight * 0.3).toFixed(1)}px`);
+}
+
 function updateHud() {
   ui.score.textContent = state.score;
   const accuracy = state.shots ? Math.round((100 * state.hits) / state.shots) : 0;
   ui.stats.textContent = `Acertos ${state.hits}/${state.shots} · ${accuracy}%`;
   ui.ammo.textContent = weapon.clip;
   ui.reserve.textContent = `/ ${weapon.reserve}`;
-  ui.mode.textContent = weapon.burstMode ? 'Rajada' : 'Semi';
+  updateCrosshair();
   ui.reload.hidden = !weapon.reloading;
   ui.reloadBar.style.transform = `scaleX(${weapon.reloadProgress})`;
   ui.notice.hidden = !(weapon.clip === 0 && weapon.reserve === 0);
+  ui.crosshair.hidden = !playing;
 }
 
 let last = performance.now();
@@ -913,6 +1060,8 @@ function startPlaying() {
   sound.unlock();
   playing = true;
   ui.overlay.hidden = true;
+  // Na primeira vez a arma é sacada (animação de "deploy").
+  if (!drawn) { weapon.draw(); drawn = true; }
   // Pointer lock pode não existir (alguns apps/celulares): sem ele, o movimento do mouse ainda gira a câmera.
   try { const p = renderer.domElement.requestPointerLock?.(); p?.catch?.(() => {}); } catch { /* segue sem travar o mouse */ }
 }
@@ -933,11 +1082,7 @@ document.addEventListener('pointerlockchange', () => {
 
 renderer.domElement.addEventListener('mousedown', (e) => {
   if (!playing) return;
-  if (e.button === 0) {
-    const result = weapon.trigger();
-    if (result === 'empty') sound.click();
-  }
-  if (e.button === 2) weapon.toggleMode();
+  if (e.button === 0 && weapon.trigger() === 'empty') sound.click();
 });
 renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -953,6 +1098,7 @@ window.addEventListener('keydown', (e) => {
   if (!playing) return;
   keys[e.code] = true;
   if (e.code === 'KeyR') weapon.startReload();
+  if (e.code === 'KeyF') weapon.inspect();
   if (e.code === 'Space') state.jump = true;
   if (e.code === 'Escape') stopPlaying();
   if (['Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ControlLeft'].includes(e.code)) e.preventDefault();
@@ -965,7 +1111,7 @@ window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; }
 function snapshot() {
   return {
     score: state.score, hits: state.hits, shots: state.shots,
-    clip: weapon.clip, reserve: weapon.reserve, burstMode: weapon.burstMode,
+    clip: weapon.clip, reserve: weapon.reserve,
     feet: player.feet.toArray(), yaw: player.yaw, pitch: player.pitch,
   };
 }
@@ -973,7 +1119,7 @@ function snapshot() {
 function restore(s) {
   if (typeof s.score !== 'number') return;
   Object.assign(state, { score: s.score, hits: s.hits, shots: s.shots });
-  Object.assign(weapon, { clip: s.clip, reserve: s.reserve, burstMode: s.burstMode });
+  Object.assign(weapon, { clip: s.clip, reserve: s.reserve });
   player.feet.fromArray(s.feet);
   player.yaw = s.yaw;
   player.pitch = s.pitch;

@@ -16,6 +16,7 @@
     --hit-x: #f2b134;
     --hit-ring: #7fd46b;
     --hit-miss: #ef6a5c;
+    --crosshair: #4dff4d;     /* verde padrão da mira do CS */
     --font-display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
     --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
     color-scheme: dark;
@@ -56,6 +57,16 @@
   #reload .track { width: 220px; height: 5px; margin-top: 8px; background: rgba(0,0,0,.5); }
   #reload-bar { height: 100%; background: var(--ink); transform-origin: left; }
   #notice { left: 50%; top: 62%; transform: translateX(-50%); color: var(--hit-miss); }
+
+  /* Mira do CS: quatro traços verdes com contorno; --gap acompanha a imprecisão da arma. */
+  #crosshair { --gap: 4px; --len: 9px; --thick: 2px; left: 50%; top: 50%; width: 0; height: 0; text-shadow: none; }
+  #crosshair i { position: absolute; background: var(--crosshair); outline: 1px solid rgba(0, 0, 0, .8); }
+  #crosshair .t, #crosshair .b { width: var(--thick); height: var(--len); left: calc(var(--thick) / -2); }
+  #crosshair .l, #crosshair .r { height: var(--thick); width: var(--len); top: calc(var(--thick) / -2); }
+  #crosshair .t { bottom: var(--gap); }
+  #crosshair .b { top: var(--gap); }
+  #crosshair .l { right: var(--gap); }
+  #crosshair .r { left: var(--gap); }
 
   #overlay {
     position: fixed; inset: 0; z-index: 10;
@@ -119,7 +130,7 @@
 </div>
 <div class="hud" id="stats">Acertos 0/0 · 0%</div>
 <div class="hud" id="ammo-box">
-  <span class="label" id="mode">Semi</span>
+  <span class="label" id="mode">AK-47</span>
   <span id="ammo">20</span> <span id="reserve">/ 120</span>
 </div>
 <div class="hud" id="reload" hidden>
@@ -127,17 +138,18 @@
   <div class="track"><div id="reload-bar"></div></div>
 </div>
 <div class="hud label" id="notice" hidden>Sem munição</div>
+<div class="hud" id="crosshair" hidden aria-hidden="true"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i></div>
 
 <div id="overlay">
   <div class="panel">
     <h1>Shooting Range</h1>
-    <p>Estande de tiro com Glock e mecânica do CS2: imprecisão ao andar e ao atirar rápido, recuo que sobe a mira, rajada de 3. Acerte o papel e o alvo corre no trilho para outra distância.</p>
+    <p>Estande de tiro com AK-47 e mecânica do CS2: um tiro por clique, imprecisão ao andar e ao atirar rápido, recuo que sobe a mira e a mira que abre junto. Acerte o papel e o alvo corre no trilho para outra distância; tiros errados marcam a parede.</p>
     <dl class="controls">
       <div><dt>WASD</dt><dd>mover</dd></div>
       <div><dt>Mouse</dt><dd>mirar</dd></div>
       <div><dt>Clique</dt><dd>atirar</dd></div>
-      <div><dt>Botão dir.</dt><dd>semi / rajada</dd></div>
       <div><dt>R</dt><dd>recarregar</dd></div>
+      <div><dt>F</dt><dd>inspecionar</dd></div>
       <div><dt>Espaço</dt><dd>pular</dd></div>
       <div><dt>Ctrl / C</dt><dd>agachar</dd></div>
       <div><dt>Shift</dt><dd>correr</dd></div>
