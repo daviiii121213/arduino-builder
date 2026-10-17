@@ -32,6 +32,8 @@ O carregamento do cenário leva alguns segundos (as texturas são grandes).
 - `SceneModel.cs`: carrega o FBX, as texturas e envia tudo para a GPU
 - `CollisionWorld.cs`: colisão por raycast contra os triângulos do cenário
 - `models/shooting_range.fbx`: o cenário
+- `models/arms.fbx`: braços em primeira pessoa (desenhados por cima da cena, estilo CS);
+  a textura deles é `models/tex/armColor.png` (manga camuflada, punho e luva)
 - `models/tex/`: texturas. Cada material procura aqui um arquivo com o mesmo
   nome (`.jpg`, `.jpeg` ou `.png`, ex.: `Floor 01_C.jpeg`); se não achar, usa a
   textura embutida no FBX. Para trocar uma textura, basta substituir o arquivo.

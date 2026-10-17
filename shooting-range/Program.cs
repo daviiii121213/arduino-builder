@@ -11,6 +11,7 @@ public static class Program
     // O modelo está em centímetros, então todas as medidas abaixo também estão.
     private const string ModelPath = "models/shooting_range.fbx";
     private const string TextureDir = "models/tex";
+    private const string ArmsPath = "models/arms.fbx";
     private static readonly Vector3 Spawn = new(0, 0, -680);
     private const float EyeHeight = 165f;
     private const float PlayerRadius = 30f;
@@ -20,19 +21,28 @@ public static class Program
     private const float MouseSensitivity = 0.0025f;
     private static readonly float[] RayHeights = { 40f, 140f }; // alturas (a partir do pé) dos raios de colisão
 
+    // Braços em primeira pessoa (estilo CS): posição em relação à câmera (x direita, y cima, -z frente).
+    private static readonly Vector3 ArmsOffset = new(0f, -15f, -4f);
+    private const float ArmsFov = 68f;
+    private const float BobAmount = 0.8f;      // altura do balanço ao andar
+    private const float BobFrequency = 11f;
+    private const float SwayAmount = 0.04f;    // quanto os braços atrasam ao girar o mouse
+    private const float SwayMax = 2.5f;
+
     private const string VertexShader = """
         #version 330 core
         layout (location = 0) in vec3 aPosition;
         layout (location = 1) in vec3 aNormal;
         layout (location = 2) in vec2 aUv;
         uniform mat4 uViewProjection;
+        uniform mat4 uModel;
         out vec3 vNormal;
         out vec2 vUv;
         void main()
         {
-            vNormal = aNormal;
+            vNormal = mat3(uModel) * aNormal;
             vUv = aUv;
-            gl_Position = uViewProjection * vec4(aPosition, 1.0);
+            gl_Position = uViewProjection * uModel * vec4(aPosition, 1.0);
         }
         """;
 
@@ -61,14 +71,17 @@ public static class Program
     private static IKeyboard _keyboard = null!;
     private static IMouse _mouse = null!;
     private static SceneModel _scene = null!;
+    private static SceneModel _arms = null!;
     private static CollisionWorld _collision = null!;
     private static uint _program;
-    private static int _viewProjectionLocation, _colorLocation;
+    private static int _viewProjectionLocation, _modelLocation, _colorLocation;
 
     private static Vector3 _feet = Spawn;
     private static Vector3 _velocity;
     private static float _yaw, _pitch;
     private static Vector2? _lastMouse;
+    private static float _bobTime;
+    private static Vector2 _sway;
 
     public static void Main()
     {
@@ -109,11 +122,14 @@ public static class Program
         Console.WriteLine("Carregando cenário...");
         _scene = new SceneModel(_gl, ModelPath, TextureDir);
         _collision = new CollisionWorld(_scene.CollisionTriangles);
+        _arms = new SceneModel(_gl, ArmsPath, TextureDir);
+        Console.WriteLine($"Braços: {_arms.BoundsMin} -> {_arms.BoundsMax}");
         Console.WriteLine($"Pronto! {_scene.Meshes.Count} partes, {_scene.CollisionTriangles.Count / 3} triângulos.");
         Console.WriteLine("Clique na janela para capturar o mouse. WASD mover, Shift correr, Esc soltar o mouse.");
 
         _program = CreateProgram(VertexShader, FragmentShader);
         _viewProjectionLocation = _gl.GetUniformLocation(_program, "uViewProjection");
+        _modelLocation = _gl.GetUniformLocation(_program, "uModel");
         _colorLocation = _gl.GetUniformLocation(_program, "uColor");
 
         _gl.Enable(EnableCap.DepthTest);
@@ -135,6 +151,7 @@ public static class Program
             Vector2 delta = position - last;
             _yaw -= delta.X * MouseSensitivity;
             _pitch = Math.Clamp(_pitch - delta.Y * MouseSensitivity, -1.5f, 1.5f);
+            _sway -= delta * SwayAmount;
         }
         _lastMouse = position;
     }
@@ -167,6 +184,11 @@ public static class Program
         MoveAxis(new Vector3(_velocity.X * dt, 0, 0));
         MoveAxis(new Vector3(0, 0, _velocity.Z * dt));
         _feet.Y = GroundHeight();
+
+        // Balanço dos braços proporcional à velocidade; o atraso do mouse volta suavemente ao centro.
+        _bobTime += dt * BobFrequency * (_velocity.Length() / WalkSpeed);
+        _sway = Vector2.Clamp(_sway, new Vector2(-SwayMax), new Vector2(SwayMax));
+        _sway = Vector2.Lerp(_sway, Vector2.Zero, MathF.Min(1f, 8f * dt));
     }
 
     private static void MoveAxis(Vector3 move)
@@ -189,7 +211,7 @@ public static class Program
         return hit is float d ? origin.Y - d : _feet.Y;
     }
 
-    private static unsafe void OnRender(double deltaTime)
+    private static void OnRender(double deltaTime)
     {
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
@@ -198,14 +220,32 @@ public static class Program
         var eye = new Vector3(_feet.X, _feet.Y + EyeHeight, _feet.Z);
         var view = Matrix4x4.CreateLookAt(eye, eye + LookDirection(), Vector3.UnitY);
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(75f * MathF.PI / 180f, aspect, 5f, 5000f);
-        var viewProjection = view * projection;
 
         _gl.UseProgram(_program);
-        _gl.UniformMatrix4(_viewProjectionLocation, 1, false, (float*)&viewProjection);
         _gl.ActiveTexture(TextureUnit.Texture0);
+        DrawModel(_scene, Matrix4x4.Identity, view * projection);
+
+        // Os braços são desenhados por cima de tudo, com FOV próprio, como nos jogos de tiro:
+        // limpar a profundidade impede que eles atravessem paredes.
+        _gl.Clear(ClearBufferMask.DepthBufferBit);
+        var offset = ArmsOffset + new Vector3(
+            MathF.Sin(_bobTime * 0.5f) * BobAmount + _sway.X,
+            -MathF.Abs(MathF.Sin(_bobTime)) * BobAmount - _sway.Y,
+            0f);
+        // O modelo aponta para +Z; a câmera olha para -Z, então gira 180° em Y.
+        var armsInView = Matrix4x4.CreateRotationY(MathF.PI) * Matrix4x4.CreateTranslation(offset);
+        Matrix4x4.Invert(view, out var cameraToWorld);
+        var armsProjection = Matrix4x4.CreatePerspectiveFieldOfView(ArmsFov * MathF.PI / 180f, aspect, 1f, 500f);
+        DrawModel(_arms, armsInView * cameraToWorld, view * armsProjection);
+    }
+
+    private static unsafe void DrawModel(SceneModel model, Matrix4x4 world, Matrix4x4 viewProjection)
+    {
+        _gl.UniformMatrix4(_viewProjectionLocation, 1, false, (float*)&viewProjection);
+        _gl.UniformMatrix4(_modelLocation, 1, false, (float*)&world);
 
         bool blending = false;
-        foreach (var mesh in _scene.Meshes)
+        foreach (var mesh in model.Meshes)
         {
             if (mesh.Transparent && !blending)
             {
@@ -250,6 +290,7 @@ public static class Program
     private static void OnClose()
     {
         _scene.Dispose();
+        _arms.Dispose();
         _gl.DeleteProgram(_program);
         _input.Dispose();
     }
