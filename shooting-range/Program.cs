@@ -14,6 +14,9 @@ public static class Program
     private const string ArmsPath = "models/arms.fbx";
     private const string GunPath = "models/akm.glb";
     private const string RigPath = "models/ak_viewmodel.json";
+    private const string UpgradesPath = "models/upgrades.json";
+    private const float Fov = 75f;
+    private const float ScopeFov = 37.5f;           // zoom 2x da mira ótica
     private const string TargetPaperTexture = "models/tex/Target Paper_C.jpeg";
     private static readonly Vector3 Spawn = new(0, 0, -680);
     private const float MouseSensitivity = 0.0025f;
@@ -92,6 +95,9 @@ public static class Program
     private static Vector2 _sway;
     private static bool _jumpQueued;
     private static bool _drawn;
+    private static Upgrades _upgrades = null!;
+    private static float _fov = Fov;
+    private static double _resetArmedUntil;
     private static bool _armsAnimated = true;
     private static int _pendingCasings;
 
@@ -143,6 +149,9 @@ public static class Program
                 _mouse.Cursor.CursorMode = CursorMode.Raw;
                 return;
             }
+            // No menu, clicar num cartão compra a melhoria.
+            if (!MouseCaptured && ClickUpgradePanel(new Vector2(_mouse.Position.X, _mouse.Position.Y)))
+                return;
             // No menu, o botão alterna o modo automático; qualquer outro clique captura o mouse, sem atirar.
             if (!MouseCaptured && AutoButtonRect(_window.FramebufferSize.X, _window.FramebufferSize.Y).Contains(new Vector2D<float>(_mouse.Position.X, _mouse.Position.Y)))
             {
@@ -163,6 +172,12 @@ public static class Program
         _keyboard.KeyDown += (_, key, _) =>
         {
             if (key == Key.Escape) _mouse.Cursor.CursorMode = CursorMode.Normal;
+            // Tab pausa e mostra as melhorias; de novo, volta ao jogo.
+            if (key == Key.Tab && _summary == null)
+            {
+                _mouse.Cursor.CursorMode = MouseCaptured ? CursorMode.Normal : CursorMode.Raw;
+                return;
+            }
             if (!MouseCaptured) return;
             if (key == Key.R) _weapon.StartReload();
             if (key == Key.F) _weapon.Inspect();
@@ -182,7 +197,8 @@ public static class Program
         _scoring = new TargetScoring(TargetPaperTexture);
 
         _rig = new ViewmodelRig(RigPath);
-        _weapon = new Weapon(_rig);
+        _upgrades = new Upgrades(UpgradesPath);
+        _weapon = new Weapon(_rig, _upgrades);
         _arms = new SceneModel(_gl, ArmsPath, TextureDir);
         _gun = new SceneModel(_gl, GunPath, TextureDir);
         _gunParts = _gun.Meshes.GroupBy(m => m.Name.Split('_')[0]).ToDictionary(g => g.Key, g => g.ToList());
@@ -216,8 +232,10 @@ public static class Program
         if (_lastMouse is Vector2 last)
         {
             Vector2 delta = position - last;
-            _player.Yaw -= delta.X * MouseSensitivity;
-            _player.Pitch = Math.Clamp(_player.Pitch - delta.Y * MouseSensitivity, -1.5f, 1.5f);
+            // Com zoom, a sensibilidade cai na mesma proporção do campo de visão.
+            float sensitivity = MouseSensitivity * _fov / Fov;
+            _player.Yaw -= delta.X * sensitivity;
+            _player.Pitch = Math.Clamp(_player.Pitch - delta.Y * sensitivity, -1.5f, 1.5f);
             _sway -= delta * SwayAmount;
         }
         _lastMouse = position;
@@ -241,6 +259,8 @@ public static class Program
         _player.Update(dt, move, _jumpQueued, crouch, run, _collision);
         UpdateBooth();
         _weapon.TriggerHeld = MouseCaptured && _mouse.IsButtonPressed(MouseButton.Left);
+        bool scoped = _upgrades.HasScope && MouseCaptured && _mouse.IsButtonPressed(MouseButton.Right) && !_weapon.Reloading;
+        _fov += ((scoped ? ScopeFov : Fov) - _fov) * MathF.Min(1, 14 * dt);
         _jumpQueued = false;
 
         foreach (var shot in _weapon.Update(dt, _player))
@@ -267,11 +287,15 @@ public static class Program
         if (booth == _session?.Booth) return;
         if (_session is { Shots: > 0 })
         {
+            // Os pontos da baia viram créditos para as melhorias.
+            _upgrades.AddCredits(_session.Score);
             _summary = _session;
             _mouse.Cursor.CursorMode = CursorMode.Normal;
         }
         _session = booth is int b ? new BoothSession(b) : null;
         _score = _shotsFired = _hits = 0;
+        // Entrar numa baia com pontuação enche o pente e a reserva.
+        if (_session != null) _weapon.Refill();
     }
 
     private static void ProcessShot(Shot shot)
@@ -344,7 +368,7 @@ public static class Program
         var look = new Vector3(MathF.Cos(pitch) * MathF.Sin(yaw), MathF.Sin(pitch), MathF.Cos(pitch) * MathF.Cos(yaw));
         var eye = _player.Eye;
         var view = Matrix4x4.CreateLookAt(eye, eye + look, Vector3.UnitY);
-        var projection = Matrix4x4.CreatePerspectiveFieldOfView(75f * MathF.PI / 180f, aspect, 5f, 5000f);
+        var projection = Matrix4x4.CreatePerspectiveFieldOfView(_fov * MathF.PI / 180f, aspect, 5f, 5000f);
 
         _gl.UseProgram(_program);
         _gl.ActiveTexture(TextureUnit.Texture0);
@@ -457,7 +481,7 @@ public static class Program
     private static void DrawCrosshair(int width, int height)
     {
         const float length = 9, thickness = 2, outline = 1;
-        float tanHalfFov = MathF.Tan(75f * MathF.PI / 360f);
+        float tanHalfFov = MathF.Tan(_fov * MathF.PI / 360f);
         float spread = MathF.Tan(_weapon.Inaccuracy(_player)) / tanHalfFov * (height / 2f);
         float gap = MathF.Min(4 + spread, height * 0.3f);
         float cx = MathF.Round(width / 2f), cy = MathF.Round(height / 2f);
@@ -485,6 +509,7 @@ public static class Program
         _hud.Rect(0, 0, width, height, new Vector4(0.03f, 0.03f, 0.035f, 0.93f));
         float cx = width / 2f, y = height * 0.12f;
         _hud.Text($"BAIA {s.Booth}  RESULTADO", cx, y, 5, white, Hud.Align.Center);
+        _hud.Text($"+{s.Score} CREDITOS PARA MELHORIAS", cx, y + 40, 2, accent, Hud.Align.Center);
         y += 60;
         _hud.Text("PONTOS NO TOTAL", cx, y, 3, dim, Hud.Align.Center);
         _hud.Text(s.Score.ToString(), cx, y + 28, 9, accent, Hud.Align.Center);
@@ -521,6 +546,83 @@ public static class Program
         _hud.Text("CLIQUE PARA CONTINUAR", cx, height * 0.92f, 3, white, Hud.Align.Center);
     }
 
+    // Cartões de melhoria no canto superior esquerdo (aparecem com o jogo pausado).
+    private const float CardX = 20, CardTop = 74, CardWidth = 300, CardHeight = 60, CardGap = 6;
+
+    private static (float X, float Y, float W, float H) CardRect(int index) =>
+        (CardX, CardTop + index * (CardHeight + CardGap), CardWidth, CardHeight);
+
+    private static (float X, float Y, float W, float H) ResetRect() =>
+        (CardX, CardTop + _upgrades.All.Count * (CardHeight + CardGap) + 4, CardWidth, 28);
+
+    private static bool Inside((float X, float Y, float W, float H) r, Vector2 p) =>
+        p.X >= r.X && p.X <= r.X + r.W && p.Y >= r.Y && p.Y <= r.Y + r.H;
+
+    private static bool ClickUpgradePanel(Vector2 mouse)
+    {
+        for (int i = 0; i < _upgrades.All.Count; i++)
+        {
+            if (!Inside(CardRect(i), mouse)) continue;
+            var upgrade = _upgrades.All[i];
+            // A reserva extra já entra na compra; o pente maior enche na próxima recarga.
+            if (_upgrades.Buy(upgrade) && upgrade.Id == "reserve") _weapon.AddReserve(30);
+            return true;
+        }
+        if (Inside(ResetRect(), mouse))
+        {
+            // Zerar pede um segundo clique em até 3 segundos.
+            if (_window.Time < _resetArmedUntil)
+            {
+                _upgrades.Reset();
+                _weapon.Refill();
+                _resetArmedUntil = 0;
+            }
+            else
+            {
+                _resetArmedUntil = _window.Time + 3;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static void DrawUpgradePanel()
+    {
+        var white = new Vector4(1, 1, 1, 0.95f);
+        var dim = new Vector4(1, 1, 1, 0.55f);
+        var green = new Vector4(0.3f, 1f, 0.3f, 0.95f);
+        var red = new Vector4(1f, 0.45f, 0.4f, 0.9f);
+        var mouse = new Vector2(_mouse.Position.X, _mouse.Position.Y);
+
+        _hud.Text("MELHORIAS", CardX, 20, 3, white);
+        _hud.Text($"CREDITOS {_upgrades.Credits}", CardX, 46, 2, green);
+
+        for (int i = 0; i < _upgrades.All.Count; i++)
+        {
+            var u = _upgrades.All[i];
+            var r = CardRect(i);
+            bool hover = Inside(r, mouse);
+            int level = _upgrades.Level(u.Id);
+            _hud.Rect(r.X, r.Y, r.W, r.H, new Vector4(0.08f, 0.085f, 0.09f, hover ? 0.98f : 0.88f));
+            // Faixa à esquerda: verde se dá para comprar.
+            _hud.Rect(r.X, r.Y, 3, r.H, _upgrades.IsMax(u) ? white : _upgrades.CanBuy(u) ? green : dim);
+
+            _hud.Text(Upgrades.Plain(u.Name), r.X + 12, r.Y + 8, 2, white);
+            for (int p = 0; p < u.Max; p++)
+                _hud.Rect(r.X + r.W - 12 - (u.Max - p) * 12, r.Y + 9, 8, 8, p < level ? green : new Vector4(1, 1, 1, 0.18f));
+            _hud.Text(_upgrades.EffectText(u), r.X + 12, r.Y + 26, 2, dim);
+            _hud.Text($"NIVEL {level}/{u.Max}", r.X + 12, r.Y + 42, 2, dim);
+            string price = _upgrades.IsMax(u) ? "MAXIMO" : $"{_upgrades.Cost(u)} CR";
+            _hud.Text(price, r.X + r.W - 12, r.Y + 42, 2, _upgrades.IsMax(u) ? white : _upgrades.CanBuy(u) ? green : red, Hud.Align.Right);
+        }
+
+        var reset = ResetRect();
+        bool armed = _window.Time < _resetArmedUntil;
+        _hud.Rect(reset.X, reset.Y, reset.W, reset.H, new Vector4(0.08f, 0.085f, 0.09f, Inside(reset, mouse) ? 0.98f : 0.7f));
+        _hud.Text(armed ? "CLIQUE DE NOVO PARA ZERAR" : "ZERAR PROGRESSO", reset.X + reset.W / 2, reset.Y + 8, 2,
+            armed ? red : dim, Hud.Align.Center);
+    }
+
     // Botão "automático" do menu (em pixels da janela).
     private static Rectangle<float> AutoButtonRect(int width, int height) =>
         new(width / 2f - 210, height / 2f + 110, 420, 46);
@@ -531,7 +633,11 @@ public static class Program
         var dim = new Vector4(1, 1, 1, 0.6f);
         float margin = 28;
 
-        if (MouseCaptured) DrawCrosshair(width, height);
+        if (MouseCaptured)
+        {
+            DrawCrosshair(width, height);
+            _hud.Text($"CREDITOS {_upgrades.Credits}   TAB MELHORIAS", margin, margin, 2, dim);
+        }
 
         // Pontos no canto superior direito.
         _hud.Text(_session != null ? $"BAIA {_session.Booth}  PONTOS" : "TREINO  PONTOS", width - margin, margin, 3, dim, Hud.Align.Right);
@@ -574,10 +680,11 @@ public static class Program
             {
                 "WASD MOVER   MOUSE MIRAR   SHIFT CORRER",
                 "CLIQUE ATIRAR   R RECARREGAR   F INSPECIONAR",
-                "ESPACO PULAR   CTRL AGACHAR   ESC SOLTAR O MOUSE",
+                "ESPACO PULAR   CTRL AGACHAR   TAB OU ESC PAUSAR",
             };
             for (int i = 0; i < help.Length; i++)
-                _hud.Text(help[i], width / 2f, height / 2f + 10 + i * 28, 3, dim, Hud.Align.Center);
+                _hud.Text(help[i], width / 2f, height / 2f + 10 + i * 24, 2, dim, Hud.Align.Center);
+            DrawUpgradePanel();
 
             // Opção do menu: arma automática ativada ou desativada.
             var button = AutoButtonRect(width, height);

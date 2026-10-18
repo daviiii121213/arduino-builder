@@ -13,7 +13,8 @@ OpenGL, sem engine.
 - **Espaço**: pular
 - **Ctrl**: agachar
 - **Shift**: correr
-- **Esc**: soltar o mouse
+- **Tab** ou **Esc**: pausar e abrir as melhorias
+- **Botão direito** (com a melhoria "Mira ótica"): zoom 2x
 
 ## Jogo
 
@@ -36,6 +37,27 @@ os pontos zeram; ao sair, uma tela separada mostra o total, tiros, acertos, erro
 o jogador tinha antes do 1º erro, do 2º erro e assim por diante (e quantos fez desde o erro anterior).
 Erro é qualquer tiro que não pontua (parede, papel branco ou suporte do alvo). As baias 2, 3, 5, 7,
 8 e 10 não têm sessão: lá a pontuação continua como treino.
+
+### Melhorias
+
+Ao sair de uma baia com pontuação, os pontos feitos nela viram **créditos**. Com o jogo pausado
+(Tab ou Esc), os cartões no canto superior esquerdo mostram as melhorias; clicar num cartão compra o
+próximo nível (o preço sobe a cada nível). Entrar numa baia com pontuação também enche o pente e a reserva.
+
+| Melhoria | Por nível |
+|---|---|
+| Controle de recuo | -15% de recuo (até 5 níveis) |
+| Estabilidade | -10% de imprecisão parado e agachado (5) |
+| Tiro em movimento | -15% de imprecisão andando (5) |
+| Recarga rápida | recarga 10% mais rápida (5) |
+| Carregador estendido | +5 balas no pente, até 50 (4) |
+| Munição de reserva | +30 balas de reserva (5) |
+| Recuperação | a mira volta ao centro 25% mais rápido (5) |
+| Mira ótica | segurar o botão direito aproxima 2x (1) |
+
+Nomes e preços ficam em `models/upgrades.json` (usado pelas duas versões). O progresso fica salvo em
+`~/.config/ShootingRange/progress.json` na versão C# e no navegador na versão web; o botão
+"Zerar progresso" (dois cliques) começa de novo.
 
 ### Arma: AKM (AK-47)
 
@@ -99,6 +121,7 @@ Para testar localmente: `cd web && python3 -m http.server` e abra http://localho
 - `ViewmodelRig.cs`: lê `models/ak_viewmodel.json` e interpola poses e animações
 - `Targets.cs`: alvos móveis e pontuação por região do papel
 - `Booths.cs`: baias com pontuação (1, 4, 6 e 9) e o registro de cada passagem
+- `Upgrades.cs`: créditos, níveis e efeitos das melhorias, e o progresso salvo
 - `Effects.cs`: furos de bala, estojos ejetados e clarão do disparo
 - `Hud.cs`: texto e barras na tela (fonte bitmap própria)
 - `SceneModel.cs`: carrega o FBX, as texturas e envia tudo para a GPU

@@ -1,0 +1,13 @@
+{
+ "_comment": "Melhorias compradas com créditos (os pontos feitos nas baias 1, 4, 6 e 9). Custo do próximo nível = baseCost x nível. Os efeitos ficam no código (Upgrades.cs e web/game.js).",
+ "upgrades": [
+  {"id": "recoil", "name": "Controle de recuo", "description": "-15% de recuo por nível", "max": 5, "baseCost": 30},
+  {"id": "stability", "name": "Estabilidade", "description": "-10% de imprecisão parado e agachado", "max": 5, "baseCost": 25},
+  {"id": "moving", "name": "Tiro em movimento", "description": "-15% de imprecisão andando", "max": 5, "baseCost": 25},
+  {"id": "reload", "name": "Recarga rápida", "description": "Recarga 10% mais rápida por nível", "max": 5, "baseCost": 20},
+  {"id": "magazine", "name": "Carregador estendido", "description": "+5 balas no pente", "max": 4, "baseCost": 35},
+  {"id": "reserve", "name": "Munição de reserva", "description": "+30 balas de reserva", "max": 5, "baseCost": 15},
+  {"id": "recovery", "name": "Recuperação", "description": "A mira volta ao centro 25% mais rápido", "max": 5, "baseCost": 25},
+  {"id": "scope", "name": "Mira ótica", "description": "Segure o botão direito para aproximar 2x", "max": 1, "baseCost": 150}
+ ]
+}

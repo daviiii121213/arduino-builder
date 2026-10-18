@@ -12,7 +12,8 @@ public readonly record struct Shot(Vector3 Origin, Vector3 Direction);
 // recuperação 0.368 s, 600 disparos/min, recuo 30 com variação de 70°, 30/90 balas.
 public sealed class Weapon
 {
-    public const int ClipSize = 30;
+    public const int BaseClipSize = 30;
+    public const int BaseReserve = 90;
     private const float CycleTime = 0.1f;            // 600 RPM: tempo mínimo entre cliques
 
     // Imprecisão em radianos (raio do círculo onde a bala pode cair).
@@ -39,13 +40,15 @@ public sealed class Weapon
     public const float ViewRecoilTracking = 1f;
 
     private readonly ViewmodelRig _rig;
+    private readonly Upgrades _upgrades;
 
     // Automático: segurando o botão, atira a 600 disparos/min. Desativado: um tiro por clique.
     public bool Automatic { get; set; }
     public bool TriggerHeld { get; set; }
 
-    public int Clip { get; private set; } = ClipSize;
-    public int Reserve { get; private set; } = 90;
+    public int ClipSize => BaseClipSize + _upgrades.ExtraRounds;
+    public int Clip { get; private set; }
+    public int Reserve { get; private set; }
 
     // Animação em andamento (reload, reloadEmpty, inspect, draw) e há quanto tempo começou.
     public string? Animation { get; private set; }
@@ -68,7 +71,22 @@ public sealed class Weapon
     private bool _fireQueued;
     private readonly Random _random = new();
 
-    public Weapon(ViewmodelRig rig) => _rig = rig;
+    public Weapon(ViewmodelRig rig, Upgrades upgrades)
+    {
+        _rig = rig;
+        _upgrades = upgrades;
+        Refill();
+    }
+
+    // Pente cheio e reserva cheia (ao entrar numa baia com pontuação).
+    public void Refill()
+    {
+        Clip = ClipSize;
+        Reserve = BaseReserve + _upgrades.ExtraReserve;
+    }
+
+    // A melhoria de reserva dá as balas na hora da compra.
+    public void AddReserve(int rounds) => Reserve += rounds;
 
     public void Draw() => Play("draw");
 
@@ -104,11 +122,11 @@ public sealed class Weapon
 
     public float Inaccuracy(Player player)
     {
-        float baseInaccuracy = InaccuracyStand + (InaccuracyCrouch - InaccuracyStand) * player.Crouch;
+        float baseInaccuracy = (InaccuracyStand + (InaccuracyCrouch - InaccuracyStand) * player.Crouch) * _upgrades.StabilityMultiplier;
         if (!player.OnGround) baseInaccuracy += InaccuracyAir;
         // Como no CS: até 34% da velocidade máxima a arma continua precisa ("counter-strafe").
         float moveFactor = Math.Clamp((player.HorizontalSpeed - 0.34f * Player.MaxSpeed) / (0.61f * Player.MaxSpeed), 0, 1);
-        return baseInaccuracy + InaccuracyMove * moveFactor + _accuracyPenalty;
+        return baseInaccuracy + InaccuracyMove * moveFactor * _upgrades.MovingMultiplier + _accuracyPenalty;
     }
 
     public List<Shot> Update(float dt, Player player)
@@ -118,7 +136,7 @@ public sealed class Weapon
 
         if (Animation != null)
         {
-            AnimationTime += dt;
+            AnimationTime += dt * (Reloading ? _upgrades.ReloadSpeed : 1);
             if (AnimationTime >= _rig.Duration(Animation))
             {
                 if (Reloading)
@@ -143,16 +161,18 @@ public sealed class Weapon
         _fireQueued = false;
 
         // Penalidade de disparo: decai exponencialmente (cai a 10% em RecoveryTime).
-        _accuracyPenalty *= MathF.Exp(-dt * MathF.Log(10) / RecoveryTime);
+        // A melhoria "Recuperação" acelera esse decaimento e o do recuo.
+        float recovery = _upgrades.RecoveryMultiplier;
+        _accuracyPenalty *= MathF.Exp(-dt * recovery * MathF.Log(10) / RecoveryTime);
 
         // Recuo: integra a velocidade e decai (exponencial + linear), como na Source.
         AimPunch += _aimPunchVelocity * dt * 0.5f;
-        _aimPunchVelocity *= MathF.Exp(-dt * RecoilVelocityDecay);
+        _aimPunchVelocity *= MathF.Exp(-dt * RecoilVelocityDecay * recovery);
         AimPunch += _aimPunchVelocity * dt * 0.5f;
-        AimPunch *= MathF.Exp(-dt * RecoilDecayExp);
+        AimPunch *= MathF.Exp(-dt * RecoilDecayExp * recovery);
         float length = AimPunch.Length();
         if (length > 0)
-            AimPunch *= MathF.Max(length - RecoilDecayLinear * dt, 0) / length;
+            AimPunch *= MathF.Max(length - RecoilDecayLinear * recovery * dt, 0) / length;
 
         Kick = MathF.Max(Kick - dt * 8f, 0);
         MuzzleFlash = MathF.Max(MuzzleFlash - dt, 0);
@@ -181,7 +201,7 @@ public sealed class Weapon
 
         _accuracyPenalty += InaccuracyFire;
         float angle = Rand(-RecoilAngleVariance, RecoilAngleVariance) * MathF.PI / 180f;
-        _aimPunchVelocity += new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * RecoilMagnitude * RecoilImpulseScale;
+        _aimPunchVelocity += new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * RecoilMagnitude * RecoilImpulseScale * _upgrades.RecoilMultiplier;
         Kick = 1;
         MuzzleFlash = 0.06f;
 

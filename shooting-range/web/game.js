@@ -259,16 +259,17 @@ class Player {
 
 // AK-47 com a mecânica do CS2, um tiro por clique ou automático (valores em Weapon.cs).
 class Weapon {
-  static CLIP_SIZE = 30;
+  static BASE_CLIP = 30;
+  static BASE_RESERVE = 90;
   // A câmera acompanha o recuo inteiro: a bala sai sempre no centro da mira (no CS2 seriam 45%).
   static VIEW_RECOIL_TRACKING = 1;
   // Recuo 5 vezes maior que o calibrado (fator 3, ajustado com a Glock).
   static RECOIL_IMPULSE_SCALE = 3 * 5;
 
-  constructor(rig) {
+  constructor(rig, upgrades) {
     this.rig = rig;
-    this.clip = Weapon.CLIP_SIZE;
-    this.reserve = 90;
+    this.upgrades = upgrades;
+    this.refill();
     this.animation = null;
     this.animationTime = 0;
     this.timeSinceShot = 10;
@@ -283,6 +284,10 @@ class Weapon {
     this.muzzleFlash = 0;
   }
 
+  get clipSize() { return Weapon.BASE_CLIP + this.upgrades.extraRounds; }
+  // Pente cheio e reserva cheia (ao entrar numa baia com pontuação).
+  refill() { this.clip = this.clipSize; this.reserve = Weapon.BASE_RESERVE + this.upgrades.extraReserve; }
+
   get reloading() { return this.animation === 'reload' || this.animation === 'reloadEmpty'; }
   get reloadProgress() { return this.reloading ? this.animationTime / this.rig.duration(this.animation) : 1; }
   get viewPunch() { return this.aimPunch.clone().multiplyScalar(2 * Weapon.VIEW_RECOIL_TRACKING); }
@@ -292,7 +297,7 @@ class Weapon {
   inspect() { if (!this.animation) this.play('inspect'); }
 
   startReload() {
-    if (this.reloading || this.animation === 'draw' || this.clip === Weapon.CLIP_SIZE || this.reserve === 0) return false;
+    if (this.reloading || this.animation === 'draw' || this.clip === this.clipSize || this.reserve === 0) return false;
     // Com o pente vazio o AK não trava o ferrolho aberto: depois de trocar o carregador é preciso manejar.
     this.play(this.clip === 0 ? 'reloadEmpty' : 'reload');
     return true;
@@ -307,11 +312,11 @@ class Weapon {
   }
 
   inaccuracy(player) {
-    let base = 0.00641 + (0.00481 - 0.00641) * player.crouch;
+    let base = (0.00641 + (0.00481 - 0.00641) * player.crouch) * this.upgrades.stability;
     if (!player.onGround) base += 0.4;
     // Até 34% da velocidade máxima a arma continua precisa ("counter-strafe").
     const moveFactor = THREE.MathUtils.clamp((player.horizontalSpeed - 0.34 * Player.MAX_SPEED) / (0.61 * Player.MAX_SPEED), 0, 1);
-    return base + 0.17506 * moveFactor + this.accuracyPenalty;
+    return base + 0.17506 * moveFactor * this.upgrades.moving + this.accuracyPenalty;
   }
 
   update(dt, player, onCue) {
@@ -319,11 +324,11 @@ class Weapon {
     this.timeSinceShot += dt;
     if (this.animation) {
       const before = this.animationTime;
-      this.animationTime += dt;
+      this.animationTime += dt * (this.reloading ? this.upgrades.reloadSpeed : 1);
       for (const [t, cue] of SOUND_CUES[this.animation] || []) if (before < t && this.animationTime >= t) onCue(cue);
       if (this.animationTime >= this.rig.duration(this.animation)) {
         if (this.reloading) {
-          const moved = Math.min(Weapon.CLIP_SIZE - this.clip, this.reserve);
+          const moved = Math.min(this.clipSize - this.clip, this.reserve);
           this.clip += moved;
           this.reserve -= moved;
         }
@@ -340,15 +345,17 @@ class Weapon {
     }
     this.fireQueued = false;
 
-    this.accuracyPenalty *= Math.exp(-dt * Math.log(10) / 0.368);
+    // A melhoria "Recuperação" acelera a volta da precisão e do recuo.
+    const recovery = this.upgrades.recovery;
+    this.accuracyPenalty *= Math.exp(-dt * recovery * Math.log(10) / 0.368);
 
     // Recuo da Source: integra a velocidade e decai (exponencial 8 + linear 18 graus/s).
     this.aimPunch.addScaledVector(this.aimPunchVelocity, dt * 0.5);
-    this.aimPunchVelocity.multiplyScalar(Math.exp(-dt * 4.5));
+    this.aimPunchVelocity.multiplyScalar(Math.exp(-dt * 4.5 * recovery));
     this.aimPunch.addScaledVector(this.aimPunchVelocity, dt * 0.5);
-    this.aimPunch.multiplyScalar(Math.exp(-dt * 8));
+    this.aimPunch.multiplyScalar(Math.exp(-dt * 8 * recovery));
     const length = this.aimPunch.length();
-    if (length > 0) this.aimPunch.multiplyScalar(Math.max(length - 18 * dt, 0) / length);
+    if (length > 0) this.aimPunch.multiplyScalar(Math.max(length - 18 * recovery * dt, 0) / length);
 
     this.kick = Math.max(this.kick - dt * 8, 0);
     this.muzzleFlash = Math.max(this.muzzleFlash - dt, 0);
@@ -373,7 +380,7 @@ class Weapon {
 
     this.accuracyPenalty += 0.0078;
     const angle = (Math.random() * 2 - 1) * 70 * DEG;
-    this.aimPunchVelocity.add(new THREE.Vector2(Math.cos(angle), Math.sin(angle)).multiplyScalar(30 * Weapon.RECOIL_IMPULSE_SCALE));
+    this.aimPunchVelocity.add(new THREE.Vector2(Math.cos(angle), Math.sin(angle)).multiplyScalar(30 * Weapon.RECOIL_IMPULSE_SCALE * this.upgrades.recoil));
     this.kick = 1;
     this.muzzleFlash = 0.06;
     return { origin: player.eye, direction };
@@ -548,6 +555,66 @@ class TargetScoring {
   }
 }
 
+// ---------------------------------------------------------------- melhorias (Upgrades.cs)
+
+// Melhorias compradas com créditos (pontos das baias 1, 4, 6 e 9). Nomes e preços em upgrades.json;
+// o progresso fica salvo neste navegador.
+class Upgrades {
+  constructor(definitions) {
+    this.all = definitions;
+    this.credits = 0;
+    this.levels = {};
+    try {
+      const saved = JSON.parse(localStorage.getItem('upgrades') || 'null');
+      if (saved) {
+        this.credits = saved.credits | 0;
+        for (const u of this.all) this.levels[u.id] = Math.min(Math.max(saved.levels?.[u.id] | 0, 0), u.max);
+      }
+    } catch { /* sem armazenamento ou dado inválido: começa do zero */ }
+  }
+
+  level(id) { return this.levels[id] || 0; }
+  isMax(u) { return this.level(u.id) >= u.max; }
+  cost(u) { return u.baseCost * (this.level(u.id) + 1); }
+  canBuy(u) { return !this.isMax(u) && this.credits >= this.cost(u); }
+  buy(u) {
+    if (!this.canBuy(u)) return false;
+    this.credits -= this.cost(u);
+    this.levels[u.id] = this.level(u.id) + 1;
+    this.save();
+    return true;
+  }
+  addCredits(n) { if (n > 0) { this.credits += n; this.save(); } }
+  reset() { this.credits = 0; this.levels = {}; this.save(); }
+  save() { try { localStorage.setItem('upgrades', JSON.stringify({ credits: this.credits, levels: this.levels })); } catch { /* só não salva */ } }
+
+  get recoil() { return 1 - 0.15 * this.level('recoil'); }
+  get stability() { return 1 - 0.10 * this.level('stability'); }
+  get moving() { return 1 - 0.15 * this.level('moving'); }
+  get reloadSpeed() { return 1 / (1 - 0.10 * this.level('reload')); }
+  get extraRounds() { return 5 * this.level('magazine'); }
+  get extraReserve() { return 30 * this.level('reserve'); }
+  get recovery() { return 1 + 0.25 * this.level('recovery'); }
+  get hasScope() { return this.level('scope') > 0; }
+
+  // Texto do efeito no cartão: valor atual e o do próximo nível.
+  effectText(u) {
+    const l = this.level(u.id), pct = (v) => `${Math.round(v * 100)}%`;
+    const step = (now, next) => (this.isMax(u) ? now : `${now} → ${next}`);
+    switch (u.id) {
+      case 'recoil': return 'Recuo ' + step(pct(1 - 0.15 * l), pct(1 - 0.15 * (l + 1)));
+      case 'stability': return 'Imprecisão ' + step(pct(1 - 0.1 * l), pct(1 - 0.1 * (l + 1)));
+      case 'moving': return 'Andando ' + step(pct(1 - 0.15 * l), pct(1 - 0.15 * (l + 1)));
+      case 'reload': return 'Tempo ' + step(pct(1 - 0.1 * l), pct(1 - 0.1 * (l + 1)));
+      case 'magazine': return 'Pente ' + step(30 + 5 * l, 30 + 5 * (l + 1));
+      case 'reserve': return 'Reserva ' + step(90 + 30 * l, 90 + 30 * (l + 1));
+      case 'recovery': return 'Velocidade ' + step(pct(1 + 0.25 * l), pct(1 + 0.25 * (l + 1)));
+      case 'scope': return 'Botão direito: zoom 2x';
+      default: return u.description;
+    }
+  }
+}
+
 // ---------------------------------------------------------------- baias (Booths.cs)
 
 // Baias numeradas como as placas: a 1 fica em x = +747 e a 10 em x = -747 (166 cm cada).
@@ -616,6 +683,11 @@ const ui = {
   reloadBar: document.getElementById('reload-bar'),
   notice: document.getElementById('notice'),
   crosshair: document.getElementById('crosshair'),
+  creditsHud: document.getElementById('credits-hud'),
+  upCredits: document.getElementById('up-credits'),
+  upList: document.getElementById('up-list'),
+  upReset: document.getElementById('up-reset'),
+  sumCredits: document.getElementById('sum-credits'),
   scoreLabel: document.getElementById('score-label'),
   summary: document.getElementById('summary'),
   sumTitle: document.getElementById('sum-title'),
@@ -744,7 +816,7 @@ let armBones = {}, armRest = {}, armsAnimated = true, drawn = false;
 const gunParts = {};
 const casings = [];
 const holes = { rim: null, core: null, dust: null, wall: null, list: [] };
-let session = null, summaryOpen = false;
+let session = null, summaryOpen = false, upgrades = null, rightHeld = false;
 const state = { score: 0, hits: 0, shots: 0, popupTime: 0, bobTime: 0, sway: new THREE.Vector2(), jump: false };
 let playing = false, ready = false;
 
@@ -772,7 +844,9 @@ async function boot(saved) {
     });
     scoring = new TargetScoring(paperImage);
     rig = new ViewmodelRig(await (await fetch(ASSETS + 'ak_viewmodel.json')).json());
-    weapon = new Weapon(rig);
+    upgrades = new Upgrades((await (await fetch(ASSETS + 'upgrades.json')).json()).upgrades);
+    weapon = new Weapon(rig, upgrades);
+    renderUpgrades();
     let savedAuto = false;
     try { savedAuto = localStorage.getItem('automatic') === '1'; } catch { /* sem armazenamento */ }
     setAutomatic(savedAuto);
@@ -934,8 +1008,15 @@ function updateHoles() {
 function updateBooth() {
   const booth = scoredBoothAt(player.feet);
   if (booth === (session ? session.booth : null)) return;
-  if (session && session.shots > 0) showSummary(session);
+  if (session && session.shots > 0) {
+    // Os pontos da baia viram créditos para as melhorias.
+    upgrades.addCredits(session.score);
+    renderUpgrades();
+    showSummary(session);
+  }
   session = booth ? new BoothSession(booth) : null;
+  // Entrar numa baia com pontuação enche o pente e a reserva.
+  if (session) weapon.refill();
   state.score = state.shots = state.hits = 0;
 }
 
@@ -943,6 +1024,7 @@ function showSummary(s) {
   summaryOpen = true;
   ui.sumTitle.textContent = `Baia ${s.booth}`;
   ui.sumTotal.textContent = s.score;
+  ui.sumCredits.textContent = `+${s.score} créditos para melhorias`;
   ui.sumStats.textContent = `${s.shots} tiros · ${s.hits} acertos · ${s.pointsBeforeMiss.length} erros · ${Math.round((100 * s.hits) / s.shots)}%`;
   ui.sumRows.replaceChildren(...s.pointsBeforeMiss.map((before, i) => {
     const streak = before - (i > 0 ? s.pointsBeforeMiss[i - 1] : 0);
@@ -1012,6 +1094,10 @@ function update(dt) {
     run = !!(keys.ShiftLeft || keys.ShiftRight);
   }
   player.update(dt, move, state.jump, crouch, run, world);
+  // Mira ótica: segurando o botão direito, o campo de visão cai pela metade (zoom 2x).
+  const scoped = upgrades.hasScope && playing && rightHeld && !weapon.reloading;
+  const fov = camera.fov + ((scoped ? 37.5 : 75) - camera.fov) * Math.min(1, 14 * dt);
+  if (Math.abs(fov - camera.fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
   updateBooth();
   state.jump = false;
 
@@ -1101,7 +1187,7 @@ function updateMuzzleFlash() {
 
 // Mira do CS (verde, quatro traços): a abertura acompanha a imprecisão atual da arma.
 function updateCrosshair() {
-  const spread = Math.tan(weapon.inaccuracy(player)) / Math.tan((75 * DEG) / 2) * (window.innerHeight / 2);
+  const spread = Math.tan(weapon.inaccuracy(player)) / Math.tan((camera.fov * DEG) / 2) * (window.innerHeight / 2);
   ui.crosshair.style.setProperty('--gap', `${Math.min(4 + spread, window.innerHeight * 0.3).toFixed(1)}px`);
 }
 
@@ -1113,11 +1199,14 @@ function updateHud() {
   ui.ammo.textContent = weapon.clip;
   ui.reserve.textContent = `/ ${weapon.reserve}`;
   updateCrosshair();
+  ui.creditsHud.textContent = `Créditos ${upgrades.credits} · Tab: melhorias`;
   ui.mode.textContent = weapon.automatic ? 'AK-47 · Auto' : 'AK-47 · Semi';
   ui.reload.hidden = !weapon.reloading;
   ui.reloadBar.style.transform = `scaleX(${weapon.reloadProgress})`;
   ui.notice.hidden = !(weapon.clip === 0 && weapon.reserve === 0);
   ui.crosshair.hidden = !playing;
+  ui.creditsHud.hidden = !playing;
+  ui.stats.hidden = !playing;
 }
 
 let last = performance.now();
@@ -1168,22 +1257,35 @@ document.addEventListener('pointerlockchange', () => {
 
 renderer.domElement.addEventListener('mousedown', (e) => {
   if (!playing) return;
+  if (e.button === 2) rightHeld = true;
   if (e.button !== 0) return;
   weapon.triggerHeld = true;
   if (weapon.trigger() === 'empty') sound.click();
 });
-window.addEventListener('mouseup', (e) => { if (e.button === 0 && weapon) weapon.triggerHeld = false; });
+window.addEventListener('mouseup', (e) => {
+  if (e.button === 0 && weapon) weapon.triggerHeld = false;
+  if (e.button === 2) rightHeld = false;
+});
 renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
 document.addEventListener('mousemove', (e) => {
   if (!playing) return;
-  player.yaw -= e.movementX * MOUSE_SENSITIVITY;
-  player.pitch = THREE.MathUtils.clamp(player.pitch - e.movementY * MOUSE_SENSITIVITY, -1.5, 1.5);
+  // Com zoom, a sensibilidade cai na mesma proporção do campo de visão.
+  const sensitivity = MOUSE_SENSITIVITY * camera.fov / 75;
+  player.yaw -= e.movementX * sensitivity;
+  player.pitch = THREE.MathUtils.clamp(player.pitch - e.movementY * sensitivity, -1.5, 1.5);
   state.sway.x -= e.movementX * 0.04;
   state.sway.y -= e.movementY * 0.04;
 });
 
 window.addEventListener('keydown', (e) => {
+  // Tab pausa e mostra as melhorias; de novo, volta ao jogo.
+  if (e.code === 'Tab' && ready && !summaryOpen) {
+    e.preventDefault();
+    if (playing) { stopPlaying(); try { document.exitPointerLock?.(); } catch { /* sem pointer lock */ } }
+    else startPlaying();
+    return;
+  }
   if (!playing) return;
   keys[e.code] = true;
   if (e.code === 'KeyR') weapon.startReload();
@@ -1194,6 +1296,50 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; if (weapon) weapon.triggerHeld = false; });
+
+// Cartões de melhoria no canto (aparecem com o jogo pausado).
+function renderUpgrades() {
+  ui.upCredits.textContent = upgrades.credits;
+  ui.upList.replaceChildren(...upgrades.all.map((u) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'card';
+    const level = upgrades.level(u.id), max = upgrades.isMax(u), can = upgrades.canBuy(u);
+    card.dataset.state = max ? 'max' : can ? 'buy' : 'locked';
+    card.setAttribute('aria-disabled', String(!can));
+    card.title = u.description;
+    const pips = Array.from({ length: u.max }, (_, i) => `<i class="${i < level ? 'on' : ''}"></i>`).join('');
+    card.innerHTML = `<span class="card-top"><b></b><span class="pips">${pips}</span></span>
+      <span class="effect"></span>
+      <span class="card-bottom"><span class="lvl">Nível ${level}/${u.max}</span><span class="price">${max ? 'Máximo' : `${upgrades.cost(u)} CR`}</span></span>`;
+    card.querySelector('b').textContent = u.name;
+    card.querySelector('.effect').textContent = upgrades.effectText(u);
+    card.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // A reserva extra já entra na compra; o pente maior enche na próxima recarga.
+      if (upgrades.buy(u) && u.id === 'reserve') weapon.reserve += 30;
+      renderUpgrades();
+    });
+    return card;
+  }));
+}
+
+let resetArmedUntil = 0;
+ui.upReset.addEventListener('click', (e) => {
+  e.stopPropagation();
+  // Zerar pede um segundo clique em até 3 segundos.
+  if (performance.now() < resetArmedUntil) {
+    upgrades.reset();
+    weapon.refill();
+    resetArmedUntil = 0;
+    ui.upReset.textContent = 'Zerar progresso';
+    renderUpgrades();
+  } else {
+    resetArmedUntil = performance.now() + 3000;
+    ui.upReset.textContent = 'Clique de novo para zerar';
+    setTimeout(() => { if (performance.now() >= resetArmedUntil) ui.upReset.textContent = 'Zerar progresso'; }, 3100);
+  }
+});
 
 // Opção do menu: arma automática. A escolha fica salva neste navegador.
 function setAutomatic(on) {
