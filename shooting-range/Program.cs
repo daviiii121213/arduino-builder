@@ -12,8 +12,8 @@ public static class Program
     private const string ModelPath = "models/shooting_range.fbx";
     private const string TextureDir = "models/tex";
     private const string ArmsPath = "models/arms.fbx";
-    private const string GunPath = "models/akm.glb";
-    private const string RigPath = "models/ak_viewmodel.json";
+    // Armas disponíveis (trocadas no menu). Cada JSON traz modelo, números, poses e animações.
+    private static readonly string[] WeaponRigs = { "models/ak_viewmodel.json", "models/fiveseven_viewmodel.json" };
     private const string UpgradesPath = "models/upgrades.json";
     private const float Fov = 75f;
     private const float ScopeFov = 37.5f;           // zoom 2x da mira ótica
@@ -75,9 +75,14 @@ public static class Program
     private static IMouse _mouse = null!;
     private static SceneModel _scene = null!;
     private static SceneModel _arms = null!;
+    private sealed record WeaponSlot(ViewmodelRig Rig, Weapon Weapon, SceneModel Model, Dictionary<string, List<DrawMesh>> Parts);
+    private static readonly List<WeaponSlot> _slots = new();
+    private static int _slot;
+    // Atalhos para a arma na mão (cada arma guarda a própria munição).
     private static SceneModel _gun = null!;
     private static ViewmodelRig _rig = null!;
     private static Weapon _weapon = null!;
+    private static bool _automatic;
     // Peças do AKM agrupadas pelo nome do nó: body, mag, bolt, magrelease, selector.
     private static Dictionary<string, List<DrawMesh>> _gunParts = null!;
     private static List<ShootingTarget> _targets = null!;
@@ -155,7 +160,14 @@ public static class Program
             // No menu, o botão alterna o modo automático; qualquer outro clique captura o mouse, sem atirar.
             if (!MouseCaptured && AutoButtonRect(_window.FramebufferSize.X, _window.FramebufferSize.Y).Contains(new Vector2D<float>(_mouse.Position.X, _mouse.Position.Y)))
             {
-                _weapon.Automatic = !_weapon.Automatic;
+                _automatic = !_automatic;
+                _weapon.Automatic = _automatic;
+                return;
+            }
+            // No menu, o botão de arma troca entre o AK-47 e a Five-seveN.
+            if (!MouseCaptured && WeaponButtonRect(_window.FramebufferSize.X, _window.FramebufferSize.Y).Contains(new Vector2D<float>(_mouse.Position.X, _mouse.Position.Y)))
+            {
+                SelectWeapon((_slot + 1) % _slots.Count);
                 return;
             }
             if (!MouseCaptured)
@@ -196,12 +208,17 @@ public static class Program
         _collision = new CollisionWorld(_scene.Meshes.Where(m => !targetMeshes.Contains(m)));
         _scoring = new TargetScoring(TargetPaperTexture);
 
-        _rig = new ViewmodelRig(RigPath);
         _upgrades = new Upgrades(UpgradesPath);
-        _weapon = new Weapon(_rig, _upgrades);
         _arms = new SceneModel(_gl, ArmsPath, TextureDir);
-        _gun = new SceneModel(_gl, GunPath, TextureDir);
-        _gunParts = _gun.Meshes.GroupBy(m => m.Name.Split('_')[0]).ToDictionary(g => g.Key, g => g.ToList());
+        foreach (var path in WeaponRigs)
+        {
+            var rig = new ViewmodelRig(path);
+            var model = new SceneModel(_gl, rig.ModelPath, TextureDir);
+            // Peças agrupadas pelo nome do nó: body, mag, bolt/slide, magrelease, trigger...
+            var parts = model.Meshes.GroupBy(m => m.Name.Split('_')[0]).ToDictionary(g => g.Key, g => g.ToList());
+            _slots.Add(new WeaponSlot(rig, new Weapon(rig, _upgrades), model, parts));
+        }
+        SelectWeapon(0);
 
         Console.WriteLine($"Pronto! {_targets.Count} alvos, {_collision.TriangleCount} triângulos de colisão.");
         Console.WriteLine("Clique para jogar. WASD mover, mouse mirar, botão esquerdo atirar (um tiro por clique),");
@@ -280,6 +297,17 @@ public static class Program
         _sway = Vector2.Lerp(_sway, Vector2.Zero, MathF.Min(1f, 8f * dt));
     }
 
+    // Troca a arma na mão. Ao voltar ao jogo ela é sacada (animação de "deploy").
+    private static void SelectWeapon(int index)
+    {
+        _slot = index;
+        (_rig, _weapon, _gun, _gunParts) = (_slots[index].Rig, _slots[index].Weapon, _slots[index].Model, _slots[index].Parts);
+        _weapon.Automatic = _automatic;
+        Player.MaxSpeed = _rig.Stats.MaxSpeed;
+        _armsAnimated = true;
+        if (_drawn) _weapon.Draw();
+    }
+
     // Entrar numa baia com pontuação zera os pontos; sair dela mostra o resumo numa tela separada.
     private static void UpdateBooth()
     {
@@ -295,7 +323,8 @@ public static class Program
         _session = booth is int b ? new BoothSession(b) : null;
         _score = _shotsFired = _hits = 0;
         // Entrar numa baia com pontuação enche o pente e a reserva.
-        if (_session != null) _weapon.Refill();
+        if (_session != null)
+            foreach (var slot in _slots) slot.Weapon.Refill();
     }
 
     private static void ProcessShot(Shot shot)
@@ -381,7 +410,7 @@ public static class Program
         // limpar a profundidade impede que eles atravessem paredes.
         _gl.Clear(ClearBufferMask.DepthBufferBit);
         Matrix4x4.Invert(view, out var cameraToWorld);
-        var frame = _rig.Evaluate(_weapon.Animation, _weapon.AnimationTime, _weapon.TimeSinceShot);
+        var frame = _rig.Evaluate(_weapon.Animation, _weapon.AnimationTime, _weapon.TimeSinceShot, _weapon.SlideLocked);
         var viewmodel = ViewmodelTransform(frame);
         SetViewProjection(view * Matrix4x4.CreatePerspectiveFieldOfView(ViewmodelFov * MathF.PI / 180f, aspect, 1f, 500f));
 
@@ -402,7 +431,7 @@ public static class Program
         {
             var right = Vector3.Normalize(new Vector3(cameraToWorld.M11, cameraToWorld.M12, cameraToWorld.M13));
             var up = Vector3.Normalize(new Vector3(cameraToWorld.M21, cameraToWorld.M22, cameraToWorld.M23));
-            _effects.EjectCasing(Vector3.Transform(_rig.EjectionPort, gunWorld), right, up, look);
+            _effects.EjectCasing(Vector3.Transform(_rig.EjectionPort, gunWorld), right, up, look, _rig.Stats.Casing);
         }
         _effects.DrawCasings(_colorLocation, _modelLocation);
         if (_weapon.MuzzleFlash > 0)
@@ -444,7 +473,8 @@ public static class Program
         var bolt = Matrix4x4.CreateTranslation(0, 0, frame.Bolt);
         foreach (var (part, meshes) in _gunParts)
         {
-            var transform = part switch { "mag" => mag, "magrelease" => release, "bolt" => bolt, _ => Matrix4x4.Identity };
+            // "bolt" é o porta-ferrolho do AK; "slide" é o ferrolho da pistola: os dois correm para trás.
+            var transform = part switch { "mag" => mag, "magrelease" => release, "bolt" or "slide" => bolt, _ => Matrix4x4.Identity };
             foreach (var mesh in meshes) mesh.Transform = transform;
         }
     }
@@ -565,7 +595,8 @@ public static class Program
             if (!Inside(CardRect(i), mouse)) continue;
             var upgrade = _upgrades.All[i];
             // A reserva extra já entra na compra; o pente maior enche na próxima recarga.
-            if (_upgrades.Buy(upgrade) && upgrade.Id == "reserve") _weapon.AddReserve(30);
+            if (_upgrades.Buy(upgrade) && upgrade.Id == "reserve")
+                foreach (var slot in _slots) slot.Weapon.AddReserve(30);
             return true;
         }
         if (Inside(ResetRect(), mouse))
@@ -574,7 +605,7 @@ public static class Program
             if (_window.Time < _resetArmedUntil)
             {
                 _upgrades.Reset();
-                _weapon.Refill();
+                foreach (var slot in _slots) slot.Weapon.Refill();
                 _resetArmedUntil = 0;
             }
             else
@@ -624,6 +655,9 @@ public static class Program
     }
 
     // Botão "automático" do menu (em pixels da janela).
+    private static Rectangle<float> WeaponButtonRect(int width, int height) =>
+        new(width / 2f - 210, height / 2f + 190, 420, 46);
+
     private static Rectangle<float> AutoButtonRect(int width, int height) =>
         new(width / 2f - 210, height / 2f + 110, 420, 46);
 
@@ -655,7 +689,8 @@ public static class Program
 
         // Munição no canto inferior direito.
         _hud.Text($"{_weapon.Clip} / {_weapon.Reserve}", width - margin, height - margin - 42, 6, white, Hud.Align.Right);
-        _hud.Text(_weapon.Automatic ? "AK-47  AUTO" : "AK-47  SEMI", width - margin, height - margin - 72, 3, dim, Hud.Align.Right);
+        string mode = _weapon.Automatic && _weapon.CanBeAutomatic ? "AUTO" : "SEMI";
+        _hud.Text($"{Upgrades.Plain(_weapon.Name)}  {mode}", width - margin, height - margin - 72, 3, dim, Hud.Align.Right);
         if (_weapon.Reloading)
         {
             float barWidth = 220;
@@ -693,7 +728,15 @@ public static class Program
             _hud.Rect(button.Origin.X, button.Origin.Y + button.Size.Y - 3, button.Size.X, 3, _weapon.Automatic ? on : dim);
             _hud.Text(_weapon.Automatic ? "AUTOMATICO: ATIVADO" : "AUTOMATICO: DESATIVADO",
                 width / 2f, button.Origin.Y + 13, 3, _weapon.Automatic ? on : white, Hud.Align.Center);
-            _hud.Text("CLIQUE NO BOTAO PARA MUDAR", width / 2f, button.Origin.Y + button.Size.Y + 10, 2, dim, Hud.Align.Center);
+            _hud.Text(_weapon.CanBeAutomatic ? "CLIQUE NO BOTAO PARA MUDAR" : $"A {Upgrades.Plain(_weapon.Name)} SO ATIRA UM POR CLIQUE",
+                width / 2f, button.Origin.Y + button.Size.Y + 10, 2, dim, Hud.Align.Center);
+
+            // Opção do menu: arma na mão.
+            var weaponButton = WeaponButtonRect(width, height);
+            _hud.Rect(weaponButton.Origin.X, weaponButton.Origin.Y, weaponButton.Size.X, weaponButton.Size.Y, new Vector4(0, 0, 0, 0.6f));
+            _hud.Rect(weaponButton.Origin.X, weaponButton.Origin.Y + weaponButton.Size.Y - 3, weaponButton.Size.X, 3, on);
+            _hud.Text($"ARMA: {Upgrades.Plain(_weapon.Name)}", width / 2f, weaponButton.Origin.Y + 13, 3, white, Hud.Align.Center);
+            _hud.Text("CLIQUE PARA TROCAR DE ARMA", width / 2f, weaponButton.Origin.Y + weaponButton.Size.Y + 10, 2, dim, Hud.Align.Center);
         }
 
         _hud.Flush(width, height);
@@ -728,7 +771,7 @@ public static class Program
     {
         _scene.Dispose();
         _arms.Dispose();
-        _gun.Dispose();
+        foreach (var slot in _slots) slot.Model.Dispose();
         _hud.Dispose();
         _effects.Dispose();
         _gl.DeleteProgram(_program);

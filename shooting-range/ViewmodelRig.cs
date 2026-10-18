@@ -16,8 +16,16 @@ public sealed class ViewmodelFrame
     public float Bolt;            // cm do porta-ferrolho (negativo = para trás)
 }
 
-// Lê models/ak_viewmodel.json (o mesmo arquivo usado pela versão web): onde ficam arma e braços,
-// as poses dos braços (feitas com IK) e as trilhas de cada animação.
+// Números da arma (vêm do campo "stats" do JSON de cada arma).
+public sealed record WeaponStats(
+    int Clip, int Reserve, float CycleTime, bool Automatic,
+    float InaccuracyStand, float InaccuracyCrouch, float InaccuracyMove, float InaccuracyAir,
+    float InaccuracyFire, float Spread, float RecoveryTime,
+    float RecoilMagnitude, float RecoilAngleVariance, float RecoilMultiplier,
+    float MaxSpeed, bool SlideLock, float SlideTravel, Vector3 Casing);
+
+// Lê o JSON de uma arma (models/ak_viewmodel.json, models/fiveseven_viewmodel.json; os mesmos da versão web):
+// modelo, números, onde ficam arma e braços, as poses dos braços (feitas com IK) e as trilhas de cada animação.
 public sealed class ViewmodelRig
 {
     private sealed class Animation
@@ -30,6 +38,9 @@ public sealed class ViewmodelRig
         public List<(float T, float[] Values)> Bolt = new();
     }
 
+    public string Name { get; }
+    public string ModelPath { get; }
+    public WeaponStats Stats { get; }
     public Vector3 ArmsOffset { get; }
     public Vector3 GunOffset { get; }
     public Vector3 Rotation { get; }
@@ -45,6 +56,16 @@ public sealed class ViewmodelRig
     {
         using var doc = JsonDocument.Parse(File.ReadAllText(path));
         var root = doc.RootElement;
+        Name = root.GetProperty("name").GetString()!;
+        ModelPath = root.GetProperty("model").GetString()!;
+        var st = root.GetProperty("stats");
+        float F(string key) => st.GetProperty(key).GetSingle();
+        Stats = new WeaponStats(
+            st.GetProperty("clip").GetInt32(), st.GetProperty("reserve").GetInt32(), F("cycleTime"), st.GetProperty("automatic").GetBoolean(),
+            F("inaccuracyStand"), F("inaccuracyCrouch"), F("inaccuracyMove"), F("inaccuracyAir"),
+            F("inaccuracyFire"), F("spread"), F("recoveryTime"),
+            F("recoilMagnitude"), F("recoilAngleVariance"), F("recoilMultiplier"),
+            F("maxSpeed"), st.GetProperty("slideLock").GetBoolean(), F("slideTravel"), Vec(st.GetProperty("casing")));
         ArmsOffset = Vec(root.GetProperty("armsOffset"));
         GunOffset = Vec(root.GetProperty("gunOffset"));
         Rotation = Vec(root.GetProperty("rotation"));
@@ -76,7 +97,8 @@ public sealed class ViewmodelRig
     public float Duration(string animation) => _animations[animation].Duration;
 
     // animation: reload, reloadEmpty, inspect, draw ou null (parado). fireTime: segundos desde o último tiro.
-    public ViewmodelFrame Evaluate(string? animation, float time, float fireTime)
+    // slideLocked: pistola vazia, com o ferrolho travado atrás até a recarga.
+    public ViewmodelFrame Evaluate(string? animation, float time, float fireTime, bool slideLocked = false)
     {
         var frame = new ViewmodelFrame { ArmPose = _poses["hold"] };
         if (animation != null && _animations.TryGetValue(animation, out var a))
@@ -100,6 +122,8 @@ public sealed class ViewmodelRig
         // O ferrolho também corre a cada tiro (o gás empurra o porta-ferrolho para trás e a mola o devolve).
         var fire = _animations["fire"];
         if (fireTime < fire.Duration) frame.Bolt = Math.Min(frame.Bolt, Evaluate(fire.Bolt, fireTime)[0]);
+        if (slideLocked && animation != "reloadEmpty" && fireTime >= fire.Duration * 0.3f)
+            frame.Bolt = Math.Min(frame.Bolt, -Stats.SlideTravel);
         return frame;
     }
 

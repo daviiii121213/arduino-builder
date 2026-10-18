@@ -14,8 +14,6 @@ public sealed unsafe class Effects : IDisposable
     private const float WallHoleRadius = 1.0f;
     private const float WallDustRadius = 2.4f;
     private const float SurfaceOffset = 0.05f;
-    // Estojo de 7,62x39 mm: ~1,1 cm de diâmetro e 3,9 cm de comprimento.
-    private static readonly Vector3 CasingSize = new(1.1f, 1.1f, 3.9f);
     private const float CasingLife = 0.9f;
     private const float Gravity = 800f;
 
@@ -23,7 +21,7 @@ public sealed unsafe class Effects : IDisposable
 
     private sealed class Casing
     {
-        public Vector3 Position, Velocity, SpinAxis;
+        public Vector3 Position, Velocity, SpinAxis, Size;
         public Quaternion Rotation;
         public float Spin, Age;
     }
@@ -112,12 +110,14 @@ public sealed unsafe class Effects : IDisposable
     }
 
     // Estojo ejetado pela janela do lado direito: para a direita, um pouco para cima e para trás.
-    public void EjectCasing(Vector3 position, Vector3 right, Vector3 up, Vector3 forward)
+    // size: tamanho do estojo em cm (7,62x39 do AK: 1,1 x 3,9; 5,7x28 da Five-seveN: 0,8 x 2,9).
+    public void EjectCasing(Vector3 position, Vector3 right, Vector3 up, Vector3 forward, Vector3 size)
     {
         float R() => (float)_random.NextDouble();
         _casings.Add(new Casing
         {
             Position = position,
+            Size = size,
             Velocity = right * (180 + R() * 60) + up * (120 + R() * 60) - forward * (20 + R() * 30),
             Rotation = Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateWorld(Vector3.Zero, forward, up)),
             SpinAxis = Vector3.Normalize(up + right * 0.3f),
@@ -143,9 +143,9 @@ public sealed unsafe class Effects : IDisposable
         if (_casings.Count == 0) return;
         _gl.BindTexture(TextureTarget.Texture2D, _white);
         SetModel(modelLocation, Matrix4x4.Identity);
-        Vector3 h = CasingSize / 2;
         foreach (var c in _casings)
         {
+            Vector3 h = c.Size / 2;
             var m = Matrix4x4.CreateFromQuaternion(c.Rotation) * Matrix4x4.CreateTranslation(c.Position);
             foreach (var axis in new[] { Vector3.UnitX, Vector3.UnitY, Vector3.UnitZ })
             foreach (float sign in new[] { -1f, 1f })
