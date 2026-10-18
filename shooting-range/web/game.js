@@ -257,7 +257,8 @@ class Player {
 
 // ---------------------------------------------------------------- arma (Weapon.cs)
 
-// AK-47 com a mecânica do CS2, um tiro por clique ou automático (valores em Weapon.cs).
+// Arma com a mecânica do CS2 (valores no JSON de cada uma). Também cuida da ação manual (ferrolho do Mosin,
+// bombeamento da espingarda), dos chumbos e da recarga cartucho por cartucho.
 class Weapon {
 
   // A câmera acompanha o recuo inteiro: a bala sai sempre no centro da mira (no CS2 seriam 45%).
@@ -281,6 +282,11 @@ class Weapon {
     this.triggerHeld = false;
     this.kick = 0;
     this.muzzleFlash = 0;
+    this.scoped = false;       // mirando pela luneta própria (Mosin PU)
+    this.spentCase = false;    // ação manual: o estojo sai no "cycle"
+    this.stopReload = false;
+    this.reloadFromEmpty = false;
+    this.ejects = 0;
   }
 
   get stats() { return this.rig.data.stats; }
@@ -292,16 +298,33 @@ class Weapon {
   // Pente cheio e reserva cheia (ao entrar numa baia com pontuação).
   refill() { this.clip = this.clipSize; this.reserve = this.stats.reserve + this.upgrades.extraReserve; }
 
-  get reloading() { return this.animation === 'reload' || this.animation === 'reloadEmpty'; }
-  get reloadProgress() { return this.reloading ? this.animationTime / this.rig.duration(this.animation) : 1; }
+  get reloading() { return !!this.animation && this.animation.startsWith('reload'); }
+  // Na recarga cartucho por cartucho, a barra mostra quanto o tubo/depósito já tem.
+  get reloadProgress() {
+    if (!this.reloading) return 1;
+    return this.stats.reloadPerRound ? this.clip / this.clipSize : this.animationTime / this.rig.duration(this.animation);
+  }
   get viewPunch() { return this.aimPunch.clone().multiplyScalar(2 * Weapon.VIEW_RECOIL_TRACKING); }
 
   play(animation) { this.animation = animation; this.animationTime = 0; }
   draw() { this.play('draw'); }
   inspect() { if (!this.animation) this.play('inspect'); }
+  // Ao deixar a arma na bancada: interrompe o que estiver fazendo.
+  holster() { this.animation = null; this.triggerHeld = false; this.stopReload = false; this.reloadQueued = false; }
+  // Estojos que saíram desde a última chamada (no tiro, ou no "cycle" das armas de ação manual).
+  takeEjects() { const n = this.ejects; this.ejects = 0; return n; }
 
   startReload() {
+    // R apertado durante o ferrolho/bombeamento: recarrega logo depois.
+    if (this.animation === 'cycle') { this.reloadQueued = true; return false; }
     if (this.reloading || this.animation === 'draw' || this.clip === this.clipSize || this.reserve === 0) return false;
+    if (this.stats.reloadPerRound) {
+      // Espingarda e Mosin: um cartucho de cada vez (abre a ação, coloca, fecha).
+      this.reloadFromEmpty = this.clip === 0;
+      this.stopReload = false;
+      this.play('reloadStart');
+      return true;
+    }
     // Com o pente vazio o AK não trava o ferrolho aberto: depois de trocar o carregador é preciso manejar.
     this.play(this.clip === 0 ? 'reloadEmpty' : 'reload');
     return true;
@@ -309,7 +332,9 @@ class Weapon {
 
   // Um clique = um tiro. Retorna 'empty' quando o pente está vazio (e começa a recarregar, como no CS2).
   trigger() {
-    if (this.reloading || this.animation === 'draw' || this.cooldown > 0) return null;
+    // Na recarga cartucho por cartucho, atirar termina a recarga (como no CS2) se já houver munição.
+    if (this.stats.reloadPerRound && this.reloading && this.clip > 0) { this.stopReload = true; return null; }
+    if (this.reloading || this.animation === 'draw' || this.animation === 'cycle' || this.cooldown > 0) return null;
     if (this.clip === 0) { this.startReload(); return 'empty'; }
     this.fireQueued = true;
     return 'fire';
@@ -317,7 +342,10 @@ class Weapon {
 
   inaccuracy(player) {
     const st = this.stats;
-    let base = (st.inaccuracyStand + (st.inaccuracyCrouch - st.inaccuracyStand) * player.crouch) * this.upgrades.stability;
+    const scope = this.scoped && st.scopeFov > 0;
+    const stand = scope ? st.inaccuracyScoped : st.inaccuracyStand;
+    const crouch = scope ? st.inaccuracyScoped * 0.75 : st.inaccuracyCrouch;
+    let base = (stand + (crouch - stand) * player.crouch) * this.upgrades.stability;
     if (!player.onGround) base += st.inaccuracyAir;
     // Até 34% da velocidade máxima a arma continua precisa ("counter-strafe").
     const moveFactor = THREE.MathUtils.clamp((player.horizontalSpeed - 0.34 * Player.MAX_SPEED) / (0.61 * Player.MAX_SPEED), 0, 1);
@@ -331,22 +359,21 @@ class Weapon {
       const before = this.animationTime;
       this.animationTime += dt * (this.reloading ? this.upgrades.reloadSpeed : 1);
       for (const [t, cue] of SOUND_CUES[this.name]?.[this.animation] || []) if (before < t && this.animationTime >= t) onCue(cue);
-      if (this.animationTime >= this.rig.duration(this.animation)) {
-        if (this.reloading) {
-          const moved = Math.min(this.clipSize - this.clip, this.reserve);
-          this.clip += moved;
-          this.reserve -= moved;
-        }
-        this.animation = null;
-      }
+      // Ação manual: o estojo sai quando o ferrolho/a telha chega atrás.
+      const eject = this.rig.data.animations[this.animation].eject;
+      if (this.spentCase && eject !== undefined && before < eject && this.animationTime >= eject) { this.ejects++; this.spentCase = false; }
+      if (this.animationTime >= this.rig.duration(this.animation)) this.finishAnimation();
     }
     this.cooldown = Math.max(this.cooldown - dt, 0);
     if (this.automatic && this.canBeAutomatic && this.triggerHeld && this.cooldown <= 0 && this.animation !== 'draw') this.fireQueued = true;
-    if (this.fireQueued && !this.reloading && this.clip > 0) {
+    if (this.fireQueued && !this.reloading && this.animation !== 'cycle' && this.clip > 0) {
       // Atirar interrompe a inspeção, como no CS2.
       if (this.animation === 'inspect') this.animation = null;
-      shots.push(this.fire(player));
+      shots.push(...this.fire(player));
       this.cooldown = this.stats.cycleTime;
+      // Ferrolho/telha: depois de cada tiro é preciso tirar o estojo e colocar outro cartucho na câmara.
+      if (this.stats.manualAction) { this.spentCase = true; this.play('cycle'); }
+      else this.ejects++;
     }
     this.fireQueued = false;
 
@@ -367,6 +394,33 @@ class Weapon {
     return shots;
   }
 
+  finishAnimation() {
+    const canLoad = () => this.clip < this.clipSize && this.reserve > 0 && !this.stopReload;
+    switch (this.animation) {
+      case 'reload': case 'reloadEmpty': {
+        const moved = Math.min(this.clipSize - this.clip, this.reserve);
+        this.clip += moved;
+        this.reserve -= moved;
+        this.animation = null;
+        break;
+      }
+      case 'reloadStart': this.play(canLoad() ? 'reloadRound' : 'reloadEnd'); break;
+      case 'reloadRound':
+        this.clip++; this.reserve--;
+        this.play(canLoad() ? 'reloadRound' : 'reloadEnd');
+        break;
+      // Espingarda vazia: depois de encher o tubo, bombeia para pôr um cartucho na câmara.
+      case 'reloadEnd': if (this.stats.chamberAfterReload && this.reloadFromEmpty) this.play('cycle'); else this.animation = null; break;
+      default: {
+        const reload = this.animation === 'cycle' && this.reloadQueued;
+        this.animation = null;
+        this.reloadQueued = false;
+        if (reload) this.startReload();
+      }
+    }
+  }
+
+  // Os tiros deste disparo (vários chumbos no caso da espingarda).
   fire(player) {
     this.clip--;
     this.timeSinceShot = 0;
@@ -376,12 +430,15 @@ class Weapon {
     const forward = new THREE.Vector3(Math.cos(pitch) * Math.sin(yaw), Math.sin(pitch), Math.cos(pitch) * Math.cos(yaw));
     const right = forward.clone().cross(new THREE.Vector3(0, 1, 0)).normalize();
     const up = right.clone().cross(forward);
-    // Espalhamento do CS: um círculo da imprecisão somado a um do spread fixo.
+    // Espalhamento do CS: um círculo da imprecisão (o tiro inteiro) somado a um do spread fixo (cada chumbo).
     const a0 = Math.random() * Math.PI * 2, r0 = Math.random() * inaccuracy;
-    const a1 = Math.random() * Math.PI * 2, r1 = Math.random() * this.stats.spread;
-    const x = Math.cos(a0) * r0 + Math.cos(a1) * r1;
-    const y = Math.sin(a0) * r0 + Math.sin(a1) * r1;
-    const direction = forward.addScaledVector(right, x).addScaledVector(up, y).normalize();
+    const shots = [];
+    for (let i = 0; i < (this.stats.pellets || 1); i++) {
+      const a1 = Math.random() * Math.PI * 2, r1 = Math.random() * this.stats.spread;
+      const x = Math.cos(a0) * r0 + Math.cos(a1) * r1;
+      const y = Math.sin(a0) * r0 + Math.sin(a1) * r1;
+      shots.push({ origin: player.eye, direction: forward.clone().addScaledVector(right, x).addScaledVector(up, y).normalize() });
+    }
 
     const st = this.stats;
     this.accuracyPenalty += st.inaccuracyFire;
@@ -390,7 +447,7 @@ class Weapon {
       .multiplyScalar(st.recoilMagnitude * Weapon.RECOIL_IMPULSE_SCALE * st.recoilMultiplier * this.upgrades.recoil));
     this.kick = 1;
     this.muzzleFlash = 0.06;
-    return { origin: player.eye, direction };
+    return shots;
   }
 }
 
@@ -407,6 +464,18 @@ const SOUND_CUES = {
     draw: [[0.4, 'bolt'], [0.45, 'bolt']],
   },
 };
+// As pistolas da bancada usam as animações da Five-seveN.
+SOUND_CUES['Walther P38'] = SOUND_CUES['Colt M1911A1'] = SOUND_CUES['Five-seveN'];
+SOUND_CUES['Mosin-Nagant PU'] = {
+  cycle: [[0.5, 'click'], [0.68, 'bolt'], [0.93, 'bolt'], [1.03, 'click']],
+  reloadStart: [[0.35, 'click'], [0.55, 'bolt']],
+  reloadRound: [[0.42, 'mag']],
+  reloadEnd: [[0.2, 'bolt'], [0.35, 'click']],
+};
+SOUND_CUES['Escopeta 12'] = {
+  cycle: [[0.32, 'bolt'], [0.54, 'bolt']],
+  reloadRound: [[0.38, 'mag']],
+};
 
 // ---------------------------------------------------------------- arma e braços em primeira pessoa (ViewmodelRig.cs)
 
@@ -417,8 +486,10 @@ class ViewmodelRig {
     this.armsOffset = new THREE.Vector3(...data.armsOffset);
     this.gunOffset = new THREE.Vector3(...data.gunOffset);
     this.rotation = new THREE.Vector3(...data.rotation);
-    this.magPivot = new THREE.Vector3(...data.magPivot);
-    this.magReleasePivot = new THREE.Vector3(...data.magReleasePivot);
+    this.magPivot = new THREE.Vector3(...(data.magPivot || [0, 0, 0]));
+    this.magReleasePivot = new THREE.Vector3(...(data.magReleasePivot || [0, 0, 0]));
+    // Eixo (x, y) em volta do qual o ferrolho gira (Mosin: alavanca para cima).
+    this.boltPivot = new THREE.Vector3(...(data.boltPivot || [0, 0]), 0);
     this.ejectionPort = new THREE.Vector3(...data.ejectionPort);
     this.muzzle = new THREE.Vector3(...data.muzzle);
     this.poses = {};
@@ -431,7 +502,7 @@ class ViewmodelRig {
   // slideLocked: pistola vazia, com o ferrolho travado atrás até a recarga.
   evaluate(animation, time, fireTime, slideLocked = false) {
     const frame = { armPose: this.poses.hold, rootRotation: new THREE.Vector3(), rootOffset: new THREE.Vector3(),
-      magRotation: 0, magOffset: new THREE.Vector3(), magRelease: 0, bolt: 0 };
+      magRotation: 0, magOffset: new THREE.Vector3(), magRelease: 0, bolt: 0, boltRotation: 0 };
     const a = animation && this.data.animations[animation];
     if (a) {
       if (a.arms) frame.armPose = this.evaluatePose(a.arms, time);
@@ -442,11 +513,12 @@ class ViewmodelRig {
       }
       if (a.mag) { const m = evaluateTrack(a.mag, time); frame.magRotation = m[0]; frame.magOffset.set(m[1], m[2], m[3]); }
       if (a.magRelease) frame.magRelease = evaluateTrack(a.magRelease, time)[0];
-      if (a.bolt) frame.bolt = evaluateTrack(a.bolt, time)[0];
+      if (a.bolt) { const b = evaluateTrack(a.bolt, time); frame.bolt = b[0]; frame.boltRotation = b[1] || 0; }
     }
     // O ferrolho também corre a cada tiro (o gás empurra o porta-ferrolho para trás e a mola o devolve).
+    // Nas armas de ação manual ele só se move na animação "cycle".
     const fire = this.data.animations.fire;
-    if (fireTime < fire.duration) frame.bolt = Math.min(frame.bolt, evaluateTrack(fire.bolt, fireTime)[0]);
+    if (fireTime < fire.duration && fire.bolt) frame.bolt = Math.min(frame.bolt, evaluateTrack(fire.bolt, fireTime)[0]);
     if (slideLocked && animation !== 'reloadEmpty' && fireTime >= fire.duration * 0.3) frame.bolt = Math.min(frame.bolt, -this.data.stats.slideTravel);
     return frame;
   }
@@ -675,8 +747,9 @@ class Sound {
     src.connect(filter).connect(g).connect(this.ctx.destination);
     src.start(t); src.stop(t + duration);
   }
-  shot(pistol) {
-    if (pistol) { this.burst(0.18, 3200, 0.8); this.burst(0.08, 260, 0.9); }
+  shot(kind) {
+    if (kind === 'pistol') { this.burst(0.18, 3200, 0.8); this.burst(0.08, 260, 0.9); }
+    else if (kind === 'shotgun') { this.burst(0.45, 1200, 1.1); this.burst(0.28, 90, 1.7); }
     else { this.burst(0.3, 1800, 1.0); this.burst(0.16, 140, 1.4); }
   }
   click() { this.burst(0.03, 3000, 0.3, 'highpass'); }
@@ -717,8 +790,10 @@ const ui = {
   sumNone: document.getElementById('sum-none'),
   sumClose: document.getElementById('sum-close'),
   auto: document.getElementById('auto'),
-  weaponBtn: document.getElementById('weapon'),
-  weaponName: document.getElementById('weapon-name'),
+  prompt: document.getElementById('prompt'),
+  promptName: document.getElementById('prompt-name'),
+  promptDrop: document.getElementById('prompt-drop'),
+  scope: document.getElementById('scope'),
   autoNote: document.getElementById('auto-note'),
   autoState: document.getElementById('auto-state'),
 };
@@ -851,7 +926,18 @@ async function loadDecor() {
 
 const player = new Player(SPAWN);
 // Armas disponíveis (trocadas no menu): cada JSON traz modelo, números, poses e animações.
-const WEAPONS = [{ rig: 'ak_viewmodel.json', model: 'akm.glb' }, { rig: 'fiveseven_viewmodel.json', model: 'fiveseven.glb' }];
+// Armas do jogo. A primeira começa na mão; as outras ficam na bancada do fundo do saguão e são trocadas
+// com a da mão (tecla E).
+const WEAPONS = [
+  { rig: 'ak_viewmodel.json', model: 'akm.glb' }, { rig: 'fiveseven_viewmodel.json', model: 'fiveseven.glb' },
+  { rig: 'p38_viewmodel.json', model: 'p38.glb' }, { rig: 'm1911_viewmodel.json', model: 'm1911.glb' },
+  { rig: 'mosin_viewmodel.json', model: 'mosin.glb' }, { rig: 'shotgun_viewmodel.json', model: 'shotgun.glb' },
+];
+// Bancada (balcão da parede do fundo): tampo em y = 93, de z = -828 a -791. Lugares a 125 cm um do outro
+// (cabe qualquer arma em qualquer lugar; a maior é o Mosin, 123 cm). Slot = índice em WEAPONS.
+const BENCH_TOP = 93, BENCH_Z = -809, INTERACT_RANGE = 170;
+const bench = [[-760, 4], [-635, 5], [-510, 2], [-385, 1], [-260, 3]].map(([x, slot]) => ({ x, slot, matrix: new THREE.Matrix4() }));
+let benchTarget = null;
 const slots = [];
 let weapon, rig, slotIndex = 0, automatic = false;
 const sound = new Sound();
@@ -893,6 +979,7 @@ async function boot(saved) {
 
     upgrades = new Upgrades((await (await fetch(ASSETS + 'upgrades.json')).json()).upgrades);
     for (const w of WEAPONS) {
+      ui.status.textContent = `Carregando armas… (${slots.length + 1}/${WEAPONS.length})`;
       const r = new ViewmodelRig(await (await fetch(ASSETS + w.rig)).json());
       slots.push({ rig: r, weapon: new Weapon(r, upgrades), model: w.model });
     }
@@ -938,10 +1025,23 @@ async function loadViewmodel() {
   for (const slot of slots) {
     const gltf = await new GLTFLoader().parseAsync(await fetchBinary(slot.model), ASSETS);
     slot.parts = {};
+    // Uma cópia da arma fica na bancada (no mundo), com as peças paradas.
+    const benchModel = gltf.scene.clone(true);
+    slot.bounds = new THREE.Box3().setFromObject(gltf.scene);
+    for (const root of [gltf.scene, benchModel])
+      root.traverse((o) => {
+        if (!o.isMesh || o.userData.ready) return;
+        if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
+        // Com textura (P38, Mosin), a cor do material não escurece a imagem (como no C#).
+        const map = o.material.map || null;
+        o.material = makeMaterial({ map, color: map ? [1, 1, 1] : o.material.color.toArray() });
+        o.userData.ready = true;
+      });
+    slot.benchRoot = new THREE.Group(); slot.benchRoot.add(benchModel);
+    slot.benchRoot.matrixAutoUpdate = false; slot.benchRoot.visible = false;
+    scene.add(slot.benchRoot);
     gltf.scene.traverse((o) => {
       if (!o.isMesh) return;
-      if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
-      o.material = makeMaterial({ color: o.material.color.toArray() });
       o.frustumCulled = false;
       (slot.parts[o.name.split('_')[0]] ||= []).push(o);
       o.matrixAutoUpdate = false;
@@ -952,6 +1052,7 @@ async function loadViewmodel() {
     viewmodel.add(slot.root);
   }
   selectWeapon(0);
+  for (const spot of bench) placeOnBench(spot);
 
   flashOuter = new THREE.Mesh(new THREE.BufferGeometry(), makeMaterial({ color: [1, 0.55, 0.15], opacity: 0.8, unlit: 1, additive: true }));
   flashInner = new THREE.Mesh(new THREE.BufferGeometry(), makeMaterial({ color: [1, 0.9, 0.6], unlit: 1, additive: true }));
@@ -977,8 +1078,52 @@ function selectWeapon(index) {
   Player.MAX_SPEED = weapon.stats.maxSpeed;
   armsAnimated = true;
   if (drawn) weapon.draw();
-  if (ui.weaponName) ui.weaponName.textContent = weapon.name;
-  if (ui.autoNote) ui.autoNote.hidden = weapon.canBeAutomatic;
+  if (ui.autoNote) { ui.autoNote.hidden = weapon.canBeAutomatic; ui.autoNote.textContent = `A ${weapon.name} só atira um por clique.`; }
+}
+
+// Bancada: a arma fica deitada sobre o lado direito (lado esquerdo para cima), cano para -X do mundo,
+// o topo virado para a parede, apoiada no tampo e centrada no lugar.
+function placeOnBench(spot) {
+  const s = slots[spot.slot], lo = s.bounds.min, hi = s.bounds.max;
+  spot.matrix.set(
+    0, 0, -1, spot.x + (lo.z + hi.z) / 2,
+    1, 0, 0, BENCH_TOP - lo.x,
+    0, -1, 0, BENCH_Z + (lo.y + hi.y) / 2,
+    0, 0, 0, 1);
+  for (const other of slots) if (other.benchRoot && !bench.some((b) => b.slot === slots.indexOf(other))) other.benchRoot.visible = false;
+  s.benchRoot.matrix.copy(spot.matrix);
+  s.benchRoot.matrixWorldNeedsUpdate = true;
+  s.benchRoot.visible = true;
+}
+
+// Arma da bancada para onde o jogador está olhando (perto o bastante para pegar).
+function findBenchTarget() {
+  if (!playing) return null;
+  const eye = player.eye;
+  const look = new THREE.Vector3(Math.cos(player.pitch) * Math.sin(player.yaw), Math.sin(player.pitch), Math.cos(player.pitch) * Math.cos(player.yaw));
+  let best = null, bestT = INTERACT_RANGE;
+  for (const spot of bench) {
+    // Pontos ao longo da arma, do cano à coronha: vale se a mira passar a menos de 9 cm de um deles.
+    const b = slots[spot.slot].bounds, mid = b.getCenter(new THREE.Vector3());
+    for (let z = b.min.z; z <= b.max.z; z += 4) {
+      const p = new THREE.Vector3(mid.x, mid.y, z).applyMatrix4(spot.matrix);
+      const t = p.clone().sub(eye).dot(look);
+      if (t <= 0 || t >= bestT) continue;
+      if (eye.clone().addScaledVector(look, t).distanceTo(p) < 9) { best = spot; bestT = t; }
+    }
+  }
+  return best;
+}
+
+// A arma da mão vai para o lugar da bancada e a de lá vem para a mão.
+function swapWithBench(spot) {
+  const fromHand = slotIndex;
+  weapon.holster();
+  slots[spot.slot].benchRoot.visible = false;
+  selectWeapon(spot.slot);
+  spot.slot = fromHand;
+  placeOnBench(spot);
+  benchTarget = null;
 }
 
 // Peças móveis da arma, no espaço da arma: carregador (balança em volta da frente e desce),
@@ -991,9 +1136,14 @@ function setPartTransforms(frame) {
   const transforms = {
     mag: around(rig.magPivot, frame.magRotation, frame.magOffset),
     magrelease: around(rig.magReleasePivot, frame.magRelease),
-    bolt: new THREE.Matrix4().makeTranslation(0, 0, frame.bolt),
+    // O ferrolho do Mosin gira em volta do eixo do cano (alavanca para cima) antes de correr para trás.
+    bolt: new THREE.Matrix4().makeTranslation(0, 0, frame.bolt)
+      .multiply(new THREE.Matrix4().makeTranslation(rig.boltPivot))
+      .multiply(new THREE.Matrix4().makeRotationZ(frame.boltRotation * DEG))
+      .multiply(new THREE.Matrix4().makeTranslation(rig.boltPivot.clone().negate())),
   };
-  transforms.slide = transforms.bolt; // o ferrolho da pistola corre para trás como o do AK
+  // O ferrolho da pistola e a telha da espingarda correm para trás como o do AK.
+  transforms.slide = transforms.pump = transforms.bolt;
   for (const [part, meshes] of Object.entries(gunParts))
     for (const mesh of meshes) { mesh.matrix.copy(transforms[part] || new THREE.Matrix4()); mesh.matrixWorldNeedsUpdate = true; }
 }
@@ -1014,7 +1164,8 @@ function ejectCasing() {
   const forward = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
   casings.push({
     position,
-    velocity: right.multiplyScalar(180 + Math.random() * 60).addScaledVector(up, 120 + Math.random() * 60).addScaledVector(forward, -(20 + Math.random() * 30)),
+    // A P38 joga o estojo para cima e para a esquerda; as outras, para a direita.
+    velocity: right.multiplyScalar(weapon.stats.ejectLeft ? -1 : 1).multiplyScalar(180 + Math.random() * 60).addScaledVector(up, 120 + Math.random() * 60).addScaledVector(forward, -(20 + Math.random() * 30)),
     quaternion: camera.quaternion.clone(),
     spinAxis: new THREE.Vector3(Math.random(), 1, Math.random()).normalize(),
     size: new THREE.Vector3(...weapon.stats.casing),
@@ -1117,14 +1268,20 @@ function showSummary(s) {
   try { document.exitPointerLock?.(); } catch { /* sem pointer lock */ }
 }
 
-function processShot(shot) {
-  const points = shotPoints(shot);
+// Um disparo: uma bala, ou os chumbos da espingarda. Os pontos de todos os chumbos somam num tiro só.
+function processShots(shots) {
+  state.shots++;
+  const hitTargets = new Set();
+  let points = 0;
+  for (const shot of shots) points += shotPoints(shot, hitTargets);
+  showPopup(points);
+  if (points > 0) { state.hits++; state.score += points; sound.hit(); }
+  for (const target of hitTargets) target.relocate();
   if (session) session.record(points);
 }
 
-// Pontos do tiro (0 = errou).
-function shotPoints(shot) {
-  state.shots++;
+// Pontos de uma bala/chumbo (0 = errou). Alvos acertados entram em hitTargets (mudam de lugar depois).
+function shotPoints(shot, hitTargets) {
   // As balas atravessam vidro, como no CS.
   const wall = world.raycast(shot.origin, shot.direction, BULLET_RANGE, true);
   const wallDistance = wall ? wall.distance : BULLET_RANGE;
@@ -1136,13 +1293,7 @@ function shotPoints(shot) {
   if (hitTarget) {
     addHole(hitTarget, best.localPoint, best.normal, best.onPaper);
     const points = best.onPaper ? scoring.score(best.uv) : 0;
-    showPopup(points);
-    if (points > 0) {
-      state.hits++;
-      state.score += points;
-      hitTarget.relocate();
-      sound.hit();
-    }
+    if (points > 0) hitTargets.add(hitTarget);
     return points;
   }
   if (wall) addHole(null, shot.origin.clone().addScaledVector(shot.direction, wall.distance), wall.normal, false);
@@ -1170,15 +1321,19 @@ function update(dt) {
     run = !!(keys.ShiftLeft || keys.ShiftRight);
   }
   player.update(dt, move, state.jump, crouch, run, world);
-  // Mira ótica: segurando o botão direito, o campo de visão cai pela metade (zoom 2x).
-  const scoped = upgrades.hasScope && playing && rightHeld && !weapon.reloading;
-  const fov = camera.fov + ((scoped ? 37.5 : 75) - camera.fov) * Math.min(1, 14 * dt);
+  // Botão direito: zoom 2x da melhoria "Mira ótica", ou a luneta da própria arma (Mosin PU, 3,5x).
+  const scopeFov = weapon.stats.scopeFov || (upgrades.hasScope ? 37.5 : 0);
+  const scoped = scopeFov > 0 && playing && rightHeld && !weapon.reloading && weapon.animation !== 'cycle';
+  const fov = camera.fov + ((scoped ? scopeFov : 75) - camera.fov) * Math.min(1, 14 * dt);
+  weapon.scoped = scoped && weapon.stats.scopeFov > 0 && fov < weapon.stats.scopeFov + 4;
   if (Math.abs(fov - camera.fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
   updateBooth();
   state.jump = false;
 
   const shots = weapon.update(dt, player, (cue) => sound.cue(cue));
-  for (const shot of shots) { sound.shot(weapon.stats.slideLock); processShot(shot); state.pendingCasings = (state.pendingCasings || 0) + 1; }
+  if (shots.length) { sound.shot(weapon.stats.pellets > 1 ? 'shotgun' : weapon.stats.slideLock ? 'pistol' : 'rifle'); processShots(shots); }
+  state.pendingCasings = (state.pendingCasings || 0) + weapon.takeEjects();
+  benchTarget = findBenchTarget();
   updateCasings(dt);
   for (const target of targets) target.update(dt);
   state.popupTime = Math.max(state.popupTime - dt, 0);
@@ -1230,7 +1385,8 @@ function render() {
   for (; state.pendingCasings > 0; state.pendingCasings--) ejectCasing();
   updateMuzzleFlash();
   renderer.clearDepth();
-  renderer.render(vmScene, vmCamera);
+  // Olhando pela luneta, a arma sai da tela (a luneta é desenhada por cima, em HTML).
+  if (!weapon.scoped) renderer.render(vmScene, vmCamera);
 }
 
 // Clarão em estrela, de frente para a câmera.
@@ -1280,7 +1436,13 @@ function updateHud() {
   ui.reload.hidden = !weapon.reloading;
   ui.reloadBar.style.transform = `scaleX(${weapon.reloadProgress})`;
   ui.notice.hidden = !(weapon.clip === 0 && weapon.reserve === 0);
-  ui.crosshair.hidden = !playing;
+  ui.crosshair.hidden = !playing || weapon.scoped;
+  ui.scope.hidden = !playing || !weapon.scoped;
+  ui.prompt.hidden = !playing || !benchTarget;
+  if (benchTarget) {
+    ui.promptName.textContent = `Pegar ${slots[benchTarget.slot].weapon.name}`;
+    ui.promptDrop.textContent = `Deixa a ${weapon.name} na bancada`;
+  }
   ui.creditsHud.hidden = !playing;
   ui.stats.hidden = !playing;
 }
@@ -1366,6 +1528,7 @@ window.addEventListener('keydown', (e) => {
   keys[e.code] = true;
   if (e.code === 'KeyR') weapon.startReload();
   if (e.code === 'KeyF') weapon.inspect();
+  if (e.code === 'KeyE' && benchTarget) swapWithBench(benchTarget);
   if (e.code === 'Space') state.jump = true;
   if (e.code === 'Escape') stopPlaying();
   if (['Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ControlLeft'].includes(e.code)) e.preventDefault();
@@ -1373,7 +1536,6 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; if (weapon) weapon.triggerHeld = false; });
 
-ui.weaponBtn.addEventListener('click', (e) => { e.stopPropagation(); if (ready) selectWeapon((slotIndex + 1) % slots.length); });
 
 // Cartões de melhoria no canto (aparecem com o jogo pausado).
 function renderUpgrades() {

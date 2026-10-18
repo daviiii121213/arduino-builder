@@ -14,8 +14,19 @@ public static class Program
     private const string ArmsPath = "models/arms.fbx";
     // Decorações (caixas de munição, armas expostas, estantes...) já posicionadas; ver tools/decor-build.py.
     private const string DecorPath = "models/decor.glb";
-    // Armas disponíveis (trocadas no menu). Cada JSON traz modelo, números, poses e animações.
-    private static readonly string[] WeaponRigs = { "models/ak_viewmodel.json", "models/fiveseven_viewmodel.json" };
+    // Armas do jogo. Cada JSON traz modelo, números, poses e animações. A primeira começa na mão;
+    // as outras ficam na bancada do fundo do saguão e são trocadas com a da mão (tecla E).
+    private static readonly string[] WeaponRigs =
+    {
+        "models/ak_viewmodel.json", "models/fiveseven_viewmodel.json", "models/p38_viewmodel.json",
+        "models/m1911_viewmodel.json", "models/mosin_viewmodel.json", "models/shotgun_viewmodel.json",
+    };
+    // Bancada (balcão da parede do fundo): tampo em y = 93, de z = -828 a -791. Cada lugar guarda uma arma
+    // (índice em WeaponRigs), deitada sobre o lado direito, com o cano para a esquerda de quem olha.
+    private const float BenchTop = 93f, BenchZ = -809f;
+    // Lugares a 125 cm um do outro: cabe qualquer arma em qualquer lugar (a maior é o Mosin, 123 cm).
+    private static readonly (float X, int Slot)[] BenchStart = { (-760, 4), (-635, 5), (-510, 2), (-385, 1), (-260, 3) };
+    private const float InteractRange = 170f;
     private const string UpgradesPath = "models/upgrades.json";
     private const float Fov = 75f;
     private const float ScopeFov = 37.5f;           // zoom 2x da mira ótica
@@ -79,6 +90,14 @@ public static class Program
     private static SceneModel _arms = null!;
     private static SceneModel _decor = null!;
     private sealed record WeaponSlot(ViewmodelRig Rig, Weapon Weapon, SceneModel Model, Dictionary<string, List<DrawMesh>> Parts);
+    private sealed class BenchSpot
+    {
+        public float X;
+        public int Slot;
+        public Matrix4x4 World;   // modelo da arma -> mundo, deitada na bancada
+    }
+    private static readonly List<BenchSpot> _bench = new();
+    private static BenchSpot? _benchTarget;
     private static readonly List<WeaponSlot> _slots = new();
     private static int _slot;
     // Atalhos para a arma na mão (cada arma guarda a própria munição).
@@ -167,12 +186,6 @@ public static class Program
                 _weapon.Automatic = _automatic;
                 return;
             }
-            // No menu, o botão de arma troca entre o AK-47 e a Five-seveN.
-            if (!MouseCaptured && WeaponButtonRect(_window.FramebufferSize.X, _window.FramebufferSize.Y).Contains(new Vector2D<float>(_mouse.Position.X, _mouse.Position.Y)))
-            {
-                SelectWeapon((_slot + 1) % _slots.Count);
-                return;
-            }
             if (!MouseCaptured)
             {
                 _mouse.Cursor.CursorMode = CursorMode.Raw;
@@ -196,6 +209,7 @@ public static class Program
             if (!MouseCaptured) return;
             if (key == Key.R) _weapon.StartReload();
             if (key == Key.F) _weapon.Inspect();
+            if (key == Key.E && _benchTarget != null) SwapWithBench(_benchTarget);
             if (key == Key.Space) _jumpQueued = true;
         };
 
@@ -224,6 +238,8 @@ public static class Program
             _slots.Add(new WeaponSlot(rig, new Weapon(rig, _upgrades), model, parts));
         }
         SelectWeapon(0);
+        foreach (var (x, slot) in BenchStart)
+            _bench.Add(new BenchSpot { X = x, Slot = slot, World = BenchTransform(x, slot) });
 
         Console.WriteLine($"Pronto! {_targets.Count} alvos, {_collision.TriangleCount} triângulos de colisão.");
         Console.WriteLine("Clique para jogar. WASD mover, mouse mirar, botão esquerdo atirar (um tiro por clique),");
@@ -281,15 +297,18 @@ public static class Program
         _player.Update(dt, move, _jumpQueued, crouch, run, _collision);
         UpdateBooth();
         _weapon.TriggerHeld = MouseCaptured && _mouse.IsButtonPressed(MouseButton.Left);
-        bool scoped = _upgrades.HasScope && MouseCaptured && _mouse.IsButtonPressed(MouseButton.Right) && !_weapon.Reloading;
-        _fov += ((scoped ? ScopeFov : Fov) - _fov) * MathF.Min(1, 14 * dt);
+        // Botão direito: zoom 2x da melhoria "Mira ótica", ou a luneta da própria arma (Mosin PU, 3,5x).
+        float scopeFov = _rig.Stats.ScopeFov > 0 ? _rig.Stats.ScopeFov : _upgrades.HasScope ? ScopeFov : 0;
+        bool scoped = scopeFov > 0 && MouseCaptured && _mouse.IsButtonPressed(MouseButton.Right)
+                      && !_weapon.Reloading && _weapon.Animation != "cycle";
+        _fov += ((scoped ? scopeFov : Fov) - _fov) * MathF.Min(1, 14 * dt);
+        _weapon.Scoped = scoped && _rig.Stats.ScopeFov > 0 && _fov < _rig.Stats.ScopeFov + 4;
         _jumpQueued = false;
 
-        foreach (var shot in _weapon.Update(dt, _player))
-        {
-            ProcessShot(shot);
-            _pendingCasings++;
-        }
+        var shots = _weapon.Update(dt, _player);
+        if (shots.Count > 0) ProcessShots(shots);
+        _pendingCasings += _weapon.TakeEjects();
+        _benchTarget = FindBenchTarget();
         _effects.Update(dt);
         foreach (var target in _targets)
             target.Update(dt);
@@ -302,7 +321,55 @@ public static class Program
         _sway = Vector2.Lerp(_sway, Vector2.Zero, MathF.Min(1f, 8f * dt));
     }
 
-    // Troca a arma na mão. Ao voltar ao jogo ela é sacada (animação de "deploy").
+    // Bancada: a arma fica deitada sobre o lado direito (lado esquerdo para cima), cano para -X do mundo,
+    // o topo virado para a parede, apoiada no tampo e centrada no lugar.
+    private static Matrix4x4 BenchTransform(float x, int slot)
+    {
+        var model = _slots[slot].Model;
+        Vector3 lo = model.BoundsMin, hi = model.BoundsMax;
+        // Linhas = para onde vão os eixos da arma: X (esquerda) -> cima, Y (cima) -> parede, Z (cano) -> -X.
+        var rotation = new Matrix4x4(0, 1, 0, 0, 0, 0, -1, 0, -1, 0, 0, 0, 0, 0, 0, 1);
+        return rotation * Matrix4x4.CreateTranslation(x + (lo.Z + hi.Z) / 2, BenchTop - lo.X, BenchZ + (lo.Y + hi.Y) / 2);
+    }
+
+    // Arma da bancada para onde o jogador está olhando (perto o bastante para pegar).
+    private static BenchSpot? FindBenchTarget()
+    {
+        if (!MouseCaptured) return null;
+        var eye = _player.Eye;
+        var look = new Vector3(MathF.Cos(_player.Pitch) * MathF.Sin(_player.Yaw), MathF.Sin(_player.Pitch),
+            MathF.Cos(_player.Pitch) * MathF.Cos(_player.Yaw));
+        BenchSpot? best = null;
+        float bestT = InteractRange;
+        foreach (var spot in _bench)
+        {
+            // Pontos ao longo da arma, do cano à coronha: vale se a mira passar a menos de 9 cm de um deles.
+            var model = _slots[spot.Slot].Model;
+            Vector3 lo = model.BoundsMin, hi = model.BoundsMax;
+            var mid = (lo + hi) / 2;
+            for (float z = lo.Z; z <= hi.Z; z += 4)
+            {
+                var p = Vector3.Transform(new Vector3(mid.X, mid.Y, z), spot.World);
+                float t = Vector3.Dot(p - eye, look);
+                if (t <= 0 || t >= bestT) continue;
+                if (Vector3.Distance(eye + look * t, p) < 9f) { best = spot; bestT = t; }
+            }
+        }
+        return best;
+    }
+
+    // A arma da mão vai para o lugar da bancada e a de lá vem para a mão.
+    private static void SwapWithBench(BenchSpot spot)
+    {
+        int fromHand = _slot;
+        _weapon.Holster();
+        SelectWeapon(spot.Slot);
+        spot.Slot = fromHand;
+        spot.World = BenchTransform(spot.X, fromHand);
+        _benchTarget = null;
+    }
+
+    // Troca a arma na mão e saca (animação de "deploy").
     private static void SelectWeapon(int index)
     {
         _slot = index;
@@ -332,16 +399,26 @@ public static class Program
             foreach (var slot in _slots) slot.Weapon.Refill();
     }
 
-    private static void ProcessShot(Shot shot)
+    // Um disparo: uma bala, ou os chumbos da espingarda. Os pontos de todos os chumbos somam num tiro só.
+    private static void ProcessShots(List<Shot> shots)
     {
-        int points = ShotPoints(shot);
+        _shotsFired++;
+        int points = 0;
+        var hitTargets = new HashSet<ShootingTarget>();
+        foreach (var shot in shots) points += ShotPoints(shot, hitTargets);
+        ShowPopup(points);
+        if (points > 0)
+        {
+            _hits++;
+            _score += points;
+        }
+        foreach (var target in hitTargets) target.Relocate(_random);
         _session?.Record(points);
     }
 
-    // Pontos do tiro (0 = errou).
-    private static int ShotPoints(Shot shot)
+    // Pontos de uma bala/chumbo (0 = errou). Alvos acertados entram em hitTargets (mudam de lugar depois).
+    private static int ShotPoints(Shot shot, HashSet<ShootingTarget> hitTargets)
     {
-        _shotsFired++;
         // As balas atravessam vidro, como no CS.
         RayHit? wall = _collision.Raycast(shot.Origin, shot.Direction, BulletRange, ignoreGlass: true);
         float wallDistance = wall?.Distance ?? BulletRange;
@@ -362,13 +439,7 @@ public static class Program
         {
             _effects.AddBulletHole(hitTarget, best.LocalPoint, best.Normal, onPaper: best.OnPaper);
             int points = best.OnPaper ? _scoring.Score(best.Uv) : 0;
-            ShowPopup(points);
-            if (points > 0)
-            {
-                _hits++;
-                _score += points;
-                hitTarget.Relocate(_random);
-            }
+            if (points > 0) hitTargets.Add(hitTarget);
             return points;
         }
         if (wall is RayHit w)
@@ -410,6 +481,12 @@ public static class Program
         SetViewProjection(view * projection);
         DrawMeshes(_scene.Meshes, Matrix4x4.Identity);
         DrawMeshes(_decor.Meshes, Matrix4x4.Identity);
+        // Armas na bancada (peças na posição de descanso).
+        foreach (var spot in _bench)
+        {
+            foreach (var mesh in _slots[spot.Slot].Model.Meshes) mesh.Transform = Matrix4x4.Identity;
+            DrawMeshes(_slots[spot.Slot].Model.Meshes, spot.World);
+        }
         _effects.DrawBulletHoles(_colorLocation, _modelLocation);
 
         // A arma e os braços são desenhados por cima de tudo, com FOV próprio, como nos jogos de tiro:
@@ -430,14 +507,19 @@ public static class Program
         var armsWorld = Matrix4x4.CreateRotationY(MathF.PI) * Matrix4x4.CreateTranslation(_rig.ArmsOffset) * viewmodel * cameraToWorld;
         var gunWorld = Matrix4x4.CreateRotationY(MathF.PI) * Matrix4x4.CreateTranslation(_rig.GunOffset) * viewmodel * cameraToWorld;
         SetPartTransforms(frame);
-        DrawMeshes(_arms.Meshes, armsWorld);
-        DrawMeshes(_gun.Meshes, gunWorld);
+        // Olhando pela luneta, a arma sai da tela (a luneta é desenhada no HUD).
+        if (!_weapon.Scoped)
+        {
+            DrawMeshes(_arms.Meshes, armsWorld);
+            DrawMeshes(_gun.Meshes, gunWorld);
+        }
 
         for (; _pendingCasings > 0; _pendingCasings--)
         {
             var right = Vector3.Normalize(new Vector3(cameraToWorld.M11, cameraToWorld.M12, cameraToWorld.M13));
             var up = Vector3.Normalize(new Vector3(cameraToWorld.M21, cameraToWorld.M22, cameraToWorld.M23));
-            _effects.EjectCasing(Vector3.Transform(_rig.EjectionPort, gunWorld), right, up, look, _rig.Stats.Casing);
+            // A P38 joga o estojo para cima e para a esquerda; as outras, para a direita.
+            _effects.EjectCasing(Vector3.Transform(_rig.EjectionPort, gunWorld), _rig.Stats.EjectLeft ? -right : right, up, look, _rig.Stats.Casing);
         }
         _effects.DrawCasings(_colorLocation, _modelLocation);
         if (_weapon.MuzzleFlash > 0)
@@ -476,11 +558,15 @@ public static class Program
                   * Matrix4x4.CreateTranslation(_rig.MagPivot + frame.MagOffset);
         var release = Matrix4x4.CreateTranslation(-_rig.MagReleasePivot) * Matrix4x4.CreateRotationX(frame.MagRelease * deg)
                       * Matrix4x4.CreateTranslation(_rig.MagReleasePivot);
-        var bolt = Matrix4x4.CreateTranslation(0, 0, frame.Bolt);
+        // O ferrolho do Mosin gira em volta do eixo do cano (alavanca para cima) antes de correr para trás.
+        var pivot = new Vector3(_rig.BoltPivot, 0);
+        var bolt = Matrix4x4.CreateTranslation(-pivot) * Matrix4x4.CreateRotationZ(frame.BoltRotation * deg)
+                   * Matrix4x4.CreateTranslation(pivot) * Matrix4x4.CreateTranslation(0, 0, frame.Bolt);
         foreach (var (part, meshes) in _gunParts)
         {
-            // "bolt" é o porta-ferrolho do AK; "slide" é o ferrolho da pistola: os dois correm para trás.
-            var transform = part switch { "mag" => mag, "magrelease" => release, "bolt" or "slide" => bolt, _ => Matrix4x4.Identity };
+            // "bolt": porta-ferrolho do AK / ferrolho do Mosin; "slide": ferrolho da pistola; "pump": telha da
+            // espingarda. Todos correm para trás com a trilha "bolt".
+            var transform = part switch { "mag" => mag, "magrelease" => release, "bolt" or "slide" or "pump" => bolt, _ => Matrix4x4.Identity };
             foreach (var mesh in meshes) mesh.Transform = transform;
         }
     }
@@ -660,10 +746,30 @@ public static class Program
             armed ? red : dim, Hud.Align.Center);
     }
 
-    // Botão "automático" do menu (em pixels da janela).
-    private static Rectangle<float> WeaponButtonRect(int width, int height) =>
-        new(width / 2f - 210, height / 2f + 190, 420, 46);
+    // Luneta PU (Mosin): campo circular com o resto escuro e a retícula russa de três postes
+    // (poste central vindo de baixo, até o centro, e dois horizontais nas laterais).
+    private static void DrawScope(int width, int height)
+    {
+        var black = new Vector4(0, 0, 0, 1);
+        float cx = width / 2f, cy = height / 2f, r = height * 0.46f;
+        const float band = 3;
+        for (float y = 0; y < height; y += band)
+        {
+            float dy = MathF.Abs(y + band / 2 - cy);
+            float half = dy < r ? MathF.Sqrt(r * r - dy * dy) : 0;
+            _hud.Rect(0, y, cx - half, band, black);
+            _hud.Rect(cx + half, y, width - cx - half, band, black);
+        }
+        // Poste central: grosso embaixo, afinando até a ponta no centro.
+        _hud.Rect(cx - 4, cy + r * 0.25f, 8, r * 0.75f, black);
+        _hud.Rect(cx - 2, cy + r * 0.08f, 4, r * 0.17f, black);
+        _hud.Rect(cx - 1, cy, 2, r * 0.08f, black);
+        // Postes laterais, com um vão no meio.
+        _hud.Rect(cx - r, cy - 2, r * 0.82f, 4, black);
+        _hud.Rect(cx + r * 0.18f, cy - 2, r * 0.82f, 4, black);
+    }
 
+    // Botão "automático" do menu (em pixels da janela).
     private static Rectangle<float> AutoButtonRect(int width, int height) =>
         new(width / 2f - 210, height / 2f + 110, 420, 46);
 
@@ -675,8 +781,16 @@ public static class Program
 
         if (MouseCaptured)
         {
-            DrawCrosshair(width, height);
+            if (_weapon.Scoped) DrawScope(width, height);
+            else DrawCrosshair(width, height);
             _hud.Text($"CREDITOS {_upgrades.Credits}   TAB MELHORIAS", margin, margin, 2, dim);
+            // Olhando para uma arma da bancada: E troca pela da mão.
+            if (_benchTarget != null)
+            {
+                string name = Upgrades.Plain(_slots[_benchTarget.Slot].Rig.Name);
+                _hud.Text($"E  PEGAR {name}", width / 2f, height / 2f + 40, 3, white, Hud.Align.Center);
+                _hud.Text($"DEIXA A {Upgrades.Plain(_weapon.Name)} NA BANCADA", width / 2f, height / 2f + 68, 2, dim, Hud.Align.Center);
+            }
         }
 
         // Pontos no canto superior direito.
@@ -722,6 +836,7 @@ public static class Program
                 "WASD MOVER   MOUSE MIRAR   SHIFT CORRER",
                 "CLIQUE ATIRAR   R RECARREGAR   F INSPECIONAR",
                 "ESPACO PULAR   CTRL AGACHAR   TAB OU ESC PAUSAR",
+                "E TROCAR PELA ARMA DA BANCADA (FUNDO DO SAGUAO)",
             };
             for (int i = 0; i < help.Length; i++)
                 _hud.Text(help[i], width / 2f, height / 2f + 10 + i * 24, 2, dim, Hud.Align.Center);
@@ -736,13 +851,6 @@ public static class Program
                 width / 2f, button.Origin.Y + 13, 3, _weapon.Automatic ? on : white, Hud.Align.Center);
             _hud.Text(_weapon.CanBeAutomatic ? "CLIQUE NO BOTAO PARA MUDAR" : $"A {Upgrades.Plain(_weapon.Name)} SO ATIRA UM POR CLIQUE",
                 width / 2f, button.Origin.Y + button.Size.Y + 10, 2, dim, Hud.Align.Center);
-
-            // Opção do menu: arma na mão.
-            var weaponButton = WeaponButtonRect(width, height);
-            _hud.Rect(weaponButton.Origin.X, weaponButton.Origin.Y, weaponButton.Size.X, weaponButton.Size.Y, new Vector4(0, 0, 0, 0.6f));
-            _hud.Rect(weaponButton.Origin.X, weaponButton.Origin.Y + weaponButton.Size.Y - 3, weaponButton.Size.X, 3, on);
-            _hud.Text($"ARMA: {Upgrades.Plain(_weapon.Name)}", width / 2f, weaponButton.Origin.Y + 13, 3, white, Hud.Align.Center);
-            _hud.Text("CLIQUE PARA TROCAR DE ARMA", width / 2f, weaponButton.Origin.Y + weaponButton.Size.Y + 10, 2, dim, Hud.Align.Center);
         }
 
         _hud.Flush(width, height);

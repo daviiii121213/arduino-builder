@@ -14,6 +14,7 @@ public sealed class ViewmodelFrame
     public Vector3 MagOffset;     // cm, no espaço da arma
     public float MagRelease;      // graus do retém do carregador
     public float Bolt;            // cm do porta-ferrolho (negativo = para trás)
+    public float BoltRotation;    // graus do ferrolho em volta do cano (Mosin: alavanca para cima)
 }
 
 // Números da arma (vêm do campo "stats" do JSON de cada arma).
@@ -22,7 +23,12 @@ public sealed record WeaponStats(
     float InaccuracyStand, float InaccuracyCrouch, float InaccuracyMove, float InaccuracyAir,
     float InaccuracyFire, float Spread, float RecoveryTime,
     float RecoilMagnitude, float RecoilAngleVariance, float RecoilMultiplier,
-    float MaxSpeed, bool SlideLock, float SlideTravel, Vector3 Casing);
+    float MaxSpeed, bool SlideLock, float SlideTravel, Vector3 Casing,
+    // Opcionais: chumbos por tiro (espingarda), ação manual (ferrolho/bombeamento depois de cada tiro, animação
+    // "cycle"), recarga cartucho por cartucho (reloadStart, reloadRound, reloadEnd), bombear depois de recarregar
+    // vazia, luneta própria (campo de visão e imprecisão com zoom) e estojo saindo pela esquerda (P38).
+    int Pellets = 1, bool ManualAction = false, bool ReloadPerRound = false, bool ChamberAfterReload = false,
+    float ScopeFov = 0, float InaccuracyScoped = 0, bool EjectLeft = false);
 
 // Lê o JSON de uma arma (models/ak_viewmodel.json, models/fiveseven_viewmodel.json; os mesmos da versão web):
 // modelo, números, onde ficam arma e braços, as poses dos braços (feitas com IK) e as trilhas de cada animação.
@@ -36,6 +42,7 @@ public sealed class ViewmodelRig
         public List<(float T, float[] Values)> Mag = new();
         public List<(float T, float[] Values)> MagRelease = new();
         public List<(float T, float[] Values)> Bolt = new();
+        public float? Eject;  // instante em que o estojo sai (ação manual)
     }
 
     public string Name { get; }
@@ -48,6 +55,7 @@ public sealed class ViewmodelRig
     public Vector3 MagReleasePivot { get; }
     public Vector3 EjectionPort { get; }
     public Vector3 Muzzle { get; }
+    public Vector2 BoltPivot { get; }   // eixo (x, y) em volta do qual o ferrolho gira
 
     private readonly Dictionary<string, Dictionary<string, Quaternion>> _poses = new();
     private readonly Dictionary<string, Animation> _animations = new();
@@ -60,19 +68,25 @@ public sealed class ViewmodelRig
         ModelPath = root.GetProperty("model").GetString()!;
         var st = root.GetProperty("stats");
         float F(string key) => st.GetProperty(key).GetSingle();
+        float Opt(string key, float fallback) => st.TryGetProperty(key, out var v) ? v.GetSingle() : fallback;
+        bool OptBool(string key) => st.TryGetProperty(key, out var v) && v.GetBoolean();
         Stats = new WeaponStats(
             st.GetProperty("clip").GetInt32(), st.GetProperty("reserve").GetInt32(), F("cycleTime"), st.GetProperty("automatic").GetBoolean(),
             F("inaccuracyStand"), F("inaccuracyCrouch"), F("inaccuracyMove"), F("inaccuracyAir"),
             F("inaccuracyFire"), F("spread"), F("recoveryTime"),
             F("recoilMagnitude"), F("recoilAngleVariance"), F("recoilMultiplier"),
-            F("maxSpeed"), st.GetProperty("slideLock").GetBoolean(), F("slideTravel"), Vec(st.GetProperty("casing")));
+            F("maxSpeed"), st.GetProperty("slideLock").GetBoolean(), F("slideTravel"), Vec(st.GetProperty("casing")),
+            (int)Opt("pellets", 1), OptBool("manualAction"), OptBool("reloadPerRound"), OptBool("chamberAfterReload"),
+            Opt("scopeFov", 0), Opt("inaccuracyScoped", 0), OptBool("ejectLeft"));
+        Vector3 OptVec(string key) => root.TryGetProperty(key, out var v) ? Vec(v) : Vector3.Zero;
         ArmsOffset = Vec(root.GetProperty("armsOffset"));
         GunOffset = Vec(root.GetProperty("gunOffset"));
         Rotation = Vec(root.GetProperty("rotation"));
-        MagPivot = Vec(root.GetProperty("magPivot"));
-        MagReleasePivot = Vec(root.GetProperty("magReleasePivot"));
+        MagPivot = OptVec("magPivot");
+        MagReleasePivot = OptVec("magReleasePivot");
         EjectionPort = Vec(root.GetProperty("ejectionPort"));
         Muzzle = Vec(root.GetProperty("muzzle"));
+        if (root.TryGetProperty("boltPivot", out var pivot)) { var f = Floats(pivot); BoltPivot = new Vector2(f[0], f[1]); }
 
         foreach (var pose in root.GetProperty("poses").EnumerateObject())
             _poses[pose.Name] = pose.Value.EnumerateObject().ToDictionary(
@@ -90,11 +104,13 @@ public sealed class ViewmodelRig
             ReadTrack(entry.Value, "mag", a.Mag);
             ReadTrack(entry.Value, "magRelease", a.MagRelease);
             ReadTrack(entry.Value, "bolt", a.Bolt);
+            if (entry.Value.TryGetProperty("eject", out var eject)) a.Eject = eject.GetSingle();
             _animations[entry.Name] = a;
         }
     }
 
     public float Duration(string animation) => _animations[animation].Duration;
+    public float? EjectTime(string animation) => _animations.TryGetValue(animation, out var a) ? a.Eject : null;
 
     // animation: reload, reloadEmpty, inspect, draw ou null (parado). fireTime: segundos desde o último tiro.
     // slideLocked: pistola vazia, com o ferrolho travado atrás até a recarga.
@@ -117,11 +133,17 @@ public sealed class ViewmodelRig
                 frame.MagOffset = new Vector3(m[1], m[2], m[3]);
             }
             if (a.MagRelease.Count > 0) frame.MagRelease = Evaluate(a.MagRelease, time)[0];
-            if (a.Bolt.Count > 0) frame.Bolt = Evaluate(a.Bolt, time)[0];
+            if (a.Bolt.Count > 0)
+            {
+                var b = Evaluate(a.Bolt, time);
+                frame.Bolt = b[0];
+                if (b.Length > 1) frame.BoltRotation = b[1];
+            }
         }
         // O ferrolho também corre a cada tiro (o gás empurra o porta-ferrolho para trás e a mola o devolve).
+        // Nas armas de ação manual ele só se move na animação "cycle".
         var fire = _animations["fire"];
-        if (fireTime < fire.Duration) frame.Bolt = Math.Min(frame.Bolt, Evaluate(fire.Bolt, fireTime)[0]);
+        if (fireTime < fire.Duration && fire.Bolt.Count > 0) frame.Bolt = Math.Min(frame.Bolt, Evaluate(fire.Bolt, fireTime)[0]);
         if (slideLocked && animation != "reloadEmpty" && fireTime >= fire.Duration * 0.3f)
             frame.Bolt = Math.Min(frame.Bolt, -Stats.SlideTravel);
         return frame;

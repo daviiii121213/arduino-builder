@@ -17,7 +17,6 @@ src, out = sys.argv[sys.argv.index('--') + 1:][:2]
 MODELS = {
     'ammo_box':               dict(scale=100),
     'binoculars':             dict(scale=100),
-    'bolt_action_rifle_7_62': dict(scale=100, tilt=90),
     'service_pistol':         dict(scale=100, tilt=90),
     'medical_box':            dict(scale=100),
     'signal_flashlight':      dict(scale=100),
@@ -31,8 +30,6 @@ MODELS = {
     'steel_frame_shelves_01': dict(scale=10),
     'worn_metal_rack':        dict(scale=100),
     'assault_rifle_1':        dict(length=88, tilt=90),
-    'pistol_1':               dict(length=21, tilt=90),
-    'shotgun_1':              dict(length=100, tilt=90),
 }
 MAX_TRIS = 6000
 TEXTURE_SIZE = 512
@@ -46,22 +43,19 @@ RACK_X, RACK_Z = 805, -680
 
 # (modelo, x, y, z, giro em graus no eixo vertical)
 PLACEMENTS = [
-    # Em cima do balcão do fundo
-    ('ammo_box', -800, SHELF_Y, SHELF_Z, 0),
-    ('ammo_box', -785, SHELF_Y, SHELF_Z, 4),
-    ('ammo_box', -793, SHELF_Y + 17.7, SHELF_Z, -3),
-    ('binoculars', -705, SHELF_Y, SHELF_Z, 25),
-    ('service_pistol', -610, SHELF_Y, SHELF_Z, 0),
-    ('medical_box', -480, SHELF_Y, SHELF_Z + 2, 0),
-    ('signal_flashlight', -400, SHELF_Y, SHELF_Z - 5, 30),
-    ('stick_grenade', -340, SHELF_Y, SHELF_Z - 6, 80),
-    ('stick_grenade', -335, SHELF_Y, SHELF_Z + 6, 95),
-    ('bolt_action_rifle_7_62', -190, SHELF_Y, SHELF_Z, 0),
+    # Em cima do balcão do fundo. De x = -820 a -200 ficam as armas de verdade da bancada (Program.cs:
+    # BenchStart), trocáveis com a da mão; aqui só o que é decoração.
+    ('ammo_box', -175, SHELF_Y, SHELF_Z, 0),
+    ('ammo_box', -160, SHELF_Y, SHELF_Z, 4),
+    ('ammo_box', -168, SHELF_Y + 17.7, SHELF_Z, -3),
+    ('binoculars', -100, SHELF_Y, SHELF_Z, 25),
     ('metal_toolbox', -20, SHELF_Y, SHELF_Z, 0),
-    ('pistol_1', 80, SHELF_Y, SHELF_Z, 15),
-    ('ammo_box', 160, SHELF_Y, SHELF_Z, 90),
-    ('ammo_box', 160, SHELF_Y + 17.7, SHELF_Z, 85),
-    ('shotgun_1', 320, SHELF_Y, SHELF_Z, 0),
+    ('medical_box', 75, SHELF_Y, SHELF_Z + 2, 0),
+    ('signal_flashlight', 140, SHELF_Y, SHELF_Z - 5, 30),
+    ('stick_grenade', 190, SHELF_Y, SHELF_Z - 6, 80),
+    ('stick_grenade', 195, SHELF_Y, SHELF_Z + 6, 95),
+    ('ammo_box', 260, SHELF_Y, SHELF_Z, 90),
+    ('ammo_box', 260, SHELF_Y + 17.7, SHELF_Z, 85),
     ('binoculars', 455, SHELF_Y, SHELF_Z, -20),
     ('ammo_box', 505, SHELF_Y, SHELF_Z, 0),
 

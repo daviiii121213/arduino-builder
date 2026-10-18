@@ -14,7 +14,8 @@ OpenGL, sem engine.
 - **Ctrl**: agachar
 - **Shift**: correr
 - **Tab** ou **Esc**: pausar e abrir as melhorias
-- **Botão direito** (com a melhoria "Mira ótica"): zoom 2x
+- **E** (olhando para uma arma da bancada): trocar pela arma da mão
+- **Botão direito**: luneta do Mosin (3,5x) ou, com a melhoria "Mira ótica", zoom 2x
 
 ## Jogo
 
@@ -61,9 +62,68 @@ Nomes e preços ficam em `models/upgrades.json` (usado pelas duas versões). O p
 
 ### Armas
 
-No menu (Tab ou Esc) o botão **Arma** troca entre o **AK-47** e a **FN Five-seveN**; cada uma guarda
-a própria munição. Os números, o modelo, as poses e as animações de cada arma ficam no JSON dela
-(`models/ak_viewmodel.json`, `models/fiveseven_viewmodel.json`), usados pelas duas versões.
+O jogo começa com o **AK-47** na mão. As outras armas ficam deitadas na **bancada** (o balcão da parede
+do fundo do saguão): **Mosin-Nagant PU**, **escopeta calibre 12**, **Walther P38**, **FN Five-seveN** e
+**Colt M1911A1**. Olhando para uma delas de perto aparece **"E Pegar ..."**: a arma da bancada vem para a
+mão e a da mão fica no lugar dela, deitada do mesmo jeito. Cada arma guarda a própria munição. Não há mais
+troca de arma no menu.
+
+Os números, o modelo, as poses e as animações de cada arma ficam no JSON dela (`models/*_viewmodel.json`),
+usados pelas duas versões. Os modelos das quatro armas novas são os mesmos que antes eram só decoração
+(Poly Haven e Quaternius, CC0), preparados por `tools/bench-guns.py` no Blender: peças móveis separadas
+(ferrolho, carregador, telha, gatilho), escala real e o punho alinhado ao da Five-seveN (pistolas) ou do
+AK (armas longas), para as poses dos braços encaixarem. As poses novas foram calculadas por IK (CCD).
+
+| Arma | Calibre | Pente | Cadência | Recuo | Observações |
+|---|---|---|---|---|---|
+| AK-47 | 7,62×39 | 30/90 | 600/min | 5x | automático opcional |
+| Mosin-Nagant M91/30 PU | 7,62×54R | 5/25 | 1,25 s por tiro | 3x | ferrolho a cada tiro, luneta PU 3,5x, carga cartucho a cartucho |
+| Escopeta 12 (tipo Remington 870) | 12 | 8/32 | 0,88 s por tiro | 1x (recuo 143 da Nova) | 9 chumbos, bombeia a cada tiro, carga cartucho a cartucho |
+| Walther P38 | 9×19 | 8/24 | 400/min | 3,5x | ferrolho trava aberto, estojo sai para a esquerda |
+| FN Five-seveN | 5,7×28 | 20/100 | 400/min | 3,5x | ferrolho trava aberto |
+| Colt M1911A1 | .45 ACP | 7/21 | 352/min | 3,5x | ferrolho trava aberto |
+
+#### Mosin-Nagant M91/30 PU
+
+Fuzil de ferrolho russo de 7,62×54R: 123 cm, 4 kg, depósito de 5 cartuchos (IMFDB), com a luneta PU de
+3,5x (Forgotten Weapons). Como a luneta fica em cima da janela da culatra, o pente de 5 não entra: os
+cartuchos vão um a um com o ferrolho aberto.
+
+- **Como segurar**: mão direita no delgado da coronha, mão de apoio embaixo da coronha à frente do depósito.
+- **Ferrolho** (Outdoor Life, "How to Cycle a Bolt Properly"): depois de cada tiro a mão direita levanta a
+  alavanca (o ferrolho gira 85°), puxa para trás (o estojo sai), empurra para a frente e abaixa num
+  movimento só, com a arma um pouco girada para fora e o rosto na coronha.
+- **Recarga**: abre o ferrolho, coloca um cartucho de cada vez e fecha. Atirar durante a recarga termina
+  depois do cartucho atual (como no CS2).
+- **Luneta**: botão direito mostra a retícula PU (poste central vindo de baixo e dois postes laterais);
+  com ela a imprecisão parado cai de 0,03 para 0,0025. Números do jogo baseados na SSG 08 do CS2.
+
+#### Escopeta calibre 12
+
+Espingarda de bombeamento no estilo da Remington 870, com os números da Nova do CS2: 9 chumbos por tiro,
+68 disparos por minuto, 8/32, 0,5 s por cartucho, imprecisão 7 parado e 36,75 andando, recuo 143
+(csdb.gg, SteamAnalyst).
+
+- **Como segurar** ("push-pull", Shooting Illustrated e Mossberg): a mão direita puxa a coronha contra o
+  ombro e a de apoio empurra a telha para a frente.
+- **Bombear**: depois de cada tiro a mão de apoio puxa a telha para trás (o estojo sai) e devolve.
+- **Recarga**: com a arma girada, a mão de apoio coloca os cartuchos um a um pela janela embaixo da
+  caixa da culatra; se estava vazia, bombeia no fim para pôr um cartucho na câmara.
+- Os chumbos de um tiro somam os pontos num tiro só; um tiro que não acerta nenhum chumbo é um erro.
+
+#### Walther P38
+
+Pistola alemã de 9×19 mm: 216 mm, carregador de 8, ferrolho que trava aberto depois do último tiro e
+retém do carregador no calcanhar do punho (Wikipedia, Athlon Outdoors). Usa a empunhadura "thumbs forward"
+da Five-seveN; na recarga a mão de apoio puxa o carregador pelo fundo do punho. O estojo sai para cima e
+para a esquerda. Números baseados na P250 do CS2.
+
+#### Colt M1911A1
+
+Pistola americana de .45 ACP: 216 mm, 1,1 kg, carregador de 7 (Wikipedia). Pegada alta com o polegar da mão
+forte em cima da trava manual ("ride the safety", Shooting Illustrated), que na "thumbs forward" fica
+onde o polegar já está. Números baseados na USP-S do CS2. O modelo não tinha carregador separado: um foi
+criado dentro do punho, acima da base.
 
 #### FN Five-seveN
 
@@ -123,15 +183,17 @@ Poses e trilhas de animação ficam em `models/ak_viewmodel.json`, usado pelas d
 O saguão atrás das baias tem objetos ligados a tiro e armas, todos de domínio público (CC0), achados no
 GitHub no espelho [Papyszoo/CC0-Public-Domain-Models](https://github.com/Papyszoo/CC0-Public-Domain-Models):
 
-- **Poly Haven** (modelos realistas): caixa de munição ("200 cartridges 7.62 mm"), fuzil de ferrolho 7,62,
-  pistolas com carregadores, binóculo, granadas de cabo, lanterna de sinalização, caixa de primeiros
-  socorros, caixa e baú de ferramentas, galões, extintor, caixotes militares, estante de aço e prateleira de metal.
-- **Quaternius** (Ultimate Gun Pack): pistola, submetralhadora e espingarda expostas.
+- **Poly Haven** (modelos realistas): caixa de munição ("200 cartridges 7.62 mm"), pistolas com
+  carregadores, binóculo, granadas de cabo, lanterna de sinalização, caixa de primeiros socorros, caixa e
+  baú de ferramentas, galões, extintor, caixotes militares, estante de aço e prateleira de metal.
+- **Quaternius** (Ultimate Gun Pack): submetralhadora exposta na estante.
+- O fuzil de ferrolho e uma das pistolas da Poly Haven, e a pistola e a espingarda da Quaternius,
+  viraram armas de verdade na bancada.
 
 Onde ficam:
 
-- **Balcão da parede do fundo**: caixas de munição empilhadas, binóculos, pistolas, granadas, lanterna,
-  caixa de primeiros socorros, o fuzil deitado, caixa de ferramentas, pistola e espingarda.
+- **Balcão da parede do fundo**: à esquerda, a bancada com as armas trocáveis (ver "Armas"); no resto,
+  caixas de munição empilhadas, binóculos, granadas, lanterna, caixa de primeiros socorros e caixa de ferramentas.
 - **Embaixo do balcão (no chão)**: caixotes militares empilhados no canto, baú de ferramentas,
   galões e o extintor ao lado da porta.
 - **Estante de aço** (parede da direita) e **prateleira de metal** (parede da esquerda), com munição,
@@ -167,7 +229,8 @@ Para testar localmente: `cd web && python3 -m http.server` e abra http://localho
 
 - `Program.cs`: janela, controles, tiros, pontuação, desenho e HUD
 - `Player.cs`: movimento estilo Source (atrito, aceleração, pulo, agachar)
-- `Weapon.cs`: mecânica do AK (cadência, imprecisão, recuo, recarga, inspeção)
+- `Weapon.cs`: mecânica das armas (cadência, imprecisão, recuo, recarga, inspeção, ação manual,
+  chumbos, recarga cartucho por cartucho)
 - `ViewmodelRig.cs`: lê o JSON de cada arma (números, poses e animações) e interpola as animações
 - `Targets.cs`: alvos móveis e pontuação por região do papel
 - `Booths.cs`: baias com pontuação (1, 4, 6 e 9) e o registro de cada passagem
@@ -180,6 +243,8 @@ Para testar localmente: `cd web && python3 -m http.server` e abra http://localho
 - `models/akm.glb`: o fuzil, em peças (body, mag, bolt, magrelease, selector)
 - `models/ak_viewmodel.json`: números do AK, posição da arma e dos braços, poses e animações
 - `models/fiveseven.glb` e `models/fiveseven_viewmodel.json`: a pistola, em peças, e o JSON dela
+- `models/p38.glb`, `models/m1911.glb`, `models/mosin.glb`, `models/shotgun.glb` e os JSONs delas: as
+  armas da bancada (gerados por `tools/bench-guns.py`)
 - `models/decor.glb`: decorações já posicionadas (ver "Decorações"; gerado por `tools/decor-build.py`)
 - `models/arms.fbx`: braços em primeira pessoa (desenhados por cima da cena, estilo CS);
   a textura deles é `models/tex/armColor.png` (manga camuflada, punho e luva)
