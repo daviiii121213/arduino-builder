@@ -172,7 +172,7 @@ function triangleNormal(tr, i, d) {
 // ---------------------------------------------------------------- jogador (Player.cs)
 
 class Player {
-  static MAX_SPEED = 215; // velocidade máxima andando com o AK-47 no CS2
+  static MAX_SPEED = 215; // velocidade máxima andando: depende da arma (AK-47 215, Five-seveN 240)
   static RUN_MULTIPLIER = 1.6;
   static CROUCH_MULTIPLIER = 0.34;
 
@@ -259,12 +259,11 @@ class Player {
 
 // AK-47 com a mecânica do CS2, um tiro por clique ou automático (valores em Weapon.cs).
 class Weapon {
-  static BASE_CLIP = 30;
-  static BASE_RESERVE = 90;
+
   // A câmera acompanha o recuo inteiro: a bala sai sempre no centro da mira (no CS2 seriam 45%).
   static VIEW_RECOIL_TRACKING = 1;
-  // Recuo 5 vezes maior que o calibrado (fator 3, ajustado com a Glock).
-  static RECOIL_IMPULSE_SCALE = 3 * 5;
+  // Fator 3 calibrado com a Glock; cada arma multiplica (AK-47 5x, Five-seveN 3,5x).
+  static RECOIL_IMPULSE_SCALE = 3;
 
   constructor(rig, upgrades) {
     this.rig = rig;
@@ -284,9 +283,14 @@ class Weapon {
     this.muzzleFlash = 0;
   }
 
-  get clipSize() { return Weapon.BASE_CLIP + this.upgrades.extraRounds; }
+  get stats() { return this.rig.data.stats; }
+  get name() { return this.rig.data.name; }
+  get canBeAutomatic() { return this.stats.automatic; }
+  // Pistola com o pente vazio: o ferrolho fica travado atrás até a recarga.
+  get slideLocked() { return this.stats.slideLock && this.clip === 0 && this.animation !== 'reloadEmpty'; }
+  get clipSize() { return this.stats.clip + this.upgrades.extraRounds; }
   // Pente cheio e reserva cheia (ao entrar numa baia com pontuação).
-  refill() { this.clip = this.clipSize; this.reserve = Weapon.BASE_RESERVE + this.upgrades.extraReserve; }
+  refill() { this.clip = this.clipSize; this.reserve = this.stats.reserve + this.upgrades.extraReserve; }
 
   get reloading() { return this.animation === 'reload' || this.animation === 'reloadEmpty'; }
   get reloadProgress() { return this.reloading ? this.animationTime / this.rig.duration(this.animation) : 1; }
@@ -312,11 +316,12 @@ class Weapon {
   }
 
   inaccuracy(player) {
-    let base = (0.00641 + (0.00481 - 0.00641) * player.crouch) * this.upgrades.stability;
-    if (!player.onGround) base += 0.4;
+    const st = this.stats;
+    let base = (st.inaccuracyStand + (st.inaccuracyCrouch - st.inaccuracyStand) * player.crouch) * this.upgrades.stability;
+    if (!player.onGround) base += st.inaccuracyAir;
     // Até 34% da velocidade máxima a arma continua precisa ("counter-strafe").
     const moveFactor = THREE.MathUtils.clamp((player.horizontalSpeed - 0.34 * Player.MAX_SPEED) / (0.61 * Player.MAX_SPEED), 0, 1);
-    return base + 0.17506 * moveFactor * this.upgrades.moving + this.accuracyPenalty;
+    return base + st.inaccuracyMove * moveFactor * this.upgrades.moving + this.accuracyPenalty;
   }
 
   update(dt, player, onCue) {
@@ -325,7 +330,7 @@ class Weapon {
     if (this.animation) {
       const before = this.animationTime;
       this.animationTime += dt * (this.reloading ? this.upgrades.reloadSpeed : 1);
-      for (const [t, cue] of SOUND_CUES[this.animation] || []) if (before < t && this.animationTime >= t) onCue(cue);
+      for (const [t, cue] of SOUND_CUES[this.name]?.[this.animation] || []) if (before < t && this.animationTime >= t) onCue(cue);
       if (this.animationTime >= this.rig.duration(this.animation)) {
         if (this.reloading) {
           const moved = Math.min(this.clipSize - this.clip, this.reserve);
@@ -336,18 +341,18 @@ class Weapon {
       }
     }
     this.cooldown = Math.max(this.cooldown - dt, 0);
-    if (this.automatic && this.triggerHeld && this.cooldown <= 0 && this.animation !== 'draw') this.fireQueued = true;
+    if (this.automatic && this.canBeAutomatic && this.triggerHeld && this.cooldown <= 0 && this.animation !== 'draw') this.fireQueued = true;
     if (this.fireQueued && !this.reloading && this.clip > 0) {
       // Atirar interrompe a inspeção, como no CS2.
       if (this.animation === 'inspect') this.animation = null;
       shots.push(this.fire(player));
-      this.cooldown = 0.1; // 600 RPM
+      this.cooldown = this.stats.cycleTime;
     }
     this.fireQueued = false;
 
     // A melhoria "Recuperação" acelera a volta da precisão e do recuo.
     const recovery = this.upgrades.recovery;
-    this.accuracyPenalty *= Math.exp(-dt * recovery * Math.log(10) / 0.368);
+    this.accuracyPenalty *= Math.exp(-dt * recovery * Math.log(10) / this.stats.recoveryTime);
 
     // Recuo da Source: integra a velocidade e decai (exponencial 8 + linear 18 graus/s).
     this.aimPunch.addScaledVector(this.aimPunchVelocity, dt * 0.5);
@@ -373,14 +378,16 @@ class Weapon {
     const up = right.clone().cross(forward);
     // Espalhamento do CS: um círculo da imprecisão somado a um do spread fixo.
     const a0 = Math.random() * Math.PI * 2, r0 = Math.random() * inaccuracy;
-    const a1 = Math.random() * Math.PI * 2, r1 = Math.random() * 0.0006;
+    const a1 = Math.random() * Math.PI * 2, r1 = Math.random() * this.stats.spread;
     const x = Math.cos(a0) * r0 + Math.cos(a1) * r1;
     const y = Math.sin(a0) * r0 + Math.sin(a1) * r1;
     const direction = forward.addScaledVector(right, x).addScaledVector(up, y).normalize();
 
-    this.accuracyPenalty += 0.0078;
-    const angle = (Math.random() * 2 - 1) * 70 * DEG;
-    this.aimPunchVelocity.add(new THREE.Vector2(Math.cos(angle), Math.sin(angle)).multiplyScalar(30 * Weapon.RECOIL_IMPULSE_SCALE * this.upgrades.recoil));
+    const st = this.stats;
+    this.accuracyPenalty += st.inaccuracyFire;
+    const angle = (Math.random() * 2 - 1) * st.recoilAngleVariance * DEG;
+    this.aimPunchVelocity.add(new THREE.Vector2(Math.cos(angle), Math.sin(angle))
+      .multiplyScalar(st.recoilMagnitude * Weapon.RECOIL_IMPULSE_SCALE * st.recoilMultiplier * this.upgrades.recoil));
     this.kick = 1;
     this.muzzleFlash = 0.06;
     return { origin: player.eye, direction };
@@ -389,9 +396,16 @@ class Weapon {
 
 // Sons das animações (instante em segundos): retém, carregador saindo/entrando, ferrolho.
 const SOUND_CUES = {
-  reload: [[0.42, 'click'], [0.55, 'mag'], [1.65, 'mag']],
-  reloadEmpty: [[0.42, 'click'], [0.55, 'mag'], [1.65, 'mag'], [2.22, 'bolt'], [2.28, 'bolt']],
-  draw: [[0.48, 'bolt'], [0.53, 'bolt']],
+  'AK-47': {
+    reload: [[0.42, 'click'], [0.55, 'mag'], [1.65, 'mag']],
+    reloadEmpty: [[0.42, 'click'], [0.55, 'mag'], [1.65, 'mag'], [2.22, 'bolt'], [2.28, 'bolt']],
+    draw: [[0.48, 'bolt'], [0.53, 'bolt']],
+  },
+  'Five-seveN': {
+    reload: [[0.24, 'click'], [0.3, 'mag'], [1.4, 'mag']],
+    reloadEmpty: [[0.24, 'click'], [0.3, 'mag'], [1.4, 'mag'], [1.97, 'bolt'], [2.03, 'bolt']],
+    draw: [[0.4, 'bolt'], [0.45, 'bolt']],
+  },
 };
 
 // ---------------------------------------------------------------- arma e braços em primeira pessoa (ViewmodelRig.cs)
@@ -414,7 +428,8 @@ class ViewmodelRig {
 
   duration(name) { return this.data.animations[name].duration; }
 
-  evaluate(animation, time, fireTime) {
+  // slideLocked: pistola vazia, com o ferrolho travado atrás até a recarga.
+  evaluate(animation, time, fireTime, slideLocked = false) {
     const frame = { armPose: this.poses.hold, rootRotation: new THREE.Vector3(), rootOffset: new THREE.Vector3(),
       magRotation: 0, magOffset: new THREE.Vector3(), magRelease: 0, bolt: 0 };
     const a = animation && this.data.animations[animation];
@@ -432,6 +447,7 @@ class ViewmodelRig {
     // O ferrolho também corre a cada tiro (o gás empurra o porta-ferrolho para trás e a mola o devolve).
     const fire = this.data.animations.fire;
     if (fireTime < fire.duration) frame.bolt = Math.min(frame.bolt, evaluateTrack(fire.bolt, fireTime)[0]);
+    if (slideLocked && animation !== 'reloadEmpty' && fireTime >= fire.duration * 0.3) frame.bolt = Math.min(frame.bolt, -this.data.stats.slideTravel);
     return frame;
   }
 
@@ -606,8 +622,8 @@ class Upgrades {
       case 'stability': return 'Imprecisão ' + step(pct(1 - 0.1 * l), pct(1 - 0.1 * (l + 1)));
       case 'moving': return 'Andando ' + step(pct(1 - 0.15 * l), pct(1 - 0.15 * (l + 1)));
       case 'reload': return 'Tempo ' + step(pct(1 - 0.1 * l), pct(1 - 0.1 * (l + 1)));
-      case 'magazine': return 'Pente ' + step(30 + 5 * l, 30 + 5 * (l + 1));
-      case 'reserve': return 'Reserva ' + step(90 + 30 * l, 90 + 30 * (l + 1));
+      case 'magazine': return 'Pente ' + step(`+${5 * l}`, `+${5 * (l + 1)}`);
+      case 'reserve': return 'Reserva ' + step(`+${30 * l}`, `+${30 * (l + 1)}`);
       case 'recovery': return 'Velocidade ' + step(pct(1 + 0.25 * l), pct(1 + 0.25 * (l + 1)));
       case 'scope': return 'Botão direito: zoom 2x';
       default: return u.description;
@@ -659,7 +675,10 @@ class Sound {
     src.connect(filter).connect(g).connect(this.ctx.destination);
     src.start(t); src.stop(t + duration);
   }
-  shot() { this.burst(0.3, 1800, 1.0); this.burst(0.16, 140, 1.4); }
+  shot(pistol) {
+    if (pistol) { this.burst(0.18, 3200, 0.8); this.burst(0.08, 260, 0.9); }
+    else { this.burst(0.3, 1800, 1.0); this.burst(0.16, 140, 1.4); }
+  }
   click() { this.burst(0.03, 3000, 0.3, 'highpass'); }
   mag() { this.burst(0.05, 900, 0.45, 'bandpass'); this.burst(0.03, 2600, 0.25, 'highpass'); }
   bolt() { this.burst(0.06, 1500, 0.5, 'bandpass'); }
@@ -698,6 +717,9 @@ const ui = {
   sumNone: document.getElementById('sum-none'),
   sumClose: document.getElementById('sum-close'),
   auto: document.getElementById('auto'),
+  weaponBtn: document.getElementById('weapon'),
+  weaponName: document.getElementById('weapon-name'),
+  autoNote: document.getElementById('auto-note'),
   autoState: document.getElementById('auto-state'),
 };
 
@@ -808,12 +830,15 @@ async function loadScene() {
 // ---------------------------------------------------------------- jogo
 
 const player = new Player(SPAWN);
-let weapon, rig;
+// Armas disponíveis (trocadas no menu): cada JSON traz modelo, números, poses e animações.
+const WEAPONS = [{ rig: 'ak_viewmodel.json', model: 'akm.glb' }, { rig: 'fiveseven_viewmodel.json', model: 'fiveseven.glb' }];
+const slots = [];
+let weapon, rig, slotIndex = 0, automatic = false;
 const sound = new Sound();
 const keys = {};
 let world, targets, scoring, armsRoot, gunRoot, viewmodel, flashOuter, flashInner, casingMesh;
 let armBones = {}, armRest = {}, armsAnimated = true, drawn = false;
-const gunParts = {};
+let gunParts = {};
 const casings = [];
 const holes = { rim: null, core: null, dust: null, wall: null, list: [] };
 let session = null, summaryOpen = false, upgrades = null, rightHeld = false;
@@ -843,9 +868,13 @@ async function boot(saved) {
       img.src = assetUrl('Target Paper_C.jpg');
     });
     scoring = new TargetScoring(paperImage);
-    rig = new ViewmodelRig(await (await fetch(ASSETS + 'ak_viewmodel.json')).json());
+
     upgrades = new Upgrades((await (await fetch(ASSETS + 'upgrades.json')).json()).upgrades);
-    weapon = new Weapon(rig, upgrades);
+    for (const w of WEAPONS) {
+      const r = new ViewmodelRig(await (await fetch(ASSETS + w.rig)).json());
+      slots.push({ rig: r, weapon: new Weapon(r, upgrades), model: w.model });
+    }
+    ({ rig, weapon } = slots[0]);
     renderUpgrades();
     let savedAuto = false;
     try { savedAuto = localStorage.getItem('automatic') === '1'; } catch { /* sem armazenamento */ }
@@ -875,25 +904,32 @@ async function loadViewmodel() {
     if (o.isBone) { armBones[o.name] = o; armRest[o.name] = o.quaternion.clone(); }
   });
 
-  // AKM em peças (body, mag, bolt, magrelease, selector), já em cm com o cano em +Z e origem no punho.
-  const gltf = await new GLTFLoader().parseAsync(await fetchBinary('akm.glb'), ASSETS);
-  gltf.scene.traverse((o) => {
-    if (!o.isMesh) return;
-    if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
-    o.material = makeMaterial({ color: o.material.color.toArray() });
-    o.frustumCulled = false;
-    const part = o.name.split('_')[0];
-    (gunParts[part] ||= []).push(o);
-    o.matrixAutoUpdate = false;
-  });
-
   // Os modelos apontam para +Z; a câmera olha para -Z, então giram 180° em Y.
-  armsRoot = new THREE.Group(); armsRoot.add(arms); armsRoot.rotation.y = Math.PI; armsRoot.position.copy(rig.armsOffset);
-  gunRoot = new THREE.Group(); gunRoot.add(gltf.scene); gunRoot.rotation.y = Math.PI; gunRoot.position.copy(rig.gunOffset);
+  armsRoot = new THREE.Group(); armsRoot.add(arms); armsRoot.rotation.y = Math.PI;
   viewmodel = new THREE.Group();
   viewmodel.matrixAutoUpdate = false;
-  viewmodel.add(armsRoot, gunRoot);
+  viewmodel.add(armsRoot);
   vmScene.add(viewmodel);
+
+  // Cada arma em peças (AKM: body, mag, bolt, magrelease...; Five-seveN: body, slide, mag, trigger, magrelease),
+  // já em cm com o cano em +Z e origem no punho.
+  for (const slot of slots) {
+    const gltf = await new GLTFLoader().parseAsync(await fetchBinary(slot.model), ASSETS);
+    slot.parts = {};
+    gltf.scene.traverse((o) => {
+      if (!o.isMesh) return;
+      if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
+      o.material = makeMaterial({ color: o.material.color.toArray() });
+      o.frustumCulled = false;
+      (slot.parts[o.name.split('_')[0]] ||= []).push(o);
+      o.matrixAutoUpdate = false;
+    });
+    slot.root = new THREE.Group(); slot.root.add(gltf.scene); slot.root.rotation.y = Math.PI;
+    slot.root.position.copy(slot.rig.gunOffset);
+    slot.root.visible = false;
+    viewmodel.add(slot.root);
+  }
+  selectWeapon(0);
 
   flashOuter = new THREE.Mesh(new THREE.BufferGeometry(), makeMaterial({ color: [1, 0.55, 0.15], opacity: 0.8, unlit: 1, additive: true }));
   flashInner = new THREE.Mesh(new THREE.BufferGeometry(), makeMaterial({ color: [1, 0.9, 0.6], unlit: 1, additive: true }));
@@ -901,13 +937,29 @@ async function loadViewmodel() {
     f.material.depthTest = false; f.renderOrder = 10; f.frustumCulled = false; f.visible = false; vmScene.add(f);
   }
 
-  // Estojos de 7,62x39 mm (~1,1 x 3,9 cm), cor de latão.
-  casingMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1.1, 1.1, 3.9), makeMaterial({ color: [0.47, 0.26, 0.04] }), 32);
+  // Estojos cor de latão; o tamanho de cada um vem da arma (escala da caixa de 1 cm).
+  casingMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), makeMaterial({ color: [0.47, 0.26, 0.04] }), 32);
   casingMesh.count = 0; casingMesh.frustumCulled = false;
   vmScene.add(casingMesh);
 }
 
-// Peças móveis do AKM, no espaço da arma: carregador (balança em volta da frente e desce),
+// Troca a arma na mão (cada uma guarda a própria munição). Ao voltar ao jogo ela é sacada.
+function selectWeapon(index) {
+  slotIndex = index;
+  for (const [i, s] of slots.entries()) if (s.root) s.root.visible = i === index;
+  ({ rig, weapon } = slots[index]);
+  gunRoot = slots[index].root;
+  gunParts = slots[index].parts || {};
+  armsRoot.position.copy(rig.armsOffset);
+  weapon.automatic = automatic;
+  Player.MAX_SPEED = weapon.stats.maxSpeed;
+  armsAnimated = true;
+  if (drawn) weapon.draw();
+  if (ui.weaponName) ui.weaponName.textContent = weapon.name;
+  if (ui.autoNote) ui.autoNote.hidden = weapon.canBeAutomatic;
+}
+
+// Peças móveis da arma, no espaço da arma: carregador (balança em volta da frente e desce),
 // retém do carregador e porta-ferrolho (corre para trás).
 function setPartTransforms(frame) {
   const around = (pivot, rotation, extra = new THREE.Vector3()) => new THREE.Matrix4()
@@ -919,6 +971,7 @@ function setPartTransforms(frame) {
     magrelease: around(rig.magReleasePivot, frame.magRelease),
     bolt: new THREE.Matrix4().makeTranslation(0, 0, frame.bolt),
   };
+  transforms.slide = transforms.bolt; // o ferrolho da pistola corre para trás como o do AK
   for (const [part, meshes] of Object.entries(gunParts))
     for (const mesh of meshes) { mesh.matrix.copy(transforms[part] || new THREE.Matrix4()); mesh.matrixWorldNeedsUpdate = true; }
 }
@@ -942,6 +995,7 @@ function ejectCasing() {
     velocity: right.multiplyScalar(180 + Math.random() * 60).addScaledVector(up, 120 + Math.random() * 60).addScaledVector(forward, -(20 + Math.random() * 30)),
     quaternion: camera.quaternion.clone(),
     spinAxis: new THREE.Vector3(Math.random(), 1, Math.random()).normalize(),
+    size: new THREE.Vector3(...weapon.stats.casing),
     age: 0,
   });
   if (casings.length > 32) casings.shift();
@@ -955,7 +1009,7 @@ function updateCasings(dt) {
     c.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(c.spinAxis, 25 * dt));
   }
   while (casings.length && casings[0].age > 0.9) casings.shift();
-  casings.forEach((c, i) => casingMesh.setMatrixAt(i, tmpMatrix.compose(c.position, c.quaternion, new THREE.Vector3(1, 1, 1))));
+  casings.forEach((c, i) => casingMesh.setMatrixAt(i, tmpMatrix.compose(c.position, c.quaternion, c.size)));
   casingMesh.count = casings.length;
   casingMesh.instanceMatrix.needsUpdate = true;
 }
@@ -1016,7 +1070,7 @@ function updateBooth() {
   }
   session = booth ? new BoothSession(booth) : null;
   // Entrar numa baia com pontuação enche o pente e a reserva.
-  if (session) weapon.refill();
+  if (session) for (const s of slots) s.weapon.refill();
   state.score = state.shots = state.hits = 0;
 }
 
@@ -1102,7 +1156,7 @@ function update(dt) {
   state.jump = false;
 
   const shots = weapon.update(dt, player, (cue) => sound.cue(cue));
-  for (const shot of shots) { sound.shot(); processShot(shot); state.pendingCasings = (state.pendingCasings || 0) + 1; }
+  for (const shot of shots) { sound.shot(weapon.stats.slideLock); processShot(shot); state.pendingCasings = (state.pendingCasings || 0) + 1; }
   updateCasings(dt);
   for (const target of targets) target.update(dt);
   state.popupTime = Math.max(state.popupTime - dt, 0);
@@ -1146,7 +1200,7 @@ function render() {
   renderer.render(scene, camera);
 
   // Arma e braços por cima de tudo: limpa a profundidade para não atravessarem paredes.
-  const frame = rig.evaluate(weapon.animation, weapon.animationTime, weapon.timeSinceShot);
+  const frame = rig.evaluate(weapon.animation, weapon.animationTime, weapon.timeSinceShot, weapon.slideLocked);
   if (weapon.animation || armsAnimated) { setArmPose(frame.armPose); armsAnimated = !!weapon.animation; }
   setPartTransforms(frame);
   viewmodel.matrix.copy(camera.matrixWorld).multiply(viewmodelMatrix(frame));
@@ -1200,7 +1254,7 @@ function updateHud() {
   ui.reserve.textContent = `/ ${weapon.reserve}`;
   updateCrosshair();
   ui.creditsHud.textContent = `Créditos ${upgrades.credits} · Tab: melhorias`;
-  ui.mode.textContent = weapon.automatic ? 'AK-47 · Auto' : 'AK-47 · Semi';
+  ui.mode.textContent = `${weapon.name} · ${weapon.automatic && weapon.canBeAutomatic ? 'Auto' : 'Semi'}`;
   ui.reload.hidden = !weapon.reloading;
   ui.reloadBar.style.transform = `scaleX(${weapon.reloadProgress})`;
   ui.notice.hidden = !(weapon.clip === 0 && weapon.reserve === 0);
@@ -1297,6 +1351,8 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; if (weapon) weapon.triggerHeld = false; });
 
+ui.weaponBtn.addEventListener('click', (e) => { e.stopPropagation(); if (ready) selectWeapon((slotIndex + 1) % slots.length); });
+
 // Cartões de melhoria no canto (aparecem com o jogo pausado).
 function renderUpgrades() {
   ui.upCredits.textContent = upgrades.credits;
@@ -1317,7 +1373,7 @@ function renderUpgrades() {
     card.addEventListener('click', (e) => {
       e.stopPropagation();
       // A reserva extra já entra na compra; o pente maior enche na próxima recarga.
-      if (upgrades.buy(u) && u.id === 'reserve') weapon.reserve += 30;
+      if (upgrades.buy(u) && u.id === 'reserve') for (const s of slots) s.weapon.reserve += 30;
       renderUpgrades();
     });
     return card;
@@ -1330,7 +1386,7 @@ ui.upReset.addEventListener('click', (e) => {
   // Zerar pede um segundo clique em até 3 segundos.
   if (performance.now() < resetArmedUntil) {
     upgrades.reset();
-    weapon.refill();
+    for (const s of slots) s.weapon.refill();
     resetArmedUntil = 0;
     ui.upReset.textContent = 'Zerar progresso';
     renderUpgrades();
@@ -1343,6 +1399,7 @@ ui.upReset.addEventListener('click', (e) => {
 
 // Opção do menu: arma automática. A escolha fica salva neste navegador.
 function setAutomatic(on) {
+  automatic = on;
   if (weapon) weapon.automatic = on;
   ui.auto.setAttribute('aria-pressed', String(on));
   ui.autoState.textContent = on ? 'Ativado' : 'Desativado';

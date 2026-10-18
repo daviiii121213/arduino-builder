@@ -109,6 +109,8 @@
   .toggle[aria-pressed="true"] .toggle-track { background: var(--crosshair); }
   .toggle[aria-pressed="true"] .toggle-thumb { transform: translateX(18px); background: #16171a; }
   .toggle[aria-pressed="true"] .toggle-state { color: var(--crosshair); }
+  .note { color: var(--ink-dim); font-size: 13px; margin-top: -12px !important; }
+  .weapon-name { color: var(--ink) !important; min-width: 0; font-size: 15px !important; }
   .start-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
   #credits-hud { top: calc(20px + env(safe-area-inset-top, 0px)); left: calc(24px + env(safe-area-inset-left, 0px)); }
   .summary-panel .credits { color: var(--signal); font-size: 14px; }
@@ -221,7 +223,7 @@
   </aside>
   <div class="panel">
     <h1>Shooting Range</h1>
-    <p>Estande de tiro com AK-47 e mecânica do CS2: imprecisão ao andar e ao atirar rápido, recuo forte que sobe a mira (a bala sai sempre no centro dela) e a mira que abre junto. Acerte o papel e o alvo corre no trilho para outra distância; tiros errados marcam a parede.</p>
+    <p>Estande de tiro com AK-47 ou Five-seveN e mecânica do CS2: imprecisão ao andar e ao atirar rápido, recuo forte que sobe a mira (a bala sai sempre no centro dela) e a mira que abre junto. Acerte o papel e o alvo corre no trilho para outra distância; tiros errados marcam a parede.</p>
     <dl class="controls">
       <div><dt>WASD</dt><dd>mover</dd></div>
       <div><dt>Mouse</dt><dd>mirar</dd></div>
@@ -246,6 +248,12 @@
       <span class="toggle-label">Arma automática</span>
       <span class="toggle-track"><span class="toggle-thumb"></span></span>
       <span id="auto-state" class="toggle-state">Desativado</span>
+    </button>
+    <p id="auto-note" class="note" hidden>A Five-seveN é semiautomática: um tiro por clique.</p>
+    <button id="weapon" class="toggle" type="button">
+      <span class="toggle-label">Arma</span>
+      <span id="weapon-name" class="toggle-state weapon-name">AK-47</span>
+      <span class="toggle-state">Trocar</span>
     </button>
     <div class="start-row">
       <button id="start" type="button" disabled>Carregando…</button>

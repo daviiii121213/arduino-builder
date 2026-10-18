@@ -59,7 +59,30 @@ Nomes e preços ficam em `models/upgrades.json` (usado pelas duas versões). O p
 `~/.config/ShootingRange/progress.json` na versão C# e no navegador na versão web; o botão
 "Zerar progresso" (dois cliques) começa de novo.
 
-### Arma: AKM (AK-47)
+### Armas
+
+No menu (Tab ou Esc) o botão **Arma** troca entre o **AK-47** e a **FN Five-seveN**; cada uma guarda
+a própria munição. Os números, o modelo, as poses e as animações de cada arma ficam no JSON dela
+(`models/ak_viewmodel.json`, `models/fiveseven_viewmodel.json`), usados pelas duas versões.
+
+#### FN Five-seveN
+
+Pistola belga de 5,7×28 mm (Wikipedia, IMFDB): 208 mm, armação de polímero, carregador de 20, trava
+ambidestra e retém do carregador logo atrás do guarda-mato. Modelo `models/fiveseven.glb`, exportado do
+`.blend` recebido com o Blender por `tools/fiveseven-parts.py` (+ `tools/parts-glb.py`): ferrolho,
+gatilho e retém separados para animar, e um carregador criado dentro do punho (o original não tinha).
+
+- CS2 (csdb.gg, gamingpromax): 400 disparos por minuto, 20/100 balas, velocidade 240, recuperação 0,2 s,
+  recarga ~2,2 s. Imprecisões e recuo são estimativas (as fontes não trazem esses números)
+- Recuo 3,5 vezes o calibrado (o AK continua 5x); só semiautomática
+- **Empunhadura "thumbs forward"** (Have Gun Will Train, Julie Golob): mão forte alta no punho, mão de
+  apoio por cima dos dedos dela, polegares para a frente no lado esquerdo da armação e o indicador no
+  gatilho. Cada dedo foi posicionado por IK no ponto certo do punho
+- O ferrolho corre a cada tiro e **fica travado atrás quando o pente esvazia**
+- Recarga: o retém solta o carregador, a mão de apoio busca outro embaixo e empurra no punho; com o pente
+  vazio, ainda puxa o ferrolho por cima ("overhand rack", Lucky Gunner / Pistol-Training)
+
+#### AKM (AK-47)
 
 Modelo `models/akm.glb`, gerado do `AKM.fbx` recebido por `tools/akm-parts.mjs` e `tools/akm-glb.py`:
 o modelo vinha com ossos (carregador, ferrolho, retém, seletor) e sem cores, então foi separado em
@@ -118,7 +141,7 @@ Para testar localmente: `cd web && python3 -m http.server` e abra http://localho
 - `Program.cs`: janela, controles, tiros, pontuação, desenho e HUD
 - `Player.cs`: movimento estilo Source (atrito, aceleração, pulo, agachar)
 - `Weapon.cs`: mecânica do AK (cadência, imprecisão, recuo, recarga, inspeção)
-- `ViewmodelRig.cs`: lê `models/ak_viewmodel.json` e interpola poses e animações
+- `ViewmodelRig.cs`: lê o JSON de cada arma (números, poses e animações) e interpola as animações
 - `Targets.cs`: alvos móveis e pontuação por região do papel
 - `Booths.cs`: baias com pontuação (1, 4, 6 e 9) e o registro de cada passagem
 - `Upgrades.cs`: créditos, níveis e efeitos das melhorias, e o progresso salvo
@@ -128,7 +151,8 @@ Para testar localmente: `cd web && python3 -m http.server` e abra http://localho
 - `CollisionWorld.cs`: colisão por raycast contra os triângulos do cenário
 - `models/shooting_range.fbx`: o cenário
 - `models/akm.glb`: o fuzil, em peças (body, mag, bolt, magrelease, selector)
-- `models/ak_viewmodel.json`: posição da arma e dos braços, poses e animações
+- `models/ak_viewmodel.json`: números do AK, posição da arma e dos braços, poses e animações
+- `models/fiveseven.glb` e `models/fiveseven_viewmodel.json`: a pistola, em peças, e o JSON dela
 - `models/arms.fbx`: braços em primeira pessoa (desenhados por cima da cena, estilo CS);
   a textura deles é `models/tex/armColor.png` (manga camuflada, punho e luva)
 - `models/tex/`: texturas. Cada material procura aqui um arquivo com o mesmo
