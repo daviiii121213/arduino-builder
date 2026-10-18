@@ -257,10 +257,13 @@ class Player {
 
 // ---------------------------------------------------------------- arma (Weapon.cs)
 
-// AK-47 com a mecânica do CS2, um tiro por clique (valores em Weapon.cs).
+// AK-47 com a mecânica do CS2, um tiro por clique ou automático (valores em Weapon.cs).
 class Weapon {
   static CLIP_SIZE = 30;
-  static VIEW_RECOIL_TRACKING = 0.45;
+  // A câmera acompanha o recuo inteiro: a bala sai sempre no centro da mira (no CS2 seriam 45%).
+  static VIEW_RECOIL_TRACKING = 1;
+  // Recuo 5 vezes maior que o calibrado (fator 3, ajustado com a Glock).
+  static RECOIL_IMPULSE_SCALE = 3 * 5;
 
   constructor(rig) {
     this.rig = rig;
@@ -274,6 +277,8 @@ class Weapon {
     this.accuracyPenalty = 0;
     this.cooldown = 0;
     this.fireQueued = false;
+    this.automatic = false;   // segurando o botão, atira a 600 disparos/min
+    this.triggerHeld = false;
     this.kick = 0;
     this.muzzleFlash = 0;
   }
@@ -326,6 +331,7 @@ class Weapon {
       }
     }
     this.cooldown = Math.max(this.cooldown - dt, 0);
+    if (this.automatic && this.triggerHeld && this.cooldown <= 0 && this.animation !== 'draw') this.fireQueued = true;
     if (this.fireQueued && !this.reloading && this.clip > 0) {
       // Atirar interrompe a inspeção, como no CS2.
       if (this.animation === 'inspect') this.animation = null;
@@ -367,7 +373,7 @@ class Weapon {
 
     this.accuracyPenalty += 0.0078;
     const angle = (Math.random() * 2 - 1) * 70 * DEG;
-    this.aimPunchVelocity.add(new THREE.Vector2(Math.cos(angle), Math.sin(angle)).multiplyScalar(30 * 3));
+    this.aimPunchVelocity.add(new THREE.Vector2(Math.cos(angle), Math.sin(angle)).multiplyScalar(30 * Weapon.RECOIL_IMPULSE_SCALE));
     this.kick = 1;
     this.muzzleFlash = 0.06;
     return { origin: player.eye, direction };
@@ -542,6 +548,26 @@ class TargetScoring {
   }
 }
 
+// ---------------------------------------------------------------- baias (Booths.cs)
+
+// Baias numeradas como as placas: a 1 fica em x = +747 e a 10 em x = -747 (166 cm cada).
+// Só as baias 1, 4, 6 e 9 têm sessão com pontuação própria e resumo na saída.
+const SCORED_BOOTHS = [1, 4, 6, 9];
+function scoredBoothAt(feet) {
+  if (feet.z < -500 || feet.z > -353) return null; // entre o portão e o balcão
+  const lane = Math.round((747 - feet.x) / 166) + 1;
+  return SCORED_BOOTHS.includes(lane) ? lane : null;
+}
+
+class BoothSession {
+  constructor(booth) { this.booth = booth; this.score = 0; this.shots = 0; this.hits = 0; this.pointsBeforeMiss = []; }
+  // points = 0 é erro (parede, papel branco ou suporte do alvo).
+  record(points) {
+    this.shots++;
+    if (points > 0) { this.hits++; this.score += points; } else this.pointsBeforeMiss.push(this.score);
+  }
+}
+
 // ---------------------------------------------------------------- som (sintetizado, sem arquivos)
 
 class Sound {
@@ -590,6 +616,17 @@ const ui = {
   reloadBar: document.getElementById('reload-bar'),
   notice: document.getElementById('notice'),
   crosshair: document.getElementById('crosshair'),
+  scoreLabel: document.getElementById('score-label'),
+  summary: document.getElementById('summary'),
+  sumTitle: document.getElementById('sum-title'),
+  sumTotal: document.getElementById('sum-total'),
+  sumStats: document.getElementById('sum-stats'),
+  sumTable: document.getElementById('sum-table'),
+  sumRows: document.getElementById('sum-rows'),
+  sumNone: document.getElementById('sum-none'),
+  sumClose: document.getElementById('sum-close'),
+  auto: document.getElementById('auto'),
+  autoState: document.getElementById('auto-state'),
 };
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -707,6 +744,7 @@ let armBones = {}, armRest = {}, armsAnimated = true, drawn = false;
 const gunParts = {};
 const casings = [];
 const holes = { rim: null, core: null, dust: null, wall: null, list: [] };
+let session = null, summaryOpen = false;
 const state = { score: 0, hits: 0, shots: 0, popupTime: 0, bobTime: 0, sway: new THREE.Vector2(), jump: false };
 let playing = false, ready = false;
 
@@ -735,6 +773,9 @@ async function boot(saved) {
     scoring = new TargetScoring(paperImage);
     rig = new ViewmodelRig(await (await fetch(ASSETS + 'ak_viewmodel.json')).json());
     weapon = new Weapon(rig);
+    let savedAuto = false;
+    try { savedAuto = localStorage.getItem('automatic') === '1'; } catch { /* sem armazenamento */ }
+    setAutomatic(savedAuto);
     await loadViewmodel();
     setupHoles();
 
@@ -889,7 +930,42 @@ function updateHoles() {
   }
 }
 
+// Entrar numa baia com pontuação zera os pontos; sair dela mostra o resumo numa tela separada.
+function updateBooth() {
+  const booth = scoredBoothAt(player.feet);
+  if (booth === (session ? session.booth : null)) return;
+  if (session && session.shots > 0) showSummary(session);
+  session = booth ? new BoothSession(booth) : null;
+  state.score = state.shots = state.hits = 0;
+}
+
+function showSummary(s) {
+  summaryOpen = true;
+  ui.sumTitle.textContent = `Baia ${s.booth}`;
+  ui.sumTotal.textContent = s.score;
+  ui.sumStats.textContent = `${s.shots} tiros · ${s.hits} acertos · ${s.pointsBeforeMiss.length} erros · ${Math.round((100 * s.hits) / s.shots)}%`;
+  ui.sumRows.replaceChildren(...s.pointsBeforeMiss.map((before, i) => {
+    const streak = before - (i > 0 ? s.pointsBeforeMiss[i - 1] : 0);
+    const tr = document.createElement('tr');
+    for (const [text, cls] of [[`${i + 1}º erro`, ''], [before, 'num'], [`+${streak}`, streak > 0 ? 'num up' : 'num']]) {
+      const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; tr.append(td);
+    }
+    return tr;
+  }));
+  ui.sumTable.hidden = s.pointsBeforeMiss.length === 0;
+  ui.sumNone.hidden = s.pointsBeforeMiss.length > 0;
+  ui.summary.hidden = false;
+  stopPlaying();
+  try { document.exitPointerLock?.(); } catch { /* sem pointer lock */ }
+}
+
 function processShot(shot) {
+  const points = shotPoints(shot);
+  if (session) session.record(points);
+}
+
+// Pontos do tiro (0 = errou).
+function shotPoints(shot) {
   state.shots++;
   // As balas atravessam vidro, como no CS.
   const wall = world.raycast(shot.origin, shot.direction, BULLET_RANGE, true);
@@ -901,8 +977,7 @@ function processShot(shot) {
   }
   if (hitTarget) {
     addHole(hitTarget, best.localPoint, best.normal, best.onPaper);
-    if (!best.onPaper) return;
-    const points = scoring.score(best.uv);
+    const points = best.onPaper ? scoring.score(best.uv) : 0;
     showPopup(points);
     if (points > 0) {
       state.hits++;
@@ -910,9 +985,10 @@ function processShot(shot) {
       hitTarget.relocate();
       sound.hit();
     }
-  } else if (wall) {
-    addHole(null, shot.origin.clone().addScaledVector(shot.direction, wall.distance), wall.normal, false);
+    return points;
   }
+  if (wall) addHole(null, shot.origin.clone().addScaledVector(shot.direction, wall.distance), wall.normal, false);
+  return 0;
 }
 
 function showPopup(points) {
@@ -936,6 +1012,7 @@ function update(dt) {
     run = !!(keys.ShiftLeft || keys.ShiftRight);
   }
   player.update(dt, move, state.jump, crouch, run, world);
+  updateBooth();
   state.jump = false;
 
   const shots = weapon.update(dt, player, (cue) => sound.cue(cue));
@@ -1030,11 +1107,13 @@ function updateCrosshair() {
 
 function updateHud() {
   ui.score.textContent = state.score;
+  ui.scoreLabel.textContent = session ? `Baia ${session.booth} · Pontos` : 'Treino · Pontos';
   const accuracy = state.shots ? Math.round((100 * state.hits) / state.shots) : 0;
   ui.stats.textContent = `Acertos ${state.hits}/${state.shots} · ${accuracy}%`;
   ui.ammo.textContent = weapon.clip;
   ui.reserve.textContent = `/ ${weapon.reserve}`;
   updateCrosshair();
+  ui.mode.textContent = weapon.automatic ? 'AK-47 · Auto' : 'AK-47 · Semi';
   ui.reload.hidden = !weapon.reloading;
   ui.reloadBar.style.transform = `scaleX(${weapon.reloadProgress})`;
   ui.notice.hidden = !(weapon.clip === 0 && weapon.reserve === 0);
@@ -1068,11 +1147,18 @@ function startPlaying() {
 
 function stopPlaying() {
   playing = false;
-  ui.overlay.hidden = false;
+  weapon.triggerHeld = false;
+  ui.overlay.hidden = summaryOpen; // com o resumo aberto, o menu só aparece depois de fechá-lo
   for (const k in keys) keys[k] = false;
 }
 
 ui.start.addEventListener('click', (e) => { e.stopPropagation(); startPlaying(); });
+ui.sumClose.addEventListener('click', (e) => {
+  e.stopPropagation();
+  summaryOpen = false;
+  ui.summary.hidden = true;
+  startPlaying();
+});
 // Esc solta o mouse travado; isso pausa o jogo (só se o mouse chegou a ser travado).
 let locked = false;
 document.addEventListener('pointerlockchange', () => {
@@ -1082,8 +1168,11 @@ document.addEventListener('pointerlockchange', () => {
 
 renderer.domElement.addEventListener('mousedown', (e) => {
   if (!playing) return;
-  if (e.button === 0 && weapon.trigger() === 'empty') sound.click();
+  if (e.button !== 0) return;
+  weapon.triggerHeld = true;
+  if (weapon.trigger() === 'empty') sound.click();
 });
+window.addEventListener('mouseup', (e) => { if (e.button === 0 && weapon) weapon.triggerHeld = false; });
 renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
 document.addEventListener('mousemove', (e) => {
@@ -1104,7 +1193,16 @@ window.addEventListener('keydown', (e) => {
   if (['Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ControlLeft'].includes(e.code)) e.preventDefault();
 });
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; if (weapon) weapon.triggerHeld = false; });
+
+// Opção do menu: arma automática. A escolha fica salva neste navegador.
+function setAutomatic(on) {
+  if (weapon) weapon.automatic = on;
+  ui.auto.setAttribute('aria-pressed', String(on));
+  ui.autoState.textContent = on ? 'Ativado' : 'Desativado';
+  try { localStorage.setItem('automatic', on ? '1' : '0'); } catch { /* sem armazenamento: só não lembra */ }
+}
+ui.auto.addEventListener('click', (e) => { e.stopPropagation(); setAutomatic(!(weapon && weapon.automatic)); });
 
 // ---------------------------------------------------------------- estado entre atualizações da página
 

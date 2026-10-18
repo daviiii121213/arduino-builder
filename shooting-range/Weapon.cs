@@ -5,7 +5,7 @@ namespace ShootingRange;
 // Um disparo já com o desvio aplicado: direção final da bala.
 public readonly record struct Shot(Vector3 Origin, Vector3 Direction);
 
-// AK-47 com a mecânica do CS2, um tiro por clique: imprecisão (parado, agachado, andando, no ar e por disparo,
+// AK-47 com a mecânica do CS2, um tiro por clique ou automático (opção do menu): imprecisão (parado, agachado, andando, no ar e por disparo,
 // com recuperação exponencial), espalhamento aleatório, recuo ("aim punch") que a câmera acompanha só em parte,
 // pente de 30 e recarga (mais longa com o pente vazio, porque é preciso puxar a alavanca de manejo).
 // Valores do AK-47 no CS2 (csdb.gg): imprecisão parado 0.00641, agachado 0.00481, andando 0.17506,
@@ -31,12 +31,18 @@ public sealed class Weapon
     private const float RecoilDecayExp = 8f;
     private const float RecoilDecayLinear = 18f;
     private const float RecoilVelocityDecay = 4.5f;
-    // A unidade da magnitude na Source não é graus/s; este fator foi calibrado com a Glock (recuo 18)
-    // para o primeiro tiro subir ~3°; no AK (recuo 30) o mesmo fator dá ~5°.
-    private const float RecoilImpulseScale = 3f;
-    public const float ViewRecoilTracking = 0.45f;   // a câmera mostra 45% do recuo; a bala segue 100%
+    // A unidade da magnitude na Source não é graus/s. O fator 3 foi calibrado com a Glock (recuo 18) para o
+    // primeiro tiro subir ~3°; aqui ele é 5 vezes maior (pedido): no AK o primeiro tiro sobe ~25°.
+    private const float RecoilImpulseScale = 3f * 5f;
+    // No CS2 a câmera mostra só 45% do recuo e a bala cai acima da mira. Aqui a câmera acompanha
+    // o recuo inteiro, então a bala sai sempre no centro da mira (menos o espalhamento).
+    public const float ViewRecoilTracking = 1f;
 
     private readonly ViewmodelRig _rig;
+
+    // Automático: segurando o botão, atira a 600 disparos/min. Desativado: um tiro por clique.
+    public bool Automatic { get; set; }
+    public bool TriggerHeld { get; set; }
 
     public int Clip { get; private set; } = ClipSize;
     public int Reserve { get; private set; } = 90;
@@ -126,6 +132,7 @@ public sealed class Weapon
         }
 
         _cooldown = MathF.Max(_cooldown - dt, 0);
+        if (Automatic && TriggerHeld && _cooldown <= 0 && Animation != "draw") _fireQueued = true;
         if (_fireQueued && !Reloading && Clip > 0)
         {
             // Atirar interrompe a inspeção, como no CS2.

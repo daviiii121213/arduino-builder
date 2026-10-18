@@ -96,6 +96,9 @@ public static class Program
     private static int _pendingCasings;
 
     private static int _score, _shotsFired, _hits;
+    // Sessão na baia atual (só nas baias 1, 4, 6 e 9) e o resumo mostrado ao sair dela.
+    private static BoothSession? _session;
+    private static BoothSession? _summary;
     private static string _popupText = "";
     private static Vector4 _popupColor;
     private static float _popupTime;
@@ -133,7 +136,19 @@ public static class Program
 
         _mouse.MouseDown += (_, button) =>
         {
-            // O primeiro clique só captura o mouse, sem atirar.
+            // Na tela de resumo da baia, o clique fecha o resumo e volta ao jogo.
+            if (_summary != null)
+            {
+                _summary = null;
+                _mouse.Cursor.CursorMode = CursorMode.Raw;
+                return;
+            }
+            // No menu, o botão alterna o modo automático; qualquer outro clique captura o mouse, sem atirar.
+            if (!MouseCaptured && AutoButtonRect(_window.FramebufferSize.X, _window.FramebufferSize.Y).Contains(new Vector2D<float>(_mouse.Position.X, _mouse.Position.Y)))
+            {
+                _weapon.Automatic = !_weapon.Automatic;
+                return;
+            }
             if (!MouseCaptured)
             {
                 _mouse.Cursor.CursorMode = CursorMode.Raw;
@@ -224,6 +239,8 @@ public static class Program
             run = _keyboard.IsKeyPressed(Key.ShiftLeft) || _keyboard.IsKeyPressed(Key.ShiftRight);
         }
         _player.Update(dt, move, _jumpQueued, crouch, run, _collision);
+        UpdateBooth();
+        _weapon.TriggerHeld = MouseCaptured && _mouse.IsButtonPressed(MouseButton.Left);
         _jumpQueued = false;
 
         foreach (var shot in _weapon.Update(dt, _player))
@@ -243,7 +260,28 @@ public static class Program
         _sway = Vector2.Lerp(_sway, Vector2.Zero, MathF.Min(1f, 8f * dt));
     }
 
+    // Entrar numa baia com pontuação zera os pontos; sair dela mostra o resumo numa tela separada.
+    private static void UpdateBooth()
+    {
+        int? booth = Booths.ScoredAt(_player.Feet);
+        if (booth == _session?.Booth) return;
+        if (_session is { Shots: > 0 })
+        {
+            _summary = _session;
+            _mouse.Cursor.CursorMode = CursorMode.Normal;
+        }
+        _session = booth is int b ? new BoothSession(b) : null;
+        _score = _shotsFired = _hits = 0;
+    }
+
     private static void ProcessShot(Shot shot)
+    {
+        int points = ShotPoints(shot);
+        _session?.Record(points);
+    }
+
+    // Pontos do tiro (0 = errou).
+    private static int ShotPoints(Shot shot)
     {
         _shotsFired++;
         // As balas atravessam vidro, como no CS.
@@ -265,8 +303,7 @@ public static class Program
         if (hitTarget != null)
         {
             _effects.AddBulletHole(hitTarget, best.LocalPoint, best.Normal, onPaper: best.OnPaper);
-            if (!best.OnPaper) return;
-            int points = _scoring.Score(best.Uv);
+            int points = best.OnPaper ? _scoring.Score(best.Uv) : 0;
             ShowPopup(points);
             if (points > 0)
             {
@@ -274,11 +311,11 @@ public static class Program
                 _score += points;
                 hitTarget.Relocate(_random);
             }
+            return points;
         }
-        else if (wall is RayHit w)
-        {
+        if (wall is RayHit w)
             _effects.AddBulletHole(null, shot.Origin + shot.Direction * w.Distance, w.Normal, onPaper: false);
-        }
+        return 0;
     }
 
     private static void ShowPopup(int points)
@@ -439,6 +476,55 @@ public static class Program
             _hud.Rect(x, y, w, h, color);
     }
 
+    // Tela de resumo ao sair de uma baia: total e pontos acumulados antes de cada erro.
+    private static void DrawSummary(BoothSession s, int width, int height)
+    {
+        var white = new Vector4(1, 1, 1, 0.95f);
+        var dim = new Vector4(1, 1, 1, 0.6f);
+        var accent = new Vector4(0.3f, 1f, 0.3f, 0.95f);
+        _hud.Rect(0, 0, width, height, new Vector4(0.03f, 0.03f, 0.035f, 0.93f));
+        float cx = width / 2f, y = height * 0.12f;
+        _hud.Text($"BAIA {s.Booth}  RESULTADO", cx, y, 5, white, Hud.Align.Center);
+        y += 60;
+        _hud.Text("PONTOS NO TOTAL", cx, y, 3, dim, Hud.Align.Center);
+        _hud.Text(s.Score.ToString(), cx, y + 28, 9, accent, Hud.Align.Center);
+        y += 110;
+        int accuracy = (int)MathF.Round(100f * s.Hits / s.Shots);
+        _hud.Text($"TIROS {s.Shots}   ACERTOS {s.Hits}   ERROS {s.PointsBeforeMiss.Count}   {accuracy}%", cx, y, 3, white, Hud.Align.Center);
+        y += 50;
+
+        if (s.PointsBeforeMiss.Count == 0)
+        {
+            _hud.Text("NENHUM ERRO", cx, y, 4, accent, Hud.Align.Center);
+        }
+        else
+        {
+            // Colunas: nº do erro, pontos acumulados antes dele, pontos feitos desde o erro anterior.
+            float c1 = cx - 330, c2 = cx - 20, c3 = cx + 330;
+            _hud.Text("ERRO", c1, y, 3, dim);
+            _hud.Text("PONTOS ANTES", c2, y, 3, dim, Hud.Align.Right);
+            _hud.Text("DESDE O ANTERIOR", c3, y, 3, dim, Hud.Align.Right);
+            y += 32;
+            int rows = Math.Min(s.PointsBeforeMiss.Count, (int)((height * 0.86f - y) / 26));
+            for (int i = 0; i < rows; i++)
+            {
+                int before = s.PointsBeforeMiss[i];
+                int streak = before - (i > 0 ? s.PointsBeforeMiss[i - 1] : 0);
+                _hud.Text($"{i + 1}", c1, y, 3, white);
+                _hud.Text(before.ToString(), c2, y, 3, white, Hud.Align.Right);
+                _hud.Text($"+{streak}", c3, y, 3, streak > 0 ? accent : dim, Hud.Align.Right);
+                y += 26;
+            }
+            if (rows < s.PointsBeforeMiss.Count)
+                _hud.Text($"+ {s.PointsBeforeMiss.Count - rows} ERROS", cx, y, 3, dim, Hud.Align.Center);
+        }
+        _hud.Text("CLIQUE PARA CONTINUAR", cx, height * 0.92f, 3, white, Hud.Align.Center);
+    }
+
+    // Botão "automático" do menu (em pixels da janela).
+    private static Rectangle<float> AutoButtonRect(int width, int height) =>
+        new(width / 2f - 210, height / 2f + 110, 420, 46);
+
     private static void DrawHud(int width, int height)
     {
         var white = new Vector4(1, 1, 1, 0.95f);
@@ -448,7 +534,7 @@ public static class Program
         if (MouseCaptured) DrawCrosshair(width, height);
 
         // Pontos no canto superior direito.
-        _hud.Text("PONTOS", width - margin, margin, 3, dim, Hud.Align.Right);
+        _hud.Text(_session != null ? $"BAIA {_session.Booth}  PONTOS" : "TREINO  PONTOS", width - margin, margin, 3, dim, Hud.Align.Right);
         _hud.Text(_score.ToString(), width - margin, margin + 30, 8, white, Hud.Align.Right);
         if (_popupTime > 0)
         {
@@ -463,7 +549,7 @@ public static class Program
 
         // Munição no canto inferior direito.
         _hud.Text($"{_weapon.Clip} / {_weapon.Reserve}", width - margin, height - margin - 42, 6, white, Hud.Align.Right);
-        _hud.Text("AK-47", width - margin, height - margin - 72, 3, dim, Hud.Align.Right);
+        _hud.Text(_weapon.Automatic ? "AK-47  AUTO" : "AK-47  SEMI", width - margin, height - margin - 72, 3, dim, Hud.Align.Right);
         if (_weapon.Reloading)
         {
             float barWidth = 220;
@@ -476,18 +562,31 @@ public static class Program
             _hud.Text("SEM MUNICAO", width / 2f, height * 0.62f, 3, new Vector4(1, 0.4f, 0.4f, 1), Hud.Align.Center);
         }
 
-        if (!MouseCaptured)
+        if (_summary != null)
+        {
+            DrawSummary(_summary, width, height);
+        }
+        else if (!MouseCaptured)
         {
             _hud.Rect(0, 0, width, height, new Vector4(0, 0, 0, 0.45f));
             _hud.Text("CLIQUE PARA JOGAR", width / 2f, height / 2f - 60, 6, white, Hud.Align.Center);
             string[] help =
             {
                 "WASD MOVER   MOUSE MIRAR   SHIFT CORRER",
-                "CLIQUE ATIRAR (UM TIRO POR CLIQUE)   R RECARREGAR   F INSPECIONAR",
+                "CLIQUE ATIRAR   R RECARREGAR   F INSPECIONAR",
                 "ESPACO PULAR   CTRL AGACHAR   ESC SOLTAR O MOUSE",
             };
             for (int i = 0; i < help.Length; i++)
                 _hud.Text(help[i], width / 2f, height / 2f + 10 + i * 28, 3, dim, Hud.Align.Center);
+
+            // Opção do menu: arma automática ativada ou desativada.
+            var button = AutoButtonRect(width, height);
+            var on = new Vector4(0.3f, 1f, 0.3f, 0.95f);
+            _hud.Rect(button.Origin.X, button.Origin.Y, button.Size.X, button.Size.Y, new Vector4(0, 0, 0, 0.6f));
+            _hud.Rect(button.Origin.X, button.Origin.Y + button.Size.Y - 3, button.Size.X, 3, _weapon.Automatic ? on : dim);
+            _hud.Text(_weapon.Automatic ? "AUTOMATICO: ATIVADO" : "AUTOMATICO: DESATIVADO",
+                width / 2f, button.Origin.Y + 13, 3, _weapon.Automatic ? on : white, Hud.Align.Center);
+            _hud.Text("CLIQUE NO BOTAO PARA MUDAR", width / 2f, button.Origin.Y + button.Size.Y + 10, 2, dim, Hud.Align.Center);
         }
 
         _hud.Flush(width, height);

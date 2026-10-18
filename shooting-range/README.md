@@ -7,7 +7,7 @@ OpenGL, sem engine.
 
 - **W A S D**: mover
 - **Mouse**: mirar (clique na janela para capturar o mouse)
-- **Botão esquerdo**: atirar (um tiro por clique)
+- **Botão esquerdo**: atirar (um tiro por clique; segurando, no modo automático)
 - **R**: recarregar
 - **F**: inspecionar a arma
 - **Espaço**: pular
@@ -23,7 +23,19 @@ valem 10 / 9 / 8. Quando um alvo é acertado, ele corre no trilho para outra dis
 Os pontos ficam no canto superior direito. Tiros que erram deixam marca na parede.
 
 A mira (verde, como a do CS) abre e fecha conforme a imprecisão do momento: abre ao andar,
-pular ou atirar rápido e fecha parado.
+pular ou atirar rápido e fecha parado. A câmera acompanha o recuo inteiro, então a bala sai sempre
+no centro da mira (menos o espalhamento).
+
+No menu (tela de início/pausa) há a opção **Arma automática: ativado / desativado**. Ativado,
+segurar o botão atira a 600 disparos por minuto.
+
+### Baias com pontuação
+
+As baias são numeradas como as placas do estande (1 a 10). Nas baias **1, 4, 6 e 9**, ao entrar
+os pontos zeram; ao sair, uma tela separada mostra o total, tiros, acertos, erros e quantos pontos
+o jogador tinha antes do 1º erro, do 2º erro e assim por diante (e quantos fez desde o erro anterior).
+Erro é qualquer tiro que não pontua (parede, papel branco ou suporte do alvo). As baias 2, 3, 5, 7,
+8 e 10 não têm sessão: lá a pontuação continua como treino.
 
 ### Arma: AKM (AK-47)
 
@@ -39,8 +51,8 @@ Valores do AK-47 no CS2 (csdb.gg, profilerr.net):
 - Imprecisão: parado 0,00641 rad, agachado 0,00481, andando +0,175 (só acima de 34% da velocidade
   máxima, o que permite o "counter-strafe"), no ar +0,4 (estimativa)
 - Cada tiro soma 0,0078 de imprecisão (valor do CS:GO), que cai a 10% em 0,368 s
-- Recuo ("aim punch") 30 com variação de ±70° na direção; a câmera mostra 45% do recuo
-  (`view_recoil_tracking`), mas a bala usa o recuo inteiro
+- Recuo ("aim punch") 30 com variação de ±70° na direção, aqui 5 vezes mais forte (o primeiro tiro
+  sobe ~25°). No CS2 a câmera mostra 45% do recuo; aqui mostra 100%, para a bala seguir a mira
 - Velocidade máxima 215; balas atravessam vidro
 - Movimento da Source: atrito 5,2, aceleração 5,5, controle no ar limitado, gravidade 800,
   pulo de 301,99 u/s; agachado anda a 34% da velocidade
@@ -86,6 +98,7 @@ Para testar localmente: `cd web && python3 -m http.server` e abra http://localho
 - `Weapon.cs`: mecânica do AK (cadência, imprecisão, recuo, recarga, inspeção)
 - `ViewmodelRig.cs`: lê `models/ak_viewmodel.json` e interpola poses e animações
 - `Targets.cs`: alvos móveis e pontuação por região do papel
+- `Booths.cs`: baias com pontuação (1, 4, 6 e 9) e o registro de cada passagem
 - `Effects.cs`: furos de bala, estojos ejetados e clarão do disparo
 - `Hud.cs`: texto e barras na tela (fonte bitmap própria)
 - `SceneModel.cs`: carrega o FBX, as texturas e envia tudo para a GPU

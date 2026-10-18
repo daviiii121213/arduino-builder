@@ -95,11 +95,42 @@
   .zone b { color: var(--ink); }
   .zone.x { border-color: var(--signal); }
   .zone.x b { color: var(--signal); }
+  /* Interruptor do modo automático. */
+  .toggle {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 12px 14px; background: transparent; border: 1px solid var(--line); color: var(--ink);
+    font: 600 15px var(--font-body); cursor: pointer; text-align: left;
+  }
+  .toggle:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .toggle-label { flex: 1; }
+  .toggle-track { position: relative; width: 40px; height: 22px; background: var(--line); border-radius: 11px; transition: background .15s; }
+  .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink); transition: transform .15s; }
+  .toggle-state { min-width: 9ch; text-align: right; font-family: var(--font-display); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); }
+  .toggle[aria-pressed="true"] .toggle-track { background: var(--crosshair); }
+  .toggle[aria-pressed="true"] .toggle-thumb { transform: translateX(18px); background: #16171a; }
+  .toggle[aria-pressed="true"] .toggle-state { color: var(--crosshair); }
   .start-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
-  #start {
+  #summary {
+    position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; overflow-y: auto;
+    background: rgba(12, 13, 12, 0.94);
+    padding-block: calc(24px + env(safe-area-inset-top, 0px)) calc(24px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .summary-panel h2 { margin: 0; font-family: var(--font-display); font-size: clamp(28px, 6vw, 38px); line-height: 1; }
+  .summary-panel .total { display: grid; gap: 2px; }
+  #sum-total { font-family: var(--font-display); font-weight: 700; font-size: 72px; line-height: 1; color: var(--crosshair); font-variant-numeric: tabular-nums; }
+  .summary-panel table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .summary-panel th { font: 500 12px var(--font-display); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); text-align: left; padding: 0 0 6px; border-bottom: 1px solid var(--line); }
+  .summary-panel td { padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .summary-panel .num { text-align: right; }
+  .summary-panel td.up { color: var(--crosshair); }
+  .summary-panel .none { color: var(--crosshair); }
+  #sum-close, #start {
     font: 700 17px var(--font-display); letter-spacing: .08em; text-transform: uppercase;
     color: #16171a; background: var(--signal); border: 0; padding: 12px 22px; cursor: pointer;
   }
+  #sum-close:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
   #start:disabled { background: var(--line); color: var(--ink-dim); cursor: progress; }
   #start:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
   #status { font-size: 13px; color: var(--ink-dim); }
@@ -124,7 +155,7 @@
 <div id="game"></div>
 
 <div class="hud" id="score-box">
-  <span class="label">Pontos</span>
+  <span class="label" id="score-label">Treino · Pontos</span>
   <span id="score">0</span>
   <span id="popup" aria-live="polite"></span>
 </div>
@@ -143,7 +174,7 @@
 <div id="overlay">
   <div class="panel">
     <h1>Shooting Range</h1>
-    <p>Estande de tiro com AK-47 e mecânica do CS2: um tiro por clique, imprecisão ao andar e ao atirar rápido, recuo que sobe a mira e a mira que abre junto. Acerte o papel e o alvo corre no trilho para outra distância; tiros errados marcam a parede.</p>
+    <p>Estande de tiro com AK-47 e mecânica do CS2: imprecisão ao andar e ao atirar rápido, recuo forte que sobe a mira (a bala sai sempre no centro dela) e a mira que abre junto. Acerte o papel e o alvo corre no trilho para outra distância; tiros errados marcam a parede.</p>
     <dl class="controls">
       <div><dt>WASD</dt><dd>mover</dd></div>
       <div><dt>Mouse</dt><dd>mirar</dd></div>
@@ -164,11 +195,31 @@
       <span class="zone"><b>10/9/8</b> miras redondas</span>
       <span class="zone"><b>0</b> papel branco</span>
     </div>
+    <button id="auto" class="toggle" type="button" aria-pressed="false">
+      <span class="toggle-label">Arma automática</span>
+      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      <span id="auto-state" class="toggle-state">Desativado</span>
+    </button>
     <div class="start-row">
       <button id="start" type="button" disabled>Carregando…</button>
       <span id="status" role="status">Carregando cenário…</span>
     </div>
     <p class="touch-note">Este jogo precisa de teclado e mouse.</p>
+  </div>
+</div>
+
+<div id="summary" hidden>
+  <div class="panel summary-panel" role="dialog" aria-labelledby="sum-title">
+    <span class="label">Resultado</span>
+    <h2 id="sum-title">Baia</h2>
+    <div class="total"><span class="label">Pontos no total</span><span id="sum-total">0</span></div>
+    <p id="sum-stats"></p>
+    <table id="sum-table">
+      <thead><tr><th>Erro</th><th class="num">Pontos antes</th><th class="num">Desde o anterior</th></tr></thead>
+      <tbody id="sum-rows"></tbody>
+    </table>
+    <p id="sum-none" class="none" hidden>Nenhum erro nesta baia.</p>
+    <div class="start-row"><button id="sum-close" class="primary" type="button">Continuar</button></div>
   </div>
 </div>
 
