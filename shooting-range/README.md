@@ -118,6 +118,32 @@ Baseado em guias de tiro com AK (Crate Club, Shooting Illustrated) e nas animaç
 
 Poses e trilhas de animação ficam em `models/ak_viewmodel.json`, usado pelas duas versões (C# e web).
 
+### Decorações
+
+O saguão atrás das baias tem objetos ligados a tiro e armas, todos de domínio público (CC0), achados no
+GitHub no espelho [Papyszoo/CC0-Public-Domain-Models](https://github.com/Papyszoo/CC0-Public-Domain-Models):
+
+- **Poly Haven** (modelos realistas): caixa de munição ("200 cartridges 7.62 mm"), fuzil de ferrolho 7,62,
+  pistolas com carregadores, binóculo, granadas de cabo, lanterna de sinalização, caixa de primeiros
+  socorros, caixa e baú de ferramentas, galões, extintor, caixotes militares, estante de aço e prateleira de metal.
+- **Quaternius** (Ultimate Gun Pack): pistola, submetralhadora e espingarda expostas.
+
+Onde ficam:
+
+- **Balcão da parede do fundo**: caixas de munição empilhadas, binóculos, pistolas, granadas, lanterna,
+  caixa de primeiros socorros, o fuzil deitado, caixa de ferramentas, pistola e espingarda.
+- **Embaixo do balcão (no chão)**: caixotes militares empilhados no canto, baú de ferramentas,
+  galões e o extintor ao lado da porta.
+- **Estante de aço** (parede da direita) e **prateleira de metal** (parede da esquerda), com munição,
+  armas e equipamentos nas tábuas.
+- **Balcão de cada baia**: uma caixa de munição ao lado.
+
+Tudo fica em `models/decor.glb`, montado pelo `tools/decor-build.py` no Blender: importa cada modelo,
+ajusta a escala para cm, reduz para no máximo 6000 triângulos e texturas de 512 px (só a cor base) e
+coloca cada objeto na posição. Para mudar algo de lugar, edite a lista `PLACEMENTS` do script e rode
+`blender -b -P tools/decor-build.py -- <pasta com os .glb originais> models/decor.glb`.
+As decorações têm colisão: o jogador esbarra nelas e os tiros deixam marca.
+
 ## Versão web
 
 A pasta `web/` tem o mesmo jogo em JavaScript (three.js), publicado como Artifact:
@@ -125,7 +151,8 @@ https://claude.ai/artifact/E6bcqKj5akxTfG5bdfCJ9N
 
 - `web/index.html` e `web/game.js`: página e jogo (mesma mecânica da versão em C#)
 - `web/assets/`: cenário compactado (`scene.bin.txt` + `scene.json`, gerados por
-  `web/tools/export-scene.mjs`), texturas em 1024 px e os modelos dos braços e da arma.
+  `web/tools/export-scene.mjs`), texturas em 1024 px e os modelos dos braços, das armas e das
+  decorações (`decor.glb.txt`).
   Os binários ficam em base64 dentro de `.txt` porque o Artifact só serve tipos conhecidos.
 
 Para testar localmente: `cd web && python3 -m http.server` e abra http://localhost:8000.
@@ -153,6 +180,7 @@ Para testar localmente: `cd web && python3 -m http.server` e abra http://localho
 - `models/akm.glb`: o fuzil, em peças (body, mag, bolt, magrelease, selector)
 - `models/ak_viewmodel.json`: números do AK, posição da arma e dos braços, poses e animações
 - `models/fiveseven.glb` e `models/fiveseven_viewmodel.json`: a pistola, em peças, e o JSON dela
+- `models/decor.glb`: decorações já posicionadas (ver "Decorações"; gerado por `tools/decor-build.py`)
 - `models/arms.fbx`: braços em primeira pessoa (desenhados por cima da cena, estilo CS);
   a textura deles é `models/tex/armColor.png` (manga camuflada, punho e luva)
 - `models/tex/`: texturas. Cada material procura aqui um arquivo com o mesmo

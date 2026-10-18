@@ -827,6 +827,26 @@ async function loadScene() {
   return parts;
 }
 
+// Decorações (caixas de munição, armas expostas, estantes...) já posicionadas no cenário; ver tools/decor-build.py.
+// Como no C#, as malhas vão para o mundo com a posição final e também entram na colisão.
+async function loadDecor() {
+  const gltf = await new GLTFLoader().parseAsync(await fetchBinary('decor.glb'), ASSETS);
+  gltf.scene.updateMatrixWorld(true);
+  const parts = [];
+  gltf.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    const geometry = o.geometry.clone().applyMatrix4(o.matrixWorld);
+    if (!geometry.attributes.normal) geometry.computeVertexNormals();
+    const map = o.material.map || null;
+    const mesh = new THREE.Mesh(geometry, makeMaterial({ map, color: map ? [1, 1, 1] : o.material.color.toArray() }));
+    scene.add(mesh);
+    const positions = geometry.attributes.position.array;
+    const indices = geometry.index ? geometry.index.array : Uint32Array.from({ length: positions.length / 3 }, (_, i) => i);
+    parts.push({ name: o.name, positions, indices, glass: false, mesh });
+  });
+  return parts;
+}
+
 // ---------------------------------------------------------------- jogo
 
 const player = new Player(SPAWN);
@@ -859,7 +879,9 @@ async function boot(saved) {
       groups.get(p.name).push(p);
     }
     targets = [...groups].map(([name, ps]) => new ShootingTarget(name, ps));
-    world = new CollisionWorld(parts.filter((p) => !targetParts.includes(p)));
+    ui.status.textContent = 'Carregando decorações…';
+    const decor = await loadDecor();
+    world = new CollisionWorld(parts.filter((p) => !targetParts.includes(p)).concat(decor));
 
     ui.status.textContent = 'Carregando braços e arma…';
     const paperImage = await new Promise((resolve, reject) => {

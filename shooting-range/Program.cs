@@ -12,6 +12,8 @@ public static class Program
     private const string ModelPath = "models/shooting_range.fbx";
     private const string TextureDir = "models/tex";
     private const string ArmsPath = "models/arms.fbx";
+    // Decorações (caixas de munição, armas expostas, estantes...) já posicionadas; ver tools/decor-build.py.
+    private const string DecorPath = "models/decor.glb";
     // Armas disponíveis (trocadas no menu). Cada JSON traz modelo, números, poses e animações.
     private static readonly string[] WeaponRigs = { "models/ak_viewmodel.json", "models/fiveseven_viewmodel.json" };
     private const string UpgradesPath = "models/upgrades.json";
@@ -75,6 +77,7 @@ public static class Program
     private static IMouse _mouse = null!;
     private static SceneModel _scene = null!;
     private static SceneModel _arms = null!;
+    private static SceneModel _decor = null!;
     private sealed record WeaponSlot(ViewmodelRig Rig, Weapon Weapon, SceneModel Model, Dictionary<string, List<DrawMesh>> Parts);
     private static readonly List<WeaponSlot> _slots = new();
     private static int _slot;
@@ -205,7 +208,9 @@ public static class Program
             .Select(g => new ShootingTarget(g.Key, g.ToList()))
             .ToList();
         var targetMeshes = _targets.SelectMany(t => t.Meshes).ToHashSet();
-        _collision = new CollisionWorld(_scene.Meshes.Where(m => !targetMeshes.Contains(m)));
+        _decor = new SceneModel(_gl, DecorPath, TextureDir);
+        // As decorações também têm colisão: o jogador esbarra nelas e os tiros deixam marca.
+        _collision = new CollisionWorld(_scene.Meshes.Where(m => !targetMeshes.Contains(m)).Concat(_decor.Meshes));
         _scoring = new TargetScoring(TargetPaperTexture);
 
         _upgrades = new Upgrades(UpgradesPath);
@@ -404,6 +409,7 @@ public static class Program
         _gl.Uniform1(_unlitLocation, 0f);
         SetViewProjection(view * projection);
         DrawMeshes(_scene.Meshes, Matrix4x4.Identity);
+        DrawMeshes(_decor.Meshes, Matrix4x4.Identity);
         _effects.DrawBulletHoles(_colorLocation, _modelLocation);
 
         // A arma e os braços são desenhados por cima de tudo, com FOV próprio, como nos jogos de tiro:
@@ -770,6 +776,7 @@ public static class Program
     private static void OnClose()
     {
         _scene.Dispose();
+        _decor.Dispose();
         _arms.Dispose();
         foreach (var slot in _slots) slot.Model.Dispose();
         _hud.Dispose();
