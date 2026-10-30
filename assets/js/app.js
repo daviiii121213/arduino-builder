@@ -274,7 +274,7 @@
       : (CONFIG.cnpj || "");
     companyId.textContent = [CONFIG.razaoSocial, cnpjText && "CNPJ " + cnpjText].filter(Boolean).join(" · ");
     // Until the real number is in, keep the discreet "pending" look.
-    companyId.classList.toggle("placeholder-tag", cnpjDigits.length !== 14 || !CONFIG.razaoSocial);
+    companyId.classList.toggle("placeholder-tag", cnpjDigits.length !== 14);
   }
 
   /* ---------------- Acordeão (FAQ) ---------------- */
