@@ -16,7 +16,16 @@ window.GENESIS_CONFIG = {
   instagramUrl: "",
   instagramHandle: "@genesisintegrativa.com.br",
 
-  // Endpoint HTTPS que recebe o diagnóstico (POST JSON). Vazio = modo de demonstração (nada é enviado). [A validar]
+  // Envio do diagnóstico por e-mail via EmailJS (https://www.emailjs.com). Passo a passo no README.
+  // Use somente estes três identificadores, que o EmailJS foi feito para expor no navegador.
+  // NUNCA coloque aqui a Private Key (Access Token) da conta. O destinatário fica no modelo, no painel do EmailJS.
+  emailjs: {
+    serviceId: "",   // Email Services > Gmail > Service ID (ex.: "service_xxxxxxx")
+    templateId: "",  // Email Templates > Novo diagnóstico > Template ID (ex.: "template_xxxxxxx")
+    publicKey: ""    // Account > General > Public Key
+  },
+
+  // Alternativa ao EmailJS: endpoint HTTPS próprio que recebe o diagnóstico em JSON. Opcional.
   submitEndpoint: "",
 
   // Prazo de retorno exibido após o envio. [A validar]

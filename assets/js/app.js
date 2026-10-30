@@ -177,9 +177,15 @@
   var dialog = $("#privacy-dialog");
   var lastFocus = null;
 
-  $("#privacy-transmission").textContent = CONFIG.submitEndpoint
-    ? "Ao enviar, as respostas são transmitidas por conexão segura à equipe do Projeto Gênesis."
-    : "No momento, o envio não está ativo: as respostas não são transmitidas a ninguém.";
+  var EMAILJS = CONFIG.emailjs || {};
+  var emailjsReady = !!(EMAILJS.serviceId && EMAILJS.templateId && EMAILJS.publicKey);
+  var sendingEnabled = emailjsReady || !!CONFIG.submitEndpoint;
+
+  $("#privacy-transmission").textContent = emailjsReady
+    ? "Ao enviar, as respostas são encaminhadas por e-mail à equipe do Projeto Gênesis por meio do serviço EmailJS, em conexão segura."
+    : CONFIG.submitEndpoint
+      ? "Ao enviar, as respostas são transmitidas por conexão segura à equipe do Projeto Gênesis."
+      : "No momento, o envio não está ativo: as respostas não são transmitidas a ninguém.";
 
   function openPrivacy() {
     lastFocus = document.activeElement;
@@ -365,6 +371,65 @@
     statusBox.focus();
   }
 
+  var EMAILJS_URL = "https://api.emailjs.com/api/v1.0/email/send";
+
+  function formatSentAt(iso) {
+    return new Date(iso).toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+    }) + " (horário de Brasília)";
+  }
+
+  // Variáveis usadas pelo modelo em emailjs/template-diagnostico.html.
+  function emailTemplateParams(payload) {
+    var c = payload.contact, cl = payload.closing;
+    var params = {
+      empresa: c.company,
+      responsavel: c.name,
+      cargo: c.role,
+      segmento: c.segment,
+      colaboradores: c.employee_range,
+      cidade: c.city,
+      whatsapp: c.whatsapp,
+      email: c.email,
+      reply_to: c.email,
+      principal_preocupacao: cl.principal_preocupacao,
+      comentario_adicional: cl.comentario_adicional || "Não informado.",
+      preferencia_contato: cl.preferencia_contato,
+      consentimento: cl.consentimento ? "Sim. Autorizou o uso dos dados e declarou ter lido a Política de Privacidade." : "Não",
+      data_envio: formatSentAt(payload.meta.submitted_at)
+    };
+    RATINGS.forEach(function (r, i) {
+      var n = i + 1, v = payload.ratings[r.id];
+      params["dimensao_" + n] = r.dimension;
+      params["pergunta_" + n] = r.question;
+      params["nota_" + n] = String(v);
+      params["barra_" + n] = new Array(v + 1).join("●") + new Array(11 - v).join("○");
+    });
+    return params;
+  }
+
+  function transmit(payload, signal) {
+    if (emailjsReady) {
+      return fetch(EMAILJS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          service_id: EMAILJS.serviceId,
+          template_id: EMAILJS.templateId,
+          user_id: EMAILJS.publicKey,
+          template_params: emailTemplateParams(payload)
+        }),
+        signal: signal
+      });
+    }
+    return fetch(CONFIG.submitEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(payload),
+      signal: signal
+    });
+  }
+
   var sending = false;
 
   form.addEventListener("submit", function (e) {
@@ -407,9 +472,9 @@
 
     var payload = buildPayload();
 
-    if (!CONFIG.submitEndpoint) {
-      showStatus("demo", "Modo de demonstração: respostas não enviadas", [
-        "Todas as respostas foram preenchidas corretamente, mas o destino de envio do formulário ainda não foi configurado. Por isso, nada foi transmitido ao Projeto Gênesis.",
+    if (!sendingEnabled) {
+      showStatus("demo", "Envio ainda não configurado", [
+        "Todas as respostas foram preenchidas corretamente, mas o envio do formulário ainda não foi configurado neste site. Por isso, nada foi transmitido ao Projeto Gênesis.",
         "Suas respostas continuam preenchidas nesta página. Para falar com o Projeto Gênesis agora, use os canais da seção Contato."
       ]);
       return;
@@ -425,12 +490,7 @@
     var controller = "AbortController" in window ? new AbortController() : null;
     var timer = controller && setTimeout(function () { controller.abort(); }, 20000);
 
-    fetch(CONFIG.submitEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller ? controller.signal : undefined
-    }).then(function (res) {
+    transmit(payload, controller ? controller.signal : undefined).then(function (res) {
       if (!res.ok) throw new Error("HTTP " + res.status);
       form.reset();
       touched = {};
