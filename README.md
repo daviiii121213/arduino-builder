@@ -50,7 +50,7 @@ O formulário já está ligado ao EmailJS. Quando o visitante conclui o diagnós
 emailjs: {
   serviceId: "service_tjhss8o",
   templateId: "template_rfrabpi",
-  publicKey: "p3Er2Q7YscSUrFyy-9ZqJ"
+  publicKey: "hbc0-EsNfy0dvZBS7"
 },
 ```
 
