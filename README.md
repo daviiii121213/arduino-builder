@@ -34,7 +34,7 @@ Preencha em `assets/js/config.js`. Enquanto um campo estiver vazio, o site mostr
 | Número do WhatsApp (`whatsappNumber`) | **[Inserir]** — botões desativados com aviso; o botão flutuante só aparece quando configurado |
 | E-mail oficial (`email`) | **[Inserir]** |
 | Link do Instagram (`instagramUrl`) | **[A validar]** — o @genesisintegrativa.com.br é exibido, mas o link só é ativado depois de confirmado |
-| Prazo de retorno (`responseDeadline`) | **[A validar]** — hoje aparece como “[X dias úteis]” na mensagem de sucesso |
+| Prazo de retorno (`responseDeadline`) | **[A validar]** — enquanto estiver vazio, a mensagem de sucesso diz só que um conselheiro vai entrar em contato, sem prazo |
 | Política de Privacidade | **Pendente de aprovação** — a janela mostra um texto provisório e marcado como pendente (revisão sugerida: Dr. Roberto) |
 | CNPJ e razão social | **A validar** — rodapé |
 | Vídeo institucional (versão A, 16:9, com legenda) | Não fornecido — há um comentário de marcação no fim da seção `#o-que-e` |
@@ -42,7 +42,7 @@ Preencha em `assets/js/config.js`. Enquanto um campo estiver vazio, o site mostr
 
 ## Envio por e-mail (EmailJS)
 
-O formulário já está ligado ao EmailJS. Quando o visitante conclui o diagnóstico, o site envia as respostas para o modelo do EmailJS, que encaminha o e-mail para `davi.devgenius@gmail.com` pelo serviço Gmail conectado.
+O formulário já está ligado ao EmailJS. Quando o visitante conclui o diagnóstico, o site envia as respostas para o modelo do EmailJS, que encaminha o e-mail para o destinatário configurado no modelo, pelo serviço Gmail conectado.
 
 ### Configuração em uso (`assets/js/config.js`)
 
@@ -88,7 +88,7 @@ O destinatário fica configurado no próprio modelo, no painel do EmailJS, e nã
 ### Como testar
 
 1. Na pasta do site, rode `python3 -m http.server 8000` e abra http://localhost:8000/#formulario (se tiver restringido domínios no EmailJS, inclua `http://localhost:8000`).
-2. Preencha e envie. Deve aparecer “Recebemos suas respostas!” e o e-mail deve chegar em `davi.devgenius@gmail.com` (confira o spam na primeira vez).
+2. Preencha e envie. Deve aparecer “Recebemos suas respostas!” e o e-mail deve chegar na caixa configurada no modelo (confira o spam na primeira vez).
 3. Se aparecer “Não foi possível enviar agora”, abra o console do navegador (F12) > aba *Network* > requisição `send`: a resposta do EmailJS diz o motivo (ex.: modelo não encontrado, domínio não permitido).
 
 ### Alternativa: endpoint próprio

@@ -504,7 +504,8 @@
       $$("[data-value-for]").forEach(function (o) { o.textContent = "Sem resposta"; });
       updateProgress();
       var p = document.createElement("p");
-      p.textContent = "Um conselheiro do Projeto Gênesis vai entrar em contato em até " + CONFIG.responseDeadline +
+      p.textContent = "Um conselheiro do Projeto Gênesis vai entrar em contato" +
+        (CONFIG.responseDeadline ? " em até " + CONFIG.responseDeadline : "") +
         " para agendar uma reunião aprofundada. Enquanto isso, acompanhe nossos conteúdos no Instagram " + CONFIG.instagramHandle + ".";
       showStatus("success", "Recebemos suas respostas!", [], p);
     }).catch(function () {

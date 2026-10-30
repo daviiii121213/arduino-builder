@@ -28,6 +28,6 @@ window.GENESIS_CONFIG = {
   // Alternativa ao EmailJS: endpoint HTTPS próprio que recebe o diagnóstico em JSON. Opcional.
   submitEndpoint: "",
 
-  // Prazo de retorno exibido após o envio. [A validar]
-  responseDeadline: "[X dias úteis]"
+  // Prazo de retorno exibido após o envio, ex.: "2 dias úteis". Vazio = a frase sai sem prazo. [A validar]
+  responseDeadline: ""
 };
