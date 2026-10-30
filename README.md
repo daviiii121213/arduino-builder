@@ -49,7 +49,8 @@ O formulário já está ligado ao EmailJS. Quando o visitante conclui o diagnós
 ```js
 emailjs: {
   serviceId: "service_tjhss8o",
-  templateId: "template_rfrabpi",
+  templateId: "template_rfrabpi",         // e-mail para a equipe
+  visitorTemplateId: "template_qpw7gwk",  // cópia para o visitante
   publicKey: "_rU-yZOFmbrAa4Rok"
 },
 ```
@@ -69,6 +70,14 @@ O site envia exatamente as variáveis do modelo `template_rfrabpi`:
 
 O destinatário fica configurado no próprio modelo, no painel do EmailJS, e não aparece no código do site.
 
+### Cópia para o visitante (`template_qpw7gwk`)
+
+Depois que o e-mail da equipe é confirmado, o site envia uma cópia ao visitante com as mesmas variáveis e mais `{{email}}` (o e-mail que ele digitou). No painel, esse modelo usa **To Email** = `{{email}}` e **Reply To** = o e-mail da equipe. A aba *Auto-Reply* do `template_rfrabpi` deve ficar desligada, senão o visitante recebe duas cópias.
+
+- O diagnóstico conta como enviado assim que o e-mail da equipe é confirmado; se só a cópia do visitante falhar, ele ainda vê a mensagem de sucesso.
+- Cada diagnóstico usa 2 envios da cota do EmailJS (cerca de 100 diagnósticos por mês no plano gratuito).
+- Para desligar a cópia, deixe `visitorTemplateId` vazio.
+
 **Se as respostas chegarem todas numa linha só:** o editor visual do EmailJS pode juntar as quebras de linha de `{{respostas}}`. Nesse caso, abra o modelo em *Edit Content* > *Code Editor* e cole o conteúdo de [`emailjs/template-diagnostico.html`](emailjs/template-diagnostico.html). É o mesmo texto e as mesmas variáveis do seu modelo, só com a formatação que preserva as linhas.
 
 ### Segurança
@@ -76,7 +85,7 @@ O destinatário fica configurado no próprio modelo, no painel do EmailJS, e nã
 - O site usa só a **Public Key**, o **Service ID** e o **Template ID**. O EmailJS foi feito para que esses três fiquem no navegador; eles não dão acesso à conta.
 - A **Private Key** (Access Token) e a senha do Gmail **nunca** entram no código do site.
 - Recomendado em *Account* > *Security*: restringir o uso ao domínio `https://www.genesisintegrativa.com.br` (e ao endereço de testes, se usar) e manter **desligado** “Allow EmailJS API for non-browser applications”.
-- Limite do plano gratuito: 200 e-mails por mês.
+- Limite do plano gratuito: 200 e-mails por mês (cada diagnóstico usa 2: o da equipe e a cópia do visitante).
 
 ### Como o site se comporta
 

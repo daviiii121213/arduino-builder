@@ -21,7 +21,8 @@ window.GENESIS_CONFIG = {
   // NUNCA coloque aqui a Private Key (Access Token) da conta. O destinatário fica no modelo, no painel do EmailJS.
   emailjs: {
     serviceId: "service_tjhss8o",   // Email Services > Gmail > Service ID (ex.: "service_xxxxxxx")
-    templateId: "template_rfrabpi",  // Email Templates > Novo diagnóstico > Template ID (ex.: "template_xxxxxxx")
+    templateId: "template_rfrabpi",  // E-mail que chega para a equipe (destinatário fixo no modelo)
+    visitorTemplateId: "template_qpw7gwk",  // Cópia para o visitante (no modelo, "To Email" = {{email}}). Vazio = não envia cópia.
     publicKey: "_rU-yZOFmbrAa4Rok"    // Account > General > Public Key
   },
 

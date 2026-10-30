@@ -517,18 +517,30 @@
     };
   }
 
+  function sendEmail(templateId, params, signal) {
+    return fetch(EMAILJS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_id: EMAILJS.serviceId,
+        template_id: templateId,
+        user_id: EMAILJS.publicKey,
+        template_params: params
+      }),
+      signal: signal
+    });
+  }
+
   function transmit(payload, signal) {
     if (emailjsReady) {
-      return fetch(EMAILJS_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          service_id: EMAILJS.serviceId,
-          template_id: EMAILJS.templateId,
-          user_id: EMAILJS.publicKey,
-          template_params: emailTemplateParams(payload)
-        }),
-        signal: signal
+      var params = emailTemplateParams(payload);
+      return sendEmail(EMAILJS.templateId, params, signal).then(function (res) {
+        if (!res.ok || !EMAILJS.visitorTemplateId) return res;
+        // The visitor's copy is a courtesy: once the team's e-mail is confirmed, the diagnosis counts as delivered.
+        var visitorParams = Object.assign({}, params, { email: payload.contact.email });
+        return sendEmail(EMAILJS.visitorTemplateId, visitorParams, signal)
+          .catch(function () {})
+          .then(function () { return res; });
       });
     }
     return fetch(CONFIG.submitEndpoint, {
