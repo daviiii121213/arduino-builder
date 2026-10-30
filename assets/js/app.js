@@ -498,7 +498,13 @@
     var timer = controller && setTimeout(function () { controller.abort(); }, 20000);
 
     transmit(payload, controller ? controller.signal : undefined).then(function (res) {
-      if (!res.ok) throw new Error("HTTP " + res.status);
+      if (!res.ok) {
+        return res.text().catch(function () { return ""; }).then(function (text) {
+          var err = new Error("HTTP " + res.status);
+          err.detail = "erro " + res.status + (text ? ": " + text.slice(0, 200) : "");
+          throw err;
+        });
+      }
       form.reset();
       touched = {};
       $$("[data-value-for]").forEach(function (o) { o.textContent = "Sem resposta"; });
@@ -508,10 +514,10 @@
         (CONFIG.responseDeadline ? " em até " + CONFIG.responseDeadline : "") +
         " para agendar uma reunião aprofundada. Enquanto isso, acompanhe nossos conteúdos no Instagram " + CONFIG.instagramHandle + ".";
       showStatus("success", "Recebemos suas respostas!", [], p);
-    }).catch(function () {
-      showStatus("error", "Não foi possível enviar agora", [
-        "Suas respostas não foram recebidas, mas continuam preenchidas no formulário. Verifique a sua conexão e tente novamente."
-      ]);
+    }).catch(function (err) {
+      var lines = ["Suas respostas não foram recebidas, mas continuam preenchidas no formulário. Verifique a sua conexão e tente novamente."];
+      if (err && err.detail) lines.push("Detalhe técnico: " + err.detail);
+      showStatus("error", "Não foi possível enviar agora", lines);
     }).then(function () {
       if (timer) clearTimeout(timer);
       sending = false;

@@ -22,7 +22,7 @@ window.GENESIS_CONFIG = {
   emailjs: {
     serviceId: "service_tjhss8o",   // Email Services > Gmail > Service ID (ex.: "service_xxxxxxx")
     templateId: "template_rfrabpi",  // Email Templates > Novo diagnóstico > Template ID (ex.: "template_xxxxxxx")
-    publicKey: "hbc0-EsNfy0dvZBS7"    // Account > General > Public Key
+    publicKey: "_rU-yZOFmbrAa4Rok"    // Account > General > Public Key
   },
 
   // Alternativa ao EmailJS: endpoint HTTPS próprio que recebe o diagnóstico em JSON. Opcional.

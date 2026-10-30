@@ -50,7 +50,7 @@ O formulário já está ligado ao EmailJS. Quando o visitante conclui o diagnós
 emailjs: {
   serviceId: "service_tjhss8o",
   templateId: "template_rfrabpi",
-  publicKey: "hbc0-EsNfy0dvZBS7"
+  publicKey: "_rU-yZOFmbrAa4Rok"
 },
 ```
 
@@ -81,7 +81,7 @@ O destinatário fica configurado no próprio modelo, no painel do EmailJS, e nã
 ### Como o site se comporta
 
 - **Sucesso:** “Recebemos suas respostas!” só aparece depois que o EmailJS confirma o envio (resposta 200). O formulário é então limpo.
-- **Falha** (sem internet, identificador errado, domínio não autorizado, limite atingido): aparece “Não foi possível enviar agora”, as respostas continuam preenchidas e a pessoa pode tentar de novo.
+- **Falha** (sem internet, identificador errado, domínio não autorizado, limite atingido): aparece “Não foi possível enviar agora”, as respostas continuam preenchidas e a pessoa pode tentar de novo. Quando o EmailJS recusa o envio, a mensagem mostra também o motivo que ele devolveu (“Detalhe técnico”).
 - O botão fica bloqueado durante o envio, o que impede envios duplicados.
 - **Prévia no Claude (artifact):** a página publicada como artifact não consegue acessar a API do EmailJS, por segurança da plataforma. O envio real só funciona no site hospedado ou rodando no seu computador.
 
