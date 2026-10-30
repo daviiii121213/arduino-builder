@@ -283,25 +283,29 @@ html:not(.no-intro):not(.intro-done) #inicio .hero-inner { animation: zoom-settl
 .integrator strong { color: var(--gold); }
 
 /* ---------- Timeline ---------- */
-.timeline { display: grid; grid-template-columns: 1fr; gap: 28px; margin-top: 2.5rem; }
-.phase { background: var(--gray); border-radius: var(--radius); padding: 24px; border: 1px solid var(--line); }
-.phase-cycle { background: var(--navy); border-color: var(--navy); color: #dfe2e7; }
-.phase-label { font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-dark); margin-bottom: 18px; }
-.phase-cycle .phase-label { color: var(--gold); }
-.steps { list-style: none; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 14px; position: relative; }
-.step { position: relative; padding-top: 52px; }
-.step::before { content: ""; position: absolute; top: 19px; left: 40px; right: -14px; height: 1px; background: var(--silver); }
+/* One open line through the seven steps: grey before the contract, gold inside the cycle */
+.timeline { display: grid; grid-template-columns: 1fr; row-gap: 48px; }
+.phase-label { font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 26px; padding-top: 14px; border-top: 2px solid #cfd4dc; }
+.phase-cycle .phase-label { color: var(--gold-dark); border-top-color: var(--gold); }
+.steps { list-style: none; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 24px; position: relative; }
+.step { position: relative; padding-top: 58px; padding-right: 6px; }
+.step::before { content: ""; position: absolute; top: 19px; left: 40px; right: -24px; height: 2px; background: #d6dae2; }
+.phase-cycle .step::before { background: linear-gradient(90deg, var(--gold), rgba(201, 162, 74, .45)); }
 .step:last-child::before { display: none; }
-.step-num { position: absolute; top: 0; left: 0; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-head); font-weight: 700; background: var(--white); color: var(--navy); border: 1px solid var(--silver); }
-.phase-cycle .step-num { background: var(--navy-3); color: var(--white); border-color: rgba(255, 255, 255, .25); }
-.step-key .step-num { background: var(--gold); color: var(--navy); border-color: var(--gold); }
-.step-tag { display: inline-block; font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); border: 1px solid rgba(201, 162, 74, .5); border-radius: 4px; padding: 1px 6px; margin-bottom: 8px; }
-.step h4 { font-size: 1rem; margin-bottom: .4em; }
-.step p { font-size: .92rem; margin: 0; color: var(--muted); }
-.phase-cycle .step p { color: var(--silver); }
-.phase-cycle .step h4 { color: var(--white); }
-.highlight-band { margin: 28px 0 0; padding: 22px 26px; border: 1px solid rgba(201, 162, 74, .5); background: var(--gold-soft); border-radius: var(--radius); font-size: 1.05rem; }
-.highlight-band strong { font-family: var(--font-head); }
+.step-num { position: absolute; z-index: 1; top: 0; left: 0; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-head); font-weight: 700; background: var(--white); color: var(--navy); border: 1.5px solid #c4cad4; transition: transform .4s cubic-bezier(.2, .7, .2, 1); }
+.step:hover .step-num { transform: scale(1.1); }
+.phase-cycle .step-num { border-color: var(--gold); }
+.step-key .step-num { background: var(--gold); color: var(--navy); border-color: var(--gold); box-shadow: 0 0 0 6px rgba(201, 162, 74, .16); }
+.step-tag { display: inline-block; font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--gold-dark); border: 1px solid rgba(201, 162, 74, .55); border-radius: 4px; padding: 1px 6px; margin-bottom: 8px; }
+.step h4 { font-size: 1.02rem; margin-bottom: .45em; }
+.step p { font-size: .93rem; margin: 0; color: var(--muted); }
+.highlight-band { margin: 56px 0 0; padding: 4px 0 4px 26px; border-left: 3px solid var(--gold); max-width: 62ch; font-family: var(--font-head); font-size: clamp(1.1rem, 1.8vw, 1.35rem); font-weight: 500; line-height: 1.5; color: var(--navy); }
+.highlight-band strong { font-weight: 700; }
+@media (min-width: 1181px) {
+  .timeline { grid-template-columns: 3fr 4fr; column-gap: 0; }
+  .phase:first-child .phase-label { margin-right: 24px; }
+  .phase:first-child .step:last-child::before { display: block; }
+}
 
 /* ---------- Diferenciais ---------- */
 .diff-grid { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid rgba(255, 255, 255, .14); }
@@ -326,11 +330,13 @@ html:not(.no-intro):not(.intro-done) #inicio .hero-inner { animation: zoom-settl
 .disclaimer { margin: 28px 0 0; font-size: .95rem; color: var(--muted); padding-left: 14px; border-left: 2px solid var(--silver); }
 
 /* ---------- CTA ---------- */
-.cta-section { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%); }
-.cta-inner { text-align: center; display: flex; flex-direction: column; align-items: center; }
-.cta-inner .section-title { max-width: none; }
+.cta-section { position: relative; overflow: hidden; background: var(--navy); padding: clamp(88px, 11vw, 150px) 0; }
+.cta-section .hero-bg { background: radial-gradient(ellipse 55% 75% at 50% 110%, rgba(201, 162, 74, .24), transparent 70%), linear-gradient(180deg, #0c1324 0%, var(--navy) 100%); }
+.cta-inner { position: relative; text-align: center; display: flex; flex-direction: column; align-items: center; }
+.cta-inner .section-title { max-width: 18ch; font-size: clamp(2.2rem, 4.6vw, 3.8rem); margin-bottom: .45em; }
 .cta-inner .section-title::before { left: 50%; transform: translateX(-50%); }
 .cta-inner p { max-width: 60ch; color: var(--silver); margin-bottom: 2rem; }
+.cta-inner .eyebrow { color: var(--gold); margin-bottom: 1.2rem; }
 
 /* ---------- FAQ ---------- */
 .accordion { margin-top: 2rem; border-top: 1px solid var(--line); max-width: 860px; }
@@ -361,8 +367,15 @@ html:not(.no-intro):not(.intro-done) #inicio .hero-inner { animation: zoom-settl
 
 /* ---------- Footer ---------- */
 .site-footer { background: #070b14; color: var(--silver); padding: 64px 0 28px; font-size: .95rem; border-top: 1px solid rgba(201, 162, 74, .25); }
-.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; }
-.footer-brand img { display: block; width: 150px; height: auto; margin-bottom: 22px; }
+.footer-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.3fr; gap: clamp(28px, 4vw, 56px); }
+.footer-logo { margin-bottom: 24px; }
+.footer-logo img { width: 56px; }
+.site-footer .brand-text { display: flex; }
+.footer-logo .brand-small { font-size: .72rem; }
+.footer-logo .brand-big { font-size: 1.55rem; }
+.site-footer a.footer-logo:hover { text-decoration: none; color: var(--white); }
+.footer-cta p { color: var(--silver); margin-bottom: 1.2rem; line-height: 1.55; }
+.site-footer .footer-cta .btn:hover { text-decoration: none; color: var(--navy); }
 .footer-quote { font-family: var(--font-head); color: #dfe2e7; max-width: 38ch; line-height: 1.5; }
 .footer-h { font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
 .site-footer ul { list-style: none; display: grid; gap: 8px; }

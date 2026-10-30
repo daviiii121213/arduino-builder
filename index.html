@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="preload" as="image" href="assets/img/hero-logo.webp">
-  <link rel="stylesheet" href="assets/css/styles.css?v=18">
+  <link rel="stylesheet" href="assets/css/styles.css?v=19">
 </head>
 <body>
   <script>
@@ -329,10 +329,23 @@
       </section>
 
       <section class="section section-dark cta-section" id="diagnostico" aria-labelledby="diag-cta-title">
+        <div class="hero-bg" aria-hidden="true">
+          <svg class="hero-arc hero-arc-tr" viewBox="0 0 220 360" preserveAspectRatio="xMaxYMin meet">
+            <path d="M8 4 C 120 4 212 150 212 356" fill="none" stroke="url(#arc-tr)" stroke-width="9" opacity=".45" filter="url(#arc-glow)"/>
+            <path class="arc-line" d="M8 4 C 120 4 212 150 212 356" fill="none" stroke="url(#arc-tr)" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <svg class="hero-arc hero-arc-bl" viewBox="0 0 280 220" preserveAspectRatio="xMinYMax meet">
+            <path d="M4 8 C 4 120 140 214 276 214" fill="none" stroke="url(#arc-bl)" stroke-width="9" opacity=".4" filter="url(#arc-glow)"/>
+            <path class="arc-line" d="M4 8 C 4 120 140 214 276 214" fill="none" stroke="url(#arc-bl)" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
         <div class="container cta-inner">
+          <p class="eyebrow">Diagnóstico inicial</p>
           <h2 id="diag-cta-title" class="section-title">Comece pelo diagnóstico inicial</h2>
           <p>Responda a algumas perguntas sobre a sua empresa. Leva poucos minutos. Com as suas respostas, um conselheiro entra em contato para agendar uma reunião aprofundada.</p>
-          <a href="#formulario" class="btn btn-gold btn-lg">Fazer meu diagnóstico inicial</a>
+          <a href="#formulario" class="btn btn-gold btn-lg">
+            <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-arrow"/></svg>Fazer meu diagnóstico inicial
+          </a>
         </div>
       </section>
 
@@ -555,7 +568,10 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div class="footer-brand">
-        <img src="assets/img/hero-logo.webp" alt="Projeto Genesis" width="925" height="904" loading="lazy">
+        <a class="brand footer-logo" href="#inicio" aria-label="Projeto Gênesis — início">
+          <img src="assets/img/logo-simbolo.png" alt="" width="56" height="52" loading="lazy">
+          <span class="brand-text"><span class="brand-small">Projeto</span><span class="brand-big">GENESIS</span></span>
+        </a>
         <p class="footer-quote">“Empresas fortes são construídas quando estratégia, gestão financeira e pessoas evoluem juntas.”</p>
       </div>
       <nav aria-label="Rodapé">
@@ -567,7 +583,6 @@
           <li><a href="#conselho">O Conselho</a></li>
           <li><a href="#perguntas">Perguntas</a></li>
           <li><a href="#contato">Contato</a></li>
-          <li><a href="#formulario">Diagnóstico inicial</a></li>
         </ul>
       </nav>
       <div>
@@ -577,6 +592,11 @@
           <li><a data-channel="whatsapp" data-compact>WhatsApp</a></li>
           <li><a data-channel="email" data-compact>E-mail</a></li>
         </ul>
+      </div>
+      <div class="footer-cta">
+        <h2 class="footer-h">Diagnóstico inicial</h2>
+        <p>Responda a algumas perguntas sobre a sua empresa. Leva poucos minutos.</p>
+        <a href="#formulario" class="btn btn-gold btn-sm">Fazer meu diagnóstico inicial</a>
       </div>
     </div>
     <div class="container footer-legal">
@@ -630,7 +650,7 @@
     <symbol id="i-root" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v10"/><path d="M12 13c0 3-3 4-5 7"/><path d="M12 13c0 3 3 4 5 7"/><path d="M12 15v6"/><path d="M8 7c2 0 4 1 4 3"/></g></symbol>
   </svg>
 
-  <script src="assets/js/config.js?v=18"></script>
-  <script src="assets/js/app.js?v=18"></script>
+  <script src="assets/js/config.js?v=19"></script>
+  <script src="assets/js/app.js?v=19"></script>
 </body>
 </html>
