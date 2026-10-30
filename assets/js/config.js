@@ -20,9 +20,9 @@ window.GENESIS_CONFIG = {
   // Use somente estes três identificadores, que o EmailJS foi feito para expor no navegador.
   // NUNCA coloque aqui a Private Key (Access Token) da conta. O destinatário fica no modelo, no painel do EmailJS.
   emailjs: {
-    serviceId: "",   // Email Services > Gmail > Service ID (ex.: "service_xxxxxxx")
-    templateId: "",  // Email Templates > Novo diagnóstico > Template ID (ex.: "template_xxxxxxx")
-    publicKey: ""    // Account > General > Public Key
+    serviceId: "service_tjhss8o",   // Email Services > Gmail > Service ID (ex.: "service_xxxxxxx")
+    templateId: "template_rfrabpi",  // Email Templates > Novo diagnóstico > Template ID (ex.: "template_xxxxxxx")
+    publicKey: "p3Er2Q7YscSUrFyy-9ZqJ"    // Account > General > Public Key
   },
 
   // Alternativa ao EmailJS: endpoint HTTPS próprio que recebe o diagnóstico em JSON. Opcional.

@@ -21,7 +21,7 @@ Qualquer servidor estático serve (Netlify, Vercel, GitHub Pages, Apache, nginx)
 | `index.html` | Marcação das duas abas, SEO/Open Graph, ícones SVG, janela da Política de Privacidade |
 | `assets/css/styles.css` | Sistema visual (cores da marca, Montserrat + Inter), layout responsivo |
 | `assets/js/config.js` | **Dados a configurar** (WhatsApp, e-mail, Instagram, EmailJS, prazo) |
-| `emailjs/template-diagnostico.html` | Modelo do e-mail a colar no painel do EmailJS |
+| `emailjs/template-diagnostico.html` | Versão em código do modelo do EmailJS (opcional, ver abaixo) |
 | `assets/js/app.js` | Navegação entre abas, menu móvel, FAQ, escalas 0–10, validação e envio |
 | `assets/img/` | Logo oficial (extraída do documento), símbolo, favicon, imagem de compartilhamento 1200×630 |
 
@@ -34,7 +34,6 @@ Preencha em `assets/js/config.js`. Enquanto um campo estiver vazio, o site mostr
 | Número do WhatsApp (`whatsappNumber`) | **[Inserir]** — botões desativados com aviso; o botão flutuante só aparece quando configurado |
 | E-mail oficial (`email`) | **[Inserir]** |
 | Link do Instagram (`instagramUrl`) | **[A validar]** — o @genesisintegrativa.com.br é exibido, mas o link só é ativado depois de confirmado |
-| Identificadores do EmailJS (`emailjs`) | **[Inserir]** — ver “Envio por e-mail (EmailJS)”. Sem eles o formulário avisa que o envio não está configurado |
 | Prazo de retorno (`responseDeadline`) | **[A validar]** — hoje aparece como “[X dias úteis]” na mensagem de sucesso |
 | Política de Privacidade | **Pendente de aprovação** — a janela mostra um texto provisório e marcado como pendente (revisão sugerida: Dr. Roberto) |
 | CNPJ e razão social | **A validar** — rodapé |
@@ -43,54 +42,58 @@ Preencha em `assets/js/config.js`. Enquanto um campo estiver vazio, o site mostr
 
 ## Envio por e-mail (EmailJS)
 
-Cada diagnóstico enviado chega por e-mail, organizado em três blocos (empresa e responsável, as cinco notas de 0 a 10 com barra visual, respostas finais) e com data e hora do envio no horário de Brasília. O assunto é **Novo diagnóstico | Projeto Gênesis** e o botão “Responder” do Gmail responde direto para o visitante.
+O formulário já está ligado ao EmailJS. Quando o visitante conclui o diagnóstico, o site envia as respostas para o modelo do EmailJS, que encaminha o e-mail para `davi.devgenius@gmail.com` pelo serviço Gmail conectado.
 
-### Configuração (uma vez, no painel do EmailJS)
+### Configuração em uso (`assets/js/config.js`)
 
-1. **Serviço:** em *Email Services*, abra o serviço **Gmail** já conectado e copie o **Service ID** (ex.: `service_abc123`).
-2. **Modelo:** em *Email Templates* > *Create New Template*:
-   - *Subject*: `Novo diagnóstico | Projeto Gênesis`
-   - *To Email*: `davi.devgenius@gmail.com`
-   - *From Name*: `Site Projeto Gênesis`
-   - *Reply To*: `{{reply_to}}`
-   - *Content*: clique em *Edit Content* > *Code Editor*, apague o conteúdo padrão e cole todo o arquivo [`emailjs/template-diagnostico.html`](emailjs/template-diagnostico.html).
-   - Salve e copie o **Template ID** (ex.: `template_xyz789`).
-3. **Chave pública:** em *Account* > *General*, copie a **Public Key**.
-4. **Segurança:** em *Account* > *Security*:
-   - em *Allowed origins* (ou *Domains*), adicione `https://www.genesisintegrativa.com.br` (e o endereço de testes, se usar), para que só o site possa usar a conta;
-   - mantenha **desligado** “Allow EmailJS API for non-browser applications”.
-5. **No site:** preencha os três valores em `assets/js/config.js`:
+```js
+emailjs: {
+  serviceId: "service_tjhss8o",
+  templateId: "template_rfrabpi",
+  publicKey: "p3Er2Q7YscSUrFyy-9ZqJ"
+},
+```
 
-   ```js
-   emailjs: {
-     serviceId: "service_abc123",
-     templateId: "template_xyz789",
-     publicKey: "SUA_PUBLIC_KEY"
-   },
-   ```
+Para trocar de modelo ou de serviço no futuro, basta alterar esses valores.
 
-6. **Teste:** publique o site, envie um diagnóstico e confira a caixa de entrada (e o spam, na primeira vez).
+### Variáveis enviadas ao modelo
 
-### Segurança das credenciais
+O site envia exatamente as variáveis do modelo `template_rfrabpi`:
+
+| Variável | Conteúdo |
+| --- | --- |
+| `{{empresa}}` | Nome da empresa |
+| `{{responsavel}}` | Nome de quem preencheu |
+| `{{respostas}}` | Todas as respostas, em três blocos: dados da empresa e contato, as cinco notas de 0 a 10 com a pergunta de cada uma, e as respostas finais com o consentimento |
+| `{{data}}` | Data e hora do envio no horário de Brasília, ex.: `30/10/2026, 14:05 (horário de Brasília)` |
+
+O destinatário fica configurado no próprio modelo, no painel do EmailJS, e não aparece no código do site.
+
+**Se as respostas chegarem todas numa linha só:** o editor visual do EmailJS pode juntar as quebras de linha de `{{respostas}}`. Nesse caso, abra o modelo em *Edit Content* > *Code Editor* e cole o conteúdo de [`emailjs/template-diagnostico.html`](emailjs/template-diagnostico.html). É o mesmo texto e as mesmas variáveis do seu modelo, só com a formatação que preserva as linhas.
+
+### Segurança
 
 - O site usa só a **Public Key**, o **Service ID** e o **Template ID**. O EmailJS foi feito para que esses três fiquem no navegador; eles não dão acesso à conta.
 - A **Private Key** (Access Token) e a senha do Gmail **nunca** entram no código do site.
-- O e-mail de destino fica só no modelo do EmailJS, fora do código público. Assim ele não fica exposto a robôs de spam.
-- O limite de envios e a proteção contra abuso ficam no painel do EmailJS (plano gratuito: 200 e-mails por mês; a restrição de domínio do passo 4 impede uso por outros sites).
+- Recomendado em *Account* > *Security*: restringir o uso ao domínio `https://www.genesisintegrativa.com.br` (e ao endereço de testes, se usar) e manter **desligado** “Allow EmailJS API for non-browser applications”.
+- Limite do plano gratuito: 200 e-mails por mês.
 
 ### Como o site se comporta
 
-- **Sucesso:** a mensagem “Recebemos suas respostas!” só aparece depois que o EmailJS confirma o envio (resposta 200). O formulário é então limpo.
+- **Sucesso:** “Recebemos suas respostas!” só aparece depois que o EmailJS confirma o envio (resposta 200). O formulário é então limpo.
 - **Falha** (sem internet, identificador errado, domínio não autorizado, limite atingido): aparece “Não foi possível enviar agora”, as respostas continuam preenchidas e a pessoa pode tentar de novo.
-- **Sem configuração:** aparece “Envio ainda não configurado” e nada é transmitido. Não há envio simulado.
 - O botão fica bloqueado durante o envio, o que impede envios duplicados.
-- **Prévia no Claude (artifact):** a página publicada como artifact não consegue acessar a API do EmailJS, por segurança da plataforma. O envio real só funciona no site hospedado.
+- **Prévia no Claude (artifact):** a página publicada como artifact não consegue acessar a API do EmailJS, por segurança da plataforma. O envio real só funciona no site hospedado ou rodando no seu computador.
 
-Variáveis enviadas ao modelo: `empresa`, `responsavel`, `cargo`, `segmento`, `colaboradores`, `cidade`, `whatsapp`, `email`, `reply_to`, `dimensao_1..5`, `pergunta_1..5`, `nota_1..5`, `barra_1..5`, `principal_preocupacao`, `comentario_adicional`, `preferencia_contato`, `consentimento`, `data_envio`.
+### Como testar
+
+1. Na pasta do site, rode `python3 -m http.server 8000` e abra http://localhost:8000/#formulario (se tiver restringido domínios no EmailJS, inclua `http://localhost:8000`).
+2. Preencha e envie. Deve aparecer “Recebemos suas respostas!” e o e-mail deve chegar em `davi.devgenius@gmail.com` (confira o spam na primeira vez).
+3. Se aparecer “Não foi possível enviar agora”, abra o console do navegador (F12) > aba *Network* > requisição `send`: a resposta do EmailJS diz o motivo (ex.: modelo não encontrado, domínio não permitido).
 
 ### Alternativa: endpoint próprio
 
-Se um dia o envio passar para um servidor ou CRM, deixe `emailjs` vazio e preencha `submitEndpoint` com uma URL HTTPS que receba `POST` em JSON neste formato:
+Se um dia o envio passar para um servidor ou CRM, deixe os campos de `emailjs` vazios e preencha `submitEndpoint` com uma URL HTTPS que receba `POST` em JSON neste formato:
 
 ```json
 {

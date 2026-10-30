@@ -379,33 +379,40 @@
     }) + " (horário de Brasília)";
   }
 
-  // Variáveis usadas pelo modelo em emailjs/template-diagnostico.html.
+  // O modelo do EmailJS usa exatamente estas variáveis: {{empresa}}, {{responsavel}}, {{respostas}} e {{data}}.
   function emailTemplateParams(payload) {
     var c = payload.contact, cl = payload.closing;
-    var params = {
+    var lines = [
+      "SOBRE VOCÊ E A EMPRESA",
+      "• Seu nome: " + c.name,
+      "• Cargo ou função: " + c.role,
+      "• Nome da empresa: " + c.company,
+      "• Segmento: " + c.segment,
+      "• Número de colaboradores: " + c.employee_range,
+      "• Cidade: " + c.city,
+      "• WhatsApp: " + c.whatsapp,
+      "• E-mail: " + c.email,
+      "",
+      "AS DORES DA EMPRESA (0 = não é um problema; 10 = é uma dor grave)"
+    ];
+    RATINGS.forEach(function (r, i) {
+      lines.push((i + 1) + ". " + r.dimension + ": " + payload.ratings[r.id] + "/10");
+      lines.push("   " + r.question);
+    });
+    lines.push(
+      "",
+      "PARA FECHAR",
+      "• O que mais tira o seu sono hoje? " + cl.principal_preocupacao,
+      "• Quer contar algo mais? " + (cl.comentario_adicional || "Não informado."),
+      "• Como prefere ser contatado? " + cl.preferencia_contato,
+      "• Consentimento: " + (cl.consentimento ? "Sim. Autorizou o uso dos dados e declarou ter lido a Política de Privacidade." : "Não")
+    );
+    return {
       empresa: c.company,
       responsavel: c.name,
-      cargo: c.role,
-      segmento: c.segment,
-      colaboradores: c.employee_range,
-      cidade: c.city,
-      whatsapp: c.whatsapp,
-      email: c.email,
-      reply_to: c.email,
-      principal_preocupacao: cl.principal_preocupacao,
-      comentario_adicional: cl.comentario_adicional || "Não informado.",
-      preferencia_contato: cl.preferencia_contato,
-      consentimento: cl.consentimento ? "Sim. Autorizou o uso dos dados e declarou ter lido a Política de Privacidade." : "Não",
-      data_envio: formatSentAt(payload.meta.submitted_at)
+      respostas: lines.join("\n"),
+      data: formatSentAt(payload.meta.submitted_at)
     };
-    RATINGS.forEach(function (r, i) {
-      var n = i + 1, v = payload.ratings[r.id];
-      params["dimensao_" + n] = r.dimension;
-      params["pergunta_" + n] = r.question;
-      params["nota_" + n] = String(v);
-      params["barra_" + n] = new Array(v + 1).join("●") + new Array(11 - v).join("○");
-    });
-    return params;
   }
 
   function transmit(payload, signal) {
