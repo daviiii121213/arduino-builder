@@ -16,6 +16,7 @@
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.documentElement.classList.add("js");
 
   /* ---------------- Navegação entre as duas abas ---------------- */
 
@@ -47,11 +48,48 @@
     el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
   }
 
+  // Switching tabs: a curtain crosses the screen and the new page enters behind it.
+  var wipe = $(".route-wipe");
+  var wiping = false;
+
+  function playWipe(done) {
+    wiping = true;
+    wipe.classList.add("is-covering");
+    setTimeout(function () {
+      done();
+      wipe.classList.remove("is-covering");
+      wipe.classList.add("is-leaving");
+      setTimeout(function () { wipe.classList.remove("is-leaving"); wiping = false; }, 600);
+    }, 500);
+  }
+
+  function enterView(view, initial) {
+    var hero = view === "landing" ? $("#inicio") : $(".form-hero");
+    var introPlays = initial && view === "landing" && !document.documentElement.classList.contains("no-intro");
+    if (reduceMotion || introPlays) return;
+    hero.classList.remove("is-entering");
+    void hero.offsetWidth;
+    hero.classList.add("is-entering");
+    setTimeout(function () { hero.classList.remove("is-entering"); }, 1800);
+  }
+
   function handleRoute(initial) {
     var hash = window.location.hash;
     if (hash === "#politica") { if (!currentView) showView("landing"); openPrivacy(); return; }
     var view = routeFor(hash);
+    if (!initial && currentView && view !== currentView && wipe && !reduceMotion) {
+      closeMenu();
+      // Behind the curtain, follow whatever the address is by then (the visitor may have clicked again).
+      if (!wiping) playWipe(function () { var latest = window.location.hash; applyRoute(latest, routeFor(latest), false); });
+      return;
+    }
+    if (wiping) return;
+    applyRoute(hash, view, initial);
+  }
+
+  function applyRoute(hash, view, initial) {
     var changed = showView(view);
+    if (changed) enterView(view, initial);
     var id = hash.slice(1);
     var target = id && id !== "formulario" && id !== "inicio" ? document.getElementById(id) : null;
 
@@ -87,6 +125,61 @@
     var skipIntro = function () { document.documentElement.classList.add("no-intro"); };
     intro.addEventListener("click", skipIntro);
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") skipIntro(); });
+    setTimeout(function () { document.documentElement.classList.add("intro-done"); }, 2400);
+  }
+
+  /* ---------------- Movimento ---------------- */
+
+  $$(".hero-copy, .form-hero-copy, .form-hero-steps").forEach(function (box) {
+    Array.prototype.forEach.call(box.children, function (el, i) { el.style.setProperty("--i", i); });
+  });
+  if ($(".hero-media")) $(".hero-media").style.setProperty("--i", 3);
+
+  var header = $(".site-header");
+  var onScroll = function () { header.classList.toggle("is-scrolled", window.scrollY > 24); };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  // The hero logo follows the pointer a little.
+  var heroSection = $("#inicio");
+  var heroMedia = $(".hero-media");
+  if (heroMedia && !reduceMotion && window.matchMedia("(pointer: fine)").matches) {
+    heroSection.addEventListener("pointermove", function (e) {
+      var r = heroSection.getBoundingClientRect();
+      heroMedia.style.setProperty("--px", ((e.clientX - r.left) / r.width - 0.5).toFixed(3));
+      heroMedia.style.setProperty("--py", ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
+    });
+    heroSection.addEventListener("pointerleave", function () {
+      heroMedia.style.setProperty("--px", 0);
+      heroMedia.style.setProperty("--py", 0);
+    });
+  }
+
+  // Sections and items rise into place as they scroll into view.
+  if ("IntersectionObserver" in window && !reduceMotion) {
+    var tag = function (sel, extra, step) {
+      $$(sel).forEach(function (el) {
+        el.classList.add("reveal");
+        if (extra) el.classList.add(extra);
+        if (step) {
+          var i = Array.prototype.indexOf.call(el.parentNode.children, el);
+          el.style.setProperty("--d", Math.min(i, 6) * step + "ms");
+        }
+      });
+    };
+    tag(".section-title, .section-intro, .closing-line, .integrator, .highlight-band, .disclaimer, .quote-band p, .split > div > p, .phase, .form-block");
+    tag(".highlight", "reveal-left");
+    tag(".diagram", "reveal-zoom");
+    tag(".pain-item, .pillar, .diff-item, .duo > *, .council-card, .contact-card, .acc-item, .step, .cta-inner > *, .footer-grid > *", null, 110);
+    document.documentElement.classList.add("js-reveal");
+    var revealer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-in");
+        revealer.unobserve(entry.target);
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
+    $$(".reveal").forEach(function (el) { revealer.observe(el); });
   }
 
   /* ---------------- Menu móvel ---------------- */
@@ -177,7 +270,7 @@
     btn.addEventListener("click", function () {
       var open = btn.getAttribute("aria-expanded") === "true";
       btn.setAttribute("aria-expanded", String(!open));
-      document.getElementById(btn.getAttribute("aria-controls")).hidden = open;
+      document.getElementById(btn.getAttribute("aria-controls")).classList.toggle("is-open", !open);
     });
   });
 

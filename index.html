@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="preload" as="image" href="assets/img/hero-logo.webp">
-  <link rel="stylesheet" href="assets/css/styles.css?v=9">
+  <link rel="stylesheet" href="assets/css/styles.css?v=10">
 </head>
 <body>
   <script>
@@ -47,6 +47,7 @@
       </div>
     </div>
   </div>
+  <div class="route-wipe" aria-hidden="true"><span></span></div>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
   <header class="site-header" id="topo">
@@ -107,19 +108,12 @@
       <section class="hero section-dark" id="inicio" aria-labelledby="hero-title">
         <div class="hero-bg" aria-hidden="true">
           <svg class="hero-arc hero-arc-tr" viewBox="0 0 220 360" preserveAspectRatio="xMaxYMin meet">
-            <defs>
-              <linearGradient id="arc-tr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9A24A" stop-opacity="0"/><stop offset=".4" stop-color="#EDCD7E"/><stop offset="1" stop-color="#C9A24A" stop-opacity=".15"/></linearGradient>
-              <filter id="arc-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5"/></filter>
-            </defs>
             <path d="M8 4 C 120 4 212 150 212 356" fill="none" stroke="url(#arc-tr)" stroke-width="9" opacity=".45" filter="url(#arc-glow)"/>
-            <path d="M8 4 C 120 4 212 150 212 356" fill="none" stroke="url(#arc-tr)" stroke-width="2.5" stroke-linecap="round"/>
+            <path class="arc-line" d="M8 4 C 120 4 212 150 212 356" fill="none" stroke="url(#arc-tr)" stroke-width="2.5" stroke-linecap="round"/>
           </svg>
           <svg class="hero-arc hero-arc-bl" viewBox="0 0 280 220" preserveAspectRatio="xMinYMax meet">
-            <defs>
-              <linearGradient id="arc-bl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9A24A" stop-opacity=".2"/><stop offset=".55" stop-color="#E4C170"/><stop offset="1" stop-color="#C9A24A" stop-opacity="0"/></linearGradient>
-            </defs>
             <path d="M4 8 C 4 120 140 214 276 214" fill="none" stroke="url(#arc-bl)" stroke-width="9" opacity=".4" filter="url(#arc-glow)"/>
-            <path d="M4 8 C 4 120 140 214 276 214" fill="none" stroke="url(#arc-bl)" stroke-width="2.5" stroke-linecap="round"/>
+            <path class="arc-line" d="M4 8 C 4 120 140 214 276 214" fill="none" stroke="url(#arc-bl)" stroke-width="2.5" stroke-linecap="round"/>
           </svg>
         </div>
         <div class="container hero-inner">
@@ -151,28 +145,23 @@
         <div class="container">
           <h2 id="dores-title" class="section-title">Você se reconhece em alguma destas frases?</h2>
           <ul class="pain-grid">
-            <li class="card pain-card">
-              <svg class="card-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-chart"/></svg>
+            <li class="pain-item">
               <h3>“A empresa cresce, mas o lucro não acompanha.”</h3>
               <p>Você não confia nos números e não sabe onde ganha ou perde dinheiro.</p>
             </li>
-            <li class="card pain-card">
-              <svg class="card-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-user"/></svg>
+            <li class="pain-item">
               <h3>“A empresa depende de mim para tudo.”</h3>
               <p>Falta planejamento para os próximos anos, e crescer ou passar o bastão parece impossível.</p>
             </li>
-            <li class="card pain-card">
-              <svg class="card-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-team"/></svg>
+            <li class="pain-item">
               <h3>“A equipe não entrega o que eu espero.”</h3>
               <p>Há conflitos entre áreas, e encontrar e manter bons profissionais é difícil.</p>
             </li>
-            <li class="card pain-card">
-              <svg class="card-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-pulse"/></svg>
+            <li class="pain-item">
               <h3>“O clima está pesado e a gestão, exausta.”</h3>
               <p>Estresse, afastamentos e rotatividade viraram rotina.</p>
             </li>
-            <li class="card pain-card">
-              <svg class="card-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-repeat"/></svg>
+            <li class="pain-item">
               <h3>“Os mesmos erros se repetem.”</h3>
               <p>Líderes e equipes resistem a mudanças e não mantêm constância nem foco.</p>
             </li>
@@ -191,21 +180,21 @@
           </div>
           <figure class="diagram" aria-labelledby="diagram-caption">
             <svg viewBox="0 0 400 400" role="img" aria-labelledby="diagram-caption">
-              <circle cx="200" cy="200" r="140" fill="none" stroke="#C9A24A" stroke-width="1.5"/>
-              <g stroke="#C9A24A" stroke-width="1.2" opacity=".75">
-                <line x1="200" y1="200" x2="200" y2="60"/>
-                <line x1="200" y1="200" x2="340" y2="200"/>
-                <line x1="200" y1="200" x2="200" y2="340"/>
-                <line x1="200" y1="200" x2="60" y2="200"/>
+              <circle class="d-ring" cx="200" cy="200" r="140" fill="none" stroke="#C9A24A" stroke-width="1.5" pathLength="100"/>
+              <g class="d-links" stroke="#C9A24A" stroke-width="1.2" opacity=".75">
+                <line x1="200" y1="200" x2="200" y2="60" pathLength="100"/>
+                <line x1="200" y1="200" x2="340" y2="200" pathLength="100"/>
+                <line x1="200" y1="200" x2="200" y2="340" pathLength="100"/>
+                <line x1="200" y1="200" x2="60" y2="200" pathLength="100"/>
               </g>
-              <circle cx="200" cy="200" r="64" fill="#121a2b" stroke="#C9A24A" stroke-width="2"/>
+              <g class="d-core"><circle cx="200" cy="200" r="64" fill="#121a2b" stroke="#C9A24A" stroke-width="2"/>
               <text x="200" y="196" text-anchor="middle" class="d-center">Sua</text>
-              <text x="200" y="216" text-anchor="middle" class="d-center">empresa</text>
+              <text x="200" y="216" text-anchor="middle" class="d-center">empresa</text></g>
               <g class="d-node">
-                <circle cx="200" cy="60" r="44"/><text x="200" y="65" text-anchor="middle">Estratégia</text>
-                <circle cx="340" cy="200" r="44"/><text x="340" y="205" text-anchor="middle">Finanças</text>
-                <circle cx="200" cy="340" r="44"/><text x="200" y="345" text-anchor="middle">Pessoas</text>
-                <circle cx="60" cy="200" r="44"/><text x="60" y="205" text-anchor="middle">Saúde</text>
+                <g class="d-pt" style="--k:0"><circle cx="200" cy="60" r="44"/><text x="200" y="65" text-anchor="middle">Estratégia</text></g>
+                <g class="d-pt" style="--k:1"><circle cx="340" cy="200" r="44"/><text x="340" y="205" text-anchor="middle">Finanças</text></g>
+                <g class="d-pt" style="--k:2"><circle cx="200" cy="340" r="44"/><text x="200" y="345" text-anchor="middle">Pessoas</text></g>
+                <g class="d-pt" style="--k:3"><circle cx="60" cy="200" r="44"/><text x="60" y="205" text-anchor="middle">Saúde</text></g>
               </g>
             </svg>
             <figcaption id="diagram-caption" class="sr-only">Diagrama: no centro, “Sua empresa”, ligada a quatro áreas — Estratégia, Finanças, Pessoas e Saúde.</figcaption>
@@ -215,8 +204,10 @@
 
       <section class="section section-light" id="o-que-e" aria-labelledby="oque-title">
         <div class="container">
-          <h2 id="oque-title" class="section-title">Uma mesa de especialistas que olha a sua empresa por inteiro</h2>
-          <p class="section-intro">O Projeto Gênesis funciona como um Conselho Integrativo: especialistas em gestão, pessoas e saúde que diagnosticam a empresa por inteiro. Desse diagnóstico sai um Plano de Tratamento, executado em fases. Você contrata um ciclo de 6 ou 12 meses com o Conselho, que pode ser renovado.</p>
+          <div class="section-head">
+            <h2 id="oque-title" class="section-title">Uma mesa de especialistas que olha a sua empresa por inteiro</h2>
+            <p class="section-intro">O Projeto Gênesis funciona como um Conselho Integrativo: especialistas em gestão, pessoas e saúde que diagnosticam a empresa por inteiro. Desse diagnóstico sai um Plano de Tratamento, executado em fases. Você contrata um ciclo de 6 ou 12 meses com o Conselho, que pode ser renovado.</p>
+          </div>
           <div class="duo">
             <article class="card duo-card">
               <h3>Conselho Integrativo <span class="duo-sub">— quem analisa e delibera</span></h3>
@@ -234,21 +225,20 @@
 
       <section class="section section-gray" id="pilares" aria-labelledby="pilares-title">
         <div class="container">
-          <h2 id="pilares-title" class="section-title">Três pilares, um único diagnóstico</h2>
-          <p class="section-intro">Todas as especialidades analisam a sua empresa. O que muda de um cliente para outro é a ordem e o ritmo das fases.</p>
+          <div class="section-head">
+            <h2 id="pilares-title" class="section-title">Três pilares, um único diagnóstico</h2>
+            <p class="section-intro">Todas as especialidades analisam a sua empresa. O que muda de um cliente para outro é a ordem e o ritmo das fases.</p>
+          </div>
           <ol class="pillar-grid">
-            <li class="card pillar-card">
-              <span class="pillar-num" aria-hidden="true">01</span>
+            <li class="pillar">
               <h3>Psicológico e Pessoas</h3>
               <p>Saúde integrativa, exaustão emocional, estresse da equipe e desenvolvimento da liderança. Olhamos para o clima, o adoecimento e o afastamento, a adaptabilidade dos líderes e a inteligência emocional.</p>
             </li>
-            <li class="card pillar-card">
-              <span class="pillar-num" aria-hidden="true">02</span>
+            <li class="pillar">
               <h3>Financeiro e Resultados</h3>
               <p>Visibilidade do caixa, margens, precificação e lucro real. Olhamos para o caixa e a DRE, para o “voo cego” entre faturamento e lucro, para custos, desperdícios e previsibilidade.</p>
             </li>
-            <li class="card pillar-card">
-              <span class="pillar-num" aria-hidden="true">03</span>
+            <li class="pillar">
               <h3>Sustentabilidade e Processos</h3>
               <p>Padronização, governança e autonomia da empresa em relação aos sócios. Olhamos para a dependência dos fundadores, o retrabalho, a retenção de talentos, a escala e a sucessão.</p>
             </li>
@@ -287,10 +277,10 @@
         <div class="container">
           <h2 id="dif-title" class="section-title">O que consultorias isoladas não fazem</h2>
           <ul class="diff-grid">
-            <li class="card card-dark"><svg class="card-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-link"/></svg><h3>Diagnóstico integrado</h3><p>Dentro do ciclo, todas as especialidades analisam a sua empresa juntas e cruzam o que encontraram.</p></li>
-            <li class="card card-dark"><svg class="card-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-table"/></svg><h3>Sem especialidades avulsas</h3><p>Você contrata o Conselho inteiro, e não várias consultorias com uma parte do problema cada. O que muda é a ordem, o ritmo e o escopo das fases.</p></li>
-            <li class="card card-dark"><svg class="card-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-check"/></svg><h3>Quem aconselha, executa</h3><p>Os conselheiros não ficam só no parecer: eles colocam o plano em prática com você.</p></li>
-            <li class="card card-dark"><svg class="card-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-root"/></svg><h3>Trata a causa raiz</h3><p>O desenvolvimento emocional, comportamental e de saúde caminha junto com a gestão do negócio.</p></li>
+            <li class="diff-item"><h3>Diagnóstico integrado</h3><p>Dentro do ciclo, todas as especialidades analisam a sua empresa juntas e cruzam o que encontraram.</p></li>
+            <li class="diff-item"><h3>Sem especialidades avulsas</h3><p>Você contrata o Conselho inteiro, e não várias consultorias com uma parte do problema cada. O que muda é a ordem, o ritmo e o escopo das fases.</p></li>
+            <li class="diff-item"><h3>Quem aconselha, executa</h3><p>Os conselheiros não ficam só no parecer: eles colocam o plano em prática com você.</p></li>
+            <li class="diff-item"><h3>Trata a causa raiz</h3><p>O desenvolvimento emocional, comportamental e de saúde caminha junto com a gestão do negócio.</p></li>
           </ul>
         </div>
       </section>
@@ -301,8 +291,10 @@
 
       <section class="section section-light" id="conselho" aria-labelledby="conselho-title">
         <div class="container">
-          <h2 id="conselho-title" class="section-title">Quem senta à mesa com você</h2>
-          <p class="section-intro">Quatro núcleos de especialistas que trabalham juntos. Quem lidera cada projeto muda conforme a necessidade da sua empresa.</p>
+          <div class="section-head">
+            <h2 id="conselho-title" class="section-title">Quem senta à mesa com você</h2>
+            <p class="section-intro">Quatro núcleos de especialistas que trabalham juntos. Quem lidera cada projeto muda conforme a necessidade da sua empresa.</p>
+          </div>
           <div class="council-grid">
             <article class="card council-card">
               <h3>Estratégia, Governança e Financeiro</h3>
@@ -348,24 +340,26 @@
         <div class="container">
           <h2 id="faq-title" class="section-title">Perguntas frequentes</h2>
           <div class="accordion" data-accordion>
-            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-1" id="faq-1-b">O que é um Conselho Integrativo?</button></h3><div class="acc-panel" id="faq-1" role="region" aria-labelledby="faq-1-b" hidden><p>É uma mesa de especialistas em gestão, pessoas e saúde que analisa a sua empresa por inteiro. Em vez de cada consultor olhar só a sua parte, o Conselho cruza as leituras para entender como os problemas se ligam e decide junto as prioridades.</p></div></div>
-            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-2" id="faq-2-b">O que é o Plano de Tratamento?</button></h3><div class="acc-panel" id="faq-2" role="region" aria-labelledby="faq-2-b" hidden><p>É o resultado do diagnóstico: um plano de ações organizado em fases, conforme a prioridade de risco ou de estratégia da sua empresa. “Tratamento” aqui é um conceito de gestão: tratar a causa dos problemas, e não só os sintomas.</p></div></div>
-            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-3" id="faq-3-b">Posso contratar só uma especialidade?</button></h3><div class="acc-panel" id="faq-3" role="region" aria-labelledby="faq-3-b" hidden><p>Não. O Projeto Gênesis oferece um único formato: um ciclo com o Conselho Integrativo inteiro. O que muda de uma empresa para outra é a ordem, o ritmo e o escopo das fases.</p></div></div>
-            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-4" id="faq-4-b">O Projeto Gênesis oferece serviços médicos?</button></h3><div class="acc-panel" id="faq-4" role="region" aria-labelledby="faq-4-b" hidden><p>Não. O Gênesis oferece suporte em saúde integrativa, voltado à regulação do estresse e ao bem-estar de líderes e equipes. Ele não substitui acompanhamento médico.</p></div></div>
-            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-5" id="faq-5-b">Quanto tempo dura o trabalho?</button></h3><div class="acc-panel" id="faq-5" role="region" aria-labelledby="faq-5-b" hidden><p>Os ciclos são de 6 ou 12 meses e podem ser renovados. A cada 6 meses, o Conselho faz três deliberações: o kick-off, a revisão trimestral e a deliberação final, que embasa a renovação.</p></div></div>
-            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-6" id="faq-6-b">Quanto custa?</button></h3><div class="acc-panel" id="faq-6" role="region" aria-labelledby="faq-6-b" hidden><p>O valor do ciclo é definido depois do diagnóstico inicial e da reunião aprofundada, conforme o cenário, o porte da sua empresa e o escopo de cada fase.</p></div></div>
-            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-7" id="faq-7-b">O diagnóstico inicial já é o diagnóstico do Conselho?</button></h3><div class="acc-panel" id="faq-7" role="region" aria-labelledby="faq-7-b" hidden><p>Não. O diagnóstico inicial é um questionário rápido para entendermos as suas principais dores e abrir a conversa. O diagnóstico integrado, com a análise completa do Conselho, é feito no início do ciclo.</p></div></div>
-            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-8" id="faq-8-b">Para quem é o Projeto Gênesis?</button></h3><div class="acc-panel" id="faq-8" role="region" aria-labelledby="faq-8-b" hidden><p>Para donos e dirigentes de pequenas e médias empresas, de qualquer setor, que sentem dor no caixa ou na gestão.</p></div></div>
-            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-9" id="faq-9-b">Vocês atendem fora de Uberlândia?</button></h3><div class="acc-panel" id="faq-9" role="region" aria-labelledby="faq-9-b" hidden><p>Atendemos empresas num raio de até 150 km de Uberlândia. Demandas mais distantes são avaliadas caso a caso.</p></div></div>
-            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-10" id="faq-10-b">Como ficam os dados da minha equipe?</button></h3><div class="acc-panel" id="faq-10" role="region" aria-labelledby="faq-10-b" hidden><p>A participação dos colaboradores nas ações de saúde é voluntária. Os dados de saúde são tratados com sigilo e consentimento específico, conforme a LGPD. A empresa recebe apenas informações anonimizadas, quando necessário, e o resultado individual é entregue só à própria pessoa.</p></div></div>
+            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-1" id="faq-1-b">O que é um Conselho Integrativo?</button></h3><div class="acc-panel" id="faq-1" role="region" aria-labelledby="faq-1-b"><div class="acc-inner"><p>É uma mesa de especialistas em gestão, pessoas e saúde que analisa a sua empresa por inteiro. Em vez de cada consultor olhar só a sua parte, o Conselho cruza as leituras para entender como os problemas se ligam e decide junto as prioridades.</p></div></div></div>
+            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-2" id="faq-2-b">O que é o Plano de Tratamento?</button></h3><div class="acc-panel" id="faq-2" role="region" aria-labelledby="faq-2-b"><div class="acc-inner"><p>É o resultado do diagnóstico: um plano de ações organizado em fases, conforme a prioridade de risco ou de estratégia da sua empresa. “Tratamento” aqui é um conceito de gestão: tratar a causa dos problemas, e não só os sintomas.</p></div></div></div>
+            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-3" id="faq-3-b">Posso contratar só uma especialidade?</button></h3><div class="acc-panel" id="faq-3" role="region" aria-labelledby="faq-3-b"><div class="acc-inner"><p>Não. O Projeto Gênesis oferece um único formato: um ciclo com o Conselho Integrativo inteiro. O que muda de uma empresa para outra é a ordem, o ritmo e o escopo das fases.</p></div></div></div>
+            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-4" id="faq-4-b">O Projeto Gênesis oferece serviços médicos?</button></h3><div class="acc-panel" id="faq-4" role="region" aria-labelledby="faq-4-b"><div class="acc-inner"><p>Não. O Gênesis oferece suporte em saúde integrativa, voltado à regulação do estresse e ao bem-estar de líderes e equipes. Ele não substitui acompanhamento médico.</p></div></div></div>
+            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-5" id="faq-5-b">Quanto tempo dura o trabalho?</button></h3><div class="acc-panel" id="faq-5" role="region" aria-labelledby="faq-5-b"><div class="acc-inner"><p>Os ciclos são de 6 ou 12 meses e podem ser renovados. A cada 6 meses, o Conselho faz três deliberações: o kick-off, a revisão trimestral e a deliberação final, que embasa a renovação.</p></div></div></div>
+            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-6" id="faq-6-b">Quanto custa?</button></h3><div class="acc-panel" id="faq-6" role="region" aria-labelledby="faq-6-b"><div class="acc-inner"><p>O valor do ciclo é definido depois do diagnóstico inicial e da reunião aprofundada, conforme o cenário, o porte da sua empresa e o escopo de cada fase.</p></div></div></div>
+            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-7" id="faq-7-b">O diagnóstico inicial já é o diagnóstico do Conselho?</button></h3><div class="acc-panel" id="faq-7" role="region" aria-labelledby="faq-7-b"><div class="acc-inner"><p>Não. O diagnóstico inicial é um questionário rápido para entendermos as suas principais dores e abrir a conversa. O diagnóstico integrado, com a análise completa do Conselho, é feito no início do ciclo.</p></div></div></div>
+            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-8" id="faq-8-b">Para quem é o Projeto Gênesis?</button></h3><div class="acc-panel" id="faq-8" role="region" aria-labelledby="faq-8-b"><div class="acc-inner"><p>Para donos e dirigentes de pequenas e médias empresas, de qualquer setor, que sentem dor no caixa ou na gestão.</p></div></div></div>
+            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-9" id="faq-9-b">Vocês atendem fora de Uberlândia?</button></h3><div class="acc-panel" id="faq-9" role="region" aria-labelledby="faq-9-b"><div class="acc-inner"><p>Atendemos empresas num raio de até 150 km de Uberlândia. Demandas mais distantes são avaliadas caso a caso.</p></div></div></div>
+            <div class="acc-item"><h3><button type="button" aria-expanded="false" aria-controls="faq-10" id="faq-10-b">Como ficam os dados da minha equipe?</button></h3><div class="acc-panel" id="faq-10" role="region" aria-labelledby="faq-10-b"><div class="acc-inner"><p>A participação dos colaboradores nas ações de saúde é voluntária. Os dados de saúde são tratados com sigilo e consentimento específico, conforme a LGPD. A empresa recebe apenas informações anonimizadas, quando necessário, e o resultado individual é entregue só à própria pessoa.</p></div></div></div>
           </div>
         </div>
       </section>
 
       <section class="section section-dark" id="contato" aria-labelledby="contato-title">
         <div class="container">
-          <h2 id="contato-title" class="section-title">Vamos conversar sobre a sua empresa?</h2>
-          <p class="section-intro">Fale com o Projeto Gênesis pelo canal que preferir.</p>
+          <div class="section-head">
+            <h2 id="contato-title" class="section-title">Vamos conversar sobre a sua empresa?</h2>
+            <p class="section-intro">Fale com o Projeto Gênesis pelo canal que preferir.</p>
+          </div>
           <ul class="contact-grid">
             <li class="card card-dark contact-card">
               <svg class="card-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-whatsapp"/></svg>
@@ -391,11 +385,31 @@
     <!-- ============ VIEW: FORMULÁRIO ============ -->
     <div class="view" id="view-diagnostic" data-view="diagnostic" hidden>
       <section class="form-hero section-dark" aria-labelledby="form-title">
-        <div class="container narrow">
-          <p class="eyebrow">Diagnóstico inicial</p>
-          <h1 id="form-title">Comece pelo diagnóstico inicial</h1>
-          <p class="lead">Responda a algumas perguntas sobre a sua empresa. Leva poucos minutos. Com as suas respostas, um conselheiro entra em contato para agendar uma reunião aprofundada.</p>
-          <p class="notice">Este é um diagnóstico inicial, para abrir a conversa. A análise completa do Conselho acontece no diagnóstico integrado, já dentro do ciclo.</p>
+        <div class="hero-bg" aria-hidden="true">
+          <svg class="hero-arc hero-arc-tr" viewBox="0 0 220 360" preserveAspectRatio="xMaxYMin meet">
+            <path d="M8 4 C 120 4 212 150 212 356" fill="none" stroke="url(#arc-tr)" stroke-width="9" opacity=".45" filter="url(#arc-glow)"/>
+            <path class="arc-line" d="M8 4 C 120 4 212 150 212 356" fill="none" stroke="url(#arc-tr)" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <svg class="hero-arc hero-arc-bl" viewBox="0 0 280 220" preserveAspectRatio="xMinYMax meet">
+            <path d="M4 8 C 4 120 140 214 276 214" fill="none" stroke="url(#arc-bl)" stroke-width="9" opacity=".4" filter="url(#arc-glow)"/>
+            <path class="arc-line" d="M4 8 C 4 120 140 214 276 214" fill="none" stroke="url(#arc-bl)" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="container form-hero-inner">
+          <div class="form-hero-copy">
+            <p class="eyebrow">Diagnóstico inicial</p>
+            <h1 id="form-title">Comece pelo diagnóstico inicial</h1>
+            <p class="lead">Responda a algumas perguntas sobre a sua empresa. Leva poucos minutos. Com as suas respostas, um conselheiro entra em contato para agendar uma reunião aprofundada.</p>
+            <a href="#bloco-1" class="btn btn-gold btn-lg form-start">
+              <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-down"/></svg>Começar
+            </a>
+            <p class="notice">Este é um diagnóstico inicial, para abrir a conversa. A análise completa do Conselho acontece no diagnóstico integrado, já dentro do ciclo.</p>
+          </div>
+          <ol class="form-hero-steps" aria-label="O que você vai responder">
+            <li><a href="#bloco-1"><span class="fh-num">1</span><span class="fh-text"><strong>Sobre você e a empresa</strong><span>8 perguntas rápidas</span></span></a></li>
+            <li><a href="#bloco-2"><span class="fh-num">2</span><span class="fh-text"><strong>As dores da empresa</strong><span>5 notas de 0 a 10</span></span></a></li>
+            <li><a href="#bloco-3"><span class="fh-num">3</span><span class="fh-text"><strong>Para fechar</strong><span>3 perguntas e a autorização</span></span></a></li>
+          </ol>
         </div>
       </section>
 
@@ -541,7 +555,7 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div class="footer-brand">
-        <img src="assets/img/logo-projeto-genesis.jpg" alt="Projeto Genesis" width="180" height="135" loading="lazy">
+        <img src="assets/img/hero-logo.webp" alt="Projeto Genesis" width="925" height="904" loading="lazy">
         <p class="footer-quote">“Empresas fortes são construídas quando estratégia, gestão financeira e pessoas evoluem juntas.”</p>
       </div>
       <nav aria-label="Rodapé">
@@ -593,8 +607,16 @@
   </dialog>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+              <linearGradient id="arc-tr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9A24A" stop-opacity="0"/><stop offset=".4" stop-color="#EDCD7E"/><stop offset="1" stop-color="#C9A24A" stop-opacity=".15"/></linearGradient>
+              <filter id="arc-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5"/></filter>
+            
+              <linearGradient id="arc-bl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9A24A" stop-opacity=".2"/><stop offset=".55" stop-color="#E4C170"/><stop offset="1" stop-color="#C9A24A" stop-opacity="0"/></linearGradient>
+            
+    </defs>
     <symbol id="i-whatsapp" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.7-1.2 2.2 2.2 0 0 0 .2-1.2c-.1-.1-.2-.2-.5-.3Z"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6 8.5 7 8.5-7"/></g></symbol>
     <symbol id="i-instagram" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor"/></g></symbol>
     <symbol id="i-chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M6 16l4-5 3 3 5-7"/><path d="M15 7h3v3"/></g></symbol>
@@ -608,7 +630,7 @@
     <symbol id="i-root" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v10"/><path d="M12 13c0 3-3 4-5 7"/><path d="M12 13c0 3 3 4 5 7"/><path d="M12 15v6"/><path d="M8 7c2 0 4 1 4 3"/></g></symbol>
   </svg>
 
-  <script src="assets/js/config.js?v=9"></script>
-  <script src="assets/js/app.js?v=9"></script>
+  <script src="assets/js/config.js?v=10"></script>
+  <script src="assets/js/app.js?v=10"></script>
 </body>
 </html>
