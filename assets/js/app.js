@@ -335,7 +335,7 @@
       ' <span class="req" aria-hidden="true">*</span></span></legend>' +
       '<div class="rating-scale">' + options + "</div>" +
       '<p class="rating-ends" id="' + r.id + '-scale"><span>0 = não é um problema</span><span>10 = é uma dor grave</span></p>' +
-      '<p class="rating-value" aria-hidden="true" data-value-for="' + r.id + '">Sem resposta</p>' +
+      '<p class="rating-value" aria-hidden="true" data-value-for="' + r.id + '"></p>' +
       '<p class="field-error" id="' + r.id + '-err"></p>';
     ratingsRoot.appendChild(fs);
   });
@@ -634,7 +634,7 @@
       }
       form.reset();
       touched = {};
-      $$("[data-value-for]").forEach(function (o) { o.textContent = "Sem resposta"; });
+      $$("[data-value-for]").forEach(function (o) { o.textContent = ""; });
       updateProgress();
       var p = document.createElement("p");
       p.textContent = "Um conselheiro do Projeto Gênesis vai entrar em contato" +
