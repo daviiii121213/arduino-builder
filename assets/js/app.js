@@ -80,6 +80,15 @@
     }
   });
 
+  /* ---------------- Tela de abertura ---------------- */
+
+  var intro = $(".intro");
+  if (intro) {
+    var skipIntro = function () { document.documentElement.classList.add("no-intro"); };
+    intro.addEventListener("click", skipIntro);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") skipIntro(); });
+  }
+
   /* ---------------- Menu móvel ---------------- */
 
   var menuBtn = $(".menu-toggle");
