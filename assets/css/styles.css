@@ -32,7 +32,7 @@ body {
   overflow-x: hidden;
 }
 img, svg { max-width: 100%; }
-h1, h2, h3, h4 { font-family: var(--font-head); line-height: 1.2; margin: 0 0 .6em; letter-spacing: -.01em; }
+h1, h2, h3, h4 { font-family: var(--font-head); line-height: 1.2; margin: 0 0 .6em; letter-spacing: -.01em; text-wrap: balance; }
 p { margin: 0 0 1em; }
 a { color: inherit; }
 ul, ol { margin: 0; padding: 0; }
@@ -46,7 +46,7 @@ ul, ol { margin: 0; padding: 0; }
 .skip-link:focus { top: 12px; }
 
 :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; border-radius: 4px; }
-main:focus, [tabindex="-1"]:focus:not(:focus-visible) { outline: none; }
+main:focus, [tabindex="-1"]:focus { outline: none; }
 
 /* ---------- Buttons ---------- */
 .btn {
@@ -160,7 +160,7 @@ body[data-current-view="diagnostic"] .section-nav a.is-active { color: var(--sil
 .pain-card { grid-column: span 2; }
 .pain-card:nth-child(4) { grid-column: 2 / span 2; }
 .pain-card h3 { font-size: 1.08rem; }
-.closing-line { margin: 2.5rem auto 0; text-align: center; font-family: var(--font-head); font-weight: 600; font-size: clamp(1.1rem, 2vw, 1.35rem); max-width: 40ch; color: var(--navy); }
+.closing-line { text-wrap: balance; margin: 2.5rem auto 0; text-align: center; font-family: var(--font-head); font-weight: 600; font-size: clamp(1.1rem, 2vw, 1.35rem); max-width: 40ch; color: var(--navy); }
 
 /* ---------- Tese ---------- */
 .split { display: grid; grid-template-columns: 1.1fr .9fr; gap: clamp(32px, 6vw, 80px); align-items: center; }
@@ -227,7 +227,7 @@ body[data-current-view="diagnostic"] .section-nav a.is-active { color: var(--sil
 .cta-inner p { max-width: 60ch; color: var(--silver); margin-bottom: 2rem; }
 
 /* ---------- FAQ ---------- */
-.accordion { margin-top: 2rem; border-top: 1px solid var(--line); }
+.accordion { margin-top: 2rem; border-top: 1px solid var(--line); max-width: 860px; }
 .acc-item { border-bottom: 1px solid var(--line); }
 .acc-item h3 { margin: 0; }
 .acc-item button {
