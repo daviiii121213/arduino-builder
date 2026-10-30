@@ -31,7 +31,6 @@ Preencha em `assets/js/config.js`. Enquanto um campo estiver vazio, o site mostr
 
 | Item | Situação |
 | --- | --- |
-| Número do WhatsApp (`whatsappNumber`) | **[Inserir]** — botões desativados com aviso; o botão flutuante só aparece quando configurado |
 | E-mail oficial (`email`) | **[Inserir]** |
 | Link do Instagram (`instagramUrl`) | **[A validar]** — o @genesisintegrativa.com.br é exibido, mas o link só é ativado depois de confirmado |
 | Prazo de retorno (`responseDeadline`) | **[A validar]** — enquanto estiver vazio, a mensagem de sucesso diz só que um conselheiro vai entrar em contato, sem prazo |

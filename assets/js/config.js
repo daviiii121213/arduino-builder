@@ -5,7 +5,7 @@
  */
 window.GENESIS_CONFIG = {
   // Número oficial do WhatsApp, só dígitos, com DDI 55 + DDD. Ex.: "5534900000000". [Inserir]
-  whatsappNumber: "",
+  whatsappNumber: "5534998593233",
   whatsappMessage: "Olá! Vim pelo site do Projeto Gênesis e quero saber mais sobre o diagnóstico.",
 
   // E-mail oficial de contato. [Inserir]
