@@ -44,7 +44,7 @@
   }
 
   function scrollToTarget(el) {
-    if (!el) { window.scrollTo(0, 0); return; }
+    if (!el) { window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" }); return; }
     el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
   }
 
@@ -108,11 +108,21 @@
   $("#form-title").setAttribute("tabindex", "-1");
   window.addEventListener("hashchange", function () { handleRoute(false); });
 
-  // Clicar de novo no mesmo link (hash inalterado) ainda deve rolar até a seção.
   document.addEventListener("click", function (e) {
     var link = e.target.closest && e.target.closest('a[href^="#"]');
     if (!link || link.hasAttribute("data-open-privacy")) return;
-    if (link.getAttribute("href") === window.location.hash) {
+    var hash = link.getAttribute("href");
+    var target = hash.length > 1 ? document.getElementById(hash.slice(1)) : null;
+    // A section of the page already on screen: glide to it instead of letting the browser jump.
+    if (target && hash !== FORM_ROUTE && currentView && routeFor(hash) === currentView && !wiping) {
+      e.preventDefault();
+      if (hash !== window.location.hash) history.pushState(null, "", hash);
+      closeMenu();
+      scrollToTarget(hash === "#inicio" ? null : target);
+      return;
+    }
+    // Clicar de novo no mesmo link (hash inalterado) ainda deve rolar até a seção.
+    if (hash === window.location.hash) {
       e.preventDefault();
       handleRoute(false);
     }
