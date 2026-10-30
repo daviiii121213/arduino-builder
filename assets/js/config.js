@@ -13,7 +13,7 @@ window.GENESIS_CONFIG = {
 
   // Perfil do Instagram (@genesisintegrativa.com.br). Confirme o endereço antes de preencher,
   // ex.: "https://www.instagram.com/genesisintegrativa.com.br/". [A validar]
-  instagramUrl: "",
+  instagramUrl: "https://www.instagram.com/genesisintegrativa.com.br/",
   instagramHandle: "@genesisintegrativa.com.br",
 
   // Envio do diagnóstico por e-mail via EmailJS (https://www.emailjs.com). Passo a passo no README.

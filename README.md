@@ -32,7 +32,6 @@ Preencha em `assets/js/config.js`. Enquanto um campo estiver vazio, o site mostr
 | Item | Situação |
 | --- | --- |
 | E-mail oficial (`email`) | **[Inserir]** |
-| Link do Instagram (`instagramUrl`) | **[A validar]** — o @genesisintegrativa.com.br é exibido, mas o link só é ativado depois de confirmado |
 | Prazo de retorno (`responseDeadline`) | **[A validar]** — enquanto estiver vazio, a mensagem de sucesso diz só que um conselheiro vai entrar em contato, sem prazo |
 | Política de Privacidade | **Pendente de aprovação** — a janela mostra um texto provisório e marcado como pendente (revisão sugerida: Dr. Roberto) |
 | CNPJ e razão social | **A validar** — rodapé |
