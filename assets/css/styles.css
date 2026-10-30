@@ -291,7 +291,7 @@ html:not(.no-intro):not(.intro-done) #inicio .hero-inner { animation: zoom-settl
 .step-num { position: absolute; top: 0; left: 0; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-head); font-weight: 700; background: var(--white); color: var(--navy); border: 1px solid var(--silver); }
 .phase-cycle .step-num { background: var(--navy-3); color: var(--white); border-color: rgba(255, 255, 255, .25); }
 .step-key .step-num { background: var(--gold); color: var(--navy); border-color: var(--gold); }
-.step-tag { display: inline-block; font-size: .7rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); border: 1px solid rgba(201, 162, 74, .5); border-radius: 4px; padding: 1px 6px; margin-bottom: 8px; }
+.step-tag { display: inline-block; font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); border: 1px solid rgba(201, 162, 74, .5); border-radius: 4px; padding: 1px 6px; margin-bottom: 8px; }
 .step h4 { font-size: 1rem; margin-bottom: .4em; }
 .step p { font-size: .92rem; margin: 0; color: var(--muted); }
 .phase-cycle .step p { color: var(--silver); }
@@ -575,8 +575,17 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--g
 }
 
 @media (max-width: 360px) {
+  .hero h1 { font-size: 1.8rem; }
+  .form-hero h1 { font-size: 2rem; }
   .header-cta { padding: .45em .6em; font-size: .75rem; }
   .rating-scale { gap: 5px; }
+}
+
+/* Touch screens: links that are tapped with a finger get a taller hit area */
+@media (pointer: coarse) {
+  .section-nav a { padding: 12px 0; }
+  .footer-legal a, .site-footer ul a { display: inline-block; padding: 10px 0; }
+  .site-footer ul { gap: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
