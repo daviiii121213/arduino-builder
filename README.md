@@ -34,7 +34,7 @@ Preencha em `assets/js/config.js`. Enquanto um campo estiver vazio, o site mostr
 | E-mail oficial (`email`) | **[Inserir]** |
 | Prazo de retorno (`responseDeadline`) | **[A validar]** — enquanto estiver vazio, a mensagem de sucesso diz só que um conselheiro vai entrar em contato, sem prazo |
 | Política de Privacidade | **Pendente de aprovação** — a janela mostra um texto provisório e marcado como pendente (revisão sugerida: Dr. Roberto) |
-| CNPJ e razão social | **A validar** — rodapé |
+| CNPJ e razão social (`cnpj`, `razaoSocial`) | **A validar** — o rodapé mostra `CNPJ xx.xxx.xxx/xxxx-xx` até o número real ser colocado em `config.js` |
 | Vídeo institucional (versão A, 16:9, com legenda) | Não fornecido — há um comentário de marcação no fim da seção `#o-que-e` |
 | Minicurrículos dos conselheiros (formação, registro) | **[A validar]** — exibidos nome e foto. As fotos foram ampliadas a partir de originais de ~120 px; trocar pelas originais em alta resolução quando possível (`assets/img/conselho/`) |
 

@@ -29,6 +29,10 @@ window.GENESIS_CONFIG = {
   // Alternativa ao EmailJS: endpoint HTTPS próprio que recebe o diagnóstico em JSON. Opcional.
   submitEndpoint: "",
 
+  // Dados da empresa no rodapé. Troque os "x" pelo CNPJ real (14 dígitos) e preencha a razão social. [A validar]
+  cnpj: "xx.xxx.xxx/xxxx-xx",
+  razaoSocial: "",
+
   // Prazo de retorno exibido após o envio, ex.: "2 dias úteis". Vazio = a frase sai sem prazo. [A validar]
   responseDeadline: ""
 };
