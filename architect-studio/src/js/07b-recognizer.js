@@ -235,9 +235,12 @@ RG.fillGaps = (W, arcs, winCands, mode) => {
   while (changed && guard++ < 200) {
     changed = false;
     outer: for (let i = 0; i < W.length; i++) for (let j = 0; j < W.length; j++) {
-      if (i === j) continue; const A = W[i], B = W[j];
-      if (angDiff(angOf(A.a, A.b), angOf(B.a, B.b)) > AS.rad(3)) continue;
-      if (Math.max(A.t, B.t) / Math.min(A.t, B.t) > 1.7) continue;
+      if (i === j) continue; const A0 = W[i], B = W[j];
+      if (angDiff(angOf(A0.a, A0.b), angOf(B.a, B.b)) > AS.rad(3)) continue;
+      if (Math.max(A0.t, B.t) / Math.min(A0.t, B.t) > 1.7) continue;
+      // orienta A para que o vão fique na ponta final (b)
+      const d0 = GG.norm(GG.sub(A0.b, A0.a)), mB = GG.dot(GG.sub(GG.lerp(B.a, B.b, 0.5), A0.a), d0);
+      const A = mB < 0 ? { ...A0, a: A0.b, b: A0.a } : A0;
       const d = GG.norm(GG.sub(A.b, A.a)), n = GG.perp(d), LA = GG.dist(A.a, A.b);
       const off = (GG.dot(GG.sub(B.a, A.a), n) + GG.dot(GG.sub(B.b, A.a), n)) / 2; if (Math.abs(off) > Math.max(A.t, B.t) / 2) continue;
       const s1 = GG.dot(GG.sub(B.a, A.a), d), s2 = GG.dot(GG.sub(B.b, A.a), d), lo = Math.min(s1, s2), hi = Math.max(s1, s2);
@@ -247,7 +250,7 @@ RG.fillGaps = (W, arcs, winCands, mode) => {
       // linhas paralelas finas dentro do vão = caixilho de janela; parede grossa ou transversal = não é vão
       const inGap = [], gl = GG.dist(gp0, gp1); let blocked = false;
       for (const v of W) {
-        if (v === A || v === B) continue;
+        if (v === A0 || v === B) continue;
         const par = angDiff(angOf(v.a, v.b), angOf(A.a, A.b)) < AS.rad(3);
         const m = GG.lerp(v.a, v.b, 0.5), pr = GG.projSeg(m, gp0, gp1);
         if (par && pr.d < T * 0.75 && pr.t > 0.02 && pr.t < 0.98 && GG.dist(v.a, v.b) <= gl + T) { if (v.t < 0.75 * T) inGap.push(v); else blocked = true; continue; }
@@ -278,7 +281,7 @@ RG.fillGaps = (W, arcs, winCands, mode) => {
       const farB = s1 > s2 ? B.a : B.b;
       const merged = { ...A, b: { ...farB }, t: (A.t * LA + B.t * (hi - lo)) / (LA + hi - lo) };
       for (const v of [B, ...(op.kind === 'window' ? inGap : [])]) W.splice(W.indexOf(v), 1);
-      W[W.indexOf(A)] = merged; changed = true; break outer;
+      W[W.indexOf(A0)] = merged; changed = true; break outer;
     }
   }
   return openings;
@@ -444,7 +447,7 @@ RG.apply = (replace) => {
   const pv = RG.preview; if (!pv) return;
   const fl = AS.floor(), tmp = pv.floor;
   fl.bg.scale = pv.oldScale; // restaura para o histórico registrar a mudança
-  AS.history.run('Reconhecer planta do PDF', () => {
+  AS.history.run(pv.report.extra ? 'Mapear linhas da imagem' : 'Reconhecer planta do PDF', () => {
     if (replace) { fl.walls = []; fl.openings = []; fl.roomMeta = []; }
     if (pv.scale !== fl.bg.scale) { fl.bg.scale = pv.scale; fl.bg.calibrated = true; fl.bg.scaleSource = pv.report.scaleSource; }
     fl.walls.push(...tmp.walls); fl.openings.push(...tmp.openings); fl.roomMeta.push(...tmp.roomMeta);
@@ -453,7 +456,7 @@ RG.apply = (replace) => {
   });
   RG.preview = null; R2.req();
   const c = pv.report.counts;
-  AS.toast(`${c.walls} paredes, ${c.doors} portas, ${c.windows} janelas e ${c.rooms} cômodos adicionados ao projeto`, 'ok');
+  AS.toast(pv.report.extra ? `${c.walls} paredes adicionadas a partir das linhas da imagem (${c.rooms} cômodos fechados)` : `${c.walls} paredes, ${c.doors} portas, ${c.windows} janelas e ${c.rooms} cômodos adicionados ao projeto`, 'ok');
 };
 
 /* overlay da prévia */

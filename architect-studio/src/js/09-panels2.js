@@ -37,6 +37,13 @@ AS.importUI = {
         <div class="sec"><h4>Reconstruir sobre a referência</h4>
         <ol class="steps sm"><li>Calibre a escala: clique em <b>Calibrar</b>, marque as duas pontas de uma cota legível e digite o valor real.</li><li>Desenhe as paredes externas com <kbd>W</kbd> por cima do desenho (os snaps conectam os cantos), depois as internas.</li><li>Insira portas <kbd>D</kbd> e janelas <kbd>J</kbd> onde aparecem no PDF; ajuste larguras pelas cotas.</li><li>Nomeie os cômodos e marque como “medidas estimadas” os que não tiverem cota legível.</li></ol>
         <div class="btnrow"><button class="btn sm" id="trWall">${icon('wall')} Decalcar paredes</button>${bg.text?.length ? `<button class="btn sm" id="trLabels">Criar rótulos a partir dos textos</button>` : ''}</div></div>
+        <div class="sec" id="lrSec"><h4>Leitor de linhas da imagem</h4>
+        <p class="mtext">Mapeia <b>todas as linhas</b> da imagem, em qualquer direção (inclusive diagonais), e transforma cada uma em uma <b>parede editável</b>. Funciona com foto, desenho escaneado, PNG/JPG ou página de PDF.</p>
+        <div class="grid2">${UI.f.sel('lrThr', 'Limiar de escuro', [{ v: 'auto', l: 'Automático' }, ...[70, 90, 110, 130, 150, 170, 190].map(v => ({ v, l: String(v) }))], 'auto')}${UI.f.len('lrMin', 'Comprimento mínimo da linha', 30)}
+        ${UI.f.sel('lrTm', 'Espessura da parede', [{ v: 'auto', l: 'Pela largura do traço' }, { v: 'fixo', l: 'Valor fixo' }], 'auto')}${UI.f.len('lrT', 'Espessura fixa / mínima', 12)}</div>
+        <div class="chks">${UI.f.check('lrStr', 'Endireitar linhas quase retas', true)}${UI.f.check('lrTxt', 'Ignorar textos e detalhes pequenos', true)}${UI.f.check('lrDbl', 'Unir linhas duplas em uma parede', false, 'Paredes desenhadas com duas linhas paralelas viram uma parede só')}${UI.f.check('lrGap', 'Transformar vãos em portas (fecha os cômodos)', true)}${UI.f.check('lrArc', 'Ignorar arcos de abertura de porta', true)}${UI.f.check('lrLoose', 'Ignorar linhas soltas (cotas)', false)}</div>
+        ${UI.f.check('lrReplace', 'Substituir paredes já existentes neste pavimento', fl.walls.length > 0)}
+        <button class="btn primary block" id="lrRun">${icon('wall')} Mapear linhas como paredes</button><div id="lrOut"></div></div>
         <div class="sec" id="rgSec"><h4>Leitor automático da planta</h4>
         <p class="mtext">Lê o desenho ${AS.importer.doc && bg.source === AS.importer.fileName ? 'vetorial do PDF' : 'da imagem'} e reconhece <b>paredes, portas, janelas, vãos e nomes de cômodos</b>. A escala é deduzida das cotas do PDF quando possível. O resultado entra no projeto como paredes normais, editáveis e desfazíveis.</p>
         <div class="grid2">${UI.f.len('rgTmin', 'Espessura mínima de parede', 5)}${UI.f.len('rgTmax', 'Espessura máxima de parede', 45)}${UI.f.len('rgMin', 'Comprimento mínimo', 40)}${AS.importer.doc && bg.source === AS.importer.fileName ? '' : UI.f.num('rgThr', 'Limiar de escuro (imagem)', 110, '0–255', 5)}</div>
@@ -63,7 +70,8 @@ AS.importUI = {
       on('trWall', () => { AS.editor.setTool('wall'); if (S.viewMode === '3d') UI.setViewMode('split'); });
       on('trLabels', () => this.labelsFromText());
       on('rgRun', () => this.recognize(el));
-      if (AS.recognizer.preview) this.showRecognition(el);
+      on('lrRun', () => this.readLines(el));
+      if (AS.recognizer.preview) this.showRecognition(el, AS.recognizer.preview.report.mode === 'linhas da imagem' ? 'lr' : 'rg');
     }
   },
   async load(file) {
@@ -114,6 +122,22 @@ AS.importUI = {
     });
     AS.toast(n ? `${n} rótulo(s) de cômodo criados nas posições do PDF` : 'Nenhum nome de cômodo reconhecido nos textos', n ? 'ok' : '');
   },
+  async readLines(el) {
+    const out = el.querySelector('#lrOut'); out.innerHTML = '<p class="muted">Mapeando linhas…</p>';
+    AS.recognizer.discard();
+    await new Promise(r => setTimeout(r, 30));
+    try {
+      const v = (id) => el.querySelector('#' + id);
+      const tm = v('lrTm').value, t = AS.units.parse(v('lrT').value), minLen = AS.units.parse(v('lrMin').value);
+      if (!(t > 0 && minLen > 0)) throw new Error('Verifique a espessura e o comprimento mínimo.');
+      const res = await AS.lineReader.read({ threshold: v('lrThr').value, minLen, thickMode: tm, thick: t, minThick: tm === 'auto' ? t : 4, straighten: v('lrStr').checked, ignoreText: v('lrTxt').checked, mergeDouble: v('lrDbl').checked, fillGaps: v('lrGap').checked, ignoreArcs: v('lrArc').checked, ignoreLoose: v('lrLoose').checked });
+      AS.recognizer.showPreview(res);
+      if (S.viewMode === '3d') UI.setViewMode('split');
+      const pts = res.floor.walls.flatMap(w => [w.a, w.b]); R2.fit(AS.floor(), 60, pts.length ? pts : null);
+      this.showRecognition(el, 'lr');
+      el.querySelector('#lrOut')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } catch (e) { console.error(e); out.innerHTML = `<p class="err-line">${esc(e.message)}</p>`; }
+  },
   async recognize(el) {
     const out = el.querySelector('#rgOut'); out.innerHTML = '<p class="muted">Lendo a planta…</p>';
     AS.recognizer.discard();
@@ -130,19 +154,19 @@ AS.importUI = {
       el.querySelector('#rgOut')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     } catch (e) { console.error(e); out.innerHTML = `<p class="err-line">${esc(e.message)}</p>`; }
   },
-  showRecognition(el) {
-    const pv = AS.recognizer.preview, out = el.querySelector('#rgOut'); if (!pv || !out) return;
+  showRecognition(el, which = 'rg') {
+    const pv = AS.recognizer.preview, out = el.querySelector(which === 'lr' ? '#lrOut' : '#rgOut'); if (!pv || !out) return;
     const r = pv.report, c = r.counts;
     out.innerHTML = `<div class="rg-res"><div class="kv">
       <span>Método</span><b>${esc(r.mode)}</b>
       <span>Escala</span><b class="mono">${r.scale.toFixed(3)} cm/px</b><span></span><b class="rg-src">${esc(r.scaleSource)}</b>
       <span>Paredes</span><b class="mono">${c.walls} (típica ${c.typical} cm)</b>
-      <span>Portas</span><b class="mono">${c.doors}</b><span>Janelas</span><b class="mono">${c.windows}</b><span>Vãos livres</span><b class="mono">${c.passages}</b>
-      <span>Cômodos fechados</span><b class="mono">${c.rooms} (${c.named} com nome do PDF)</b></div>
+      ${r.extra ? `<span>Linhas diagonais</span><b class="mono">${r.extra.angled}</b><span>Limiar usado</span><b class="mono">${r.extra.threshold}</b><span>Textos/ruído ignorados</span><b class="mono">${r.extra.removed}</b><span>Arcos de porta ignorados</span><b class="mono">${r.extra.arcs}</b>${r.extra.loose ? `<span>Linhas soltas ignoradas</span><b class="mono">${r.extra.loose}</b>` : ''}<span>Vãos → portas / passagens</span><b class="mono">${c.doors} / ${c.passages}</b>${r.extra.paired ? `<span>Linhas duplas unidas</span><b class="mono">${r.extra.paired}</b>` : ''}<span>Tempo</span><b class="mono">${(r.extra.ms / 1000).toFixed(1)} s</b>` : `<span>Portas</span><b class="mono">${c.doors}</b><span>Janelas</span><b class="mono">${c.windows}</b><span>Vãos livres</span><b class="mono">${c.passages}</b>`}
+      <span>Cômodos fechados</span><b class="mono">${c.rooms}${r.extra ? '' : ` (${c.named} com nome do PDF)`}</b></div>
       ${r.warnings.length ? `<ul class="issues">${r.warnings.map(w => `<li class="lv-aviso">${esc(w)}</li>`).join('')}</ul>` : ''}
       <p class="muted">Prévia na planta: paredes externas em laranja, internas em azul, cômodos em verde. Nada foi adicionado ainda.</p>
       <div class="btnrow"><button class="btn primary sm" id="rgApply" ${c.walls ? '' : 'disabled'}>${icon('check')} Aplicar ao projeto</button><button class="btn sm" id="rgDiscard">Descartar</button></div></div>`;
-    out.querySelector('#rgApply').onclick = () => { const rep = el.querySelector('#rgReplace')?.checked; AS.recognizer.apply(!!rep); UI.refreshPanel(); R2.fit(); V3.frame(); V3.invalidate(); };
+    out.querySelector('#rgApply').onclick = () => { const rep = el.querySelector(which === 'lr' ? '#lrReplace' : '#rgReplace')?.checked; AS.recognizer.apply(!!rep); UI.refreshPanel(); R2.fit(); V3.frame(); V3.invalidate(); };
     out.querySelector('#rgDiscard').onclick = () => { AS.recognizer.discard(); out.innerHTML = ''; };
   },
   async detect(el) {

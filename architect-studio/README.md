@@ -6,6 +6,7 @@ Editor de plantas arquitetônicas 2D com visualização 3D sincronizada, feito p
 - `build.js` — monta `dist/index.html` (arquivo publicado)
 - `tests/geometry.test.js` — testes unitários de geometria, cômodos, histórico, serialização e gerador (`node tests/geometry.test.js`)
 - `tests/recognizer.e2e.js` — teste do leitor automático com os PDFs de `tests/fixtures/` (gerados por `tests/make-fixtures.js`) e suas versões em imagem
+- `tests/linereader.e2e.js` — teste do leitor de linhas (plantas de teste em imagem e imagem sintética com paredes diagonais, textos e ruído)
 - `tests/smoke.e2e.js` — teste de ponta a ponta com Playwright (desenho, edição, 3D, gerador, importação de PDF, exportação)
 
 ## Pilha técnica
@@ -48,3 +49,14 @@ LIBS=/caminho/para/node_modules TEST_PDF=/caminho/planta.pdf node tests/smoke.e2
 5. **Aberturas:** um vão entre paredes colineares vira porta (arco com dobradiça na ponta e raio igual à largura), janela (linhas finas paralelas dentro do vão) ou vão livre.
 6. **Cômodos:** os cômodos fechados são detectados, os nomes vêm dos textos do PDF e as paredes na fronteira com o exterior viram externas.
 7. **Prévia e aplicação:** o resultado aparece como prévia e, ao aplicar, entra como paredes, aberturas e cômodos normais, em uma única operação desfazível.
+
+## Leitor de linhas da imagem (`src/js/07c-linereader.js`)
+
+Transforma **todas as linhas** da imagem de referência (foto, escaneado, PNG/JPG ou página de PDF) em paredes editáveis, em qualquer ângulo:
+
+1. Converte para tons de cinza e binariza (limiar automático por Otsu, ou manual).
+2. Remove componentes pequenos (textos, ruído).
+3. Calcula a transformada de distância (largura do traço) e afina o desenho até um esqueleto de 1 px (Zhang-Suen).
+4. Rastreia o esqueleto em polilinhas (classificação por número de cruzamentos, robusta a “degraus” de linhas diagonais) e simplifica em segmentos retos (Douglas-Peucker).
+5. Cada segmento vira uma parede: a espessura vem da largura do traço (ou de um valor fixo), as pontas próximas são unidas e trechos quase retos são endireitados.
+6. Opções: unir linhas duplas em uma parede; transformar vãos em portas (fecha os cômodos); ignorar arcos de abertura; ignorar linhas soltas (cotas).
