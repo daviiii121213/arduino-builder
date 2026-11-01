@@ -106,7 +106,10 @@ V3.frame = () => {
   if (!pts.length) { V3.cam.target = { x: 0, y: 1, z: 0 }; V3.cam.dist = 15; V3.needsRender = true; return; }
   const b = AS.geo.bbox(pts);
   V3.cam.target = { x: (b.x0 + b.w / 2) / 100, y: 1, z: (b.y0 + b.h / 2) / 100 };
-  V3.cam.dist = Math.max(8, Math.max(b.w, b.h) / 100 * 1.5); V3.needsRender = true;
+  // distância para caber a casa inteira no campo de visão (considera a proporção da tela)
+  const r = Math.hypot(b.w, b.h) / 200 + 1, vf = AS.rad((V3.camera?.fov || 50) / 2), asp = V3.camera?.aspect || 1.5;
+  const hf = Math.atan(Math.tan(vf) * asp), half = Math.min(vf, hf);
+  V3.cam.dist = AS.clamp(r / Math.sin(half) * 1.05, 6, 140); V3.needsRender = true;
 };
 
 /* ---------- materiais com texturas procedurais ---------- */

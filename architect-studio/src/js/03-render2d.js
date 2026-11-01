@@ -39,12 +39,13 @@ R2.resize = () => {
 R2.toWorld = (sx, sy, v = R2.view) => ({ x: (sx - v.ox) / v.s, y: (sy - v.oy) / v.s });
 R2.toScreen = (p, v = R2.view) => ({ x: p.x * v.s + v.ox, y: p.y * v.s + v.oy });
 
-R2.fit = (fl = AS.floor(), pad = 60) => {
+R2.fit = (fl = AS.floor(), pad = 60, opts_extra = null) => {
   R2.needFit = R2.w < 120 || R2.h < 120; // ainda sem layout: refaz ao redimensionar
   const pts = [];
   for (const w of fl.walls) pts.push(w.a, w.b);
   for (const f of fl.furniture) pts.push({ x: f.x, y: f.y });
-  if (fl.bg && fl.bg.w) pts.push({ x: fl.bg.x, y: fl.bg.y }, { x: fl.bg.x + fl.bg.w * fl.bg.scale, y: fl.bg.y + fl.bg.h * fl.bg.scale });
+  if (opts_extra && opts_extra.length) { pts.length = 0; pts.push(...opts_extra); }
+  else if (fl.bg && fl.bg.w && !fl.walls.length) pts.push({ x: fl.bg.x, y: fl.bg.y }, { x: fl.bg.x + fl.bg.w * fl.bg.scale, y: fl.bg.y + fl.bg.h * fl.bg.scale });
   if (!pts.length) { R2.view.s = 0.5; R2.view.ox = R2.w / 2; R2.view.oy = R2.h / 2; R2.req(); return; }
   const b = AS.geo.bbox(pts);
   const s = Math.min((R2.w - pad * 2) / Math.max(100, b.w), (R2.h - pad * 2) / Math.max(100, b.h));

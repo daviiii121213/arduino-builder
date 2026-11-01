@@ -320,3 +320,6 @@ body[data-view="3d"] .view2d { display: none; }
   .hint, .st-tool { display: none; }
   .v3bar { top: auto; bottom: 8px; }
 }
+
+.rg-res { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding: 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--canvas); }
+.rg-src { font-weight: 400; color: var(--muted); font-size: 11.5px; }
