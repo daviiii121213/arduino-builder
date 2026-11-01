@@ -1,0 +1,28 @@
+<div id="pdfimp" hidden role="dialog" aria-modal="true" aria-labelledby="pi-title">
+  <div id="pi-stage"><svg id="pi-svg" role="img" aria-label="Página do PDF com as paredes detectadas"></svg>
+    <div id="pi-legend"><span><i class="lw"></i>Parede</span><span><i class="lo"></i>Janela</span><span><i class="ld"></i>Porta</span><span><i class="lx"></i>Peça fixa (ignorada)</span><span><i class="lsel"></i>Selecionada</span></div>
+  </div>
+  <aside id="pi-panel" aria-label="Revisão da importação">
+    <div class="ed-head"><b id="pi-title">Importar PDF</b><button id="pi-close" class="ghost">Cancelar</button></div>
+    <p id="pi-file" class="ed-msg"></p>
+    <div class="ed-sec" style="border-top:0;padding-top:0">Páginas</div>
+    <div id="pi-pages"></div>
+    <div class="ed-sec">Escala da página</div>
+    <div class="ed-row"><label class="ed-mini">1 : <input id="pi-den" type="number" min="1" max="2000" step="1"></label><span id="pi-densrc" class="ed-msg"></span></div>
+    <div class="ed-row"><label class="ed-mini">Parede selecionada mede <input id="pi-cal" type="number" min="1" step="0.1"> cm</label><button id="pi-calok" class="chip">Calibrar</button></div>
+    <div class="ed-row" id="pi-claude-row" hidden><button id="pi-claude" class="chip">Ler cotas e esquadrias com o Claude</button><button id="pi-claude-stop" class="chip" hidden>Parar</button></div>
+    <p id="pi-claude-msg" class="ed-msg" hidden></p>
+    <div class="ed-sec">Montagem</div>
+    <div class="ed-row"><label class="ed-mini" style="width:100%">Posição <select id="pi-align"><option value="auto">Automática</option><option value="model">Alinhar à planta aberta (mesma casa)</option><option value="origin">Nova origem (outra casa)</option></select></label></div>
+    <div class="ed-row"><label class="ed-mini">Pé-direito <input id="pi-h" type="number" value="300" min="200" max="600" step="5"> cm</label></div>
+    <label class="ed-row ed-check"><input type="checkbox" id="pi-keep" checked> Manter as paredes atuais dos pavimentos que não vierem do PDF</label>
+    <div class="ed-sec" id="pi-wtitle">Paredes</div>
+    <div id="pi-walls" class="pi-list"></div>
+    <div class="ed-sec" id="pi-otitle">Aberturas</div>
+    <div id="pi-ops" class="pi-list"></div>
+    <div class="ed-sec" id="pi-rtitle" hidden>Cômodos lidos pelo Claude</div>
+    <p id="pi-rooms" class="ed-msg" hidden></p>
+    <div class="pi-foot"><button id="pi-ok" class="chip pi-primary">Criar projeto</button><p id="pi-msg" class="ed-msg"></p></div>
+  </aside>
+</div>
+<input id="pi-input" type="file" accept="application/pdf,.pdf" hidden>
