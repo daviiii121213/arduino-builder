@@ -20,15 +20,16 @@ def once(s, old, new):
 
 base = rd('planta-3d.base.html')
 s = base
-s = once(s, '</style>\n\n<div id="stage">', rd('pdf-import.css') + '</style>\n\n<div id="stage">')
-s = once(s, '<div id="walkhud" hidden>', rd('pdf-import.html') + '<div id="walkhud" hidden>')
+s = once(s, '</style>\n\n<div id="stage">', rd('pdf-import.css') + rd('home.css') + '</style>\n\n<div id="stage">')
+s = once(s, '<div id="walkhud" hidden>', rd('pdf-import.html') + rd('home.html') + '<div id="walkhud" hidden>')
 s = once(s, '<input id="ed-imp" type="file" accept=".json,application/json" hidden>',
          '<input id="ed-imp" type="file" accept=".json,application/json" hidden><label class="chip" for="pi-input">Importar PDF</label>')
 s = once(s, '<button id="p2-pdf" class="chip">Exportar PDF 1:50</button>',
          '<button id="p2-pdf" class="chip">Exportar PDF 1:50</button><label class="chip" for="pi-input">Importar PDF</label>')
+s = once(s, '<button id="v-both" aria-pressed="true">Lado a lado</button>', '<button id="v-home" aria-pressed="false">Início</button><span class="sep"></span><button id="v-both" aria-pressed="true">Lado a lado</button>')
 s = once(s, '<script>\n// Wall cross-sections', '<script>\n' + rd('pdf-import-core.js') + '</script>\n<script>\n// Wall cross-sections')
 i = s.rindex('})();\n</script>')
-s = s[:i] + rd('pdf-import-ui.js') + s[i:]
+s = s[:i] + rd('pdf-import-ui.js') + rd('home-ui.js') + s[i:]
 open(os.path.join(HERE, 'planta-3d.html'), 'w', encoding='utf-8').write(s)
 
 # ---- offline ----

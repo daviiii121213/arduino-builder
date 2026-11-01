@@ -12,7 +12,9 @@ vetorial em PDF num projeto editável (mesmo formato `.json` do app: paredes `a�
 | `src/planta-3d.base.html` | App original, sem o importador. |
 | `src/pdf-import-core.js` | Núcleo sem interface: lê vetores com pdf.js, detecta paredes/aberturas, escala, alinhamento, comparação. Roda no navegador e no Node. |
 | `src/pdf-import-ui.js`, `.html`, `.css` | Tela de revisão, leitura com o Claude e criação do projeto. |
+| `src/home-ui.js`, `.html`, `.css` | Menu inicial: **Importar** (projeto novo a partir de PDF ou .json), **Continuar** (último projeto aberto) e **Carregar** (todos os projetos, com busca). Abre ao entrar e pelo botão **Início**. |
 | `build.py` | Monta os dois apps a partir de `src/`. |
+| `test/menu.js` | Teste do menu no Chromium (importar, recarregar, continuar, carregar, busca, celular). |
 | `test/aceite.js` | Teste de aceite (Node) contra o gabarito `test/segs0-gabarito.json` (= `SEGS0`). |
 | `test/navegador.js` | Teste ponta a ponta no Chromium (importa o PDF pela interface e confere o projeto criado). |
 | `test/casa-1-50.pdf` | PDF da casa usado como teste. |
@@ -43,6 +45,7 @@ npm i --prefix planta-3d/.lib three@0.147.0 fflate@0.8.2 jspdf@2.5.1 pdfjs-dist@
 ln -s ../.lib/node_modules planta-3d/test/node_modules
 node planta-3d/test/aceite.js          # critério de aceite (Node)
 node planta-3d/test/navegador.js offline   # ponta a ponta no Chromium (requer playwright)
+node planta-3d/test/menu.js                # menu inicial no Chromium
 python3 planta-3d/build.py             # reconstrói planta-3d.html e planta-3d-offline.html
 ```
 

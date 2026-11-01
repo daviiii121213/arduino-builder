@@ -1,0 +1,20 @@
+<div id="home" hidden role="dialog" aria-modal="true" aria-labelledby="home-title">
+  <div class="hm-card">
+    <div class="hm-head"><div><h2 id="home-title">Planta 3D</h2><p class="hm-sub">Escolha como começar</p></div><button id="hm-close" class="hm-x" aria-label="Fechar menu">✕</button></div>
+    <div id="hm-main">
+      <div class="hm-grid">
+        <button id="hm-import" class="hm-opt"><span class="hm-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 17v3h16v-3"/></svg></span><b>Importar</b><span>Começar um projeto novo a partir de um arquivo: planta em PDF ou projeto .json.</span></button>
+        <button id="hm-continue" class="hm-opt"><span class="hm-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></svg></span><b>Continuar</b><span id="hm-cont-sub">Retomar o último projeto em que você trabalhou.</span></button>
+        <button id="hm-load" class="hm-opt"><span class="hm-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6.5h7l2 2h9v10H3z"/></svg></span><b>Carregar</b><span id="hm-load-sub">Ver todos os projetos feitos e abrir qualquer um.</span></button>
+      </div>
+      <div class="hm-foot"><button id="hm-orig" class="hm-link">Ver a planta original</button><span id="hm-where" class="hm-note"></span></div>
+    </div>
+    <div id="hm-list-view" hidden>
+      <div class="hm-bar"><button id="hm-back" class="hm-link">← Voltar</button><input id="hm-q" type="search" placeholder="Buscar projeto" aria-label="Buscar projeto"></div>
+      <ul id="hm-list" class="hm-list"></ul>
+      <p id="hm-empty" class="hm-note" hidden>Nenhum projeto ainda. Use <b>Importar</b> para começar um, ou edite a planta original: a primeira alteração cria um projeto automaticamente.</p>
+    </div>
+    <p id="hm-msg" class="hm-note" role="status"></p>
+  </div>
+  <input id="hm-file" type="file" accept="application/pdf,.pdf,.json,application/json" hidden>
+</div>
