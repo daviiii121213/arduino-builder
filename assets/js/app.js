@@ -4,14 +4,6 @@
   var CONFIG = window.GENESIS_CONFIG || {};
   var FORM_ROUTE = "#formulario";
 
-  var RATINGS = [
-    { id: "financeiro_gestao_operacoes", dimension: "Financeiro, gestão e operações", question: "Não confio nos números da empresa e não sei com clareza onde ganho ou perco dinheiro." },
-    { id: "estrategia_continuidade", dimension: "Estratégia e continuidade", question: "A empresa depende dos sócios para tudo e não há planejamento para os próximos anos." },
-    { id: "pessoas_lideranca_cultura", dimension: "Pessoas, liderança e cultura", question: "A equipe não entrega o resultado esperado e há conflitos entre áreas." },
-    { id: "saude_integrativa_alta_performance", dimension: "Saúde integrativa e alta performance", question: "O clima na empresa é pesado, com estresse, exaustão na gestão, afastamentos ou rotatividade alta." },
-    { id: "reeducacao_corporativa_comportamental", dimension: "Reeducação corporativa e comportamental", question: "Líderes e equipes repetem os mesmos erros e resistem a mudanças." }
-  ];
-
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
 
@@ -327,41 +319,33 @@
   $$("[data-close-privacy]").forEach(function (b) { b.addEventListener("click", closePrivacy); });
   dialog.addEventListener("click", function (e) { if (e.target === dialog) closePrivacy(); });
 
-  /* ---------------- Escalas de 0 a 10 ---------------- */
+  /* ---------------- Diagnóstico: Termômetro Organizacional ---------------- */
 
-  var ratingsRoot = $("#ratings");
-  RATINGS.forEach(function (r, index) {
-    var fs = document.createElement("fieldset");
-    fs.className = "rating";
-    fs.id = r.id + "-group";
-    fs.setAttribute("aria-describedby", r.id + "-scale " + r.id + "-err");
-    var options = "";
-    for (var v = 0; v <= 10; v++) {
-      options += '<label class="rating-opt"><input type="radio" name="' + r.id + '" value="' + v + '"' + (v === 0 ? " required" : "") +
-        '><span>' + v + "</span></label>";
-    }
-    fs.innerHTML =
-      '<legend><span class="rating-dim">' + (index + 1) + ". " + r.dimension + '</span><span class="rating-q">' + r.question +
-      ' <span class="req" aria-hidden="true">*</span></span></legend>' +
-      '<div class="rating-scale">' + options + "</div>" +
-      '<p class="rating-ends" id="' + r.id + '-scale"><span>0 = não é um problema</span><span>10 = é uma dor grave</span></p>' +
-      '<p class="rating-value" aria-hidden="true" data-value-for="' + r.id + '"></p>' +
-      '<p class="field-error" id="' + r.id + '-err"></p>';
-    ratingsRoot.appendChild(fs);
-  });
-
-  /* ---------------- Validação ---------------- */
-
+  var T = window.Termometro;
+  var INDICADORES = T.dados.indicadores;
   var form = $("#diagnostic-form");
   var statusBox = $("#form-status");
   var submitBtn = $("#submit-btn");
   var summary = $("#error-summary");
+  var STORE_KEY = "genesis-diagnostico-v1";
+  var STAGES = ["identificacao", "questionario", "cenario", "processando", "resultado"];
+  var state = { stage: "identificacao", index: 0, notas: {}, resultado: null, envio: null, enviadoEm: null };
+
+  function esc(texto) {
+    return String(texto === null || texto === undefined ? "" : texto)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
 
   function val(name) {
     var el = form.elements[name];
     if (!el) return "";
     if (el.type === "checkbox") return el.checked;
     return (el.value || "").trim();
+  }
+
+  function radioValue(name) {
+    var checked = form.querySelector('input[name="' + name + '"]:checked');
+    return checked ? checked.value : "";
   }
 
   function phoneDigits(v) {
@@ -371,52 +355,42 @@
     return d;
   }
 
+  function respondidas() {
+    return INDICADORES.filter(function (i) { return typeof state.notas[i.codigo] === "number"; }).length;
+  }
+
+  /* ----- Validação (identificação e cenário atual) ----- */
+
   var FIELDS = [
-    { name: "nome", block: 1, label: "Seu nome", check: function (v) { return v ? "" : "Informe o seu nome."; } },
-    { name: "cargo", block: 1, label: "Cargo ou função", check: function (v) { return v ? "" : "Selecione o seu cargo ou função."; } },
-    { name: "empresa", block: 1, label: "Nome da empresa", check: function (v) { return v ? "" : "Informe o nome da empresa."; } },
-    { name: "segmento", block: 1, label: "Segmento", check: function (v) { return v ? "" : "Selecione o segmento da empresa."; } },
-    { name: "colaboradores", block: 1, label: "Número de colaboradores", check: function (v) { return v ? "" : "Selecione o número de colaboradores."; } },
-    { name: "cidade", block: 1, label: "Cidade", check: function (v) { return v ? "" : "Informe a cidade."; } },
-    { name: "whatsapp", block: 1, label: "WhatsApp", check: function (v) {
+    { name: "nome", stage: "identificacao", label: "Seu nome", check: function (v) { return v ? "" : "Informe o seu nome."; } },
+    { name: "cargo", stage: "identificacao", label: "Cargo ou função", check: function (v) { return v ? "" : "Selecione o seu cargo ou função."; } },
+    { name: "empresa", stage: "identificacao", label: "Nome da empresa", check: function (v) { return v ? "" : "Informe o nome da empresa."; } },
+    { name: "segmento", stage: "identificacao", label: "Segmento", check: function (v) { return v ? "" : "Selecione o segmento da empresa."; } },
+    { name: "colaboradores", stage: "identificacao", label: "Número de colaboradores", check: function (v) { return v ? "" : "Selecione o número de colaboradores."; } },
+    { name: "cidade", stage: "identificacao", label: "Cidade", check: function (v) { return v ? "" : "Informe a cidade."; } },
+    { name: "whatsapp", stage: "identificacao", label: "WhatsApp", check: function (v) {
       if (!v) return "Informe o seu WhatsApp.";
       if (/[^\d\s()+.\-]/.test(v)) return "Use apenas números e, se quiser, parênteses, espaços ou hífen.";
       var d = phoneDigits(v);
       return d.length === 10 || d.length === 11 ? "" : "Informe um número com DDD, por exemplo (34) 99999-9999.";
     } },
-    { name: "email", block: 1, label: "E-mail", check: function (v) {
+    { name: "email", stage: "identificacao", label: "E-mail", check: function (v) {
       if (!v) return "Informe o seu e-mail.";
       return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? "" : "Informe um e-mail válido, por exemplo nome@empresa.com.br.";
-    } }
+    } },
+    { name: "principal_preocupacao", stage: "cenario", group: true, label: "O que mais tira o seu sono hoje?", check: function (v) { return v ? "" : "Escolha uma opção."; } },
+    { name: "preferencia_contato", stage: "cenario", group: true, label: "Como prefere ser contatado?", check: function (v) { return v ? "" : "Escolha como prefere ser contatado."; } },
+    { name: "consentimento", stage: "cenario", label: "Consentimento", check: function (v) { return v ? "" : "Para enviar, é preciso autorizar o uso dos dados."; } }
   ];
-  RATINGS.forEach(function (r, i) {
-    FIELDS.push({ name: r.id, block: 2, group: true, label: "Pergunta " + (i + 1) + " — " + r.dimension,
-      check: function (v) { return v !== "" ? "" : "Escolha uma nota de 0 a 10."; } });
-  });
-  FIELDS.push(
-    { name: "principal_preocupacao", block: 3, group: true, label: "O que mais tira o seu sono hoje?", check: function (v) { return v ? "" : "Escolha uma opção."; } },
-    { name: "preferencia_contato", block: 3, group: true, label: "Como prefere ser contatado?", check: function (v) { return v ? "" : "Escolha como prefere ser contatado."; } },
-    { name: "consentimento", block: 3, label: "Consentimento", check: function (v) { return v ? "" : "Para enviar, é preciso autorizar o uso dos dados."; } }
-  );
-
-  function radioValue(name) {
-    var checked = form.querySelector('input[name="' + name + '"]:checked');
-    return checked ? checked.value : "";
-  }
 
   function fieldValue(f) { return f.group ? radioValue(f.name) : val(f.name); }
 
   function setError(f, msg) {
-    var err = document.getElementById(f.name + "-err");
-    err.textContent = msg;
+    document.getElementById(f.name + "-err").textContent = msg;
     var host = f.group ? document.getElementById(f.name + "-group") : form.elements[f.name];
     host.classList.toggle("has-error", !!msg);
-    if (f.group) {
-      $$('input[name="' + f.name + '"]', form).forEach(function (i) {
-        if (msg) i.setAttribute("aria-invalid", "true"); else i.removeAttribute("aria-invalid");
-      });
-    } else if (msg) host.setAttribute("aria-invalid", "true");
-    else host.removeAttribute("aria-invalid");
+    var inputs = f.group ? $$('input[name="' + f.name + '"]', form) : [host];
+    inputs.forEach(function (i) { if (msg) i.setAttribute("aria-invalid", "true"); else i.removeAttribute("aria-invalid"); });
   }
 
   var touched = {};
@@ -427,74 +401,279 @@
   }
 
   function firstFocusable(f) {
-    if (!f.group) return form.elements[f.name];
-    return form.querySelector('input[name="' + f.name + '"]');
+    return f.group ? form.querySelector('input[name="' + f.name + '"]') : form.elements[f.name];
   }
 
-  function updateProgress() {
-    [1, 2, 3].forEach(function (b) {
-      var done = FIELDS.filter(function (f) { return f.block === b; }).every(function (f) { return !f.check(fieldValue(f)); });
-      var li = $('[data-progress="' + b + '"]');
-      li.classList.toggle("is-done", done);
-      var sr = li.querySelector(".sr-only") || li.querySelector("a").appendChild(Object.assign(document.createElement("span"), { className: "sr-only" }));
-      sr.textContent = done ? " (concluído)" : " (pendente)";
+  // Validates one stage; lists the problems at the top and returns true when everything is filled in.
+  function validateStage(stage) {
+    var errors = [];
+    FIELDS.filter(function (f) { return f.stage === stage; }).forEach(function (f) {
+      touched[f.name] = true;
+      var msg = validateField(f);
+      if (msg) errors.push({ f: f, msg: msg });
     });
+    var list = $("ul", summary);
+    list.innerHTML = "";
+    if (!errors.length) { summary.hidden = true; return true; }
+    errors.forEach(function (er) {
+      var li = document.createElement("li");
+      var a = document.createElement("a");
+      a.href = "#" + (er.f.group ? er.f.name + "-group" : er.f.name);
+      a.textContent = er.f.label + ": " + er.msg;
+      a.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        var target = firstFocusable(er.f);
+        target.focus({ preventScroll: true });
+        (er.f.group ? document.getElementById(er.f.name + "-group") : target).scrollIntoView({ block: "center" });
+      });
+      li.appendChild(a);
+      list.appendChild(li);
+    });
+    $("h2", summary).textContent = errors.length === 1 ? "Revise 1 campo para continuar" : "Revise " + errors.length + " campos para continuar";
+    summary.hidden = false;
+    summary.focus();
+    return false;
   }
 
-  function onFieldEvent(e) {
-    var name = e.target.name;
-    if (!name) return;
-    var f = FIELDS.filter(function (x) { return x.name === name; })[0];
-    if (f && f.group) {
-      var out = form.querySelector('[data-value-for="' + name + '"]');
-      if (out) out.textContent = "Nota escolhida: " + radioValue(name);
-    }
-    if (f && (touched[name] || f.group || e.target.type === "checkbox" || e.target.tagName === "SELECT")) {
-      touched[name] = true;
-      validateField(f);
-    }
-    updateProgress();
-  }
   form.addEventListener("change", onFieldEvent);
   form.addEventListener("input", onFieldEvent);
   form.addEventListener("focusout", function (e) {
     var f = FIELDS.filter(function (x) { return x.name === e.target.name && !x.group; })[0];
-    if (f && (e.target.value || touched[f.name])) { touched[f.name] = true; validateField(f); updateProgress(); }
+    if (f && (e.target.value || touched[f.name])) { touched[f.name] = true; validateField(f); }
   });
 
-  /* ---------------- Envio ---------------- */
-
-  function buildPayload() {
-    return {
-      contact: {
-        name: val("nome"), role: val("cargo"), company: val("empresa"), segment: val("segmento"),
-        employee_range: val("colaboradores"), city: val("cidade"), whatsapp: val("whatsapp"), email: val("email")
-      },
-      ratings: RATINGS.reduce(function (acc, r) { acc[r.id] = parseInt(radioValue(r.id), 10); return acc; }, {}),
-      closing: {
-        principal_preocupacao: radioValue("principal_preocupacao"),
-        comentario_adicional: val("comentario_adicional") || null,
-        preferencia_contato: radioValue("preferencia_contato"),
-        consentimento: val("consentimento") === true
-      },
-      meta: { source: "site", submitted_at: new Date().toISOString() }
-    };
+  function onFieldEvent(e) {
+    var name = e.target.name;
+    if (!name || name === "nota") return;
+    var f = FIELDS.filter(function (x) { return x.name === name; })[0];
+    if (f && (touched[name] || f.group || e.target.type === "checkbox" || e.target.tagName === "SELECT")) {
+      touched[name] = true;
+      validateField(f);
+    }
+    salvar();
   }
 
-  function showStatus(kind, title, body, extra) {
-    statusBox.className = "form-status is-" + kind;
-    statusBox.innerHTML = "";
-    var h = document.createElement("h2");
-    h.textContent = title;
-    statusBox.appendChild(h);
-    body.forEach(function (t) {
-      var p = document.createElement("p");
-      p.textContent = t;
-      statusBox.appendChild(p);
+  /* ----- Salvamento automático (neste navegador) ----- */
+
+  var CAMPOS = ["nome", "cargo", "empresa", "segmento", "colaboradores", "cidade", "whatsapp", "email", "comentario_adicional"];
+  var autosave = $("#autosave");
+  var autosaveTimer = null;
+
+  function lerCampos() {
+    var campos = {};
+    CAMPOS.forEach(function (n) { campos[n] = val(n); });
+    campos.principal_preocupacao = radioValue("principal_preocupacao");
+    campos.preferencia_contato = radioValue("preferencia_contato");
+    campos.consentimento = val("consentimento") === true;
+    return campos;
+  }
+
+  function aplicarCampos(campos) {
+    if (!campos) return;
+    CAMPOS.forEach(function (n) { if (typeof campos[n] === "string" && form.elements[n]) form.elements[n].value = campos[n]; });
+    ["principal_preocupacao", "preferencia_contato"].forEach(function (n) {
+      var input = campos[n] && form.querySelector('input[name="' + n + '"][value="' + campos[n].replace(/"/g, "") + '"]');
+      if (input) input.checked = true;
     });
-    if (extra) statusBox.appendChild(extra);
-    statusBox.focus();
+    form.elements.consentimento.checked = !!campos.consentimento;
   }
+
+  function salvar() {
+    var dados = {
+      versao: 1, stage: state.stage === "processando" ? "cenario" : state.stage, index: state.index,
+      notas: state.notas, campos: lerCampos(), envio: state.envio, enviadoEm: state.enviadoEm, salvoEm: new Date().toISOString()
+    };
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(dados)); } catch (e) { return; }
+    autosave.textContent = "Respostas salvas neste navegador";
+    autosave.classList.add("is-visible");
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(function () { autosave.classList.remove("is-visible"); }, 1800);
+  }
+
+  function carregar() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch (e) { return null; }
+  }
+
+  function apagar() {
+    try { localStorage.removeItem(STORE_KEY); } catch (e) { /* storage unavailable */ }
+  }
+
+  /* ----- Etapas ----- */
+
+  var stageSections = {};
+  $$("[data-stage]", form).forEach(function (sec) { stageSections[sec.getAttribute("data-stage")] = sec; });
+  var wizardTop = $(".wizard-top");
+
+  function atualizarProgresso() {
+    var ordem = ["identificacao", "questionario", "cenario", "resultado"];
+    var atual = state.stage === "processando" ? "resultado" : state.stage;
+    var pos = ordem.indexOf(atual);
+    $$("[data-stage-step]").forEach(function (li) {
+      var k = ordem.indexOf(li.getAttribute("data-stage-step"));
+      li.classList.toggle("is-done", k < pos || (atual === "resultado" && k === pos && state.resultado));
+      li.classList.toggle("is-current", k === pos);
+      if (k === pos) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
+    });
+    var pct = { identificacao: 4, questionario: 10 + 75 * respondidas() / INDICADORES.length, cenario: 90, processando: 96, resultado: 100 }[state.stage];
+    $("#wizard-bar-fill").style.width = pct + "%";
+  }
+
+  function mostrarEtapa(stage, foco) {
+    state.stage = stage;
+    STAGES.forEach(function (s) { stageSections[s].hidden = s !== stage; });
+    stageSections[stage].classList.remove("stage-enter");
+    void stageSections[stage].offsetWidth;
+    stageSections[stage].classList.add("stage-enter");
+    summary.hidden = true;
+    atualizarProgresso();
+    if (stage === "questionario") renderPergunta();
+    rolarParaEtapa(true);
+    if (foco !== false) {
+      var alvo = stage === "questionario" ? $("#q-title") : $("[tabindex='-1']", stageSections[stage]);
+      if (alvo) setTimeout(function () { alvo.focus({ preventScroll: true }); }, reduceMotion ? 0 : 350);
+    }
+    if (stage !== "processando") salvar();
+  }
+
+  // Brings the top of the current step just below the header and the sticky step bar.
+  function rolarParaEtapa(sempre) {
+    var headerH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-h")) || 0;
+    var folga = headerH + wizardTop.offsetHeight + 12;
+    var alvo = stageSections[state.stage];
+    // Layout position, ignoring the entrance animation's transform.
+    var abs = 0;
+    for (var el = alvo; el; el = el.offsetParent) abs += el.offsetTop;
+    var topo = abs - window.scrollY;
+    if (!sempre && topo >= folga && topo < window.innerHeight * 0.5) return;
+    window.scrollTo({ top: Math.max(0, topo + window.scrollY - folga), behavior: reduceMotion ? "auto" : "smooth" });
+  }
+
+  $$("[data-next]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (validateStage(state.stage)) mostrarEtapa(b.getAttribute("data-next"));
+    });
+  });
+  $$("[data-back]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      state.index = INDICADORES.length - 1;
+      mostrarEtapa(b.getAttribute("data-back"));
+    });
+  });
+
+  /* ----- Questionário: uma pergunta por tela ----- */
+
+  var qScale = $("#q-scale");
+  var qMap = $("#q-map");
+  var qError = $("#q-error");
+  var extremos = (T.dados.diretriz.match(/\((0 = [^|]+)\|\s*(10 = [^)]+)\)/) || []).slice(1).map(function (t) { return t.trim(); });
+  var ends = $$("#q-ends span");
+  ends[0].textContent = extremos[0] || "0";
+  ends[1].textContent = extremos[1] || "10";
+  $("#q-guide").textContent = "Avalie a gravidade do sintoma de 0 a 10.";
+
+  (function montarEscala() {
+    var html = "";
+    for (var v = 0; v <= 10; v++) {
+      html += '<label class="q-opt"><input type="radio" name="nota" value="' + v + '" aria-describedby="q-ends"><span>' + v + "</span></label>";
+    }
+    qScale.innerHTML = html;
+    var mapa = "";
+    INDICADORES.forEach(function (ind, i) {
+      mapa += '<button type="button" class="q-dot" data-q="' + i + '" aria-label="Pergunta ' + (i + 1) + ": " + esc(ind.dimensao) + '">' + esc(ind.codigo) + "</button>";
+    });
+    qMap.innerHTML = mapa;
+  })();
+
+  function nomePilar(nome) { return nome.replace(/^\d+\.\s*/, ""); }
+
+  function renderPergunta() {
+    var i = state.index;
+    var ind = INDICADORES[i];
+    var pilarIdx = T.dados.pilares.map(function (p) { return p.nome; }).indexOf(ind.pilar);
+    $("#q-count").textContent = "Pergunta " + (i + 1) + " de " + INDICADORES.length;
+    $("#q-pillar").textContent = "Pilar " + (pilarIdx + 1) + " de " + T.dados.pilares.length + " · " + nomePilar(ind.pilar);
+    $("#q-code").textContent = ind.codigo;
+    $("#q-dimension").textContent = ind.dimensao;
+    $("#q-title").textContent = ind.pergunta;
+    var nota = state.notas[ind.codigo];
+    $$("input[name=nota]", qScale).forEach(function (r) { r.checked = typeof nota === "number" && Number(r.value) === nota; });
+    qError.textContent = "";
+    $("#q-card").classList.remove("has-error");
+    $("#q-prev").innerHTML = '<svg class="icon flip" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-next"/></svg>' + (i === 0 ? "Identificação" : "Anterior");
+    $("#q-next").innerHTML = (i === INDICADORES.length - 1 ? "Concluir questionário" : "Próxima") + '<svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-next"/></svg>';
+    $$(".q-dot", qMap).forEach(function (d, k) {
+      var code = INDICADORES[k].codigo;
+      d.classList.toggle("is-answered", typeof state.notas[code] === "number");
+      d.classList.toggle("is-current", k === i);
+      d.disabled = k > primeiraSemResposta() && k !== i;
+      if (k === i) d.setAttribute("aria-current", "step"); else d.removeAttribute("aria-current");
+    });
+    var card = $("#q-card");
+    card.classList.remove("q-enter");
+    void card.offsetWidth;
+    card.classList.add("q-enter");
+    atualizarProgresso();
+  }
+
+  function primeiraSemResposta() {
+    for (var k = 0; k < INDICADORES.length; k++) if (typeof state.notas[INDICADORES[k].codigo] !== "number") return k;
+    return INDICADORES.length;
+  }
+
+  function irPara(i) {
+    state.index = Math.max(0, Math.min(INDICADORES.length - 1, i));
+    renderPergunta();
+    rolarParaEtapa(false);
+    $("#q-title").focus({ preventScroll: true });
+    salvar();
+  }
+
+  function avancar() {
+    var code = INDICADORES[state.index].codigo;
+    if (typeof state.notas[code] !== "number") {
+      qError.textContent = "Escolha uma nota de 0 a 10 para continuar.";
+      $("#q-card").classList.add("has-error");
+      $("input[name=nota]", qScale).focus();
+      return;
+    }
+    if (state.index < INDICADORES.length - 1) irPara(state.index + 1);
+    else {
+      var falta = primeiraSemResposta();
+      if (falta < INDICADORES.length) { irPara(falta); return; }
+      mostrarEtapa("cenario");
+    }
+  }
+
+  var autoAvanco = null;
+  qScale.addEventListener("change", function (e) {
+    if (e.target.name !== "nota") return;
+    state.notas[INDICADORES[state.index].codigo] = Number(e.target.value);
+    qError.textContent = "";
+    $("#q-card").classList.remove("has-error");
+    salvar();
+    atualizarProgresso();
+    $$(".q-dot", qMap)[state.index].classList.add("is-answered");
+    // Move on by itself once a score is picked (not on the last question, which needs a deliberate "Concluir").
+    clearTimeout(autoAvanco);
+    if (state.index < INDICADORES.length - 1 && e.isTrusted !== false) {
+      var esta = state.index;
+      autoAvanco = setTimeout(function () { if (state.index === esta && state.stage === "questionario") avancar(); }, reduceMotion ? 150 : 550);
+    }
+  });
+  qScale.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); clearTimeout(autoAvanco); avancar(); }
+  });
+  $("#q-next").addEventListener("click", function () { clearTimeout(autoAvanco); avancar(); });
+  $("#q-prev").addEventListener("click", function () {
+    clearTimeout(autoAvanco);
+    if (state.index === 0) mostrarEtapa("identificacao"); else irPara(state.index - 1);
+  });
+  qMap.addEventListener("click", function (e) {
+    var d = e.target.closest(".q-dot");
+    if (d && !d.disabled) { clearTimeout(autoAvanco); irPara(Number(d.getAttribute("data-q"))); }
+  });
+
+  /* ----- Envio pelo EmailJS (o modelo usa {{empresa}}, {{responsavel}}, {{respostas}} e {{data}}) ----- */
 
   var EMAILJS_URL = "https://api.emailjs.com/api/v1.0/email/send";
 
@@ -504,166 +683,367 @@
     }) + " (horário de Brasília)";
   }
 
-  // O modelo do EmailJS usa exatamente estas variáveis: {{empresa}}, {{responsavel}}, {{respostas}} e {{data}}.
-  function emailTemplateParams(payload) {
+  function n1(v) { return T.formatar(v, 1); }
+  function n2(v) { return T.formatar(v, 2); }
+  function corLabel(c) { return { vermelho: "Vermelho", amarelo: "Amarelo", branco: "Branco", verde: "Verde" }[c]; }
+
+  function buildPayload() {
+    var c = lerCampos();
+    return {
+      contact: { name: c.nome, role: c.cargo, company: c.empresa, segment: c.segmento, employee_range: c.colaboradores, city: c.cidade, whatsapp: c.whatsapp, email: c.email },
+      notas: Object.assign({}, state.notas),
+      closing: { principal_preocupacao: c.principal_preocupacao, comentario_adicional: c.comentario_adicional || null, preferencia_contato: c.preferencia_contato, consentimento: c.consentimento },
+      meta: { source: "site", metodologia: T.dados.fonte, submitted_at: state.enviadoEm || new Date().toISOString() }
+    };
+  }
+
+  function emailTemplateParams(payload, r) {
     var c = payload.contact, cl = payload.closing;
-    var lines = [
-      "SOBRE VOCÊ E A EMPRESA",
-      "• Seu nome: " + c.name,
-      "• Cargo ou função: " + c.role,
-      "• Nome da empresa: " + c.company,
-      "• Segmento: " + c.segment,
-      "• Número de colaboradores: " + c.employee_range,
-      "• Cidade: " + c.city,
-      "• WhatsApp: " + c.whatsapp,
-      "• E-mail: " + c.email,
+    var L = [
+      "IDENTIFICAÇÃO",
+      "• Nome: " + c.name, "• Cargo ou função: " + c.role, "• Empresa: " + c.company, "• Segmento: " + c.segment,
+      "• Número de colaboradores: " + c.employee_range, "• Cidade: " + c.city, "• WhatsApp: " + c.whatsapp, "• E-mail: " + c.email,
       "",
-      "AS DORES DA EMPRESA (0 = não é um problema; 10 = é uma dor grave)"
+      "TERMÔMETRO ORGANIZACIONAL — " + r.igvo.nome,
+      "• Gravidade ponderada (0 a 10): " + n2(r.igvo.ponderada) + " · Média simples: " + n1(r.igvo.mediaSimples),
+      "• Temperatura: " + r.igvo.temperatura,
+      "• Status: " + r.igvo.status,
+      "• Prescrição: " + r.igvo.prescricao.titulo + ": " + r.igvo.prescricao.texto,
+      "• Média geral do questionário (ponderada): " + n2(r.questionario.mediaPonderada) + " · Média simples: " + n1(r.questionario.mediaSimples),
+      "",
+      "PILARES"
     ];
-    RATINGS.forEach(function (r, i) {
-      lines.push((i + 1) + ". " + r.dimension + ": " + payload.ratings[r.id] + "/10");
-      lines.push("   " + r.question);
+    r.pilares.forEach(function (p) {
+      L.push(p.nome + " — " + p.status + " · " + p.temperatura);
+      L.push("   Gravidade ponderada " + n2(p.ponderada) + " · Média simples " + n1(p.mediaSimples) + " · " + p.especialistas);
+      L.push("   " + p.prescricao.titulo + ": " + p.prescricao.texto);
     });
-    lines.push(
-      "",
-      "PARA FECHAR",
-      "• O que mais tira o seu sono hoje? " + cl.principal_preocupacao,
-      "• Quer contar algo mais? " + (cl.comentario_adicional || "Não informado."),
-      "• Como prefere ser contatado? " + cl.preferencia_contato,
+    L.push("", "PLANO DE TRATAMENTO (por gravidade)");
+    r.matriz.forEach(function (m) { L.push("• " + m.dimensao + " (" + n2(m.gravidade) + "): " + m.modalidade.titulo + " — " + m.modalidade.texto); });
+    L.push("", "PROBLEMAS IDENTIFICADOS (notas de 5,5 a 10)");
+    if (r.problemas.length) r.problemas.forEach(function (i) { L.push("• " + i.codigo + " " + i.dimensao + ": nota " + i.nota + " (" + i.faixa.classificacao + ")"); });
+    else L.push("• Nenhum.");
+    L.push("", "PONTOS POSITIVOS (notas de 0 a 2,9)");
+    if (r.positivos.length) r.positivos.forEach(function (i) { L.push("• " + i.codigo + " " + i.dimensao + ": nota " + i.nota); });
+    else L.push("• Nenhum.");
+    L.push("", "RESPOSTAS (nota × peso = gravidade ponderada)");
+    r.itens.forEach(function (i) { L.push(i.codigo + " · " + i.dimensao + ": " + i.nota + " × " + n1(i.peso) + " = " + n2(i.gravidade)); });
+    L.push(
+      "", "CENÁRIO ATUAL (percepção do cliente)",
+      "• O que mais tira o sono: " + cl.principal_preocupacao,
+      "• Comentário: " + (cl.comentario_adicional || "Não informado."),
+      "• Prefere ser contatado por: " + cl.preferencia_contato,
       "• Consentimento: " + (cl.consentimento ? "Sim. Autorizou o uso dos dados e declarou ter lido a Política de Privacidade." : "Não")
     );
-    return {
-      empresa: c.company,
-      responsavel: c.name,
-      respostas: lines.join("\n"),
-      data: formatSentAt(payload.meta.submitted_at)
-    };
+    return { empresa: c.company, responsavel: c.name, respostas: L.join("\n"), data: formatSentAt(payload.meta.submitted_at) };
   }
 
   function sendEmail(templateId, params, signal) {
     return fetch(EMAILJS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        service_id: EMAILJS.serviceId,
-        template_id: templateId,
-        user_id: EMAILJS.publicKey,
-        template_params: params
-      }),
+      body: JSON.stringify({ service_id: EMAILJS.serviceId, template_id: templateId, user_id: EMAILJS.publicKey, template_params: params }),
       signal: signal
     });
   }
 
-  function transmit(payload, signal) {
+  function transmit(payload, r, signal) {
     if (emailjsReady) {
-      var params = emailTemplateParams(payload);
+      var params = emailTemplateParams(payload, r);
       return sendEmail(EMAILJS.templateId, params, signal).then(function (res) {
         if (!res.ok || !EMAILJS.visitorTemplateId) return res;
         // The visitor's copy is a courtesy: once the team's e-mail is confirmed, the diagnosis counts as delivered.
         var visitorParams = Object.assign({}, params, { email: payload.contact.email });
-        return sendEmail(EMAILJS.visitorTemplateId, visitorParams, signal)
-          .catch(function () {})
-          .then(function () { return res; });
+        return sendEmail(EMAILJS.visitorTemplateId, visitorParams, signal).catch(function () {}).then(function () { return res; });
       });
     }
     return fetch(CONFIG.submitEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(Object.assign({}, payload, { resultado: { igvo: r.igvo.ponderada, pilares: r.pilares.map(function (p) { return { nome: p.nome, ponderada: p.ponderada, status: p.status }; }) } })),
       signal: signal
     });
   }
 
-  var sending = false;
-
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    if (sending) return;
-
-    var errors = [];
-    FIELDS.forEach(function (f) {
-      touched[f.name] = true;
-      var msg = validateField(f);
-      if (msg) errors.push({ f: f, msg: msg });
-    });
-    updateProgress();
-
-    var list = $("ul", summary);
-    list.innerHTML = "";
-    if (errors.length) {
-      errors.forEach(function (er) {
-        var li = document.createElement("li");
-        var a = document.createElement("a");
-        a.href = "#" + (er.f.group ? er.f.name + "-group" : er.f.name);
-        a.textContent = er.f.label + ": " + er.msg;
-        a.addEventListener("click", function (ev) {
-          ev.preventDefault();
-          var target = firstFocusable(er.f);
-          target.focus({ preventScroll: true });
-          (er.f.group ? document.getElementById(er.f.name + "-group") : target).scrollIntoView({ block: "center" });
-        });
-        li.appendChild(a);
-        list.appendChild(li);
-      });
-      $("h2", summary).textContent = errors.length === 1 ? "Revise 1 campo antes de enviar" : "Revise " + errors.length + " campos antes de enviar";
-      summary.hidden = false;
-      statusBox.className = "form-status";
-      statusBox.textContent = "";
-      summary.focus();
-      return;
-    }
-    summary.hidden = true;
-
-    var payload = buildPayload();
-
-    if (!sendingEnabled) {
-      showStatus("demo", "Envio ainda não configurado", [
-        "Todas as respostas foram preenchidas corretamente, mas o envio do formulário ainda não foi configurado neste site. Por isso, nada foi transmitido ao Projeto Gênesis.",
-        "Suas respostas continuam preenchidas nesta página. Para falar com o Projeto Gênesis agora, use os canais da seção Contato."
-      ]);
-      return;
-    }
-
-    sending = true;
-    submitBtn.disabled = true;
-    submitBtn.setAttribute("aria-busy", "true");
-    submitBtn.textContent = "Enviando…";
-    statusBox.className = "form-status is-loading";
-    statusBox.textContent = "Enviando suas respostas…";
-
+  // Sends the diagnosis; resolves to { ok, detail } and never rejects.
+  function enviar(r) {
+    if (!sendingEnabled) return Promise.resolve({ ok: false, naoConfigurado: true });
     var controller = "AbortController" in window ? new AbortController() : null;
     var timer = controller && setTimeout(function () { controller.abort(); }, 20000);
+    return transmit(buildPayload(), r, controller ? controller.signal : undefined).then(function (res) {
+      if (res.ok) return { ok: true };
+      return res.text().catch(function () { return ""; }).then(function (text) {
+        return { ok: false, detail: "erro " + res.status + (text ? ": " + text.slice(0, 200) : "") };
+      });
+    }).catch(function () {
+      return { ok: false, detail: "" };
+    }).then(function (out) { if (timer) clearTimeout(timer); return out; });
+  }
 
-    transmit(payload, controller ? controller.signal : undefined).then(function (res) {
-      if (!res.ok) {
-        return res.text().catch(function () { return ""; }).then(function (text) {
-          var err = new Error("HTTP " + res.status);
-          err.detail = "erro " + res.status + (text ? ": " + text.slice(0, 200) : "");
-          throw err;
-        });
-      }
-      form.reset();
-      touched = {};
-      $$("[data-value-for]").forEach(function (o) { o.textContent = ""; });
-      updateProgress();
-      var p = document.createElement("p");
+  function mostrarEnvio(out) {
+    statusBox.innerHTML = "";
+    statusBox.className = "form-status";
+    if (!out) return;
+    var h = document.createElement("h2");
+    var p = document.createElement("p");
+    if (out.ok) {
+      statusBox.classList.add("is-success");
+      h.textContent = "Recebemos suas respostas!";
       p.textContent = "Um conselheiro do Projeto Gênesis vai entrar em contato" +
         (CONFIG.responseDeadline ? " em até " + CONFIG.responseDeadline : "") +
         " para agendar uma reunião aprofundada. Enquanto isso, acompanhe nossos conteúdos no Instagram " + CONFIG.instagramHandle + ".";
-      showStatus("success", "Recebemos suas respostas!", [], p);
-    }).catch(function (err) {
-      var lines = ["Suas respostas não foram recebidas, mas continuam preenchidas no formulário. Verifique a sua conexão e tente novamente."];
-      if (err && err.detail) lines.push("Detalhe técnico: " + err.detail);
-      showStatus("error", "Não foi possível enviar agora", lines);
-    }).then(function () {
-      if (timer) clearTimeout(timer);
-      sending = false;
+      statusBox.appendChild(h); statusBox.appendChild(p);
+      return;
+    }
+    statusBox.classList.add(out.naoConfigurado ? "is-demo" : "is-error");
+    h.textContent = out.naoConfigurado ? "Envio ainda não configurado" : "Seu resultado está pronto, mas não conseguimos enviá-lo ao Conselho";
+    p.textContent = out.naoConfigurado
+      ? "O resultado abaixo foi calculado, mas o envio ao Projeto Gênesis ainda não foi configurado neste site. Nada foi transmitido."
+      : "Suas respostas continuam salvas neste navegador. Verifique a conexão e tente de novo, ou fale com o Conselho pelo WhatsApp.";
+    statusBox.appendChild(h); statusBox.appendChild(p);
+    if (out.detail) {
+      var d = document.createElement("p");
+      d.className = "status-detail";
+      d.textContent = "Detalhe técnico: " + out.detail;
+      statusBox.appendChild(d);
+    }
+    if (!out.naoConfigurado) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn btn-gold btn-sm";
+      b.textContent = "Tentar enviar novamente";
+      b.addEventListener("click", function () {
+        b.disabled = true;
+        b.textContent = "Enviando…";
+        enviar(state.resultado).then(function (res) {
+          state.envio = res.ok ? "ok" : "falhou";
+          salvar();
+          mostrarEnvio(res);
+          statusBox.focus();
+        });
+      });
+      statusBox.appendChild(b);
+    }
+  }
+
+  /* ----- Conclusão: processamento e laudo ----- */
+
+  var enviando = false;
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (enviando || state.stage !== "cenario") return;
+    var falta = primeiraSemResposta();
+    if (falta < INDICADORES.length) { state.index = falta; mostrarEtapa("questionario"); return; }
+    if (!validateStage("cenario")) return;
+
+    enviando = true;
+    submitBtn.disabled = true;
+    state.enviadoEm = new Date().toISOString();
+    var r = T.calcular(state.notas);
+    mostrarEtapa("processando");
+    var passos = $$("#proc-steps li");
+    passos.forEach(function (li) { li.className = ""; });
+    var passo = 0;
+    var tick = setInterval(function () {
+      if (passo > 0) passos[passo - 1].className = "is-done";
+      if (passo < passos.length) passos[passo].className = "is-active";
+      passo++;
+      if (passo > passos.length - 1) clearInterval(tick);
+    }, reduceMotion ? 60 : 650);
+    var minimo = new Promise(function (ok) { setTimeout(ok, reduceMotion ? 300 : 2800); });
+
+    Promise.all([enviar(r), minimo]).then(function (res) {
+      clearInterval(tick);
+      var out = res[0];
+      state.envio = out.ok ? "ok" : (out.naoConfigurado ? "nao-configurado" : "falhou");
+      state.resultado = r;
+      renderLaudo(r);
+      mostrarEnvio(out);
+      enviando = false;
       submitBtn.disabled = false;
-      submitBtn.removeAttribute("aria-busy");
-      submitBtn.textContent = "Enviar meu diagnóstico inicial";
+      mostrarEtapa("resultado", false);
+      $("#laudo-title").focus({ preventScroll: true });
     });
   });
 
-  updateProgress();
+  function regua(valor, cor) {
+    var pos = Math.max(0, Math.min(10, valor)) * 10;
+    return '<div class="regua" role="img" aria-label="' + esc(n2(valor) + " numa escala de 0 a 10") + '">' +
+      '<span class="regua-faixas"><i class="f-verde"></i><i class="f-branco"></i><i class="f-amarelo"></i><i class="f-vermelho"></i></span>' +
+      '<span class="regua-marca t-' + cor + '" style="left:' + pos + '%"></span>' +
+      '<span class="regua-escala"><b>0</b><b style="left:30%">3</b><b style="left:55%">5,5</b><b style="left:80%">8</b><b style="left:100%">10</b></span></div>';
+  }
+
+  function termometroSvg(valor, cor) {
+    var h = Math.max(4, Math.min(100, valor * 10));
+    return '<svg class="thermo t-' + cor + '" viewBox="0 0 60 220" aria-hidden="true">' +
+      '<rect x="20" y="10" width="20" height="160" rx="10" class="thermo-tube"/>' +
+      '<rect x="25" y="' + (165 - 1.5 * h) + '" width="10" height="' + (1.5 * h + 10) + '" rx="5" class="thermo-fill"/>' +
+      '<circle cx="30" cy="190" r="22" class="thermo-bulb"/>' +
+      [3, 5.5, 8].map(function (t) { var y = 165 - 15 * t; return '<line x1="44" x2="52" y1="' + y + '" y2="' + y + '" class="thermo-tick"/>'; }).join("") +
+      "</svg>";
+  }
+
+  function lista(itens) { return "<ul>" + itens.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>"; }
+
+  function renderLaudo(r) {
+    var c = lerCampos();
+    var data = state.enviadoEm ? formatSentAt(state.enviadoEm) : "";
+    var g = r.igvo;
+    var html = '<header class="laudo-head">' +
+      '<p class="eyebrow">Laudo do diagnóstico inicial</p>' +
+      '<h2 id="laudo-title" tabindex="-1">Termômetro Organizacional · ' + esc(c.empresa) + "</h2>" +
+      '<p class="laudo-meta">' + esc(c.nome) + " · " + esc(c.cargo) + (data ? " · " + esc(data) : "") + "</p>" +
+      '<p class="laudo-aviso">Resultado calculado automaticamente a partir das suas respostas, com a metodologia oficial do Conselho Gênesis. É um diagnóstico inicial: a análise completa acontece no diagnóstico integrado, já dentro do ciclo.</p>' +
+      "</header>";
+
+    html += '<section class="laudo-igvo t-' + g.cor + '" aria-labelledby="igvo-title">' + termometroSvg(g.ponderada, g.cor) +
+      '<div class="igvo-body"><p class="igvo-label" id="igvo-title">' + esc(g.nome) + '</p>' +
+      '<p class="igvo-valor"><span>' + n2(g.ponderada) + '</span><small>de 10 · gravidade ponderada</small></p>' +
+      '<p class="igvo-temp">' + esc(g.temperatura) + '</p><p class="pill t-' + g.cor + '">' + esc(g.status) + "</p>" +
+      regua(g.ponderada, g.cor) +
+      '<div class="igvo-presc"><strong>' + esc(g.prescricao.titulo) + ":</strong> " + esc(g.prescricao.texto) + "</div>" +
+      '<p class="igvo-resp">' + esc(g.responsaveis) + "</p></div></section>";
+
+    html += '<div class="laudo-metricas">' +
+      '<div><span>' + n2(r.questionario.mediaPonderada) + '</span><p>Média geral do questionário<br><small>soma das gravidades ponderadas ÷ soma dos pesos</small></p></div>' +
+      '<div><span>' + n1(r.questionario.mediaSimples) + '</span><p>Média simples das 20 notas</p></div>' +
+      '<div><span>' + n1(g.mediaSimples) + '</span><p>Média simples dos 4 pilares</p></div></div>';
+
+    html += '<section class="laudo-bloco" aria-labelledby="pilares-laudo"><h3 id="pilares-laudo">Avaliação dos pilares</h3><div class="laudo-pilares">';
+    r.pilares.forEach(function (p) {
+      html += '<article class="pilar-card t-' + p.cor + '"><header><h4>' + esc(nomePilar(p.nome)) + '</h4><p class="pilar-who">' + esc(p.especialistas) + "</p></header>" +
+        '<p class="pilar-num"><span>' + n2(p.ponderada) + '</span> gravidade ponderada · média simples ' + n1(p.mediaSimples) + "</p>" +
+        regua(p.ponderada, p.cor) +
+        '<p class="pill t-' + p.cor + '">' + esc(p.status) + '</p><p class="pilar-temp">' + esc(p.temperatura) + "</p>" +
+        '<p class="pilar-presc"><strong>' + esc(p.prescricao.titulo) + ":</strong> " + esc(p.prescricao.texto) + "</p>" +
+        '<details><summary>Ver as ' + p.itens.length + ' respostas deste pilar</summary><table class="pilar-tab"><thead><tr><th>Cód.</th><th>Dimensão</th><th>Nota</th><th>Peso</th><th>Gravidade</th></tr></thead><tbody>' +
+        p.itens.map(function (i) { return "<tr><td>" + esc(i.codigo) + "</td><td>" + esc(i.dimensao) + "</td><td>" + n1(i.nota) + "</td><td>" + n1(i.peso) + "</td><td>" + n2(i.gravidade) + "</td></tr>"; }).join("") +
+        "</tbody></table></details></article>";
+    });
+    html += "</div></section>";
+
+    html += '<div class="laudo-duo"><section class="laudo-bloco" aria-labelledby="problemas-title"><h3 id="problemas-title">Problemas identificados</h3>' +
+      '<p class="bloco-nota">Indicadores com nota de 5,5 a 10 (Febre Ativa ou Febre Alta), ordenados pela gravidade ponderada (nota × peso).</p>';
+    html += r.problemas.length ? '<ul class="achados">' + r.problemas.map(function (i) {
+      return '<li class="t-' + i.cor + '"><span class="achado-nota">' + n1(i.nota) + '</span><div><strong>' + esc(i.codigo + " · " + i.dimensao) + "</strong><small>" + esc(i.faixa.classificacao) + " · " + esc(nomePilar(i.pilar)) + "</small><p>" + esc(i.pergunta) + "</p></div></li>";
+    }).join("") + "</ul>" : '<p class="vazio">Nenhum indicador ficou entre 5,5 e 10.</p>';
+    if (r.atencao.length) html += '<p class="bloco-nota">Em atenção (notas de 3,0 a 5,4): ' + r.atencao.map(function (i) { return esc(i.codigo + " " + i.dimensao + " (" + n1(i.nota) + ")"); }).join(" · ") + ".</p>";
+    html += "</section>";
+    html += '<section class="laudo-bloco" aria-labelledby="positivos-title"><h3 id="positivos-title">Pontos positivos</h3>' +
+      '<p class="bloco-nota">Indicadores com nota de 0 a 2,9, a faixa saudável da tabela de referência.</p>';
+    html += r.positivos.length ? '<ul class="achados">' + r.positivos.map(function (i) {
+      return '<li class="t-verde"><span class="achado-nota">' + n1(i.nota) + '</span><div><strong>' + esc(i.codigo + " · " + i.dimensao) + "</strong><small>" + esc(nomePilar(i.pilar)) + "</small></div></li>";
+    }).join("") + "</ul>" : '<p class="vazio">Nenhum indicador ficou na faixa saudável (notas de 0 a 2,9).</p>';
+    html += "</section></div>";
+
+    var cen = [["O que mais tira o seu sono hoje", c.principal_preocupacao], ["O que você contou", c.comentario_adicional || "Não informado."]];
+    var maiores = r.itens.slice().sort(function (a, b) { return b.nota - a.nota || b.peso - a.peso; }).slice(0, 3);
+    html += '<section class="laudo-bloco laudo-cenario" aria-labelledby="cenario-title"><h3 id="cenario-title">Cenário atual, na sua percepção</h3><dl>' +
+      cen.map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("") +
+      "<div><dt>As dores que você avaliou como mais intensas</dt><dd>" + maiores.map(function (i) { return esc(i.dimensao + " (" + n1(i.nota) + ")"); }).join(" · ") + "</dd></div></dl></section>";
+
+    var recs = r.pilares.slice().sort(function (a, b) { return b.ponderada - a.ponderada; });
+    html += '<section class="laudo-bloco" aria-labelledby="recs-title"><h3 id="recs-title">Recomendações do Conselho</h3><ol class="recs">' +
+      '<li class="t-' + g.cor + '"><strong>' + esc(g.prescricao.titulo) + '</strong><span>' + esc(g.prescricao.texto) + "</span><small>" + esc(g.responsaveis) + "</small></li>" +
+      recs.map(function (p) { return '<li class="t-' + p.cor + '"><strong>' + esc(p.prescricao.titulo) + "</strong><span>" + esc(p.prescricao.texto) + "</span><small>" + esc(nomePilar(p.nome) + " · " + p.especialistas) + "</small></li>"; }).join("") +
+      "</ol></section>";
+
+    html += '<section class="laudo-bloco" aria-labelledby="plano-title"><h3 id="plano-title">Plano de tratamento personalizado</h3>' +
+      '<p class="bloco-nota">As seis dimensões do plano, da mais grave para a menos grave. A modalidade de entrega segue a gravidade apurada.</p><div class="plano">';
+    r.matriz.forEach(function (m, k) {
+      html += '<details class="plano-item t-' + m.cor + '"' + (k < 2 ? " open" : "") + "><summary><span class=\"plano-g\">" + n2(m.gravidade) + '</span><span class="plano-t"><strong>' + esc(m.dimensao) + "</strong><small>" + esc(m.modalidade.titulo) + "</small></span></summary>" +
+        '<div class="plano-body"><p class="plano-mod">' + esc(m.modalidade.texto) + "</p>" +
+        '<div class="plano-cols"><div><h5>O que você sente</h5>' + lista(m.gatilhos) + "</div><div><h5>A causa raiz</h5>" + lista(m.causas) + "</div><div><h5>A transformação</h5>" + lista(m.beneficios) + "</div></div>" +
+        '<p class="plano-who">Conselheiros: ' + esc(m.conselheiros.join(" · ")) + "</p></div></details>";
+    });
+    html += "</div></section>";
+
+    html += '<section class="laudo-bloco" aria-labelledby="ref-title"><h3 id="ref-title">Tabela de referência: as 4 temperaturas</h3><div class="ref">' +
+      r.referencia.map(function (f, k) {
+        var cor = T.CORES[3 - k];
+        return '<div class="ref-item t-' + cor + (cor === g.cor ? " is-atual" : "") + '"><p class="ref-faixa">' + esc(f.faixa) + "</p><p class=\"ref-temp\">" + esc(f.temperatura) + "</p><p><strong>" + esc(f.classificacao) + "</strong></p><p class=\"ref-conduta\">" + esc(f.conduta) + "</p>" + (cor === g.cor ? '<p class="ref-voce">Sua empresa hoje</p>' : "") + "</div>";
+      }).join("") + "</div></section>";
+
+    var wa = channelHref("whatsapp");
+    html += '<div class="laudo-acoes">' +
+      (wa ? '<a class="btn btn-gold btn-lg" target="_blank" rel="noopener" href="' + esc(waResultado(r, c)) + '"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-whatsapp"/></svg>Conversar sobre o resultado no WhatsApp</a>' : "") +
+      '<button type="button" class="btn btn-ghost btn-lg" id="laudo-print"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-print"/></svg>Imprimir ou salvar em PDF</button>' +
+      '<button type="button" class="btn btn-ghost btn-lg" id="laudo-novo">Fazer um novo diagnóstico</button></div>';
+
+    $("#laudo").innerHTML = html;
+    $("#laudo-print").addEventListener("click", function () { window.print(); });
+    $("#laudo-novo").addEventListener("click", recomecar);
+  }
+
+  function waResultado(r, c) {
+    var base = channelHref("whatsapp").split("?")[0];
+    var msg = "Olá! Fiz o diagnóstico inicial no site do Projeto Gênesis." +
+      "\nEmpresa: " + c.empresa +
+      "\nTermômetro (IGVO): " + n2(r.igvo.ponderada) + " — " + r.igvo.status +
+      "\nQuero conversar sobre o plano de tratamento.";
+    return base + "?text=" + encodeURIComponent(msg);
+  }
+
+  /* ----- Retomar ou recomeçar ----- */
+
+  var resumeBox = $("#resume-box");
+
+  function recomecar() {
+    apagar();
+    form.reset();
+    state = { stage: "identificacao", index: 0, notas: {}, resultado: null, envio: null, enviadoEm: null };
+    touched = {};
+    FIELDS.forEach(function (f) { setError(f, ""); });
+    $("#laudo").innerHTML = "";
+    mostrarEnvio(null);
+    resumeBox.hidden = true;
+    atualizarBotaoInicio();
+    mostrarEtapa("identificacao");
+  }
+
+  function retomar(salvo) {
+    state.notas = salvo.notas || {};
+    state.index = Math.min(salvo.index || 0, INDICADORES.length - 1);
+    state.envio = salvo.envio || null;
+    state.enviadoEm = salvo.enviadoEm || null;
+    aplicarCampos(salvo.campos);
+    if (salvo.stage === "resultado" && respondidas() === INDICADORES.length) {
+      state.resultado = T.calcular(state.notas);
+      renderLaudo(state.resultado);
+      mostrarEnvio(state.envio === "ok" ? { ok: true } : state.envio === "falhou" ? { ok: false, detail: "" } : state.envio === "nao-configurado" ? { ok: false, naoConfigurado: true } : null);
+    }
+    resumeBox.hidden = true;
+    mostrarEtapa(salvo.stage && stageSections[salvo.stage] && salvo.stage !== "processando" ? salvo.stage : "identificacao");
+  }
+
+  var salvo = carregar();
+  function atualizarBotaoInicio() {
+    var label = $("#form-start span");
+    var temProgresso = salvo && (respostasSalvas(salvo) > 0 || salvo.stage !== "identificacao");
+    label.textContent = temProgresso && resumeBox && !resumeBox.hidden ? "Continuar de onde parei" : "Começar";
+  }
+  function respostasSalvas(s) { return Object.keys(s.notas || {}).length; }
+
+  if (salvo && salvo.versao === 1) {
+    aplicarCampos(salvo.campos);
+    var n = respostasSalvas(salvo);
+    if (salvo.stage === "resultado") {
+      $("#resume-detail").textContent = "Você concluiu um diagnóstico neste navegador" + (salvo.enviadoEm ? " em " + formatSentAt(salvo.enviadoEm).split(",")[0] : "") + ".";
+      $("#resume-continue").textContent = "Ver meu resultado";
+      resumeBox.hidden = false;
+    } else if (n > 0 || salvo.stage !== "identificacao") {
+      $("#resume-detail").textContent = n + " de " + INDICADORES.length + " perguntas respondidas.";
+      resumeBox.hidden = false;
+    }
+  }
+  $("#resume-continue").addEventListener("click", function () { retomar(salvo); salvo = null; atualizarBotaoInicio(); });
+  $("#resume-restart").addEventListener("click", function () { salvo = null; recomecar(); });
+  $("#form-start").addEventListener("click", function (e) {
+    if (salvo && !resumeBox.hidden) { e.preventDefault(); retomar(salvo); salvo = null; atualizarBotaoInicio(); }
+  });
+  atualizarBotaoInicio();
+  atualizarProgresso();
+
   handleRoute(true);
 })();
