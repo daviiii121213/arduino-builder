@@ -1,0 +1,25 @@
+const T=process.argv[2]; const fs=require('fs');
+const M=require(require('path').join(__dirname,'..','assets','js','termometro.js'));
+const casos=JSON.parse(fs.readFileSync(T+'/casos.json')); const pl=JSON.parse(fs.readFileSync(T+'/planilha.json'));
+const near=(a,b)=>Math.abs(a-b)<1e-9; let falhas=[], checks=0;
+const join=s=>s.titulo?s.titulo+(s.texto.includes('\n')?'':'')+': '+s.texto:s.texto;
+casos.forEach((c,i)=>{const r=M.calcular(c),p=pl[i];const f=(ok,msg)=>{checks++;if(!ok)falhas.push(`caso ${i}: ${msg}`)};
+ f(near(r.questionario.mediaSimples,p.E25),`E25 ${r.questionario.mediaSimples} vs ${p.E25}`);
+ f(near(r.questionario.pesoTotal,p.F25),'F25');
+ f(near(r.questionario.mediaPonderada,p.G25),`G25 ${r.questionario.mediaPonderada} vs ${p.G25}`);
+ r.itens.forEach((it,k)=>f(near(it.gravidade,p.G[k]),`G${k+5}`));
+ const pil=r.pilares.concat([r.igvo]);
+ pil.forEach((x,k)=>{const y=p.pil[k];
+  f(near(x.mediaSimples,y.C),`C${k+6} ${x.mediaSimples} vs ${y.C}`); f(near(x.ponderada,y.D),`D${k+6} ${x.ponderada} vs ${y.D}`);
+  f(x.temperatura===y.E,`E${k+6} ${x.temperatura} vs ${y.E}`); f(x.status===y.F,`F${k+6} ${x.status} vs ${y.F}`);
+  const pres=M.dados[k<4?'pilares':'igvo']; const orig=(k<4?M.dados.pilares[k].prescricoes:M.dados.igvo.prescricoes)[x.nivel];
+  f(orig===y.G,`G${k+6} prescrição`);
+  f(M.formatar(x.ponderada,2)===String((Math.round(y.D*100+1e-9)/100).toFixed(2)).replace('.',','),`formato D${k+6}`);
+ });
+ r.matrizNaOrdemDaPlanilha.forEach((m,k)=>{const y=p.mat[k]; f(near(m.gravidade,y.B),`B${k+15}`);
+  const orig=M.dados.matriz[k].modalidades[M.faixa(m.gravidade,M.dados.limitesMatriz)]; f(orig===y.G,`G${k+15} modalidade: ${orig.slice(0,30)} vs ${String(y.G).slice(0,30)}`);});
+});
+console.log(`${casos.length} casos, ${checks} comparações, ${falhas.length} diferenças`); falhas.slice(0,15).forEach(x=>console.log('  ',x));
+// how many cases land exactly on each threshold, to show the boundaries were exercised
+const lim=[3,5.5,8]; let hits={3:0,5.5:0,8:0}; casos.forEach(c=>{const r=M.calcular(c); r.pilares.concat([r.igvo]).forEach(x=>lim.forEach(L=>{if(near(x.ponderada,L))hits[L]++}))});
+console.log('valores exatamente no limite testados:',JSON.stringify(hits));
