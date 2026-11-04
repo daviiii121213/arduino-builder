@@ -34,5 +34,18 @@ window.GENESIS_CONFIG = {
   razaoSocial: "",
 
   // Prazo de retorno exibido após o envio, ex.: "2 dias úteis". Vazio = a frase sai sem prazo. [A validar]
-  responseDeadline: ""
+  responseDeadline: "",
+
+  // O que a cópia do cliente traz: "resumo" (IGVO, pilares e próximo passo) ou "completo" (o mesmo laudo que a equipe recebe).
+  copiaCliente: "resumo",
+
+  // Proteção contra robôs: tempo mínimo entre começar o questionário e enviar, e envios aceitos por navegador em 24 horas.
+  protecao: { tempoMinimoSegundos: 40, enviosPor24h: 3 },
+
+  // Planilha do Google que recebe uma linha por diagnóstico. Cole a URL do Apps Script (termina em /exec). Vazio = desligado.
+  // Passo a passo em integracoes/planilha-google.gs.
+  planilhaEndpoint: "",
+
+  // Estatísticas sem cookies (GoatCounter). Coloque só o código da conta, ex.: "genesis" para genesis.goatcounter.com. Vazio = desligado.
+  estatisticas: { goatcounter: "" }
 };

@@ -5,11 +5,9 @@ Site estático (HTML, CSS e JavaScript puro, sem dependências nem etapa de buil
 - **Landing Page**, com apresentação, os 4 pilares e o Conselho.
 - **Diagnóstico** (`#formulario`): Termômetro Organizacional em 5 etapas: identificação → questionário (20 perguntas, uma por tela) → cenário atual → processamento → laudo com resultado.
 
-Detalhes anteriores:
+Os textos seguem o documento *Textos_Site_Projeto_Genesis.docx* (v1.1).
 
-
-- **Landing Page** (`#inicio` e âncoras das seções) — todas as seções do documento *Textos_Site_Projeto_Genesis.docx* (v1.1).
-- **Formulário** (`#formulario`) — diagnóstico inicial completo, com validação.
+**Para publicar:** envie para a hospedagem `index.html`, a pasta `assets`, `.htaccess`, `robots.txt` e `sitemap.xml`.
 
 ## Como rodar
 
@@ -27,7 +25,11 @@ Qualquer servidor estático serve (Netlify, Vercel, GitHub Pages, Apache, nginx)
 | `index.html` | Marcação das duas abas, SEO/Open Graph, ícones SVG, janela da Política de Privacidade |
 | `assets/css/styles.css` | Sistema visual (cores da marca, Montserrat + Inter), layout responsivo |
 | `assets/js/config.js` | **Dados a configurar** (WhatsApp, e-mail, Instagram, EmailJS, prazo) |
-| `emailjs/template-diagnostico.html` | Versão em código do modelo do EmailJS (opcional, ver abaixo) |
+| `emailjs/template-laudo.html` | Modelo do EmailJS com o laudo formatado (recomendado) |
+| `emailjs/template-diagnostico.html` | Modelo antigo, só texto (alternativa) |
+| `integracoes/planilha-google.gs` | Script para registrar cada diagnóstico numa planilha do Google |
+| `assets/css/fonts.css`, `assets/fonts/` | Montserrat e Inter hospedadas no próprio site |
+| `.htaccess`, `robots.txt`, `sitemap.xml` | Cache e compressão na HostGator; arquivos para o Google |
 | `assets/js/app.js` | Navegação, menu, FAQ, diagnóstico em etapas, salvamento automático, laudo e envio |
 | `assets/js/termometro.js` | Motor de cálculo: reproduz as fórmulas da planilha oficial |
 | `assets/js/termometro-dados.js` | Perguntas, pesos, faixas e textos copiados da planilha (gerado, não editar à mão) |
@@ -61,6 +63,24 @@ Fonte única: `tools/Planilha_Completa_Questionario_Projeto_Genesis_V4.xlsx`, ab
 **Se a planilha mudar:** substitua o arquivo em `tools/`, rode `python3 tools/gerar_termometro.py` e depois `bash tools/verificar_termometro.sh` (recalcula 76 casos no LibreOffice e compara cada número e texto com o site).
 
 **Salvamento:** as respostas ficam salvas no navegador do visitante (localStorage) enquanto ele responde e podem ser retomadas; "Recomeçar" e "Fazer um novo diagnóstico" apagam.
+
+## Proteção contra robôs
+
+Invisível para o visitante, configurável em `protecao` no `config.js`:
+
+- **Campo-armadilha:** um campo escondido que só robôs preenchem; se vier preenchido, nada é enviado.
+- **Tempo mínimo:** envios feitos menos de 40 segundos depois de começar o questionário esperam um pouco; a pessoa vê o resultado e um botão "Enviar ao Conselho".
+- **Limite por navegador:** no máximo 3 diagnósticos enviados em 24 horas.
+
+Essas barreiras funcionam no navegador. Quem chama a API do EmailJS diretamente passa por cima delas; por isso, mantenha também a restrição de domínio em *Account > Security* no EmailJS.
+
+## Registro em planilha (opcional)
+
+Siga as instruções no topo de `integracoes/planilha-google.gs` e cole a URL `/exec` em `planilhaEndpoint`. Cada diagnóstico vira uma linha: identificação, IGVO, médias, os 4 pilares, as 20 notas e o cenário atual. O e-mail continua sendo o registro principal; se a planilha falhar, o visitante não percebe.
+
+## Estatísticas sem cookies (opcional)
+
+Com uma conta no GoatCounter (goatcounter.com), coloque o código em `estatisticas.goatcounter`. O site conta as visitas e as etapas do diagnóstico (`inicio`, `pergunta-01` … `pergunta-20`, `cenario`, `concluido`, `envio-ok`, `envio-erro`, `bloqueado-…`), nunca dados pessoais. Confira no site do GoatCounter as condições do plano para uso comercial.
 
 ## Envio por e-mail (EmailJS)
 
@@ -99,6 +119,8 @@ Depois que o e-mail da equipe é confirmado, o site envia uma cópia ao visitant
 - O diagnóstico conta como enviado assim que o e-mail da equipe é confirmado; se só a cópia do visitante falhar, ele ainda vê a mensagem de sucesso.
 - Cada diagnóstico usa 2 envios da cota do EmailJS (cerca de 100 diagnósticos por mês no plano gratuito).
 - Para desligar a cópia, deixe `visitorTemplateId` vazio.
+
+**E-mail formatado (recomendado):** nos dois modelos, abra *Edit Content* > *Code Editor* e cole `emailjs/template-laudo.html`. Ele usa a variável `{{{laudo_html}}}` (três chaves), com cores das faixas, IGVO em destaque e tabela dos pilares. A equipe recebe o laudo completo; o cliente recebe um resumo (IGVO, pilares e próximo passo). Para mandar o laudo completo também ao cliente, use `copiaCliente: "completo"`.
 
 **Se as respostas chegarem todas numa linha só:** o editor visual do EmailJS pode juntar as quebras de linha de `{{respostas}}`. Nesse caso, abra o modelo em *Edit Content* > *Code Editor* e cole o conteúdo de [`emailjs/template-diagnostico.html`](emailjs/template-diagnostico.html). É o mesmo texto e as mesmas variáveis do seu modelo, só com a formatação que preserva as linhas.
 

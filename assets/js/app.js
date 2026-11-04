@@ -329,7 +329,7 @@
   var summary = $("#error-summary");
   var STORE_KEY = "genesis-diagnostico-v1";
   var STAGES = ["identificacao", "questionario", "cenario", "processando", "resultado"];
-  var state = { stage: "identificacao", index: 0, notas: {}, resultado: null, envio: null, enviadoEm: null };
+  var state = { stage: "identificacao", index: 0, notas: {}, resultado: null, envio: null, enviadoEm: null, iniciadoEm: null };
 
   function esc(texto) {
     return String(texto === null || texto === undefined ? "" : texto)
@@ -481,7 +481,7 @@
   function salvar() {
     var dados = {
       versao: 1, stage: state.stage === "processando" ? "cenario" : state.stage, index: state.index,
-      notas: state.notas, campos: lerCampos(), envio: state.envio, enviadoEm: state.enviadoEm, salvoEm: new Date().toISOString()
+      notas: state.notas, campos: lerCampos(), envio: state.envio, enviadoEm: state.enviadoEm, iniciadoEm: state.iniciadoEm, salvoEm: new Date().toISOString()
     };
     try { localStorage.setItem(STORE_KEY, JSON.stringify(dados)); } catch (e) { return; }
     autosave.textContent = "Respostas salvas neste navegador";
@@ -550,7 +550,10 @@
 
   $$("[data-next]").forEach(function (b) {
     b.addEventListener("click", function () {
-      if (validateStage(state.stage)) mostrarEtapa(b.getAttribute("data-next"));
+      if (!validateStage(state.stage)) return;
+      if (!state.iniciadoEm) state.iniciadoEm = new Date().toISOString();
+      evento("inicio", true);
+      mostrarEtapa(b.getAttribute("data-next"));
     });
   });
   $$("[data-back]").forEach(function (b) {
@@ -640,6 +643,7 @@
     else {
       var falta = primeiraSemResposta();
       if (falta < INDICADORES.length) { irPara(falta); return; }
+      evento("cenario", true);
       mostrarEtapa("cenario");
     }
   }
@@ -647,7 +651,9 @@
   var autoAvanco = null;
   qScale.addEventListener("change", function (e) {
     if (e.target.name !== "nota") return;
-    state.notas[INDICADORES[state.index].codigo] = Number(e.target.value);
+    var cod = INDICADORES[state.index].codigo;
+    if (typeof state.notas[cod] !== "number") evento("pergunta-" + ("0" + (state.index + 1)).slice(-2), true);
+    state.notas[cod] = Number(e.target.value);
     qError.textContent = "";
     $("#q-card").classList.remove("has-error");
     salvar();
@@ -673,7 +679,7 @@
     if (d && !d.disabled) { clearTimeout(autoAvanco); irPara(Number(d.getAttribute("data-q"))); }
   });
 
-  /* ----- Envio pelo EmailJS (o modelo usa {{empresa}}, {{responsavel}}, {{respostas}} e {{data}}) ----- */
+  /* ----- Envio pelo EmailJS (os modelos usam {{empresa}}, {{responsavel}}, {{respostas}}, {{data}} e {{{laudo_html}}}) ----- */
 
   var EMAILJS_URL = "https://api.emailjs.com/api/v1.0/email/send";
 
@@ -720,7 +726,7 @@
     });
     L.push("", "PLANO DE TRATAMENTO (por gravidade)");
     r.matriz.forEach(function (m) { L.push("• " + m.dimensao + " (" + n2(m.gravidade) + "): " + m.modalidade.titulo + " — " + m.modalidade.texto); });
-    L.push("", "PROBLEMAS IDENTIFICADOS (notas de 5,5 a 10)");
+    L.push("", "PROBLEMAS IDENTIFICADOS (notas de 5,5 a 10, pela gravidade nota × peso)");
     if (r.problemas.length) r.problemas.forEach(function (i) { L.push("• " + i.codigo + " " + i.dimensao + ": nota " + i.nota + " (" + i.faixa.classificacao + ")"); });
     else L.push("• Nenhum.");
     L.push("", "PONTOS POSITIVOS (notas de 0 a 2,9)");
@@ -735,7 +741,112 @@
       "• Prefere ser contatado por: " + cl.preferencia_contato,
       "• Consentimento: " + (cl.consentimento ? "Sim. Autorizou o uso dos dados e declarou ter lido a Política de Privacidade." : "Não")
     );
-    return { empresa: c.company, responsavel: c.name, respostas: L.join("\n"), data: formatSentAt(payload.meta.submitted_at) };
+    return {
+      empresa: c.company, responsavel: c.name, respostas: L.join("\n"), data: formatSentAt(payload.meta.submitted_at),
+      laudo_html: laudoHtml(payload, r, true)
+    };
+  }
+
+  /* ----- Laudo formatado para o e-mail ({{{laudo_html}}} no modelo do EmailJS) ----- */
+
+  var HEX = { verde: "#2f8f5b", branco: "#8c94a3", amarelo: "#c99a06", vermelho: "#c0392b" };
+  // Text colours: the "branco" band is too light to read as text, so numbers in that band use a darker grey.
+  var TXT = { verde: "#2f8f5b", branco: "#5f6776", amarelo: "#a67f05", vermelho: "#c0392b" };
+  var F = "font-family:Arial,Helvetica,sans-serif;";
+
+  function barraEmail(valor, cor) {
+    var w = Math.max(2, Math.min(100, Math.round(valor * 10)));
+    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#e9ecf1;border-radius:4px"><tr>' +
+      '<td width="' + w + '%" style="background:' + HEX[cor] + ';height:10px;font-size:0;line-height:0;border-radius:4px">&nbsp;</td>' +
+      (w < 100 ? '<td style="font-size:0;line-height:0">&nbsp;</td>' : "") + "</tr></table>";
+  }
+
+  function selo(texto, cor) {
+    return '<span style="display:inline-block;padding:3px 10px;border-radius:12px;border:1px solid ' + HEX[cor] + ";color:" + (cor === "branco" ? "#4c5568" : HEX[cor]) + ';font-size:12px;font-weight:bold">' + esc(texto) + "</span>";
+  }
+
+  function tituloEmail(texto) {
+    return '<tr><td style="padding:24px 28px 8px;' + F + 'font-size:12px;letter-spacing:2px;font-weight:bold;color:#8a6a22">' + esc(texto) + "</td></tr>";
+  }
+
+  function laudoHtml(payload, r, completo) {
+    var c = payload.contact, cl = payload.closing, g = r.igvo;
+    var h = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:660px;margin:0 auto;background:#ffffff;border:1px solid #e1e4ea;border-collapse:separate;' + F + 'color:#1b2233">';
+    h += '<tr><td style="background:#0A0F1A;padding:24px 28px;border-bottom:3px solid #C9A24A">' +
+      '<div style="font-size:11px;letter-spacing:3px;color:#C9A24A;font-weight:bold">TERMÔMETRO ORGANIZACIONAL · PROJETO GÊNESIS</div>' +
+      '<div style="font-size:22px;color:#ffffff;font-weight:bold;margin-top:6px">' + esc(c.company) + "</div>" +
+      '<div style="font-size:13px;color:#B8BCC4;margin-top:4px">' + esc(c.name) + " · " + esc(c.role) + " · " + esc(formatSentAt(payload.meta.submitted_at)) + "</div></td></tr>";
+
+    h += '<tr><td style="padding:24px 28px 8px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-left:5px solid ' + HEX[g.cor] + ';background:#f5f6f8"><tr><td style="padding:18px 20px">' +
+      '<div style="font-size:12px;letter-spacing:1px;color:#4c5568;font-weight:bold">' + esc(g.nome) + "</div>" +
+      '<div style="font-size:40px;font-weight:bold;color:' + TXT[g.cor] + ';line-height:1.1;margin:6px 0">' + n2(g.ponderada) + ' <span style="font-size:14px;color:#4c5568;font-weight:normal">de 10 · gravidade ponderada</span></div>' +
+      '<div style="font-size:16px;font-weight:bold;margin-bottom:8px">' + esc(g.temperatura) + "</div>" + selo(g.status, g.cor) +
+      '<div style="margin-top:12px">' + barraEmail(g.ponderada, g.cor) + "</div>" +
+      '<div style="margin-top:14px;font-size:14px;line-height:1.5"><strong>' + esc(g.prescricao.titulo) + ":</strong> " + esc(g.prescricao.texto) + "</div>" +
+      "</td></tr></table>" +
+      '<div style="font-size:13px;color:#4c5568;margin-top:10px">Média geral do questionário: <strong>' + n2(r.questionario.mediaPonderada) + "</strong> (ponderada) · " + n1(r.questionario.mediaSimples) + " (simples)</div></td></tr>";
+
+    h += tituloEmail("OS 4 PILARES") + '<tr><td style="padding:0 28px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px">';
+    r.pilares.forEach(function (p) {
+      h += '<tr><td style="padding:10px 0;border-bottom:1px solid #eef0f3"><div style="font-weight:bold">' + esc(nomePilar(p.nome)) + '</div><div style="font-size:12px;color:#4c5568;margin:2px 0 6px">' + esc(p.especialistas) + "</div>" + barraEmail(p.ponderada, p.cor) +
+        '<div style="font-size:13px;margin-top:6px">' + esc(p.prescricao.titulo) + ": " + esc(p.prescricao.texto) + "</div></td>" +
+        '<td width="96" style="padding:10px 0 10px 12px;border-bottom:1px solid #eef0f3;text-align:right;vertical-align:top"><div style="font-size:20px;font-weight:bold;color:' + TXT[p.cor] + '">' + n2(p.ponderada) + '</div><div style="font-size:11px;color:#4c5568">' + esc(p.status) + "</div></td></tr>";
+    });
+    h += "</table></td></tr>";
+
+    if (completo) {
+      h += tituloEmail("PLANO DE TRATAMENTO") + '<tr><td style="padding:0 28px;font-size:14px">';
+      r.matriz.forEach(function (m) {
+        h += '<div style="padding:10px 0 10px 12px;border-left:4px solid ' + HEX[m.cor] + ';margin-bottom:8px;background:#f9fafb"><strong>' + esc(m.dimensao) + "</strong> · " + n2(m.gravidade) +
+          '<div style="color:#8a6a22;font-weight:bold;font-size:13px;margin-top:2px">' + esc(m.modalidade.titulo) + '</div><div style="margin-top:2px">' + esc(m.modalidade.texto) + '</div><div style="font-size:12px;color:#4c5568;margin-top:4px">Conselheiros: ' + esc(m.conselheiros.join(" · ")) + "</div></div>";
+      });
+      h += "</td></tr>";
+      var itensLista = function (titulo, lista, vazio) {
+        var s = tituloEmail(titulo) + '<tr><td style="padding:0 28px;font-size:14px">';
+        if (!lista.length) return s + '<div style="color:#4c5568">' + vazio + "</div></td></tr>";
+        lista.forEach(function (i) { s += '<div style="padding:5px 0"><span style="display:inline-block;min-width:34px;font-weight:bold;color:' + TXT[i.cor] + '">' + n1(i.nota) + "</span>" + esc(i.codigo + " · " + i.dimensao) + "</div>"; });
+        return s + "</td></tr>";
+      };
+      h += itensLista("PROBLEMAS IDENTIFICADOS (NOTAS DE 5,5 A 10, PELA GRAVIDADE NOTA × PESO)", r.problemas, "Nenhum.");
+      h += itensLista("PONTOS POSITIVOS (NOTAS DE 0 A 2,9)", r.positivos, "Nenhum.");
+      h += tituloEmail("RESPOSTAS (NOTA × PESO = GRAVIDADE)") + '<tr><td style="padding:0 28px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px">';
+      r.itens.forEach(function (i) {
+        h += '<tr><td style="padding:5px 0;border-bottom:1px solid #eef0f3">' + esc(i.codigo + " · " + i.dimensao) + '</td><td style="padding:5px 0;border-bottom:1px solid #eef0f3;text-align:right;white-space:nowrap">' + n1(i.nota) + " × " + n1(i.peso) + " = <strong>" + n2(i.gravidade) + "</strong></td></tr>";
+      });
+      h += "</table></td></tr>";
+      h += tituloEmail("CENÁRIO ATUAL (PERCEPÇÃO DO CLIENTE)") + '<tr><td style="padding:0 28px;font-size:14px;line-height:1.6">' +
+        "O que mais tira o sono: <strong>" + esc(cl.principal_preocupacao) + "</strong><br>Comentário: " + esc(cl.comentario_adicional || "Não informado.") +
+        "<br>Prefere ser contatado por: <strong>" + esc(cl.preferencia_contato) + "</strong></td></tr>";
+      h += tituloEmail("IDENTIFICAÇÃO") + '<tr><td style="padding:0 28px;font-size:14px;line-height:1.6">' +
+        esc(c.name) + " · " + esc(c.role) + "<br>" + esc(c.company) + " · " + esc(c.segment) + " · " + esc(c.employee_range) + " colaboradores · " + esc(c.city) +
+        "<br>WhatsApp: " + esc(c.whatsapp) + " · E-mail: " + esc(c.email) +
+        "<br>Consentimento: " + (cl.consentimento ? "Sim" : "Não") + "</td></tr>";
+    } else {
+      var wa = channelHref("whatsapp");
+      h += tituloEmail("PRÓXIMO PASSO") + '<tr><td style="padding:0 28px;font-size:14px;line-height:1.6">' +
+        "Um conselheiro do Projeto Gênesis vai entrar em contato" + (CONFIG.responseDeadline ? " em até " + esc(CONFIG.responseDeadline) : "") +
+        " para agendar uma reunião aprofundada, em que o Conselho apresenta o plano de tratamento." +
+        (wa ? '<div style="margin-top:14px"><a href="' + esc(wa) + '" style="display:inline-block;background:#C9A24A;color:#0A0F1A;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:6px">Falar com o Conselho no WhatsApp</a></div>' : "") +
+        "</td></tr>";
+    }
+    h += '<tr><td style="padding:24px 28px 26px"><div style="padding:12px 14px;background:#f5f6f8;font-size:12px;color:#4c5568;line-height:1.5">Diagnóstico inicial calculado pelo site com a metodologia oficial do Conselho Gênesis. A análise completa acontece no diagnóstico integrado, já dentro do ciclo. O Projeto Gênesis oferece suporte em saúde integrativa e não presta serviços médicos.</div></td></tr></table>';
+    return h;
+  }
+
+  function resumoTexto(payload, r) {
+    var g = r.igvo;
+    var L = [
+      "Olá, " + payload.contact.name + ". Este é o resumo do diagnóstico inicial da " + payload.contact.company + ".",
+      "",
+      g.nome + ": " + n2(g.ponderada) + " de 10 — " + g.temperatura + " · " + g.status,
+      g.prescricao.titulo + ": " + g.prescricao.texto,
+      "",
+      "OS 4 PILARES"
+    ];
+    r.pilares.forEach(function (p) { L.push("• " + nomePilar(p.nome) + ": " + n2(p.ponderada) + " — " + p.status); });
+    L.push("", "Um conselheiro do Projeto Gênesis vai entrar em contato" + (CONFIG.responseDeadline ? " em até " + CONFIG.responseDeadline : "") +
+      " para agendar uma reunião aprofundada, em que o Conselho apresenta o plano de tratamento.");
+    return L.join("\n");
   }
 
   function sendEmail(templateId, params, signal) {
@@ -753,7 +864,12 @@
       return sendEmail(EMAILJS.templateId, params, signal).then(function (res) {
         if (!res.ok || !EMAILJS.visitorTemplateId) return res;
         // The visitor's copy is a courtesy: once the team's e-mail is confirmed, the diagnosis counts as delivered.
-        var visitorParams = Object.assign({}, params, { email: payload.contact.email });
+        var completo = CONFIG.copiaCliente === "completo";
+        var visitorParams = Object.assign({}, params, {
+          email: payload.contact.email,
+          respostas: completo ? params.respostas : resumoTexto(payload, r),
+          laudo_html: completo ? params.laudo_html : laudoHtml(payload, r, false)
+        });
         return sendEmail(EMAILJS.visitorTemplateId, visitorParams, signal).catch(function () {}).then(function () { return res; });
       });
     }
@@ -768,14 +884,20 @@
   // Sends the diagnosis; resolves to { ok, detail } and never rejects.
   function enviar(r) {
     if (!sendingEnabled) return Promise.resolve({ ok: false, naoConfigurado: true });
+    var bloqueio = bloqueioDeEnvio();
+    if (bloqueio) { evento("bloqueado-" + bloqueio.bloqueado); return Promise.resolve(bloqueio); }
+    var payload = buildPayload();
+    if (!state.planilhaRegistrada) { state.planilhaRegistrada = true; enviarPlanilha(payload, r); }
     var controller = "AbortController" in window ? new AbortController() : null;
     var timer = controller && setTimeout(function () { controller.abort(); }, 20000);
-    return transmit(buildPayload(), r, controller ? controller.signal : undefined).then(function (res) {
-      if (res.ok) return { ok: true };
+    return transmit(payload, r, controller ? controller.signal : undefined).then(function (res) {
+      if (res.ok) { registrarEnvio(); evento("envio-ok"); return { ok: true }; }
+      evento("envio-erro");
       return res.text().catch(function () { return ""; }).then(function (text) {
         return { ok: false, detail: "erro " + res.status + (text ? ": " + text.slice(0, 200) : "") };
       });
     }).catch(function () {
+      evento("envio-erro");
       return { ok: false, detail: "" };
     }).then(function (out) { if (timer) clearTimeout(timer); return out; });
   }
@@ -795,6 +917,7 @@
       statusBox.appendChild(h); statusBox.appendChild(p);
       return;
     }
+    if (out.bloqueado) { mostrarBloqueio(out); return; }
     statusBox.classList.add(out.naoConfigurado ? "is-demo" : "is-error");
     h.textContent = out.naoConfigurado ? "Envio ainda não configurado" : "Seu resultado está pronto, mas não conseguimos enviá-lo ao Conselho";
     p.textContent = out.naoConfigurado
@@ -824,6 +947,115 @@
       });
       statusBox.appendChild(b);
     }
+  }
+
+  function mostrarBloqueio(out) {
+    var h = document.createElement("h2");
+    var p = document.createElement("p");
+    statusBox.classList.add(out.bloqueado === "limite" ? "is-demo" : "is-error");
+    if (out.bloqueado === "limite") {
+      h.textContent = "Limite de envios deste navegador atingido";
+      p.textContent = "Este navegador já enviou " + PROTECAO.enviosPor24h + " diagnósticos nas últimas 24 horas. O resultado abaixo foi calculado, mas não foi enviado. Para falar com o Conselho agora, use o WhatsApp.";
+    } else if (out.bloqueado === "rapido") {
+      h.textContent = "Seu resultado está pronto. Falta só confirmar o envio";
+      p.textContent = "Para proteger o envio contra robôs, aguardamos um pouco antes de enviar respostas preenchidas muito rápido. Aguarde " + out.espera + " segundos e toque em “Enviar ao Conselho”.";
+    } else {
+      h.textContent = "Não foi possível enviar o diagnóstico";
+      p.textContent = "Fale com o Conselho pelo WhatsApp.";
+    }
+    statusBox.appendChild(h); statusBox.appendChild(p);
+    if (out.bloqueado !== "rapido") return;
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn btn-gold btn-sm";
+    b.textContent = "Enviar ao Conselho";
+    b.addEventListener("click", function () {
+      b.disabled = true;
+      b.textContent = "Enviando…";
+      enviar(state.resultado).then(function (res) {
+        state.envio = res.ok ? "ok" : "falhou";
+        salvar();
+        mostrarEnvio(res);
+        statusBox.focus();
+      });
+    });
+    statusBox.appendChild(b);
+  }
+
+  /* ----- Proteção contra robôs: campo-armadilha, tempo mínimo e limite por navegador ----- */
+
+  var PROTECAO = Object.assign({ tempoMinimoSegundos: 40, enviosPor24h: 3 }, CONFIG.protecao || {});
+  var LIMITE_KEY = "genesis-envios";
+
+  function enviosRecentes() {
+    try {
+      var desde = Date.now() - 24 * 3600 * 1000;
+      return JSON.parse(localStorage.getItem(LIMITE_KEY) || "[]").filter(function (t) { return t > desde; });
+    } catch (e) { return []; }
+  }
+
+  function registrarEnvio() {
+    var lista = enviosRecentes();
+    lista.push(Date.now());
+    try { localStorage.setItem(LIMITE_KEY, JSON.stringify(lista)); } catch (e) { /* storage unavailable */ }
+  }
+
+  // null = can send; otherwise the reason it was held back.
+  function bloqueioDeEnvio() {
+    if (val("site_empresa_url")) return { ok: false, bloqueado: "robo" };
+    var inicio = state.iniciadoEm ? Date.parse(state.iniciadoEm) : 0;
+    var decorrido = (Date.now() - inicio) / 1000;
+    if (inicio && decorrido < PROTECAO.tempoMinimoSegundos) {
+      return { ok: false, bloqueado: "rapido", espera: Math.ceil(PROTECAO.tempoMinimoSegundos - decorrido) };
+    }
+    if (enviosRecentes().length >= PROTECAO.enviosPor24h) return { ok: false, bloqueado: "limite" };
+    return null;
+  }
+
+  /* ----- Estatísticas sem cookies (GoatCounter): só nomes de etapas, nunca dados pessoais ----- */
+
+  var GOATCOUNTER = ((CONFIG.estatisticas || {}).goatcounter || "").trim();
+  if (/^[a-z0-9-]+$/.test(GOATCOUNTER)) {
+    var gc = document.createElement("script");
+    gc.async = true;
+    gc.src = "https://gc.zgo.at/count.js";
+    gc.setAttribute("data-goatcounter", "https://" + GOATCOUNTER + ".goatcounter.com/count");
+    document.head.appendChild(gc);
+  }
+  var eventosContados = {};
+  function evento(nome, umaVez) {
+    if (umaVez && eventosContados[nome]) return;
+    eventosContados[nome] = true;
+    if (window.goatcounter && typeof window.goatcounter.count === "function") {
+      window.goatcounter.count({ path: "diagnostico/" + nome, title: "Diagnóstico: " + nome, event: true });
+    }
+  }
+
+  /* ----- Registro na planilha do Google (opcional) ----- */
+
+  function enviarPlanilha(payload, r) {
+    var url = (CONFIG.planilhaEndpoint || "").trim();
+    if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) return;
+    var c = payload.contact, cl = payload.closing;
+    var linha = {
+      data: formatSentAt(payload.meta.submitted_at), empresa: c.company, responsavel: c.name, cargo: c.role,
+      segmento: c.segment, colaboradores: c.employee_range, cidade: c.city, whatsapp: c.whatsapp, email: c.email,
+      igvo: n2(r.igvo.ponderada), igvo_media_simples: n1(r.igvo.mediaSimples), temperatura: r.igvo.temperatura, status: r.igvo.status,
+      media_geral_ponderada: n2(r.questionario.mediaPonderada), media_geral_simples: n1(r.questionario.mediaSimples)
+    };
+    r.pilares.forEach(function (p, k) {
+      linha["pilar" + (k + 1) + "_" + nomePilar(p.nome)] = n2(p.ponderada) + " · " + p.status;
+    });
+    r.itens.forEach(function (i) { linha[i.codigo + " " + i.dimensao] = i.nota; });
+    linha.principal_preocupacao = cl.principal_preocupacao;
+    linha.comentario = cl.comentario_adicional || "";
+    linha.preferencia_contato = cl.preferencia_contato;
+    linha.consentimento = cl.consentimento ? "Sim" : "Não";
+    // Apps Script answers through a redirect without CORS headers: send it as a "simple" request and don't wait for the reply.
+    try {
+      fetch(url, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(linha) })
+        .catch(function () {});
+    } catch (e) { /* the e-mail is the record of reference */ }
   }
 
   /* ----- Conclusão: processamento e laudo ----- */
@@ -856,6 +1088,7 @@
       clearInterval(tick);
       var out = res[0];
       state.envio = out.ok ? "ok" : (out.naoConfigurado ? "nao-configurado" : "falhou");
+      evento("concluido", true);
       state.resultado = r;
       renderLaudo(r);
       mostrarEnvio(out);
@@ -884,6 +1117,22 @@
       "</svg>";
   }
 
+  // "O retrato da empresa hoje": one bar per pillar plus the IGVO, over the four temperature bands.
+  function graficoPilares(r) {
+    var linhas = r.pilares.map(function (p) { return { nome: nomePilar(p.nome), v: p.ponderada, cor: p.cor, status: p.status }; });
+    linhas.push({ nome: "IGVO (média dos pilares)", v: r.igvo.ponderada, cor: r.igvo.cor, status: r.igvo.status, total: true });
+    var descricao = linhas.map(function (l) { return l.nome + ": " + n2(l.v) + ", " + l.status; }).join("; ");
+    return '<figure class="grafico" aria-label="' + esc("Gravidade ponderada de 0 a 10. " + descricao) + '">' +
+      '<figcaption>O retrato da empresa hoje <small>gravidade ponderada de 0 a 10</small></figcaption>' +
+      linhas.map(function (l, k) {
+        return '<div class="g-linha' + (l.total ? " g-total" : "") + '" aria-hidden="true"><span class="g-nome">' + esc(l.nome) + "</span>" +
+          '<span class="g-trilho"><span class="g-barra t-' + l.cor + '" style="width:' + Math.max(1.5, l.v * 10) + "%;animation-delay:" + (k * 120) + 'ms"></span></span>' +
+          '<span class="g-val t-' + l.cor + '">' + n2(l.v) + "</span></div>";
+      }).join("") +
+      '<div class="g-eixo" aria-hidden="true"><span></span><span class="g-escala"><b>0</b><b style="left:30%">3</b><b style="left:55%">5,5</b><b style="left:80%">8</b><b style="left:100%">10</b></span><span></span></div>' +
+      "</figure>";
+  }
+
   function lista(itens) { return "<ul>" + itens.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>"; }
 
   function renderLaudo(r) {
@@ -910,7 +1159,7 @@
       '<div><span>' + n1(r.questionario.mediaSimples) + '</span><p>Média simples das 20 notas</p></div>' +
       '<div><span>' + n1(g.mediaSimples) + '</span><p>Média simples dos 4 pilares</p></div></div>';
 
-    html += '<section class="laudo-bloco" aria-labelledby="pilares-laudo"><h3 id="pilares-laudo">Avaliação dos pilares</h3><div class="laudo-pilares">';
+    html += '<section class="laudo-bloco" aria-labelledby="pilares-laudo"><h3 id="pilares-laudo">Avaliação dos pilares</h3>' + graficoPilares(r) + '<div class="laudo-pilares">';
     r.pilares.forEach(function (p) {
       html += '<article class="pilar-card t-' + p.cor + '"><header><h4>' + esc(nomePilar(p.nome)) + '</h4><p class="pilar-who">' + esc(p.especialistas) + "</p></header>" +
         '<p class="pilar-num"><span>' + n2(p.ponderada) + '</span> gravidade ponderada · média simples ' + n1(p.mediaSimples) + "</p>" +
@@ -992,7 +1241,7 @@
   function recomecar() {
     apagar();
     form.reset();
-    state = { stage: "identificacao", index: 0, notas: {}, resultado: null, envio: null, enviadoEm: null };
+    state = { stage: "identificacao", index: 0, notas: {}, resultado: null, envio: null, enviadoEm: null, iniciadoEm: null };
     touched = {};
     FIELDS.forEach(function (f) { setError(f, ""); });
     $("#laudo").innerHTML = "";
@@ -1007,6 +1256,8 @@
     state.index = Math.min(salvo.index || 0, INDICADORES.length - 1);
     state.envio = salvo.envio || null;
     state.enviadoEm = salvo.enviadoEm || null;
+    state.iniciadoEm = salvo.iniciadoEm || null;
+    evento("retomou", true);
     aplicarCampos(salvo.campos);
     if (salvo.stage === "resultado" && respondidas() === INDICADORES.length) {
       state.resultado = T.calcular(state.notas);
