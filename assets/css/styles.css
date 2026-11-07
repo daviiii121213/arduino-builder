@@ -368,7 +368,7 @@ html:not(.no-intro):not(.intro-done) #inicio .hero-inner { animation: zoom-settl
 .contact-card { display: flex; flex-direction: column; align-items: flex-start; }
 .contact-card .btn { margin-top: auto; }
 .contact-card h3 { margin-bottom: .8rem; }
-.handle { margin-bottom: 1rem !important; color: var(--white) !important; }
+.handle { margin-bottom: 1rem !important; color: var(--white) !important; overflow-wrap: anywhere; }
 
 /* ---------- Footer ---------- */
 .site-footer { background: #070b14; color: var(--silver); padding: 64px 0 28px; font-size: .95rem; border-top: 1px solid rgba(201, 162, 74, .25); }
@@ -781,8 +781,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--g
   .hero-inner { width: 100%; }
 }
 
-}
-
 @media (max-width: 1180px) {
   .scroll-cue { display: none; }
   .hero-bg {
@@ -941,3 +939,31 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--g
   .print-rodape { display: flex; justify-content: space-between; gap: 16px; margin-top: 18px; padding-top: 8px; border-top: 1px solid #E1E4EA; font-size: 7.5pt; color: #8C93A1; break-inside: avoid; }
   .print-rodape span:last-child { text-align: right; }
 }
+
+/* ---------- Celular: botões compactos e navegação do questionário lado a lado ---------- */
+@media (max-width: 560px) {
+  .btn { min-height: 46px; padding: .65em 1.15em; font-size: .92rem; gap: .45em; }
+  .btn-lg, .hero .btn-lg { min-height: 50px; padding: .7em 1.2em; font-size: .95rem; }
+  .btn .icon, .hero .btn .icon { width: 18px; height: 18px; }
+  .btn-sm { min-height: 40px; padding: .5em .95em; font-size: .85rem; }
+  .hero .btn-row { gap: 10px; margin-top: 1.8rem; }
+  .btn-row .btn { white-space: nowrap; }
+  .cta-inner .btn, .form-start { width: 100%; max-width: 360px; }
+  .contact-card .btn { width: 100%; }
+
+  /* Questionário: Anterior e Próxima na mesma linha */
+  .stage-nav { flex-direction: row; align-items: stretch; gap: 10px; margin-top: 22px; }
+  .stage-nav .btn { width: auto; }
+  .stage-nav .btn-ghost { flex: 0 0 auto; padding-left: .9em; padding-right: .9em; }
+  .stage-nav .btn-gold { flex: 1 1 auto; }
+  [data-stage="identificacao"] .stage-nav .btn-gold, [data-stage="cenario"] .stage-nav .btn-gold { flex-basis: 100%; }
+  [data-stage="cenario"] .stage-nav { flex-direction: column-reverse; }
+  [data-stage="cenario"] .stage-nav .btn { width: 100%; }
+
+  /* Laudo: ações compactas */
+  .laudo-acoes { gap: 10px; margin-top: 32px; padding-top: 22px; }
+  .laudo-acoes .btn { min-height: 48px; }
+  .resume-actions .btn { flex: 1 1 auto; }
+  .cookie-bar .btn { min-height: 40px; }
+}
+

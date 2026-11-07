@@ -1150,7 +1150,7 @@
 
     var wa = channelHref("whatsapp");
     html += '<div class="laudo-acoes">' +
-      (wa ? '<a class="btn btn-gold btn-lg" target="_blank" rel="noopener" href="' + esc(waResultado(r, c)) + '"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-whatsapp"/></svg>Conversar sobre o resultado no WhatsApp</a>' : "") +
+      (wa ? '<a class="btn btn-gold btn-lg" target="_blank" rel="noopener" href="' + esc(waResultado(r, c)) + '"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-whatsapp"/></svg>Conversar no WhatsApp</a>' : "") +
       '<button type="button" class="btn btn-ghost btn-lg" id="laudo-print"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-print"/></svg>Imprimir ou salvar em PDF</button>' +
       '<button type="button" class="btn btn-ghost btn-lg" id="laudo-novo">Fazer um novo diagnóstico</button></div>';
 
