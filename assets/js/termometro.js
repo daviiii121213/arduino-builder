@@ -10,8 +10,8 @@
  *     C (pilar, média simples)        = AVERAGE(notas do pilar)
  *     D (pilar, gravidade ponderada)  = SUM(gravidades do pilar) / SUM(pesos do pilar)
  *     E/F/G (temperatura, status, prescrição) = faixas D >= 8 | >= 5,5 | >= 3 | abaixo
- *     IGVO: C10 = AVERAGE(C6:C9), D10 = AVERAGE(D6:D9), com as mesmas faixas
- *     Matriz: gravidade de cada dimensão = D do pilar; modalidade = faixas >= 8 | >= 5,5 | abaixo
+ *     IGVO (V5): C10 = E25 (média simples das 20 notas), D10 = G25 (média ponderada global), com as mesmas faixas
+ *     Matriz (V5): gravidade de cada dimensão = SUM(gravidades)/SUM(pesos) das próprias perguntas (B15:B20); modalidade = faixas >= 8 | >= 5,5 | abaixo
  *
  * "Pontos positivos" e "problemas identificados" aplicam a tabela de referência clínica da própria
  * planilha (faixas 0–2,9 / 3,0–5,4 / 5,5–7,9 / 8,0–10) à nota de cada indicador.
@@ -96,19 +96,21 @@
       mediaPonderada: soma(itens.map(function (i) { return i.gravidade; })) / pesoTotal
     };
 
-    var igvoPonderado = media(pilares.map(function (p) { return p.ponderada; }));
-    var simples = pilares.map(function (p) { return p.mediaSimples; });
+    // V5: D10 = G25 (global weighted mean), C10 = E25 (simple mean of the answered notes).
+    var igvoPonderado = questionario.mediaPonderada;
     var nIgvo = nivel(igvoPonderado);
     var igvo = {
       nome: D.igvo.nome, responsaveis: D.igvo.responsaveis,
-      mediaSimples: simples.indexOf(null) === -1 ? media(simples) : null,
+      mediaSimples: questionario.mediaSimples,
       ponderada: igvoPonderado,
       nivel: nIgvo.nivel, cor: nIgvo.cor, temperatura: nIgvo.temperatura, status: nIgvo.status,
       prescricao: separar(D.igvo.prescricoes[nIgvo.nivel])
     };
 
     var matriz = D.matriz.map(function (m) {
-      var g = pilares[m.pilar].ponderada;
+      // V5: each matrix row has its own weighted severity, from its own questions (B15:B20 in the spreadsheet).
+      var its = (m.codigos || D.pilares[m.pilar].codigos).map(function (c) { return porCodigo[c]; });
+      var g = soma(its.map(function (i) { return i.gravidade; })) / soma(its.map(function (i) { return i.peso; }));
       var n = nivel(g);
       return {
         dimensao: m.dimensao, pilar: pilares[m.pilar].nome, gravidade: g,

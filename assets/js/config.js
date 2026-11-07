@@ -9,35 +9,27 @@ window.GENESIS_CONFIG = {
   whatsappMessage: "Olá! Vim pelo site do Projeto Gênesis e quero saber mais sobre o diagnóstico.",
 
   // E-mail oficial de contato. [Inserir]
-  email: "",
+  email: "contato@genesisintegrativa.com.br",
 
   // Perfil do Instagram (@genesisintegrativa.com.br). Confirme o endereço antes de preencher,
   // ex.: "https://www.instagram.com/genesisintegrativa.com.br/". [A validar]
   instagramUrl: "https://www.instagram.com/genesisintegrativa.com.br/",
   instagramHandle: "@genesisintegrativa.com.br",
 
-  // Envio do diagnóstico por e-mail via EmailJS (https://www.emailjs.com). Passo a passo no README.
-  // Use somente estes três identificadores, que o EmailJS foi feito para expor no navegador.
-  // NUNCA coloque aqui a Private Key (Access Token) da conta. O destinatário fica no modelo, no painel do EmailJS.
-  emailjs: {
-    serviceId: "service_tjhss8o",   // Email Services > Gmail > Service ID (ex.: "service_xxxxxxx")
-    templateId: "template_rfrabpi",  // E-mail que chega para a equipe (destinatário fixo no modelo)
-    visitorTemplateId: "template_qpw7gwk",  // Cópia para o visitante (no modelo, "To Email" = {{email}}). Vazio = não envia cópia.
-    publicKey: "_rU-yZOFmbrAa4Rok"    // Account > General > Public Key
-  },
+  // Envio do diagnóstico: script do próprio site, no servidor da HostGator, que envia pelo SMTP do Titan.
+  // As credenciais ficam só no servidor (genesis-smtp.php, fora do public_html). Vazio = envio desligado.
+  submitEndpoint: "api/enviar.php",
 
-  // Alternativa ao EmailJS: endpoint HTTPS próprio que recebe o diagnóstico em JSON. Opcional.
-  submitEndpoint: "",
+  // Verificação antirrobô Cloudflare Turnstile (grátis, sem quebra-cabeça na maioria das vezes).
+  // Cole aqui a "Site Key" (pública). A "Secret Key" vai só no servidor, em genesis-smtp.php. Vazio = desligado.
+  turnstileSiteKey: "",
 
   // Dados da empresa no rodapé. Troque os "x" pelo CNPJ real (14 dígitos). Razão social é opcional. [A validar]
-  cnpj: "xx.xxx.xxx/xxxx-xx",
+  cnpj: "",
   razaoSocial: "",
 
   // Prazo de retorno exibido após o envio, ex.: "2 dias úteis". Vazio = a frase sai sem prazo. [A validar]
   responseDeadline: "",
-
-  // O que a cópia do cliente traz: "resumo" (IGVO, pilares e próximo passo) ou "completo" (o mesmo laudo que a equipe recebe).
-  copiaCliente: "resumo",
 
   // Proteção contra robôs: tempo mínimo entre começar o questionário e enviar, e envios aceitos por navegador em 24 horas.
   protecao: { tempoMinimoSegundos: 40, enviosPor24h: 3 },

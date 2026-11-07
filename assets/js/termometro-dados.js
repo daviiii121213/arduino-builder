@@ -1,7 +1,7 @@
-/* Gerado por tools/gerar_termometro.py a partir de Planilha_Completa_Questionario_Projeto_Genesis_V4.xlsx. Não edite à mão. */
+/* Gerado por tools/gerar_termometro.py a partir de Planilha_Completa_Questionario_Projeto_Genesis_V5_Corrigida.xlsx. Não edite à mão. V5: cada linha da matriz tem gravidade própria (campo codigos). */
 (function (root) {
   var DADOS = {
-    "fonte": "Planilha_Completa_Questionario_Projeto_Genesis_V4.xlsx",
+    "fonte": "Planilha_Completa_Questionario_Projeto_Genesis_V5_Corrigida.xlsx",
     "titulo": "PROJETO GÊNESIS — DIAGNÓSTICO INTEGRADO E MATRIZ QUANTITATIVA DE RISCOS",
     "diretriz": "DIRETRIZ DE PREENCHIMENTO: Avalie a gravidade do sintoma de 0 a 10 (0 = Totalmente sob controle / Inexistente  |  10 = Risco Crítico / Gargalo Gravíssimo na Operação).",
     "tituloLaudo": "PROJETO GÊNESIS — LAUDO DE APURAÇÃO, TERMÔMETRO ORGANIZACIONAL E PLANO DE TRATAMENTO",
@@ -249,6 +249,7 @@
       {
         "dimensao": "Finanças & Comercial",
         "pilar": 0,
+        "codigos": ["F1", "F2", "F3", "C1"],
         "gatilhos": [
           "O faturamento cresce, mas o lucro não acompanha.",
           "Insegurança nas margens e confusão entre PF e PJ.",
@@ -276,6 +277,7 @@
       {
         "dimensao": "Estratégia & Continuidade",
         "pilar": 0,
+        "codigos": ["E1", "E2", "E3"],
         "gatilhos": [
           "A empresa depende do dono para absolutamente tudo.",
           "Liderança presa no modo 'apagar incêndios' diário.",
@@ -303,6 +305,7 @@
       {
         "dimensao": "Pessoas, Liderança & Cultura",
         "pilar": 1,
+        "codigos": ["L1", "L2", "L3", "L4", "L5"],
         "gatilhos": [
           "A equipe não entrega os resultados esperados.",
           "Líderes centralizadores, inseguros ou sobrecarregados.",
@@ -332,6 +335,7 @@
       {
         "dimensao": "Saúde Integrativa & Alta Performance",
         "pilar": 2,
+        "codigos": ["S1", "S2", "S3"],
         "gatilhos": [
           "Sócios e gestores exaustos, sem energia e com insônia frequente.",
           "'Névoa mental', dificuldade de concentração e estresse crônico.",
@@ -360,6 +364,7 @@
       {
         "dimensao": "Reeducação Corporativa",
         "pilar": 2,
+        "codigos": ["R1", "R2"],
         "gatilhos": [
           "Líderes e equipes travados em vícios comportamentais e erros repetitivos.",
           "Resistência crônica a novas diretrizes e falta de disciplina.",
@@ -387,6 +392,7 @@
       {
         "dimensao": "Auditoria & Compliance Trabalhista",
         "pilar": 3,
+        "codigos": ["A1", "A2", "A3"],
         "gatilhos": [
           "Insegurança jurídica e medo constante de processos trabalhistas.",
           "Funcionários sem registro, pagamentos informais ou desvios de função.",

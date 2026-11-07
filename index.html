@@ -27,8 +27,8 @@
   <link rel="preload" as="font" type="font/woff2" href="assets/fonts/montserrat-latin.woff2" crossorigin>
   <link rel="preload" as="font" type="font/woff2" href="assets/fonts/inter-latin.woff2" crossorigin>
   <link rel="preload" as="image" href="assets/img/hero-logo.webp" fetchpriority="high">
-  <link rel="stylesheet" href="assets/css/fonts.css?v=21">
-  <link rel="stylesheet" href="assets/css/styles.css?v=21">
+  <link rel="stylesheet" href="assets/css/fonts.css?v=33">
+  <link rel="stylesheet" href="assets/css/styles.css?v=33">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -390,11 +390,13 @@
             <li class="card card-dark contact-card">
               <svg class="card-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-whatsapp"/></svg>
               <h3>WhatsApp</h3>
+              <p class="handle">(34) 99859-3233</p>
               <a class="btn btn-gold" data-channel="whatsapp">Falar no WhatsApp</a>
             </li>
             <li class="card card-dark contact-card">
               <svg class="card-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-mail"/></svg>
               <h3>E-mail</h3>
+              <p class="handle">contato@genesisintegrativa.com.br</p>
               <a class="btn btn-outline-light" data-channel="email">Enviar e-mail</a>
             </li>
             <li class="card card-dark contact-card">
@@ -435,7 +437,7 @@
             <li><span class="fh-num">1</span><span class="fh-text"><strong>Identificação</strong><span>Você e a empresa</span></span></li>
             <li><span class="fh-num">2</span><span class="fh-text"><strong>Questionário</strong><span>20 perguntas, uma por tela, de 0 a 10</span></span></li>
             <li><span class="fh-num">3</span><span class="fh-text"><strong>Cenário atual</strong><span>A empresa na sua percepção</span></span></li>
-            <li><span class="fh-num">4</span><span class="fh-text"><strong>Resultado</strong><span>Termômetro, pilares e plano de tratamento</span></span></li>
+            <li><span class="fh-num">4</span><span class="fh-text"><strong>Resultado</strong><span>A temperatura da sua empresa</span></span></li>
           </ol>
         </div>
       </section>
@@ -474,7 +476,8 @@
               <div class="grid-2">
                 <div class="field">
                   <label for="nome">Seu nome <span class="req" aria-hidden="true">*</span></label>
-                  <input id="nome" name="nome" type="text" autocomplete="name" required aria-describedby="nome-err">
+                  <input id="nome" name="nome" type="text" autocomplete="name" maxlength="120" required aria-describedby="nome-hint nome-err">
+                  <p class="field-hint" id="nome-hint">Nome e sobrenome.</p>
                   <p class="field-error" id="nome-err"></p>
                 </div>
                 <div class="field">
@@ -490,7 +493,7 @@
                 </div>
                 <div class="field">
                   <label for="empresa">Nome da empresa <span class="req" aria-hidden="true">*</span></label>
-                  <input id="empresa" name="empresa" type="text" autocomplete="organization" required aria-describedby="empresa-err">
+                  <input id="empresa" name="empresa" type="text" autocomplete="organization" maxlength="160" required aria-describedby="empresa-err">
                   <p class="field-error" id="empresa-err"></p>
                 </div>
                 <div class="field">
@@ -525,14 +528,15 @@
                 </div>
                 <div class="field">
                   <label for="whatsapp">WhatsApp <span class="req" aria-hidden="true">*</span></label>
-                  <input id="whatsapp" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" placeholder="(34) 99999-9999" required aria-describedby="whatsapp-hint whatsapp-err">
+                  <input id="whatsapp" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" placeholder="(34) 99999-9999" maxlength="20" required aria-describedby="whatsapp-hint whatsapp-err">
                   <p class="field-hint" id="whatsapp-hint">Com DDD. Pode digitar com ou sem pontuação.</p>
                   <p class="field-error" id="whatsapp-err"></p>
                 </div>
                 <div class="field">
                   <label for="email">E-mail <span class="req" aria-hidden="true">*</span></label>
-                  <input id="email" name="email" type="email" autocomplete="email" required aria-describedby="email-err">
+                  <input id="email" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="160" required aria-describedby="email-err">
                   <p class="field-error" id="email-err"></p>
+                  <p class="field-suggest" id="email-sugestao" aria-live="polite" hidden></p>
                 </div>
               </div>
               <div class="stage-nav">
@@ -605,6 +609,10 @@
                 </label>
                 <p class="field-error" id="consentimento-err"></p>
               </div>
+              <div class="field turnstile-box" id="turnstile-box" hidden>
+                <div id="turnstile-widget"></div>
+                <p class="field-error" id="turnstile-err" aria-live="polite"></p>
+              </div>
               <div class="stage-nav">
                 <button type="button" class="btn btn-ghost btn-lg" data-back="questionario"><svg class="icon flip" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-next"/></svg>Voltar ao questionário</button>
                 <button type="submit" class="btn btn-gold btn-lg" id="submit-btn">Ver meu resultado</button>
@@ -618,7 +626,7 @@
               <ol class="proc-steps" id="proc-steps" aria-live="polite">
                 <li>Apurando a gravidade ponderada das 20 respostas</li>
                 <li>Avaliando os 4 pilares do Conselho</li>
-                <li>Montando o plano de tratamento</li>
+                <li>Preparando o seu resultado</li>
                 <li>Enviando o diagnóstico ao Conselho</li>
               </ol>
             </section>
@@ -669,8 +677,8 @@
       </div>
     </div>
     <div class="container footer-legal">
-      <p>O Projeto Gênesis oferece suporte em saúde integrativa e não presta serviços médicos.</p>
-      <p>© 2026 Projeto Gênesis · <a href="#politica" data-open-privacy>Política de Privacidade</a> · <span class="placeholder-tag" data-company-id>CNPJ: A validar</span></p>
+      <p class="legal-aviso">O Projeto Gênesis oferece suporte em saúde integrativa e não presta serviços médicos.</p>
+      <p class="legal-links">© 2026 Projeto Gênesis · <a href="#politica" data-open-privacy>Política de Privacidade</a> · <a href="#cookies" data-open-cookies>Política de Cookies</a></p>
     </div>
   </footer>
 
@@ -694,6 +702,45 @@
     </div>
     <div class="dialog-foot"><button type="button" class="btn btn-gold btn-sm" data-close-privacy>Entendi</button></div>
   </dialog>
+
+
+  <dialog class="privacy-dialog" id="cookies-dialog" aria-labelledby="cookies-title">
+    <div class="dialog-head">
+      <h2 id="cookies-title">Política de Cookies</h2>
+      <button type="button" class="dialog-close" data-close-cookies aria-label="Fechar">×</button>
+    </div>
+    <div class="dialog-body">
+      <p class="dialog-meta">Última atualização: 6 de novembro de 2026</p>
+      <h3>Em resumo</h3>
+      <p><strong>Este site não usa cookies.</strong> Não há cookies de publicidade, de rastreamento, de redes sociais nem de terceiros. Também não usamos Google Analytics, Meta Pixel ou ferramentas semelhantes.</p>
+      <h3>O que fica guardado no seu navegador</h3>
+      <p>Para o diagnóstico funcionar, o site guarda algumas informações no armazenamento local do seu navegador (<em>localStorage</em> e <em>sessionStorage</em>). Elas ficam só no seu aparelho, não são lidas por outros sites e não identificam você para terceiros.</p>
+      <div class="cookie-tabela" role="table" aria-label="Itens guardados no navegador">
+        <div role="row" class="ct-head"><span role="columnheader">Item</span><span role="columnheader">Para que serve</span><span role="columnheader">Por quanto tempo</span></div>
+        <div role="row"><span role="cell"><code>genesis-diagnostico-v1</code></span><span role="cell">Guarda as respostas enquanto você preenche, para continuar de onde parou.</span><span role="cell">Até você clicar em “Recomeçar” ou “Fazer um novo diagnóstico”, ou limpar o navegador.</span></div>
+        <div role="row"><span role="cell"><code>genesis-envios</code></span><span role="cell">Conta quantos diagnósticos este navegador enviou, para evitar envios repetidos e robôs.</span><span role="cell">24 horas.</span></div>
+        <div role="row"><span role="cell"><code>genesis-intro</code></span><span role="cell">Evita repetir a animação de abertura na mesma visita.</span><span role="cell">Até fechar a aba.</span></div>
+        <div role="row"><span role="cell"><code>genesis-aviso-cookies</code></span><span role="cell">Lembra que você já viu este aviso.</span><span role="cell">Até limpar o navegador.</span></div>
+      </div>
+      <p>Esses itens são estritamente necessários para o funcionamento do site e não exigem consentimento, conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018).</p>
+      <h3>No servidor</h3>
+      <p>Ao enviar o diagnóstico, as respostas vão por conexão segura ao servidor do site e seguem por e-mail à equipe do Conselho. Para impedir abusos, o servidor guarda por 24 horas uma versão embaralhada (hash) do endereço IP de quem enviou, sem o IP em si. A hospedagem também mantém registros técnicos de acesso, como qualquer site.</p>
+      <h3>Verificação antirrobô</h3>
+      <p>Para barrar robôs e spam, o formulário pode usar a verificação Turnstile, da Cloudflare, que na maioria das vezes confirma que você é uma pessoa sem pedir nada. Ela só roda na etapa final do diagnóstico e, segundo a Cloudflare, não é usada para publicidade nem para rastrear você em outros sites.</p>
+      <h3>Links externos</h3>
+      <p>Os botões de WhatsApp, Instagram e e-mail só abrem esses serviços quando você clica. A partir daí valem as políticas de cada um.</p>
+      <h3>Como apagar</h3>
+      <p>Use “Recomeçar” no diagnóstico, ou apague os dados deste site nas configurações do navegador (em geral, Configurações › Privacidade › Dados de sites).</p>
+      <h3>Dúvidas</h3>
+      <p>Escreva para <a href="mailto:contato@genesisintegrativa.com.br">contato@genesisintegrativa.com.br</a>.</p>
+    </div>
+    <div class="dialog-foot"><button type="button" class="btn btn-gold btn-sm" data-close-cookies>Entendi</button></div>
+  </dialog>
+
+  <div class="cookie-bar" id="cookie-bar" role="region" aria-label="Aviso sobre cookies" hidden>
+    <p><strong>Este site não usa cookies.</strong> Guardamos no seu navegador só o necessário para o diagnóstico funcionar. <a href="#cookies" data-open-cookies>Saiba mais</a></p>
+    <button type="button" class="btn btn-gold btn-sm" id="cookie-ok">Entendi</button>
+  </div>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
@@ -721,9 +768,9 @@
     <symbol id="i-root" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v10"/><path d="M12 13c0 3-3 4-5 7"/><path d="M12 13c0 3 3 4 5 7"/><path d="M12 15v6"/><path d="M8 7c2 0 4 1 4 3"/></g></symbol>
   </svg>
 
-  <script src="assets/js/config.js?v=21"></script>
-  <script src="assets/js/termometro-dados.js?v=21"></script>
-  <script src="assets/js/termometro.js?v=21"></script>
-  <script src="assets/js/app.js?v=21"></script>
+  <script src="assets/js/config.js?v=33"></script>
+  <script src="assets/js/termometro-dados.js?v=33"></script>
+  <script src="assets/js/termometro.js?v=33"></script>
+  <script src="assets/js/app.js?v=33"></script>
 </body>
 </html>

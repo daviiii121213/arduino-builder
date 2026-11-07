@@ -68,6 +68,7 @@
   function handleRoute(initial) {
     var hash = window.location.hash;
     if (hash === "#politica") { if (!currentView) showView("landing"); openPrivacy(); return; }
+    if (hash === "#cookies") { if (!currentView) showView("landing"); openCookies(); return; }
     var view = routeFor(hash);
     if (!initial && currentView && view !== currentView && wipe && !reduceMotion) {
       closeMenu();
@@ -102,7 +103,7 @@
 
   document.addEventListener("click", function (e) {
     var link = e.target.closest && e.target.closest('a[href^="#"]');
-    if (!link || link.hasAttribute("data-open-privacy")) return;
+    if (!link || link.hasAttribute("data-open-privacy") || link.hasAttribute("data-open-cookies")) return;
     var hash = link.getAttribute("href");
     var target = hash.length > 1 ? document.getElementById(hash.slice(1)) : null;
     // A section of the page already on screen: glide to it instead of letting the browser jump.
@@ -294,15 +295,11 @@
   var dialog = $("#privacy-dialog");
   var lastFocus = null;
 
-  var EMAILJS = CONFIG.emailjs || {};
-  var emailjsReady = !!(EMAILJS.serviceId && EMAILJS.templateId && EMAILJS.publicKey);
-  var sendingEnabled = emailjsReady || !!CONFIG.submitEndpoint;
+  var sendingEnabled = !!CONFIG.submitEndpoint;
 
-  $("#privacy-transmission").textContent = emailjsReady
-    ? "Ao enviar, as respostas são encaminhadas por e-mail à equipe do Projeto Gênesis por meio do serviço EmailJS, em conexão segura."
-    : CONFIG.submitEndpoint
-      ? "Ao enviar, as respostas são transmitidas por conexão segura à equipe do Projeto Gênesis."
-      : "No momento, o envio não está ativo: as respostas não são transmitidas a ninguém.";
+  $("#privacy-transmission").textContent = sendingEnabled
+    ? "Ao enviar, as respostas são transmitidas por conexão segura ao servidor do Projeto Gênesis, que as encaminha por e-mail à equipe."
+    : "No momento, o envio não está ativo: as respostas não são transmitidas a ninguém.";
 
   function openPrivacy() {
     lastFocus = document.activeElement;
@@ -318,6 +315,35 @@
   });
   $$("[data-close-privacy]").forEach(function (b) { b.addEventListener("click", closePrivacy); });
   dialog.addEventListener("click", function (e) { if (e.target === dialog) closePrivacy(); });
+
+  /* ----- Política de Cookies e aviso ----- */
+  var cookiesDialog = $("#cookies-dialog");
+  function openCookies() {
+    lastFocus = document.activeElement;
+    if (typeof cookiesDialog.showModal === "function") { if (!cookiesDialog.open) cookiesDialog.showModal(); }
+    else cookiesDialog.setAttribute("open", "");
+  }
+  function closeCookies() {
+    if (typeof cookiesDialog.close === "function") cookiesDialog.close(); else cookiesDialog.removeAttribute("open");
+  }
+  cookiesDialog.addEventListener("close", function () { if (lastFocus) lastFocus.focus(); });
+  cookiesDialog.addEventListener("click", function (e) { if (e.target === cookiesDialog) closeCookies(); });
+  $$("[data-open-cookies]").forEach(function (a) { a.addEventListener("click", function (e) { e.preventDefault(); openCookies(); }); });
+  $$("[data-close-cookies]").forEach(function (b) { b.addEventListener("click", closeCookies); });
+  window.GenesisCookies = { abrir: openCookies };
+
+  var cookieBar = $("#cookie-bar"), AVISO_KEY = "genesis-aviso-cookies";
+  var avisoVisto = false;
+  try { avisoVisto = !!localStorage.getItem(AVISO_KEY); } catch (e) { avisoVisto = false; }
+  if (!avisoVisto) {
+    cookieBar.hidden = false;
+    document.documentElement.classList.add("has-cookie-bar");
+  }
+  $("#cookie-ok").addEventListener("click", function () {
+    try { localStorage.setItem(AVISO_KEY, new Date().toISOString()); } catch (e) { /* storage unavailable */ }
+    cookieBar.hidden = true;
+    document.documentElement.classList.remove("has-cookie-bar");
+  });
 
   /* ---------------- Diagnóstico: Termômetro Organizacional ---------------- */
 
@@ -361,23 +387,101 @@
 
   /* ----- Validação (identificação e cenário atual) ----- */
 
+  /* ----- Validadores de nome, empresa, WhatsApp e e-mail (os mesmos critérios são conferidos no servidor) ----- */
+  var DDDS = [11,12,13,14,15,16,17,18,19,21,22,24,27,28,31,32,33,34,35,37,38,41,42,43,44,45,46,47,48,49,51,53,54,55,61,62,63,64,65,66,67,68,69,71,73,74,75,77,79,81,82,83,84,85,86,87,88,89,91,92,93,94,95,96,97,98,99];
+  var LIXO_EMPRESA = ["teste", "test", "testes", "asdf", "qwerty", "abc", "xxx", "xxxx", "empresa", "minha empresa", "nenhuma", "nenhum", "na", "n/a", "nao tem", "não tem", "sem empresa", "-", "."];
+  function limparEspacos(v) { return v.replace(/\s+/g, " ").trim(); }
+  function semAcento(v) { return v.normalize ? v.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : v; }
+  function repetido(v) { return /(.)\1{3,}/i.test(v.replace(/\s/g, "")); }
+
+  function validarNome(v) {
+    v = limparEspacos(v);
+    if (!v) return "Informe o seu nome.";
+    if (/\d/.test(v)) return "O nome não pode ter números.";
+    if (!/^[A-Za-zÀ-ÖØ-öø-ÿ' .\-]+$/.test(v)) return "Use só letras no nome (acentos, hífen e apóstrofo são aceitos).";
+    var partes = v.split(" ").filter(function (p) { return /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(p); });
+    if (partes.length < 2) return "Informe nome e sobrenome.";
+    if (partes[0].replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, "").length < 2) return "Escreva o primeiro nome por extenso.";
+    if (repetido(v)) return "Confira o nome digitado.";
+    if (v.length > 120) return "Nome muito longo.";
+    return "";
+  }
+
+  function validarEmpresa(v) {
+    v = limparEspacos(v);
+    if (!v) return "Informe o nome da empresa.";
+    var alnum = v.replace(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ]/g, "");
+    if (alnum.length < 2 || !/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(v)) return "Informe o nome da empresa com pelo menos 2 letras ou números.";
+    if (LIXO_EMPRESA.indexOf(semAcento(v.toLowerCase())) !== -1 || LIXO_EMPRESA.indexOf(v.toLowerCase()) !== -1) return "Informe o nome real da empresa.";
+    if (repetido(v)) return "Confira o nome da empresa.";
+    if (v.length > 160) return "Nome muito longo.";
+    return "";
+  }
+
+  function validarWhatsapp(v) {
+    if (!v) return "Informe o seu WhatsApp.";
+    if (/[^\d\s()+.\-]/.test(v)) return "Use apenas números e, se quiser, parênteses, espaços ou hífen.";
+    var d = phoneDigits(v);
+    if (d.length < 10 || d.length > 11) return "Informe o número com DDD, por exemplo (34) 99999-9999.";
+    if (DDDS.indexOf(Number(d.slice(0, 2))) === -1) return "O DDD " + d.slice(0, 2) + " não existe. Confira os dois primeiros números.";
+    var num = d.slice(2);
+    if (/^(\d)\1+$/.test(num) || num === "123456789" || num === "987654321") return "Confira o número digitado.";
+    if (d.length === 11 && num[0] !== "9") return "Celular com 9 dígitos começa com 9. Confira o número.";
+    if (d.length === 10 && "6789".indexOf(num[0]) !== -1) return "Parece um celular sem o 9 na frente. Digite os 9 dígitos depois do DDD.";
+    return "";
+  }
+
+  function formatarWhatsapp(v) {
+    var d = phoneDigits(v);
+    if (d.length === 11) return "(" + d.slice(0, 2) + ") " + d.slice(2, 7) + "-" + d.slice(7);
+    if (d.length === 10) return "(" + d.slice(0, 2) + ") " + d.slice(2, 6) + "-" + d.slice(6);
+    return v;
+  }
+
+  var DOMINIOS = ["gmail.com", "hotmail.com", "outlook.com", "outlook.com.br", "yahoo.com", "yahoo.com.br", "icloud.com", "live.com", "bol.com.br", "uol.com.br", "terra.com.br", "hotmail.com.br"];
+  function distancia(a, b) {
+    var m = [], i, j;
+    for (i = 0; i <= b.length; i++) m[i] = [i];
+    for (j = 0; j <= a.length; j++) m[0][j] = j;
+    for (i = 1; i <= b.length; i++) for (j = 1; j <= a.length; j++)
+      m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + (b[i - 1] === a[j - 1] ? 0 : 1));
+    return m[b.length][a.length];
+  }
+  // "fulano@gmial.com" -> "fulano@gmail.com"; null when nothing to suggest.
+  function sugerirEmail(v) {
+    var at = v.lastIndexOf("@");
+    if (at < 1) return null;
+    var local = v.slice(0, at), dom = v.slice(at + 1).toLowerCase();
+    var fix = dom.replace(/\.con$/, ".com").replace(/\.cmo$/, ".com").replace(/\.co$/, ".com").replace(/\.combr$/, ".com.br").replace(/\.com\.b$/, ".com.br").replace(/\.com\.bt$/, ".com.br").replace(/\.br\.com$/, ".com.br");
+    if (fix === "gmail.com.br") fix = "gmail.com";
+    var melhor = null, menor = 3;
+    DOMINIOS.forEach(function (d2) { var x = distancia(fix, d2); if (x < menor && x > 0) { menor = x; melhor = d2; } });
+    if (DOMINIOS.indexOf(fix) !== -1) melhor = fix;
+    var alvo = melhor && menor <= 2 ? melhor : fix;
+    return alvo !== dom ? local + "@" + alvo : null;
+  }
+
+  function validarEmail(v) {
+    v = v.trim();
+    if (!v) return "Informe o seu e-mail.";
+    if (/\s/.test(v)) return "O e-mail não pode ter espaços.";
+    var m = v.match(/^([A-Za-z0-9.!#$%&'*+\/=?^_`{|}~-]+)@([A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+)$/);
+    if (!m) return "Informe um e-mail válido, por exemplo nome@empresa.com.br.";
+    if (/^\.|\.$|\.\./.test(m[1])) return "Confira os pontos antes do @.";
+    if (!/\.[A-Za-z]{2,}$/.test(m[2])) return "Confira o final do e-mail (ex.: .com ou .com.br).";
+    if (v.length > 160) return "E-mail muito longo.";
+    return "";
+  }
+
   var FIELDS = [
-    { name: "nome", stage: "identificacao", label: "Seu nome", check: function (v) { return v ? "" : "Informe o seu nome."; } },
+    { name: "nome", stage: "identificacao", label: "Seu nome", check: validarNome },
     { name: "cargo", stage: "identificacao", label: "Cargo ou função", check: function (v) { return v ? "" : "Selecione o seu cargo ou função."; } },
-    { name: "empresa", stage: "identificacao", label: "Nome da empresa", check: function (v) { return v ? "" : "Informe o nome da empresa."; } },
+    { name: "empresa", stage: "identificacao", label: "Nome da empresa", check: validarEmpresa },
     { name: "segmento", stage: "identificacao", label: "Segmento", check: function (v) { return v ? "" : "Selecione o segmento da empresa."; } },
     { name: "colaboradores", stage: "identificacao", label: "Número de colaboradores", check: function (v) { return v ? "" : "Selecione o número de colaboradores."; } },
     { name: "cidade", stage: "identificacao", label: "Cidade", check: function (v) { return v ? "" : "Informe a cidade."; } },
-    { name: "whatsapp", stage: "identificacao", label: "WhatsApp", check: function (v) {
-      if (!v) return "Informe o seu WhatsApp.";
-      if (/[^\d\s()+.\-]/.test(v)) return "Use apenas números e, se quiser, parênteses, espaços ou hífen.";
-      var d = phoneDigits(v);
-      return d.length === 10 || d.length === 11 ? "" : "Informe um número com DDD, por exemplo (34) 99999-9999.";
-    } },
-    { name: "email", stage: "identificacao", label: "E-mail", check: function (v) {
-      if (!v) return "Informe o seu e-mail.";
-      return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? "" : "Informe um e-mail válido, por exemplo nome@empresa.com.br.";
-    } },
+    { name: "whatsapp", stage: "identificacao", label: "WhatsApp", check: validarWhatsapp },
+    { name: "email", stage: "identificacao", label: "E-mail", check: validarEmail },
     { name: "principal_preocupacao", stage: "cenario", group: true, label: "O que mais tira o seu sono hoje?", check: function (v) { return v ? "" : "Escolha uma opção."; } },
     { name: "preferencia_contato", stage: "cenario", group: true, label: "Como prefere ser contatado?", check: function (v) { return v ? "" : "Escolha como prefere ser contatado."; } },
     { name: "consentimento", stage: "cenario", label: "Consentimento", check: function (v) { return v ? "" : "Para enviar, é preciso autorizar o uso dos dados."; } }
@@ -389,6 +493,7 @@
     document.getElementById(f.name + "-err").textContent = msg;
     var host = f.group ? document.getElementById(f.name + "-group") : form.elements[f.name];
     host.classList.toggle("has-error", !!msg);
+    if (!f.group) host.classList.toggle("is-valid", !msg && !!fieldValue(f));
     var inputs = f.group ? $$('input[name="' + f.name + '"]', form) : [host];
     inputs.forEach(function (i) { if (msg) i.setAttribute("aria-invalid", "true"); else i.removeAttribute("aria-invalid"); });
   }
@@ -437,9 +542,35 @@
 
   form.addEventListener("change", onFieldEvent);
   form.addEventListener("input", onFieldEvent);
+  // Tidies the value when the visitor leaves the field: extra spaces, phone mask, e-mail in lower case.
+  function arrumarCampo(el) {
+    var v = el.value;
+    if (el.name === "nome" || el.name === "empresa" || el.name === "cidade") v = limparEspacos(v);
+    if (el.name === "whatsapp" && !validarWhatsapp(v)) v = formatarWhatsapp(v);
+    if (el.name === "email") v = v.trim().toLowerCase();
+    if (v !== el.value) el.value = v;
+  }
+
+  var sugestaoBox = $("#email-sugestao");
+  function mostrarSugestaoEmail() {
+    if (!sugestaoBox) return;
+    var v = val("email"), sug = !validarEmail(v) ? sugerirEmail(v) : null;
+    sugestaoBox.hidden = !sug;
+    if (sug) {
+      sugestaoBox.innerHTML = 'Você quis dizer <button type="button" class="link-btn">' + esc(sug) + "</button>?";
+      sugestaoBox.querySelector("button").addEventListener("click", function () {
+        form.elements.email.value = sug; sugestaoBox.hidden = true;
+        validateField(FIELDS.filter(function (x) { return x.name === "email"; })[0]); salvar();
+        form.elements.email.focus();
+      });
+    }
+  }
+
   form.addEventListener("focusout", function (e) {
     var f = FIELDS.filter(function (x) { return x.name === e.target.name && !x.group; })[0];
+    if (f && e.target.tagName === "INPUT") arrumarCampo(e.target);
     if (f && (e.target.value || touched[f.name])) { touched[f.name] = true; validateField(f); }
+    if (e.target.name === "email" && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest("#email-sugestao"))) mostrarSugestaoEmail();
   });
 
   function onFieldEvent(e) {
@@ -520,6 +651,7 @@
 
   function mostrarEtapa(stage, foco) {
     state.stage = stage;
+    if (stage === "cenario" && typeof carregarTurnstile === "function") carregarTurnstile();
     STAGES.forEach(function (s) { stageSections[s].hidden = s !== stage; });
     stageSections[stage].classList.remove("stage-enter");
     void stageSections[stage].offsetWidth;
@@ -679,9 +811,7 @@
     if (d && !d.disabled) { clearTimeout(autoAvanco); irPara(Number(d.getAttribute("data-q"))); }
   });
 
-  /* ----- Envio pelo EmailJS (os modelos usam {{empresa}}, {{responsavel}}, {{respostas}}, {{data}} e {{{laudo_html}}}) ----- */
-
-  var EMAILJS_URL = "https://api.emailjs.com/api/v1.0/email/send";
+  /* ----- Envio: o servidor do próprio site (api/enviar.php) recalcula o laudo e envia os e-mails ----- */
 
   function formatSentAt(iso) {
     return new Date(iso).toLocaleString("pt-BR", {
@@ -691,7 +821,9 @@
 
   function n1(v) { return T.formatar(v, 1); }
   function n2(v) { return T.formatar(v, 2); }
-  function corLabel(c) { return { vermelho: "Vermelho", amarelo: "Amarelo", branco: "Branco", verde: "Verde" }[c]; }
+  // Client-facing result shows temperatures only, never the 0-10 scores.
+  function temp(v) { return T.nivel(v).temperatura.split(" (")[0]; }
+  function tempNome(v) { var t = T.nivel(v).temperatura; var m = t.match(/\(([^)]+)\)/); return m ? m[1] : t; }
 
   function buildPayload() {
     var c = lerCampos();
@@ -699,184 +831,18 @@
       contact: { name: c.nome, role: c.cargo, company: c.empresa, segment: c.segmento, employee_range: c.colaboradores, city: c.cidade, whatsapp: c.whatsapp, email: c.email },
       notas: Object.assign({}, state.notas),
       closing: { principal_preocupacao: c.principal_preocupacao, comentario_adicional: c.comentario_adicional || null, preferencia_contato: c.preferencia_contato, consentimento: c.consentimento },
-      meta: { source: "site", metodologia: T.dados.fonte, submitted_at: state.enviadoEm || new Date().toISOString() }
+      meta: { source: "site", metodologia: T.dados.fonte, submitted_at: state.enviadoEm || new Date().toISOString(), started_at: state.iniciadoEm || null },
+      hp: val("site_empresa_url"),
+      turnstile: tsToken || null
     };
   }
 
-  function emailTemplateParams(payload, r) {
-    var c = payload.contact, cl = payload.closing;
-    var L = [
-      "IDENTIFICAÇÃO",
-      "• Nome: " + c.name, "• Cargo ou função: " + c.role, "• Empresa: " + c.company, "• Segmento: " + c.segment,
-      "• Número de colaboradores: " + c.employee_range, "• Cidade: " + c.city, "• WhatsApp: " + c.whatsapp, "• E-mail: " + c.email,
-      "",
-      "TERMÔMETRO ORGANIZACIONAL — " + r.igvo.nome,
-      "• Gravidade ponderada (0 a 10): " + n2(r.igvo.ponderada) + " · Média simples: " + n1(r.igvo.mediaSimples),
-      "• Temperatura: " + r.igvo.temperatura,
-      "• Status: " + r.igvo.status,
-      "• Prescrição: " + r.igvo.prescricao.titulo + ": " + r.igvo.prescricao.texto,
-      "• Média geral do questionário (ponderada): " + n2(r.questionario.mediaPonderada) + " · Média simples: " + n1(r.questionario.mediaSimples),
-      "",
-      "PILARES"
-    ];
-    r.pilares.forEach(function (p) {
-      L.push(p.nome + " — " + p.status + " · " + p.temperatura);
-      L.push("   Gravidade ponderada " + n2(p.ponderada) + " · Média simples " + n1(p.mediaSimples) + " · " + p.especialistas);
-      L.push("   " + p.prescricao.titulo + ": " + p.prescricao.texto);
-    });
-    L.push("", "PLANO DE TRATAMENTO (por gravidade)");
-    r.matriz.forEach(function (m) { L.push("• " + m.dimensao + " (" + n2(m.gravidade) + "): " + m.modalidade.titulo + " — " + m.modalidade.texto); });
-    L.push("", "PROBLEMAS IDENTIFICADOS (notas de 5,5 a 10, pela gravidade nota × peso)");
-    if (r.problemas.length) r.problemas.forEach(function (i) { L.push("• " + i.codigo + " " + i.dimensao + ": nota " + i.nota + " (" + i.faixa.classificacao + ")"); });
-    else L.push("• Nenhum.");
-    L.push("", "PONTOS POSITIVOS (notas de 0 a 2,9)");
-    if (r.positivos.length) r.positivos.forEach(function (i) { L.push("• " + i.codigo + " " + i.dimensao + ": nota " + i.nota); });
-    else L.push("• Nenhum.");
-    L.push("", "RESPOSTAS (nota × peso = gravidade ponderada)");
-    r.itens.forEach(function (i) { L.push(i.codigo + " · " + i.dimensao + ": " + i.nota + " × " + n1(i.peso) + " = " + n2(i.gravidade)); });
-    L.push(
-      "", "CENÁRIO ATUAL (percepção do cliente)",
-      "• O que mais tira o sono: " + cl.principal_preocupacao,
-      "• Comentário: " + (cl.comentario_adicional || "Não informado."),
-      "• Prefere ser contatado por: " + cl.preferencia_contato,
-      "• Consentimento: " + (cl.consentimento ? "Sim. Autorizou o uso dos dados e declarou ter lido a Política de Privacidade." : "Não")
-    );
-    return {
-      empresa: c.company, responsavel: c.name, respostas: L.join("\n"), data: formatSentAt(payload.meta.submitted_at),
-      laudo_html: laudoHtml(payload, r, true)
-    };
-  }
-
-  /* ----- Laudo formatado para o e-mail ({{{laudo_html}}} no modelo do EmailJS) ----- */
-
-  var HEX = { verde: "#2f8f5b", branco: "#8c94a3", amarelo: "#c99a06", vermelho: "#c0392b" };
-  // Text colours: the "branco" band is too light to read as text, so numbers in that band use a darker grey.
-  var TXT = { verde: "#2f8f5b", branco: "#5f6776", amarelo: "#a67f05", vermelho: "#c0392b" };
-  var F = "font-family:Arial,Helvetica,sans-serif;";
-
-  function barraEmail(valor, cor) {
-    var w = Math.max(2, Math.min(100, Math.round(valor * 10)));
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#e9ecf1;border-radius:4px"><tr>' +
-      '<td width="' + w + '%" style="background:' + HEX[cor] + ';height:10px;font-size:0;line-height:0;border-radius:4px">&nbsp;</td>' +
-      (w < 100 ? '<td style="font-size:0;line-height:0">&nbsp;</td>' : "") + "</tr></table>";
-  }
-
-  function selo(texto, cor) {
-    return '<span style="display:inline-block;padding:3px 10px;border-radius:12px;border:1px solid ' + HEX[cor] + ";color:" + (cor === "branco" ? "#4c5568" : HEX[cor]) + ';font-size:12px;font-weight:bold">' + esc(texto) + "</span>";
-  }
-
-  function tituloEmail(texto) {
-    return '<tr><td style="padding:24px 28px 8px;' + F + 'font-size:12px;letter-spacing:2px;font-weight:bold;color:#8a6a22">' + esc(texto) + "</td></tr>";
-  }
-
-  function laudoHtml(payload, r, completo) {
-    var c = payload.contact, cl = payload.closing, g = r.igvo;
-    var h = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:660px;margin:0 auto;background:#ffffff;border:1px solid #e1e4ea;border-collapse:separate;' + F + 'color:#1b2233">';
-    h += '<tr><td style="background:#0A0F1A;padding:24px 28px;border-bottom:3px solid #C9A24A">' +
-      '<div style="font-size:11px;letter-spacing:3px;color:#C9A24A;font-weight:bold">TERMÔMETRO ORGANIZACIONAL · PROJETO GÊNESIS</div>' +
-      '<div style="font-size:22px;color:#ffffff;font-weight:bold;margin-top:6px">' + esc(c.company) + "</div>" +
-      '<div style="font-size:13px;color:#B8BCC4;margin-top:4px">' + esc(c.name) + " · " + esc(c.role) + " · " + esc(formatSentAt(payload.meta.submitted_at)) + "</div></td></tr>";
-
-    h += '<tr><td style="padding:24px 28px 8px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-left:5px solid ' + HEX[g.cor] + ';background:#f5f6f8"><tr><td style="padding:18px 20px">' +
-      '<div style="font-size:12px;letter-spacing:1px;color:#4c5568;font-weight:bold">' + esc(g.nome) + "</div>" +
-      '<div style="font-size:40px;font-weight:bold;color:' + TXT[g.cor] + ';line-height:1.1;margin:6px 0">' + n2(g.ponderada) + ' <span style="font-size:14px;color:#4c5568;font-weight:normal">de 10 · gravidade ponderada</span></div>' +
-      '<div style="font-size:16px;font-weight:bold;margin-bottom:8px">' + esc(g.temperatura) + "</div>" + selo(g.status, g.cor) +
-      '<div style="margin-top:12px">' + barraEmail(g.ponderada, g.cor) + "</div>" +
-      '<div style="margin-top:14px;font-size:14px;line-height:1.5"><strong>' + esc(g.prescricao.titulo) + ":</strong> " + esc(g.prescricao.texto) + "</div>" +
-      "</td></tr></table>" +
-      '<div style="font-size:13px;color:#4c5568;margin-top:10px">Média geral do questionário: <strong>' + n2(r.questionario.mediaPonderada) + "</strong> (ponderada) · " + n1(r.questionario.mediaSimples) + " (simples)</div></td></tr>";
-
-    h += tituloEmail("OS 4 PILARES") + '<tr><td style="padding:0 28px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px">';
-    r.pilares.forEach(function (p) {
-      h += '<tr><td style="padding:10px 0;border-bottom:1px solid #eef0f3"><div style="font-weight:bold">' + esc(nomePilar(p.nome)) + '</div><div style="font-size:12px;color:#4c5568;margin:2px 0 6px">' + esc(p.especialistas) + "</div>" + barraEmail(p.ponderada, p.cor) +
-        '<div style="font-size:13px;margin-top:6px">' + esc(p.prescricao.titulo) + ": " + esc(p.prescricao.texto) + "</div></td>" +
-        '<td width="96" style="padding:10px 0 10px 12px;border-bottom:1px solid #eef0f3;text-align:right;vertical-align:top"><div style="font-size:20px;font-weight:bold;color:' + TXT[p.cor] + '">' + n2(p.ponderada) + '</div><div style="font-size:11px;color:#4c5568">' + esc(p.status) + "</div></td></tr>";
-    });
-    h += "</table></td></tr>";
-
-    if (completo) {
-      h += tituloEmail("PLANO DE TRATAMENTO") + '<tr><td style="padding:0 28px;font-size:14px">';
-      r.matriz.forEach(function (m) {
-        h += '<div style="padding:10px 0 10px 12px;border-left:4px solid ' + HEX[m.cor] + ';margin-bottom:8px;background:#f9fafb"><strong>' + esc(m.dimensao) + "</strong> · " + n2(m.gravidade) +
-          '<div style="color:#8a6a22;font-weight:bold;font-size:13px;margin-top:2px">' + esc(m.modalidade.titulo) + '</div><div style="margin-top:2px">' + esc(m.modalidade.texto) + '</div><div style="font-size:12px;color:#4c5568;margin-top:4px">Conselheiros: ' + esc(m.conselheiros.join(" · ")) + "</div></div>";
-      });
-      h += "</td></tr>";
-      var itensLista = function (titulo, lista, vazio) {
-        var s = tituloEmail(titulo) + '<tr><td style="padding:0 28px;font-size:14px">';
-        if (!lista.length) return s + '<div style="color:#4c5568">' + vazio + "</div></td></tr>";
-        lista.forEach(function (i) { s += '<div style="padding:5px 0"><span style="display:inline-block;min-width:34px;font-weight:bold;color:' + TXT[i.cor] + '">' + n1(i.nota) + "</span>" + esc(i.codigo + " · " + i.dimensao) + "</div>"; });
-        return s + "</td></tr>";
-      };
-      h += itensLista("PROBLEMAS IDENTIFICADOS (NOTAS DE 5,5 A 10, PELA GRAVIDADE NOTA × PESO)", r.problemas, "Nenhum.");
-      h += itensLista("PONTOS POSITIVOS (NOTAS DE 0 A 2,9)", r.positivos, "Nenhum.");
-      h += tituloEmail("RESPOSTAS (NOTA × PESO = GRAVIDADE)") + '<tr><td style="padding:0 28px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px">';
-      r.itens.forEach(function (i) {
-        h += '<tr><td style="padding:5px 0;border-bottom:1px solid #eef0f3">' + esc(i.codigo + " · " + i.dimensao) + '</td><td style="padding:5px 0;border-bottom:1px solid #eef0f3;text-align:right;white-space:nowrap">' + n1(i.nota) + " × " + n1(i.peso) + " = <strong>" + n2(i.gravidade) + "</strong></td></tr>";
-      });
-      h += "</table></td></tr>";
-      h += tituloEmail("CENÁRIO ATUAL (PERCEPÇÃO DO CLIENTE)") + '<tr><td style="padding:0 28px;font-size:14px;line-height:1.6">' +
-        "O que mais tira o sono: <strong>" + esc(cl.principal_preocupacao) + "</strong><br>Comentário: " + esc(cl.comentario_adicional || "Não informado.") +
-        "<br>Prefere ser contatado por: <strong>" + esc(cl.preferencia_contato) + "</strong></td></tr>";
-      h += tituloEmail("IDENTIFICAÇÃO") + '<tr><td style="padding:0 28px;font-size:14px;line-height:1.6">' +
-        esc(c.name) + " · " + esc(c.role) + "<br>" + esc(c.company) + " · " + esc(c.segment) + " · " + esc(c.employee_range) + " colaboradores · " + esc(c.city) +
-        "<br>WhatsApp: " + esc(c.whatsapp) + " · E-mail: " + esc(c.email) +
-        "<br>Consentimento: " + (cl.consentimento ? "Sim" : "Não") + "</td></tr>";
-    } else {
-      var wa = channelHref("whatsapp");
-      h += tituloEmail("PRÓXIMO PASSO") + '<tr><td style="padding:0 28px;font-size:14px;line-height:1.6">' +
-        "Um conselheiro do Projeto Gênesis vai entrar em contato" + (CONFIG.responseDeadline ? " em até " + esc(CONFIG.responseDeadline) : "") +
-        " para agendar uma reunião aprofundada, em que o Conselho apresenta o plano de tratamento." +
-        (wa ? '<div style="margin-top:14px"><a href="' + esc(wa) + '" style="display:inline-block;background:#C9A24A;color:#0A0F1A;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:6px">Falar com o Conselho no WhatsApp</a></div>' : "") +
-        "</td></tr>";
-    }
-    h += '<tr><td style="padding:24px 28px 26px"><div style="padding:12px 14px;background:#f5f6f8;font-size:12px;color:#4c5568;line-height:1.5">Diagnóstico inicial calculado pelo site com a metodologia oficial do Conselho Gênesis. A análise completa acontece no diagnóstico integrado, já dentro do ciclo. O Projeto Gênesis oferece suporte em saúde integrativa e não presta serviços médicos.</div></td></tr></table>';
-    return h;
-  }
-
-  function resumoTexto(payload, r) {
-    var g = r.igvo;
-    var L = [
-      "Olá, " + payload.contact.name + ". Este é o resumo do diagnóstico inicial da " + payload.contact.company + ".",
-      "",
-      g.nome + ": " + n2(g.ponderada) + " de 10 — " + g.temperatura + " · " + g.status,
-      g.prescricao.titulo + ": " + g.prescricao.texto,
-      "",
-      "OS 4 PILARES"
-    ];
-    r.pilares.forEach(function (p) { L.push("• " + nomePilar(p.nome) + ": " + n2(p.ponderada) + " — " + p.status); });
-    L.push("", "Um conselheiro do Projeto Gênesis vai entrar em contato" + (CONFIG.responseDeadline ? " em até " + CONFIG.responseDeadline : "") +
-      " para agendar uma reunião aprofundada, em que o Conselho apresenta o plano de tratamento.");
-    return L.join("\n");
-  }
-
-  function sendEmail(templateId, params, signal) {
-    return fetch(EMAILJS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ service_id: EMAILJS.serviceId, template_id: templateId, user_id: EMAILJS.publicKey, template_params: params }),
-      signal: signal
-    });
-  }
-
+  // Only the answers travel; the server recomputes the result and builds both e-mails itself.
   function transmit(payload, r, signal) {
-    if (emailjsReady) {
-      var params = emailTemplateParams(payload, r);
-      return sendEmail(EMAILJS.templateId, params, signal).then(function (res) {
-        if (!res.ok || !EMAILJS.visitorTemplateId) return res;
-        // The visitor's copy is a courtesy: once the team's e-mail is confirmed, the diagnosis counts as delivered.
-        var completo = CONFIG.copiaCliente === "completo";
-        var visitorParams = Object.assign({}, params, {
-          email: payload.contact.email,
-          respostas: completo ? params.respostas : resumoTexto(payload, r),
-          laudo_html: completo ? params.laudo_html : laudoHtml(payload, r, false)
-        });
-        return sendEmail(EMAILJS.visitorTemplateId, visitorParams, signal).catch(function () {}).then(function () { return res; });
-      });
-    }
     return fetch(CONFIG.submitEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify(Object.assign({}, payload, { resultado: { igvo: r.igvo.ponderada, pilares: r.pilares.map(function (p) { return { nome: p.nome, ponderada: p.ponderada, status: p.status }; }) } })),
+      body: JSON.stringify(payload),
       signal: signal
     });
   }
@@ -885,6 +851,11 @@
   function enviar(r) {
     if (!sendingEnabled) return Promise.resolve({ ok: false, naoConfigurado: true });
     var bloqueio = bloqueioDeEnvio();
+    // Filled in too fast: wait out the remaining seconds and send by itself, without asking the visitor.
+    if (bloqueio && bloqueio.bloqueado === "rapido") {
+      evento("espera-antirrobo");
+      return new Promise(function (ok) { setTimeout(ok, (bloqueio.espera + 1) * 1000); }).then(function () { return enviar(r); });
+    }
     if (bloqueio) { evento("bloqueado-" + bloqueio.bloqueado); return Promise.resolve(bloqueio); }
     var payload = buildPayload();
     if (!state.planilhaRegistrada) { state.planilhaRegistrada = true; enviarPlanilha(payload, r); }
@@ -894,7 +865,10 @@
       if (res.ok) { registrarEnvio(); evento("envio-ok"); return { ok: true }; }
       evento("envio-erro");
       return res.text().catch(function () { return ""; }).then(function (text) {
-        return { ok: false, detail: "erro " + res.status + (text ? ": " + text.slice(0, 200) : "") };
+        var msg = "";
+        try { msg = (JSON.parse(text) || {}).erro || ""; } catch (e) { msg = ""; }
+        if (window.console) console.warn("[Gênesis] envio recusado", res.status, text.slice(0, 300));
+        return { ok: false, status: res.status, mensagem: msg };
       });
     }).catch(function () {
       evento("envio-erro");
@@ -922,14 +896,12 @@
     h.textContent = out.naoConfigurado ? "Envio ainda não configurado" : "Seu resultado está pronto, mas não conseguimos enviá-lo ao Conselho";
     p.textContent = out.naoConfigurado
       ? "O resultado abaixo foi calculado, mas o envio ao Projeto Gênesis ainda não foi configurado neste site. Nada foi transmitido."
-      : "Suas respostas continuam salvas neste navegador. Verifique a conexão e tente de novo, ou fale com o Conselho pelo WhatsApp.";
+      : out.status === 429 && out.mensagem
+        ? out.mensagem
+        : out.status === 503
+          ? "O envio está temporariamente indisponível. Suas respostas continuam salvas neste navegador: tente de novo mais tarde ou fale com o Conselho pelo WhatsApp."
+          : "Suas respostas continuam salvas neste navegador. Verifique a conexão e tente de novo, ou fale com o Conselho pelo WhatsApp.";
     statusBox.appendChild(h); statusBox.appendChild(p);
-    if (out.detail) {
-      var d = document.createElement("p");
-      d.className = "status-detail";
-      d.textContent = "Detalhe técnico: " + out.detail;
-      statusBox.appendChild(d);
-    }
     if (!out.naoConfigurado) {
       var b = document.createElement("button");
       b.type = "button";
@@ -956,30 +928,11 @@
     if (out.bloqueado === "limite") {
       h.textContent = "Limite de envios deste navegador atingido";
       p.textContent = "Este navegador já enviou " + PROTECAO.enviosPor24h + " diagnósticos nas últimas 24 horas. O resultado abaixo foi calculado, mas não foi enviado. Para falar com o Conselho agora, use o WhatsApp.";
-    } else if (out.bloqueado === "rapido") {
-      h.textContent = "Seu resultado está pronto. Falta só confirmar o envio";
-      p.textContent = "Para proteger o envio contra robôs, aguardamos um pouco antes de enviar respostas preenchidas muito rápido. Aguarde " + out.espera + " segundos e toque em “Enviar ao Conselho”.";
     } else {
       h.textContent = "Não foi possível enviar o diagnóstico";
       p.textContent = "Fale com o Conselho pelo WhatsApp.";
     }
     statusBox.appendChild(h); statusBox.appendChild(p);
-    if (out.bloqueado !== "rapido") return;
-    var b = document.createElement("button");
-    b.type = "button";
-    b.className = "btn btn-gold btn-sm";
-    b.textContent = "Enviar ao Conselho";
-    b.addEventListener("click", function () {
-      b.disabled = true;
-      b.textContent = "Enviando…";
-      enviar(state.resultado).then(function (res) {
-        state.envio = res.ok ? "ok" : "falhou";
-        salvar();
-        mostrarEnvio(res);
-        statusBox.focus();
-      });
-    });
-    statusBox.appendChild(b);
   }
 
   /* ----- Proteção contra robôs: campo-armadilha, tempo mínimo e limite por navegador ----- */
@@ -1058,6 +1011,28 @@
     } catch (e) { /* the e-mail is the record of reference */ }
   }
 
+  /* ----- Verificação antirrobô (Cloudflare Turnstile). Só liga com turnstileSiteKey no config.js ----- */
+  var TS_KEY = (CONFIG.turnstileSiteKey || "").trim();
+  var tsBox = $("#turnstile-box"), tsWidget = null, tsToken = "", tsCarregando = false;
+  function carregarTurnstile() {
+    if (!TS_KEY || !tsBox || tsWidget !== null || tsCarregando) return;
+    tsCarregando = true;
+    tsBox.hidden = false;
+    window.onGenesisTurnstile = function () {
+      tsWidget = window.turnstile.render("#turnstile-widget", {
+        sitekey: TS_KEY, language: "pt-br", theme: "light", action: "diagnostico",
+        callback: function (t) { tsToken = t; $("#turnstile-err").textContent = ""; tsBox.classList.remove("has-error"); },
+        "expired-callback": function () { tsToken = ""; },
+        "error-callback": function () { tsToken = ""; }
+      });
+    };
+    var sc = document.createElement("script");
+    sc.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onGenesisTurnstile";
+    sc.async = true; sc.defer = true;
+    document.head.appendChild(sc);
+  }
+  function resetTurnstile() { tsToken = ""; if (tsWidget !== null && window.turnstile) window.turnstile.reset(tsWidget); }
+
   /* ----- Conclusão: processamento e laudo ----- */
 
   var enviando = false;
@@ -1067,6 +1042,12 @@
     var falta = primeiraSemResposta();
     if (falta < INDICADORES.length) { state.index = falta; mostrarEtapa("questionario"); return; }
     if (!validateStage("cenario")) return;
+    if (TS_KEY && sendingEnabled && !tsToken) {
+      $("#turnstile-err").textContent = "Confirme que você não é um robô para enviar.";
+      tsBox.classList.add("has-error");
+      tsBox.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
+      return;
+    }
 
     enviando = true;
     submitBtn.disabled = true;
@@ -1088,6 +1069,7 @@
       clearInterval(tick);
       var out = res[0];
       state.envio = out.ok ? "ok" : (out.naoConfigurado ? "nao-configurado" : "falhou");
+      resetTurnstile();
       evento("concluido", true);
       state.resultado = r;
       renderLaudo(r);
@@ -1101,10 +1083,10 @@
 
   function regua(valor, cor) {
     var pos = Math.max(0, Math.min(10, valor)) * 10;
-    return '<div class="regua" role="img" aria-label="' + esc(n2(valor) + " numa escala de 0 a 10") + '">' +
+    return '<div class="regua" role="img" aria-label="' + esc("Temperatura " + temp(valor) + ", " + tempNome(valor)) + '">' +
       '<span class="regua-faixas"><i class="f-verde"></i><i class="f-branco"></i><i class="f-amarelo"></i><i class="f-vermelho"></i></span>' +
       '<span class="regua-marca t-' + cor + '" style="left:' + pos + '%"></span>' +
-      '<span class="regua-escala"><b>0</b><b style="left:30%">3</b><b style="left:55%">5,5</b><b style="left:80%">8</b><b style="left:100%">10</b></span></div>';
+      '<span class="regua-escala"><b style="left:15%">36.2°C</b><b style="left:42.5%">37.2°C</b><b style="left:67.5%">38.5°C</b><b style="left:90%">39.5°C+</b></span></div>';
   }
 
   function termometroSvg(valor, cor) {
@@ -1120,16 +1102,16 @@
   // "O retrato da empresa hoje": one bar per pillar plus the IGVO, over the four temperature bands.
   function graficoPilares(r) {
     var linhas = r.pilares.map(function (p) { return { nome: nomePilar(p.nome), v: p.ponderada, cor: p.cor, status: p.status }; });
-    linhas.push({ nome: "IGVO (média dos pilares)", v: r.igvo.ponderada, cor: r.igvo.cor, status: r.igvo.status, total: true });
-    var descricao = linhas.map(function (l) { return l.nome + ": " + n2(l.v) + ", " + l.status; }).join("; ");
-    return '<figure class="grafico" aria-label="' + esc("Gravidade ponderada de 0 a 10. " + descricao) + '">' +
-      '<figcaption>O retrato da empresa hoje <small>gravidade ponderada de 0 a 10</small></figcaption>' +
+    linhas.push({ nome: "IGVO (média ponderada global)", v: r.igvo.ponderada, cor: r.igvo.cor, status: r.igvo.status, total: true });
+    var descricao = linhas.map(function (l) { return l.nome + ": " + temp(l.v) + ", " + l.status; }).join("; ");
+    return '<figure class="grafico" aria-label="' + esc("Temperatura de cada pilar. " + descricao) + '">' +
+      '<figcaption>O retrato da empresa hoje <small>temperatura de cada pilar</small></figcaption>' +
       linhas.map(function (l, k) {
         return '<div class="g-linha' + (l.total ? " g-total" : "") + '" aria-hidden="true"><span class="g-nome">' + esc(l.nome) + "</span>" +
           '<span class="g-trilho"><span class="g-barra t-' + l.cor + '" style="width:' + Math.max(1.5, l.v * 10) + "%;animation-delay:" + (k * 120) + 'ms"></span></span>' +
-          '<span class="g-val t-' + l.cor + '">' + n2(l.v) + "</span></div>";
+          '<span class="g-val t-' + l.cor + '">' + temp(l.v) + "</span></div>";
       }).join("") +
-      '<div class="g-eixo" aria-hidden="true"><span></span><span class="g-escala"><b>0</b><b style="left:30%">3</b><b style="left:55%">5,5</b><b style="left:80%">8</b><b style="left:100%">10</b></span><span></span></div>' +
+      '<div class="g-eixo" aria-hidden="true"><span></span><span class="g-escala"><b style="left:15%">36.2°C</b><b style="left:42.5%">37.2°C</b><b style="left:67.5%">38.5°C</b><b style="left:90%">39.5°C+</b></span><span></span></div>' +
       "</figure>";
   }
 
@@ -1139,7 +1121,10 @@
     var c = lerCampos();
     var data = state.enviadoEm ? formatSentAt(state.enviadoEm) : "";
     var g = r.igvo;
-    var html = '<header class="laudo-head">' +
+    var html = '<div class="print-cab" aria-hidden="true"><div class="print-marca"><img src="assets/img/logo-simbolo.png" alt="" width="40" height="38">' +
+      '<span><small>Projeto</small><strong>GENESIS</strong></span></div>' +
+      '<div class="print-info">Laudo do diagnóstico inicial<br>' + esc(data || formatSentAt(new Date().toISOString())) + "</div></div>" +
+      '<header class="laudo-head">' +
       '<p class="eyebrow">Laudo do diagnóstico inicial</p>' +
       '<h2 id="laudo-title" tabindex="-1">Termômetro Organizacional · ' + esc(c.empresa) + "</h2>" +
       '<p class="laudo-meta">' + esc(c.nome) + " · " + esc(c.cargo) + (data ? " · " + esc(data) : "") + "</p>" +
@@ -1148,71 +1133,20 @@
 
     html += '<section class="laudo-igvo t-' + g.cor + '" aria-labelledby="igvo-title">' + termometroSvg(g.ponderada, g.cor) +
       '<div class="igvo-body"><p class="igvo-label" id="igvo-title">' + esc(g.nome) + '</p>' +
-      '<p class="igvo-valor"><span>' + n2(g.ponderada) + '</span><small>de 10 · gravidade ponderada</small></p>' +
-      '<p class="igvo-temp">' + esc(g.temperatura) + '</p><p class="pill t-' + g.cor + '">' + esc(g.status) + "</p>" +
+      '<p class="igvo-valor"><span>' + esc(temp(g.ponderada)) + '</span><small>' + esc(tempNome(g.ponderada)) + '</small></p>' +
+      '<p class="pill t-' + g.cor + '">' + esc(g.status) + "</p>" +
       regua(g.ponderada, g.cor) +
-      '<div class="igvo-presc"><strong>' + esc(g.prescricao.titulo) + ":</strong> " + esc(g.prescricao.texto) + "</div>" +
-      '<p class="igvo-resp">' + esc(g.responsaveis) + "</p></div></section>";
-
-    html += '<div class="laudo-metricas">' +
-      '<div><span>' + n2(r.questionario.mediaPonderada) + '</span><p>Média geral do questionário<br><small>soma das gravidades ponderadas ÷ soma dos pesos</small></p></div>' +
-      '<div><span>' + n1(r.questionario.mediaSimples) + '</span><p>Média simples das 20 notas</p></div>' +
-      '<div><span>' + n1(g.mediaSimples) + '</span><p>Média simples dos 4 pilares</p></div></div>';
-
-    html += '<section class="laudo-bloco" aria-labelledby="pilares-laudo"><h3 id="pilares-laudo">Avaliação dos pilares</h3>' + graficoPilares(r) + '<div class="laudo-pilares">';
-    r.pilares.forEach(function (p) {
-      html += '<article class="pilar-card t-' + p.cor + '"><header><h4>' + esc(nomePilar(p.nome)) + '</h4><p class="pilar-who">' + esc(p.especialistas) + "</p></header>" +
-        '<p class="pilar-num"><span>' + n2(p.ponderada) + '</span> gravidade ponderada · média simples ' + n1(p.mediaSimples) + "</p>" +
-        regua(p.ponderada, p.cor) +
-        '<p class="pill t-' + p.cor + '">' + esc(p.status) + '</p><p class="pilar-temp">' + esc(p.temperatura) + "</p>" +
-        '<p class="pilar-presc"><strong>' + esc(p.prescricao.titulo) + ":</strong> " + esc(p.prescricao.texto) + "</p>" +
-        '<details><summary>Ver as ' + p.itens.length + ' respostas deste pilar</summary><table class="pilar-tab"><thead><tr><th>Cód.</th><th>Dimensão</th><th>Nota</th><th>Peso</th><th>Gravidade</th></tr></thead><tbody>' +
-        p.itens.map(function (i) { return "<tr><td>" + esc(i.codigo) + "</td><td>" + esc(i.dimensao) + "</td><td>" + n1(i.nota) + "</td><td>" + n1(i.peso) + "</td><td>" + n2(i.gravidade) + "</td></tr>"; }).join("") +
-        "</tbody></table></details></article>";
-    });
-    html += "</div></section>";
-
-    html += '<div class="laudo-duo"><section class="laudo-bloco" aria-labelledby="problemas-title"><h3 id="problemas-title">Problemas identificados</h3>' +
-      '<p class="bloco-nota">Indicadores com nota de 5,5 a 10 (Febre Ativa ou Febre Alta), ordenados pela gravidade ponderada (nota × peso).</p>';
-    html += r.problemas.length ? '<ul class="achados">' + r.problemas.map(function (i) {
-      return '<li class="t-' + i.cor + '"><span class="achado-nota">' + n1(i.nota) + '</span><div><strong>' + esc(i.codigo + " · " + i.dimensao) + "</strong><small>" + esc(i.faixa.classificacao) + " · " + esc(nomePilar(i.pilar)) + "</small><p>" + esc(i.pergunta) + "</p></div></li>";
-    }).join("") + "</ul>" : '<p class="vazio">Nenhum indicador ficou entre 5,5 e 10.</p>';
-    if (r.atencao.length) html += '<p class="bloco-nota">Em atenção (notas de 3,0 a 5,4): ' + r.atencao.map(function (i) { return esc(i.codigo + " " + i.dimensao + " (" + n1(i.nota) + ")"); }).join(" · ") + ".</p>";
-    html += "</section>";
-    html += '<section class="laudo-bloco" aria-labelledby="positivos-title"><h3 id="positivos-title">Pontos positivos</h3>' +
-      '<p class="bloco-nota">Indicadores com nota de 0 a 2,9, a faixa saudável da tabela de referência.</p>';
-    html += r.positivos.length ? '<ul class="achados">' + r.positivos.map(function (i) {
-      return '<li class="t-verde"><span class="achado-nota">' + n1(i.nota) + '</span><div><strong>' + esc(i.codigo + " · " + i.dimensao) + "</strong><small>" + esc(nomePilar(i.pilar)) + "</small></div></li>";
-    }).join("") + "</ul>" : '<p class="vazio">Nenhum indicador ficou na faixa saudável (notas de 0 a 2,9).</p>';
-    html += "</section></div>";
-
-    var cen = [["O que mais tira o seu sono hoje", c.principal_preocupacao], ["O que você contou", c.comentario_adicional || "Não informado."]];
-    var maiores = r.itens.slice().sort(function (a, b) { return b.nota - a.nota || b.peso - a.peso; }).slice(0, 3);
-    html += '<section class="laudo-bloco laudo-cenario" aria-labelledby="cenario-title"><h3 id="cenario-title">Cenário atual, na sua percepção</h3><dl>' +
-      cen.map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("") +
-      "<div><dt>As dores que você avaliou como mais intensas</dt><dd>" + maiores.map(function (i) { return esc(i.dimensao + " (" + n1(i.nota) + ")"); }).join(" · ") + "</dd></div></dl></section>";
-
-    var recs = r.pilares.slice().sort(function (a, b) { return b.ponderada - a.ponderada; });
-    html += '<section class="laudo-bloco" aria-labelledby="recs-title"><h3 id="recs-title">Recomendações do Conselho</h3><ol class="recs">' +
-      '<li class="t-' + g.cor + '"><strong>' + esc(g.prescricao.titulo) + '</strong><span>' + esc(g.prescricao.texto) + "</span><small>" + esc(g.responsaveis) + "</small></li>" +
-      recs.map(function (p) { return '<li class="t-' + p.cor + '"><strong>' + esc(p.prescricao.titulo) + "</strong><span>" + esc(p.prescricao.texto) + "</span><small>" + esc(nomePilar(p.nome) + " · " + p.especialistas) + "</small></li>"; }).join("") +
-      "</ol></section>";
-
-    html += '<section class="laudo-bloco" aria-labelledby="plano-title"><h3 id="plano-title">Plano de tratamento personalizado</h3>' +
-      '<p class="bloco-nota">As seis dimensões do plano, da mais grave para a menos grave. A modalidade de entrega segue a gravidade apurada.</p><div class="plano">';
-    r.matriz.forEach(function (m, k) {
-      html += '<details class="plano-item t-' + m.cor + '"' + (k < 2 ? " open" : "") + "><summary><span class=\"plano-g\">" + n2(m.gravidade) + '</span><span class="plano-t"><strong>' + esc(m.dimensao) + "</strong><small>" + esc(m.modalidade.titulo) + "</small></span></summary>" +
-        '<div class="plano-body"><p class="plano-mod">' + esc(m.modalidade.texto) + "</p>" +
-        '<div class="plano-cols"><div><h5>O que você sente</h5>' + lista(m.gatilhos) + "</div><div><h5>A causa raiz</h5>" + lista(m.causas) + "</div><div><h5>A transformação</h5>" + lista(m.beneficios) + "</div></div>" +
-        '<p class="plano-who">Conselheiros: ' + esc(m.conselheiros.join(" · ")) + "</p></div></details>";
-    });
-    html += "</div></section>";
+      "</div></section>";
 
     html += '<section class="laudo-bloco" aria-labelledby="ref-title"><h3 id="ref-title">Tabela de referência: as 4 temperaturas</h3><div class="ref">' +
       r.referencia.map(function (f, k) {
         var cor = T.CORES[3 - k];
-        return '<div class="ref-item t-' + cor + (cor === g.cor ? " is-atual" : "") + '"><p class="ref-faixa">' + esc(f.faixa) + "</p><p class=\"ref-temp\">" + esc(f.temperatura) + "</p><p><strong>" + esc(f.classificacao) + "</strong></p><p class=\"ref-conduta\">" + esc(f.conduta) + "</p>" + (cor === g.cor ? '<p class="ref-voce">Sua empresa hoje</p>' : "") + "</div>";
+        return '<div class="ref-item t-' + cor + (cor === g.cor ? " is-atual" : "") + '"><p class="ref-faixa">' + esc(f.temperatura) + "</p><p><strong>" + esc(f.classificacao) + "</strong></p><p class=\"ref-conduta\">" + esc(f.conduta) + "</p>" + (cor === g.cor ? '<p class="ref-voce">Sua empresa hoje</p>' : "") + "</div>";
       }).join("") + "</div></section>";
+
+    html += '<div class="print-proximo"><strong>Próximo passo:</strong> um conselheiro do Projeto Gênesis vai entrar em contato para agendar uma reunião aprofundada e explicar o que essa temperatura significa para a sua empresa.</div>' +
+      '<div class="print-rodape" aria-hidden="true"><span>WhatsApp (34) 99859-3233 · ' + esc(CONFIG.email || "") + " · genesisintegrativa.com.br</span>" +
+      "<span>O Projeto Gênesis oferece suporte em saúde integrativa e não presta serviços médicos.</span></div>";
 
     var wa = channelHref("whatsapp");
     html += '<div class="laudo-acoes">' +
@@ -1229,7 +1163,7 @@
     var base = channelHref("whatsapp").split("?")[0];
     var msg = "Olá! Fiz o diagnóstico inicial no site do Projeto Gênesis." +
       "\nEmpresa: " + c.empresa +
-      "\nTermômetro (IGVO): " + n2(r.igvo.ponderada) + " — " + r.igvo.status +
+      "\nTermômetro: " + r.igvo.temperatura + " — " + r.igvo.status +
       "\nQuero conversar sobre o plano de tratamento.";
     return base + "?text=" + encodeURIComponent(msg);
   }

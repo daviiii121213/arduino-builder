@@ -1,5 +1,29 @@
 # Projeto Gênesis — Apache (HostGator)
 
+Options -Indexes
+ServerSignature Off
+
+# Sempre HTTPS e sempre com www (o endereço oficial do site e do Google).
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://www.genesisintegrativa.com.br%{REQUEST_URI} [L,R=301]
+  RewriteCond %{HTTP_HOST} ^genesisintegrativa\.com\.br$ [NC]
+  RewriteRule ^ https://www.genesisintegrativa.com.br%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Arquivos que nunca devem ser servidos: backups, configurações, controle de versão, planilhas e zips.
+<FilesMatch "(^\.|\.(bak|old|orig|sql|log|ini|env|zip|tar|gz|xlsx|md|sh|lock|dist|exemplo\.php)$|^(composer|package)(-lock)?\.json$|^genesis-smtp\.php$)">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
 # Comprime texto antes de enviar
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/html text/css application/javascript text/javascript application/json image/svg+xml application/xml text/xml
@@ -25,6 +49,14 @@
   </FilesMatch>
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  Header always set X-Frame-Options "DENY"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+  Header always set Cross-Origin-Opener-Policy "same-origin"
+  # O que a página pode carregar. Tudo do próprio site, mais a verificação antirrobô da Cloudflare (Turnstile).
+  # Se ligar GoatCounter ou a planilha do Google no config.js, acrescente os endereços em connect-src e script-src.
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-64K38BkYlBqCl4oPWxaBQIFC5llD1EM1Mpt34UxrDXk=' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src https://challenges.cloudflare.com; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+  Header always unset X-Powered-By
 </IfModule>
 
 AddType font/woff2 .woff2
