@@ -140,10 +140,10 @@ $waCliente = (strlen($dado['whatsapp']) <= 11 ? '55' : '') . $dado['whatsapp'];
 
 $corpoE = eyebrow('Novo diagnóstico inicial · ' . $quando)
     . titulo($dado['empresa'])
-    . '<p style="margin:0 0 20px;color:' . $MUTED . '">' . h($dado['nome']) . ' · ' . h($dado['cargo']) . ' · prefere contato por <strong style="color:' . $INK . '">' . h($dado['preferencia']) . '</strong></p>'
+    . '<p style="margin:0 0 20px;color:' . $MUTED . '">' . h($dado['nome']) . ' · prefere contato por <strong style="color:' . $INK . '">' . h($dado['preferencia']) . '</strong></p>'
     . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-radius:12px;background:' . $NAVY . ';border-collapse:separate"><tr>'
     . '<td style="padding:24px 26px;' . $FONT . '">'
-    . '<div style="font-size:11px;letter-spacing:3px;color:' . $GOLD . ';font-weight:bold">' . h($D['igvo']['nome']) . '</div>'
+    . '<div style="font-size:11px;letter-spacing:3px;color:' . $GOLD . ';font-weight:bold">' . 'TEMPERATURA GERAL DA EMPRESA' . '</div>'
     . '<div style="font-size:44px;line-height:1.1;font-weight:bold;color:#ffffff;margin:8px 0 4px">' . n($igvoV, 2) . ' <span style="font-size:14px;font-weight:normal;color:#B8BCC4">de 10</span></div>'
     . '<div style="font-size:13px;color:#B8BCC4;margin-bottom:12px">Média ponderada global · média simples ' . n($igvoSimples, 1) . ' · ' . h($igvoN['temperatura']) . '</div>'
     . pilula($igvoN['status'], $igvoN['cor'])
@@ -154,9 +154,6 @@ $corpoE = eyebrow('Novo diagnóstico inicial · ' . $quando)
     . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
     . $linhaDado('WhatsApp', '<a href="https://wa.me/' . h($waCliente) . '" style="color:' . $INK . '">' . h($dado['whatsapp']) . '</a>')
     . $linhaDado('E-mail', '<a href="mailto:' . h($dado['email']) . '" style="color:' . $INK . '">' . h($dado['email']) . '</a>')
-    . $linhaDado('Segmento', h($dado['segmento']))
-    . $linhaDado('Colaboradores', h($dado['colaboradores']))
-    . $linhaDado('Cidade', h($dado['cidade']))
     . '</table>'
     . secaoT('CENÁRIO ATUAL · PERCEPÇÃO DO CLIENTE')
     . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
@@ -193,12 +190,11 @@ foreach ($porCodigo as $i) {
 }
 $corpoE .= '</table><p style="margin:18px 0 0;font-size:11px;color:' . $MUTED . ';word-break:break-word">Metodologia: ' . h(str_replace('_', ' ', preg_replace('/\.xlsx$/', '', $D['fonte']))) . '. Responder a este e-mail responde direto ao cliente.</p>';
 
-$e = moldura('Novo diagnóstico: ' . $dado['empresa'] . ' · IGVO ' . n($igvoV, 2) . ' · ' . $temp, $corpoE, 'E-mail interno da equipe do Projeto Gênesis. Contém dados pessoais: não encaminhe fora do Conselho.');
-$eTxt = "Novo diagnóstico inicial — {$dado['empresa']}\n{$dado['nome']} · {$dado['cargo']} · {$quando}\n\n"
-    . "IGVO: " . n($igvoV, 2) . " (simples " . n($igvoSimples, 1) . ") — {$igvoN['temperatura']} · {$igvoN['status']}\n"
+$e = moldura('Novo diagnóstico: ' . $dado['empresa'] . ' · geral ' . n($igvoV, 2) . ' · ' . $temp, $corpoE, 'E-mail interno da equipe do Projeto Gênesis. Contém dados pessoais: não encaminhe fora do Conselho.');
+$eTxt = "Novo diagnóstico inicial — {$dado['empresa']}\n{$dado['nome']} · {$quando}\n\n"
+    . "Temperatura geral: " . n($igvoV, 2) . " (simples " . n($igvoSimples, 1) . ") — {$igvoN['temperatura']} · {$igvoN['status']}\n"
     . "{$igvoPresc['titulo']}: {$igvoPresc['texto']}\n\n"
     . "WhatsApp: {$dado['whatsapp']} · E-mail: {$dado['email']} · Prefere: {$dado['preferencia']}\n"
-    . "Segmento: {$dado['segmento']} · {$dado['colaboradores']} colaboradores · {$dado['cidade']}\n"
     . "O que mais tira o sono: {$dado['preocupacao']}\nComentário: " . ($dado['comentario'] !== '' ? $dado['comentario'] : 'Não informado.') . "\n\nPILARES\n";
 foreach ($pilares as $p) $eTxt .= "• {$p['nome']}: " . n($p['v'], 2) . " — {$p['nivel']['status']} — {$p['presc']['titulo']}\n";
 $eTxt .= "\nPLANO\n";

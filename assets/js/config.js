@@ -25,8 +25,8 @@ window.GENESIS_CONFIG = {
   turnstileSiteKey: "",
 
   // Dados da empresa no rodapé. Troque os "x" pelo CNPJ real (14 dígitos). Razão social é opcional. [A validar]
-  cnpj: "",
-  razaoSocial: "",
+  cnpj: "38.066.297/0001-60",
+  razaoSocial: "5WS Inteligência e Compliance Ltda",
 
   // Prazo de retorno exibido após o envio, ex.: "2 dias úteis". Vazio = a frase sai sem prazo. [A validar]
   responseDeadline: "",

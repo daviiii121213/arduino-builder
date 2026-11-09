@@ -475,11 +475,7 @@
 
   var FIELDS = [
     { name: "nome", stage: "identificacao", label: "Seu nome", check: validarNome },
-    { name: "cargo", stage: "identificacao", label: "Cargo ou função", check: function (v) { return v ? "" : "Selecione o seu cargo ou função."; } },
     { name: "empresa", stage: "identificacao", label: "Nome da empresa", check: validarEmpresa },
-    { name: "segmento", stage: "identificacao", label: "Segmento", check: function (v) { return v ? "" : "Selecione o segmento da empresa."; } },
-    { name: "colaboradores", stage: "identificacao", label: "Número de colaboradores", check: function (v) { return v ? "" : "Selecione o número de colaboradores."; } },
-    { name: "cidade", stage: "identificacao", label: "Cidade", check: function (v) { return v ? "" : "Informe a cidade."; } },
     { name: "whatsapp", stage: "identificacao", label: "WhatsApp", check: validarWhatsapp },
     { name: "email", stage: "identificacao", label: "E-mail", check: validarEmail },
     { name: "principal_preocupacao", stage: "cenario", group: true, label: "O que mais tira o seu sono hoje?", check: function (v) { return v ? "" : "Escolha uma opção."; } },
@@ -545,7 +541,7 @@
   // Tidies the value when the visitor leaves the field: extra spaces, phone mask, e-mail in lower case.
   function arrumarCampo(el) {
     var v = el.value;
-    if (el.name === "nome" || el.name === "empresa" || el.name === "cidade") v = limparEspacos(v);
+    if (el.name === "nome" || el.name === "empresa") v = limparEspacos(v);
     if (el.name === "whatsapp" && !validarWhatsapp(v)) v = formatarWhatsapp(v);
     if (el.name === "email") v = v.trim().toLowerCase();
     if (v !== el.value) el.value = v;
@@ -586,7 +582,7 @@
 
   /* ----- Salvamento automático (neste navegador) ----- */
 
-  var CAMPOS = ["nome", "cargo", "empresa", "segmento", "colaboradores", "cidade", "whatsapp", "email", "comentario_adicional"];
+  var CAMPOS = ["nome", "empresa", "whatsapp", "email", "comentario_adicional"];
   var autosave = $("#autosave");
   var autosaveTimer = null;
 
@@ -828,7 +824,7 @@
   function buildPayload() {
     var c = lerCampos();
     return {
-      contact: { name: c.nome, role: c.cargo, company: c.empresa, segment: c.segmento, employee_range: c.colaboradores, city: c.cidade, whatsapp: c.whatsapp, email: c.email },
+      contact: { name: c.nome, company: c.empresa, whatsapp: c.whatsapp, email: c.email },
       notas: Object.assign({}, state.notas),
       closing: { principal_preocupacao: c.principal_preocupacao, comentario_adicional: c.comentario_adicional || null, preferencia_contato: c.preferencia_contato, consentimento: c.consentimento },
       meta: { source: "site", metodologia: T.dados.fonte, submitted_at: state.enviadoEm || new Date().toISOString(), started_at: state.iniciadoEm || null },
@@ -991,8 +987,7 @@
     if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) return;
     var c = payload.contact, cl = payload.closing;
     var linha = {
-      data: formatSentAt(payload.meta.submitted_at), empresa: c.company, responsavel: c.name, cargo: c.role,
-      segmento: c.segment, colaboradores: c.employee_range, cidade: c.city, whatsapp: c.whatsapp, email: c.email,
+      data: formatSentAt(payload.meta.submitted_at), empresa: c.company, responsavel: c.name, whatsapp: c.whatsapp, email: c.email,
       igvo: n2(r.igvo.ponderada), igvo_media_simples: n1(r.igvo.mediaSimples), temperatura: r.igvo.temperatura, status: r.igvo.status,
       media_geral_ponderada: n2(r.questionario.mediaPonderada), media_geral_simples: n1(r.questionario.mediaSimples)
     };
@@ -1099,10 +1094,10 @@
       "</svg>";
   }
 
-  // "O retrato da empresa hoje": one bar per pillar plus the IGVO, over the four temperature bands.
+  // "O retrato da empresa hoje": one bar per pillar plus the overall temperature, over the four temperature bands.
   function graficoPilares(r) {
     var linhas = r.pilares.map(function (p) { return { nome: nomePilar(p.nome), v: p.ponderada, cor: p.cor, status: p.status }; });
-    linhas.push({ nome: "IGVO (média ponderada global)", v: r.igvo.ponderada, cor: r.igvo.cor, status: r.igvo.status, total: true });
+    linhas.push({ nome: "Temperatura geral", v: r.igvo.ponderada, cor: r.igvo.cor, status: r.igvo.status, total: true });
     var descricao = linhas.map(function (l) { return l.nome + ": " + temp(l.v) + ", " + l.status; }).join("; ");
     return '<figure class="grafico" aria-label="' + esc("Temperatura de cada pilar. " + descricao) + '">' +
       '<figcaption>O retrato da empresa hoje <small>temperatura de cada pilar</small></figcaption>' +
@@ -1117,6 +1112,11 @@
 
   function lista(itens) { return "<ul>" + itens.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>"; }
 
+  var TEXTO_RESULTADO = "Este resultado é gerado automaticamente, com base exclusivamente nas suas respostas e percepções sobre a empresa. Representa uma visão inicial do cenário organizacional, não constituindo um diagnóstico técnico ou uma avaliação realizada por profissionais especializados.";
+  var PROXIMO_PASSO = "um conselheiro do Projeto Gênesis vai entrar em contato para agendar uma reunião aprofundada e explicar o que essa temperatura significa para a sua empresa e como podemos lhe apoiar na solução.";
+  // The reference table keeps the spreadsheet text, minus the "Foco do Conselho: ..." sentence shown to the client.
+  function semFocoDoConselho(texto) { return String(texto).replace(/\s*Foco do Conselho:[\s\S]*$/, "").trim(); }
+
   function renderLaudo(r) {
     var c = lerCampos();
     var data = state.enviadoEm ? formatSentAt(state.enviadoEm) : "";
@@ -1127,12 +1127,12 @@
       '<header class="laudo-head">' +
       '<p class="eyebrow">Laudo do diagnóstico inicial</p>' +
       '<h2 id="laudo-title" tabindex="-1">Termômetro Organizacional · ' + esc(c.empresa) + "</h2>" +
-      '<p class="laudo-meta">' + esc(c.nome) + " · " + esc(c.cargo) + (data ? " · " + esc(data) : "") + "</p>" +
-      '<p class="laudo-aviso">Resultado calculado automaticamente a partir das suas respostas, com a metodologia oficial do Conselho Gênesis. É um diagnóstico inicial: a análise completa acontece no diagnóstico integrado, já dentro do ciclo.</p>' +
+      '<p class="laudo-meta">' + esc(c.nome) + (data ? " · " + esc(data) : "") + "</p>" +
+      '<p class="laudo-aviso">' + esc(TEXTO_RESULTADO) + '</p>' +
       "</header>";
 
     html += '<section class="laudo-igvo t-' + g.cor + '" aria-labelledby="igvo-title">' + termometroSvg(g.ponderada, g.cor) +
-      '<div class="igvo-body"><p class="igvo-label" id="igvo-title">' + esc(g.nome) + '</p>' +
+      '<div class="igvo-body"><p class="igvo-label" id="igvo-title">Temperatura da sua empresa</p>' +
       '<p class="igvo-valor"><span>' + esc(temp(g.ponderada)) + '</span><small>' + esc(tempNome(g.ponderada)) + '</small></p>' +
       '<p class="pill t-' + g.cor + '">' + esc(g.status) + "</p>" +
       regua(g.ponderada, g.cor) +
@@ -1141,10 +1141,10 @@
     html += '<section class="laudo-bloco" aria-labelledby="ref-title"><h3 id="ref-title">Tabela de referência: as 4 temperaturas</h3><div class="ref">' +
       r.referencia.map(function (f, k) {
         var cor = T.CORES[3 - k];
-        return '<div class="ref-item t-' + cor + (cor === g.cor ? " is-atual" : "") + '"><p class="ref-faixa">' + esc(f.temperatura) + "</p><p><strong>" + esc(f.classificacao) + "</strong></p><p class=\"ref-conduta\">" + esc(f.conduta) + "</p>" + (cor === g.cor ? '<p class="ref-voce">Sua empresa hoje</p>' : "") + "</div>";
+        return '<div class="ref-item t-' + cor + (cor === g.cor ? " is-atual" : "") + '"><p class="ref-faixa">' + esc(f.temperatura) + "</p><p><strong>" + esc(f.classificacao) + "</strong></p><p class=\"ref-conduta\">" + esc(semFocoDoConselho(f.conduta)) + "</p>" + (cor === g.cor ? '<p class="ref-voce">Sua empresa hoje</p>' : "") + "</div>";
       }).join("") + "</div></section>";
 
-    html += '<div class="print-proximo"><strong>Próximo passo:</strong> um conselheiro do Projeto Gênesis vai entrar em contato para agendar uma reunião aprofundada e explicar o que essa temperatura significa para a sua empresa.</div>' +
+    html += '<div class="laudo-proximo"><strong>Próximo passo:</strong> ' + esc(PROXIMO_PASSO) + '</div>' +
       '<div class="print-rodape" aria-hidden="true"><span>WhatsApp (34) 99859-3233 · ' + esc(CONFIG.email || "") + " · genesisintegrativa.com.br</span>" +
       "<span>O Projeto Gênesis oferece suporte em saúde integrativa e não presta serviços médicos.</span></div>";
 

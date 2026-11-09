@@ -99,19 +99,12 @@ function linha($v, int $max): string
 $c = is_array($in['contact'] ?? null) ? $in['contact'] : [];
 $cl = is_array($in['closing'] ?? null) ? $in['closing'] : [];
 
-$CARGOS = ['Sócio(a) ou proprietário(a)', 'CEO ou diretor(a)', 'Diretor(a) ou gestor(a) de RH', 'Outro'];
-$SEGMENTOS = ['Comércio', 'Indústria', 'Serviços', 'Agronegócio', 'Saúde', 'Outro'];
-$FAIXAS = ['Até 9', '10 a 49', '50 a 99', '100 a 499', '500 ou mais'];
 $PREOC = ['A névoa no caixa', 'A falta de compromisso da equipe', 'A minha exaustão física e mental', 'Outro'];
 $PREF = ['WhatsApp', 'E-mail', 'Ligação'];
 
 $dado = [
     'nome' => linha($c['name'] ?? '', 120),
-    'cargo' => linha($c['role'] ?? '', 60),
     'empresa' => linha($c['company'] ?? '', 160),
-    'segmento' => linha($c['segment'] ?? '', 40),
-    'colaboradores' => linha($c['employee_range'] ?? '', 20),
-    'cidade' => linha($c['city'] ?? '', 80),
     'whatsapp' => preg_replace('/\D/', '', (string) ($c['whatsapp'] ?? '')),
     'email' => linha($c['email'] ?? '', 160),
     'preocupacao' => linha($cl['principal_preocupacao'] ?? '', 60),
@@ -121,7 +114,6 @@ $dado = [
 $erros = [];
 $dado['nome'] = preg_replace('/\s+/u', ' ', $dado['nome']);
 $dado['empresa'] = preg_replace('/\s+/u', ' ', $dado['empresa']);
-if ($dado['cidade'] === '') $erros[] = 'cidade';
 
 // Mesmos critérios do formulário (app.js: validarNome, validarEmpresa, validarWhatsapp, validarEmail).
 $L = 'A-Za-zÀ-ÖØ-öø-ÿ';
@@ -132,9 +124,6 @@ $LIXO = ['teste', 'test', 'testes', 'asdf', 'qwerty', 'abc', 'xxx', 'xxxx', 'emp
 $alnum = preg_replace("/[^0-9$L]/u", '', $dado['empresa']);
 if (mb_strlen($alnum) < 2 || !preg_match("/[$L]/u", $dado['empresa']) || in_array(mb_strtolower($dado['empresa']), $LIXO, true)
     || preg_match('/(.)\1{3,}/iu', str_replace(' ', '', $dado['empresa']))) $erros[] = 'empresa';
-if (!in_array($dado['cargo'], $CARGOS, true)) $erros[] = 'cargo';
-if (!in_array($dado['segmento'], $SEGMENTOS, true)) $erros[] = 'segmento';
-if (!in_array($dado['colaboradores'], $FAIXAS, true)) $erros[] = 'colaboradores';
 if (!in_array($dado['preocupacao'], $PREOC, true)) $erros[] = 'principal_preocupacao';
 if (!in_array($dado['preferencia'], $PREF, true)) $erros[] = 'preferencia_contato';
 $w = $dado['whatsapp'];
@@ -173,7 +162,7 @@ $com = $dado['comentario'];
 $links = preg_match_all('~(https?://|www\.|\b[a-z0-9-]+\.(com|net|org|ru|xyz|top|info|biz|io|cn)\b)~iu', $com);
 if ($links > 1 || preg_match('~<\s*a\s|\[url|\[link|href\s*=~iu', $com)
     || preg_match('~\b(viagra|cialis|casino|crypto|bitcoin|forex|loan|seo services|backlinks?)\b~iu', $com)
-    || preg_match('~https?://|www\.~iu', $dado['nome'] . ' ' . $dado['empresa'] . ' ' . $dado['cidade'])) {
+    || preg_match('~https?://|www\.~iu', $dado['nome'] . ' ' . $dado['empresa'])) {
     error_log('[genesis] bloqueado por filtro de spam');
     responder(422, ['ok' => false, 'erro' => 'O texto parece spam. Retire os links e tente de novo.', 'campos' => ['comentario_adicional']]);
 }
@@ -326,7 +315,7 @@ try {
     $m->send();
 } catch (\Throwable $ex) {
     if ($fh) { flock($fh, LOCK_UN); fclose($fh); }
-    $msg = $ex->getMessage() . (isset($m) && $m->ErrorInfo ? ' | ' . $m->ErrorInfo : '');
+    $msg = $ex->getMessage() . (isset($m) && $m instanceof PHPMailer && $m->ErrorInfo ? ' | ' . $m->ErrorInfo : '');
     error_log('[genesis] falha no envio para a equipe: ' . $msg);
     // Código curto para diagnóstico, sem expor senha nem detalhes do servidor.
     $codigo = stripos($msg, 'authenticate') !== false ? 'smtp_autenticacao'
