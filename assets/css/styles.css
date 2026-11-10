@@ -327,7 +327,9 @@ html:not(.no-intro):not(.intro-done) #inicio .hero-inner { animation: zoom-settl
 .council-grid { display: grid; border-top: 1px solid var(--line); }
 .council-card { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-areas: "title members" "desc members"; grid-template-rows: auto 1fr; column-gap: clamp(32px, 6vw, 96px); padding: clamp(32px, 4vw, 48px) 0; border-bottom: 1px solid var(--line); }
 .council-card h3 { grid-area: title; font-size: clamp(1.2rem, 2vw, 1.5rem); line-height: 1.25; margin-bottom: .7em; }
-.council-card > p { grid-area: desc; color: var(--muted); margin: 0; max-width: 46ch; }
+.council-card .council-desc { grid-area: desc; }
+.council-card .council-desc p { color: var(--muted); margin: 0; max-width: 46ch; }
+.council-card .council-desc p + p { margin-top: .6em; }
 .members { grid-area: members; list-style: none; display: flex; flex-wrap: wrap; align-content: start; gap: 28px 36px; }
 .members li { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 150px; text-align: center; font-weight: 600; font-family: var(--font-head); font-size: .9rem; line-height: 1.3; color: var(--navy); }
 .members li:hover .avatar { transform: scale(1.06); }

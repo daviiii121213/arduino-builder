@@ -731,7 +731,7 @@
     qError.textContent = "";
     $("#q-card").classList.remove("has-error");
     $("#q-prev").innerHTML = '<svg class="icon flip" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-next"/></svg>' + (i === 0 ? "Identificação" : "Anterior");
-    $("#q-next").innerHTML = (i === INDICADORES.length - 1 ? "Concluir questionário" : "Próxima") + '<svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-next"/></svg>';
+    $("#q-next").innerHTML = (i === INDICADORES.length - 1 ? "Concluir questionário" : "Avançar") + '<svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-next"/></svg>';
     $$(".q-dot", qMap).forEach(function (d, k) {
       var code = INDICADORES[k].codigo;
       d.classList.toggle("is-answered", typeof state.notas[code] === "number");
@@ -787,15 +787,6 @@
     salvar();
     atualizarProgresso();
     $$(".q-dot", qMap)[state.index].classList.add("is-answered");
-    // Move on by itself once a score is picked (not on the last question, which needs a deliberate "Concluir").
-    clearTimeout(autoAvanco);
-    if (state.index < INDICADORES.length - 1 && e.isTrusted !== false) {
-      var esta = state.index;
-      autoAvanco = setTimeout(function () { if (state.index === esta && state.stage === "questionario") avancar(); }, reduceMotion ? 150 : 550);
-    }
-  });
-  qScale.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") { e.preventDefault(); clearTimeout(autoAvanco); avancar(); }
   });
   $("#q-next").addEventListener("click", function () { clearTimeout(autoAvanco); avancar(); });
   $("#q-prev").addEventListener("click", function () {

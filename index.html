@@ -27,8 +27,8 @@
   <link rel="preload" as="font" type="font/woff2" href="assets/fonts/montserrat-latin.woff2" crossorigin>
   <link rel="preload" as="font" type="font/woff2" href="assets/fonts/inter-latin.woff2" crossorigin>
   <link rel="preload" as="image" href="assets/img/hero-logo.webp" fetchpriority="high">
-  <link rel="stylesheet" href="assets/css/fonts.css?v=36">
-  <link rel="stylesheet" href="assets/css/styles.css?v=36">
+  <link rel="stylesheet" href="assets/css/fonts.css?v=37">
+  <link rel="stylesheet" href="assets/css/styles.css?v=37">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -215,7 +215,7 @@
         <div class="container">
           <div class="section-head">
             <h2 id="oque-title" class="section-title">Uma mesa de especialistas que olha a sua empresa por inteiro</h2>
-            <p class="section-intro">O Projeto Gênesis funciona como um Conselho Integrativo: especialistas em gestão, pessoas e saúde que diagnosticam a empresa por inteiro. Desse diagnóstico sai um Plano de Tratamento, executado em fases. Você contrata um ciclo de 6 ou 12 meses com o Conselho, que pode ser renovado.</p>
+            <p class="section-intro">O Projeto Gênesis funciona como um Conselho Integrativo: especialistas em gestão, pessoas e saúde que diagnosticam a empresa por inteiro. Desse diagnóstico sai um Plano de Tratamento, executado em fases.</p>
           </div>
           <div class="duo">
             <article class="card duo-card">
@@ -284,13 +284,17 @@
             <article class="council-card">
               <h3>Estratégia, Governança e Financeiro</h3>
               <ul class="members"><li><img class="avatar" src="assets/img/conselho/ana-lucia-silva.jpg" alt="" width="96" height="96" loading="lazy" decoding="async">Ana Lúcia Silva</li></ul>
-              <p>Planejamento estratégico, governança, sucessão e mapeamento de processos.</p>
-              <p>Reestruturação financeira (DRE, custos, precificação).</p>
+              <div class="council-desc">
+                <p>Planejamento estratégico, governança, sucessão e mapeamento de processos.</p>
+                <p>Reestruturação financeira (DRE, custos, precificação).</p>
+              </div>
             </article>
             <article class="council-card">
               <h3>Auditoria e Compliance</h3>
               <ul class="members"><li><img class="avatar" src="assets/img/conselho/ilda-martins.jpg" alt="" width="96" height="96" loading="lazy" decoding="async">Ilda Martins</li></ul>
-              <p>Auditoria trabalhista e financeira, departamento pessoal, compliance e controladoria.</p>
+              <div class="council-desc">
+                <p>Auditoria trabalhista e financeira, departamento pessoal, compliance e controladoria.</p>
+              </div>
             </article>
             <article class="council-card">
               <h3>Gestão de Pessoas, Liderança e Desenvolvimento da Equipe</h3>
@@ -299,8 +303,10 @@
                 <li><img class="avatar" src="assets/img/conselho/isabela-ortega.jpg" alt="" width="96" height="96" loading="lazy" decoding="async">Isabela Ortega</li>
                 <li><img class="avatar" src="assets/img/conselho/vitor-rodrigues.jpg" alt="" width="96" height="96" loading="lazy" decoding="async">Vitor Rodrigues</li>
               </ul>
-              <p>Desenvolvimento de liderança, RH estratégico, clima e cultura, inteligência emocional, Comunicação Não Violenta e diagnóstico das condições de trabalho com programa de prevenção psicossocial (NR-1).</p>
-              <p>Estrutura Conjugal.</p>
+              <div class="council-desc">
+                <p>Desenvolvimento de liderança, RH estratégico, clima e cultura, inteligência emocional, Comunicação Não Violenta e diagnóstico das condições de trabalho com programa de prevenção psicossocial (NR-1).</p>
+                <p>Estrutura Conjugal.</p>
+              </div>
             </article>
             <article class="council-card">
               <h3>Saúde Integrativa</h3>
@@ -308,7 +314,9 @@
                 <li><img class="avatar" src="assets/img/conselho/lara-guerra.jpg" alt="" width="96" height="96" loading="lazy" decoding="async">Dra. Lara Guerra</li>
                 <li><img class="avatar" src="assets/img/conselho/roberto-rocha.jpg" alt="" width="96" height="96" loading="lazy" decoding="async">Dr. Roberto Rocha</li>
               </ul>
-              <p>Suporte em saúde integrativa: Corpo, mente e alma. Avaliações individuais ou coletivas, regulação do estresse e programas de saúde para a equipe.</p>
+              <div class="council-desc">
+                <p>Suporte em saúde integrativa: Corpo, mente e alma. Avaliações individuais ou coletivas, regulação do estresse e programas de saúde para a equipe.</p>
+              </div>
             </article>
           </div>
           <p class="disclaimer">O Projeto Gênesis oferece suporte em saúde integrativa e não presta serviços médicos.</p>
@@ -495,7 +503,7 @@
               </fieldset>
               <div class="stage-nav">
                 <button type="button" class="btn btn-ghost btn-lg" id="q-prev"><svg class="icon flip" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-next"/></svg>Anterior</button>
-                <button type="button" class="btn btn-gold btn-lg" id="q-next">Próxima<svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-next"/></svg></button>
+                <button type="button" class="btn btn-gold btn-lg" id="q-next">Avançar<svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-next"/></svg></button>
               </div>
               <nav class="q-map" id="q-map" aria-label="Ir para uma pergunta"></nav>
             </section>
@@ -609,7 +617,7 @@
     </div>
     <div class="container footer-legal">
       <p class="legal-aviso">O Projeto Gênesis oferece suporte em saúde integrativa e não presta serviços médicos.</p>
-      <p class="legal-links">© 2026 Projeto Gênesis · <a href="#politica" data-open-privacy>Política de Privacidade</a> · <a href="#cookies" data-open-cookies>Política de Cookies</a> · <span data-company-id>5WS Inteligência e Compliance Ltda · CNPJ 38.066.297/0001-60</span></p>
+      <p class="legal-links">© 2026 Projeto Gênesis · <a href="#politica" data-open-privacy>Política de Privacidade</a> · <a href="#cookies" data-open-cookies>Política de Cookies</a></p>
     </div>
   </footer>
 
@@ -699,9 +707,9 @@
     <symbol id="i-root" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v10"/><path d="M12 13c0 3-3 4-5 7"/><path d="M12 13c0 3 3 4 5 7"/><path d="M12 15v6"/><path d="M8 7c2 0 4 1 4 3"/></g></symbol>
   </svg>
 
-  <script src="assets/js/config.js?v=36"></script>
-  <script src="assets/js/termometro-dados.js?v=36"></script>
-  <script src="assets/js/termometro.js?v=36"></script>
-  <script src="assets/js/app.js?v=36"></script>
+  <script src="assets/js/config.js?v=37"></script>
+  <script src="assets/js/termometro-dados.js?v=37"></script>
+  <script src="assets/js/termometro.js?v=37"></script>
+  <script src="assets/js/app.js?v=37"></script>
 </body>
 </html>

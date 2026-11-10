@@ -24,7 +24,7 @@ window.GENESIS_CONFIG = {
   // Cole aqui a "Site Key" (pública). A "Secret Key" vai só no servidor, em genesis-smtp.php. Vazio = desligado.
   turnstileSiteKey: "",
 
-  // Dados da empresa no rodapé. Troque os "x" pelo CNPJ real (14 dígitos). Razão social é opcional. [A validar]
+  // Dados da empresa (controladora dos dados). Não aparecem no rodapé; o site só os mostra onde houver um elemento data-company-id.
   cnpj: "38.066.297/0001-60",
   razaoSocial: "5WS Inteligência e Compliance Ltda",
 
