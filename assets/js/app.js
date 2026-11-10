@@ -367,10 +367,6 @@
 
   var sendingEnabled = !!CONFIG.submitEndpoint;
 
-  $("#privacy-transmission").textContent = sendingEnabled
-    ? "Ao enviar, as respostas são transmitidas por conexão segura ao servidor do Projeto Gênesis, que as encaminha por e-mail à equipe."
-    : "No momento, o envio não está ativo: as respostas não são transmitidas a ninguém.";
-
   function openPrivacy() {
     lastFocus = document.activeElement;
     if (typeof dialog.showModal === "function") { if (!dialog.open) dialog.showModal(); }

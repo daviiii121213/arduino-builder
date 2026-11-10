@@ -994,3 +994,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--g
 .lancamento-relogio small { margin-top: 6px; font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--silver); }
 .lancamento-nota { margin: 12px 0 0; font-size: .9rem; color: var(--silver); }
 @media (max-width: 400px) { .lancamento-relogio { gap: 6px; } .lancamento-relogio div { padding: 12px 2px 8px; } }
+
+/* Tabela de finalidades da Política de Privacidade: no celular, cada célula leva o nome da coluna */
+@media (max-width: 560px) { .pol-tabela span[data-rot]::before { content: attr(data-rot) ": "; font-weight: 600; color: var(--navy); } .pol-tabela > div { padding: 12px; } }
