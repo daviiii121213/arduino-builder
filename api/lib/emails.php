@@ -133,7 +133,7 @@ $corpoV = eyebrow('Termômetro Organizacional')
     . secaoT('PRÓXIMO PASSO')
     . '<p style="margin:0 0 6px">Um conselheiro do Projeto Gênesis vai entrar em contato' . $prazo . ' para agendar uma <strong>reunião aprofundada</strong> e explicar o que essa temperatura significa para a sua empresa.</p>'
     . botao('https://wa.me/' . $WA . '?text=' . rawurlencode($waMsg), 'Conversar sobre o resultado no WhatsApp')
-    . '<p style="margin:18px 0 0;font-size:13px;color:' . $MUTED . '">Este é um diagnóstico inicial, para abrir a conversa. A análise completa do Conselho acontece no diagnóstico integrado, já dentro do ciclo.</p>';
+    . '<p style="margin:18px 0 0;font-size:13px;color:' . $MUTED . '">Este é um diagnóstico inicial, para abrir a conversa. A análise completa do Conselho acontece no diagnóstico integrado.</p>';
 $v = moldura('A temperatura da sua empresa: ' . $temp . ' · ' . $tempNome, $corpoV,
     'Você recebeu este e-mail porque respondeu ao diagnóstico inicial em genesisintegrativa.com.br.');
 $vTxt = "Olá, {$primeiro}. Obrigado por responder ao Termômetro Organizacional do Projeto Gênesis.\n\n"
