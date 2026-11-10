@@ -14,7 +14,7 @@ $IG = $cfg['instagram'] ?? 'https://www.instagram.com/genesisintegrativa.com.br/
 
 $NAVY = '#0A0F1A'; $NAVY2 = '#121A2B'; $GOLD = '#C9A24A'; $GOLD_D = '#8A6A22'; $INK = '#1B2233'; $MUTED = '#5B6475'; $LINE = '#E6E8EE'; $BG = '#EEF0F4';
 $FONT = "font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;";
-$SERIF = "font-family:Georgia,'Times New Roman',serif;";
+$FONT_HEAD = "font-family:Montserrat,'Helvetica Neue',Helvetica,Arial,sans-serif;"; // títulos: mesma família do site (Montserrat), com alternativas seguras para e-mail
 $SOFT = ['verde' => '#E8F4EE', 'branco' => '#F1F2F5', 'amarelo' => '#FBF3DC', 'vermelho' => '#FBE9E7'];
 
 function moldura(string $preheader, string $corpo, string $rodapeExtra = ''): string
@@ -61,8 +61,8 @@ function eyebrow(string $t): string
 
 function titulo(string $t): string
 {
-    global $INK, $SERIF;
-    return '<h1 class="gx-h1" style="margin:0 0 14px;' . $SERIF . 'font-size:26px;line-height:1.25;color:' . $INK . ';font-weight:normal">' . h($t) . '</h1>';
+    global $INK, $NAVY, $FONT_HEAD;
+    return '<h1 class="gx-h1" style="margin:0 0 14px;' . $FONT_HEAD . 'font-size:24px;line-height:1.3;color:' . $NAVY . ';font-weight:bold;letter-spacing:-.2px">' . h($t) . '</h1>';
 }
 
 function secaoT(string $t): string
@@ -103,6 +103,12 @@ function botao(string $href, string $rotulo): string
 $primeiro = explode(' ', $dado['nome'])[0];
 $temp = $tempCurta($igvoN);
 $tempNome = preg_match('/\(([^)]+)\)/', $igvoN['temperatura'], $mm) ? $mm[1] : '';
+// Descrição da faixa atual, igual à tabela de referência da tela de resultado (sem o "Foco do Conselho").
+$refAtual = null;
+foreach ($D['referencia'] as $rf) {
+    if (strtolower($rf['cor']) === $igvoN['cor']) { $refAtual = $rf; break; }
+}
+$refTexto = $refAtual ? trim(preg_replace('/\s*Foco do Conselho:.*$/s', '', $refAtual['conduta'])) : '';
 $prazo = $cfg['response_deadline'] ? ' em até ' . h($cfg['response_deadline']) : '';
 
 /* ===================== VISITANTE ===================== */
@@ -118,6 +124,12 @@ $corpoV = eyebrow('Termômetro Organizacional')
     . pilula($igvoN['status'], $igvoN['cor'])
     . '</td></tr></table>'
     . faixaTemperaturas($igvoN['cor'])
+    . ($refAtual ? secaoT('O QUE ESSA TEMPERATURA SIGNIFICA')
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate"><tr>'
+        . '<td style="padding:16px 18px;border-radius:8px;background:' . $SOFT[$igvoN['cor']] . ';border-left:4px solid ' . $HEX[$igvoN['cor']] . ';' . $FONT . '">'
+        . '<div style="font-size:12px;letter-spacing:.5px;font-weight:bold;color:' . $TXT[$igvoN['cor']] . ';margin-bottom:6px">' . h($refAtual['classificacao']) . ' · ' . h($refAtual['temperatura']) . '</div>'
+        . '<div style="font-size:15px;line-height:1.55;color:' . $INK . '">' . h($refTexto) . '</div>'
+        . '</td></tr></table>' : '')
     . secaoT('PRÓXIMO PASSO')
     . '<p style="margin:0 0 6px">Um conselheiro do Projeto Gênesis vai entrar em contato' . $prazo . ' para agendar uma <strong>reunião aprofundada</strong> e explicar o que essa temperatura significa para a sua empresa.</p>'
     . botao('https://wa.me/' . $WA . '?text=' . rawurlencode($waMsg), 'Conversar sobre o resultado no WhatsApp')
@@ -126,6 +138,7 @@ $v = moldura('A temperatura da sua empresa: ' . $temp . ' · ' . $tempNome, $cor
     'Você recebeu este e-mail porque respondeu ao diagnóstico inicial em genesisintegrativa.com.br.');
 $vTxt = "Olá, {$primeiro}. Obrigado por responder ao Termômetro Organizacional do Projeto Gênesis.\n\n"
     . "Temperatura da {$dado['empresa']}: {$igvoN['temperatura']} · {$igvoN['status']}\n\n"
+    . ($refAtual ? "O que essa temperatura significa — {$refAtual['classificacao']}: {$refTexto}\n\n" : '')
     . "Um conselheiro vai entrar em contato" . ($cfg['response_deadline'] ? ' em até ' . $cfg['response_deadline'] : '') . " para agendar uma reunião aprofundada.\n"
     . "WhatsApp: https://wa.me/{$WA}\n\nProjeto Gênesis · {$cfg['from_email']} · {$SITE}\n"
     . "O Projeto Gênesis oferece suporte em saúde integrativa e não presta serviços médicos.";
