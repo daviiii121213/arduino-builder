@@ -98,6 +98,76 @@
     closeMenu();
   }
 
+  /* ---------------- Abertura agendada do diagnóstico (contador regressivo) ---------------- */
+
+  (function () {
+    var alvo = CONFIG.lancamento ? Date.parse(CONFIG.lancamento) : NaN;
+    if (isNaN(alvo)) return;
+    var root = document.documentElement;
+    var desvio = 0; // server clock minus device clock, when the site can tell
+    var agora = function () { return Date.now() + desvio; };
+
+    var box = $("#lancamento");
+    var campos = { d: $("#cd-dias"), h: $("#cd-horas"), m: $("#cd-min"), s: $("#cd-seg") };
+    var falta = $("#lancamento-falta");
+    try {
+      var p = {};
+      new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+        .formatToParts(new Date(alvo)).forEach(function (x) { p[x.type] = x.value; });
+      $("#lancamento-data").textContent = p.day + "/" + p.month + "/" + p.year + ", às " + p.hour + "h" + (p.minute !== "00" ? p.minute : "");
+    } catch (e) {}
+
+    var dois = function (n) { return (n < 10 ? "0" : "") + n; };
+    var ultimoMinuto = -1, timer = null, travado = false;
+
+    function travar() {
+      if (travado) return;
+      travado = true;
+      root.classList.add("pre-lancamento");
+      box.hidden = false;
+      timer = setInterval(tique, 1000);
+    }
+
+    function liberar() {
+      var estava = travado;
+      clearInterval(timer);
+      travado = false;
+      root.classList.remove("pre-lancamento");
+      box.hidden = true;
+      if (estava && currentView === "diagnostic") { var btn = $("#form-start"); if (btn) btn.focus({ preventScroll: true }); }
+    }
+
+    function tique() {
+      var resto = Math.floor((alvo - agora()) / 1000);
+      if (resto <= 0) { liberar(); return; }
+      travar();
+      var d = Math.floor(resto / 86400), h = Math.floor(resto % 86400 / 3600), m = Math.floor(resto % 3600 / 60), s = resto % 60;
+      campos.d.textContent = dois(d); campos.h.textContent = dois(h); campos.m.textContent = dois(m); campos.s.textContent = dois(s);
+      // Screen readers: announce at most once a minute.
+      var minutos = Math.floor(resto / 60);
+      if (minutos !== ultimoMinuto) {
+        ultimoMinuto = minutos;
+        falta.textContent = minutos < 1 ? "Falta menos de 1 minuto."
+          : "Faltam " + (d ? d + (d === 1 ? " dia, " : " dias, ") : "") + h + (h === 1 ? " hora e " : " horas e ") + m + (m === 1 ? " minuto." : " minutos.");
+      }
+    }
+
+    tique();
+    // Some phones pause timers in the background: recheck as soon as the page is visible again.
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) tique(); });
+
+    // The visitor's clock may be wrong either way: the server clock (Date header) wins when the site answers.
+    if (window.fetch && /^https?:$/.test(location.protocol)) {
+      var antes = Date.now();
+      fetch(location.pathname + "?relogio=" + antes, { method: "HEAD", cache: "no-store" }).then(function (r) {
+        var srv = Date.parse(r.headers.get("Date") || "");
+        if (isNaN(srv)) return;
+        var dif = srv - (antes + (Date.now() - antes) / 2);
+        if (Math.abs(dif) > 2000) { desvio = dif; tique(); }
+      }).catch(function () {});
+    }
+  })();
+
   $("#form-title").setAttribute("tabindex", "-1");
   window.addEventListener("hashchange", function () { handleRoute(false); });
 
@@ -883,7 +953,7 @@
     h.textContent = out.naoConfigurado ? "Envio ainda não configurado" : "Seu resultado está pronto, mas não conseguimos enviá-lo ao Conselho";
     p.textContent = out.naoConfigurado
       ? "O resultado abaixo foi calculado, mas o envio ao Projeto Gênesis ainda não foi configurado neste site. Nada foi transmitido."
-      : out.status === 429 && out.mensagem
+      : (out.status === 429 || (out.status === 403 && /abre em/.test(out.mensagem))) && out.mensagem
         ? out.mensagem
         : out.status === 503
           ? "O envio está temporariamente indisponível. Suas respostas continuam salvas neste navegador: tente de novo mais tarde ou fale com o Conselho pelo WhatsApp."

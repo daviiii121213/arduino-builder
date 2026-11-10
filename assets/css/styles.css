@@ -982,3 +982,15 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--g
 /* Rótulos das etapas legíveis no celular */
 .stage-steps .p-text, .progress .p-text { font-size: max(.72rem, 12px); }
 @media (max-width: 360px) { .q-scale { gap: 6px; } }
+
+/* ----- Abertura agendada: contador regressivo no topo do diagnóstico ----- */
+.pre-lancamento #form-start, .pre-lancamento .form-section, .pre-lancamento .resume-box { display: none !important; }
+.lancamento { margin-top: 1.75rem; }
+.lancamento-titulo { color: #e7e9ee; margin: 0 0 14px; font-size: 1.02rem; }
+.lancamento-titulo strong { color: var(--gold); font-weight: 600; }
+.lancamento-relogio { display: grid; grid-template-columns: repeat(4, minmax(0, 92px)); gap: 10px; }
+.lancamento-relogio div { display: flex; flex-direction: column; align-items: center; padding: 14px 6px 10px; border: 1px solid rgba(201, 162, 74, .45); border-radius: var(--radius-sm); background: rgba(201, 162, 74, .08); }
+.lancamento-relogio span { font-family: var(--font-head); font-weight: 700; font-size: clamp(1.7rem, 4.2vw, 2.3rem); line-height: 1; color: var(--white); font-variant-numeric: tabular-nums; }
+.lancamento-relogio small { margin-top: 6px; font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--silver); }
+.lancamento-nota { margin: 12px 0 0; font-size: .9rem; color: var(--silver); }
+@media (max-width: 400px) { .lancamento-relogio { gap: 6px; } .lancamento-relogio div { padding: 12px 2px 8px; } }

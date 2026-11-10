@@ -56,7 +56,14 @@ $cfg += [
     'max_per_email_24h' => 2,
     'turnstile_secret' => '', // Cloudflare Turnstile: vazio = desligado
     'response_deadline' => '',
+    'launch_at' => '2026-11-11T19:00:00-03:00', // abertura ao público; antes disso o envio é recusado. '' = sempre aberto
 ];
+
+/* ---------- Abertura agendada ---------- */
+
+if ($cfg['launch_at'] !== '' && ($abre = strtotime($cfg['launch_at'])) !== false && time() < $abre) {
+    responder(403, ['ok' => false, 'erro' => 'O diagnóstico abre em ' . gmdate('d/m/Y', $abre - 3 * 3600) . ', às ' . gmdate('H\\hi', $abre - 3 * 3600) . ' (horário de Brasília).', 'codigo' => 'antes_da_abertura']);
+}
 
 /* ---------- Origem ---------- */
 

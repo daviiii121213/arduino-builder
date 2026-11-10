@@ -28,6 +28,10 @@ window.GENESIS_CONFIG = {
   cnpj: "38.066.297/0001-60",
   razaoSocial: "5WS Inteligência e Compliance Ltda",
 
+  // Abertura do diagnóstico ao público. Antes disso, #formulario mostra um contador regressivo e libera sozinho no horário.
+  // Formato: data e hora com o fuso de Brasília (-03:00). Vazio = diagnóstico sempre aberto.
+  lancamento: "2026-11-11T19:00:00-03:00",
+
   // Prazo de retorno exibido após o envio, ex.: "2 dias úteis". Vazio = a frase sai sem prazo. [A validar]
   responseDeadline: "",
 
