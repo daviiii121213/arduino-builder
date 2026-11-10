@@ -970,3 +970,15 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--g
   .cookie-bar .btn { min-height: 40px; }
 }
 
+
+/* ----- Ajustes de responsividade (auditoria v38) ----- */
+/* Botões do resultado quebram em linhas em vez de cortar o texto em tablets e celular deitado */
+.laudo-acoes { flex-wrap: wrap; }
+.laudo-acoes .btn { flex: 1 1 240px; min-width: 0; }
+/* Fechar das janelas não encolhe em telas estreitas */
+.dialog-close { flex-shrink: 0; }
+/* Telas de toque: alvos maiores na navegação entre perguntas */
+@media (pointer: coarse) { .q-dot { height: 40px; min-width: 42px; } }
+/* Rótulos das etapas legíveis no celular */
+.stage-steps .p-text, .progress .p-text { font-size: max(.72rem, 12px); }
+@media (max-width: 360px) { .q-scale { gap: 6px; } }
