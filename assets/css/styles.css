@@ -997,3 +997,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--g
 
 /* Tabela de finalidades da Política de Privacidade: no celular, cada célula leva o nome da coluna */
 @media (max-width: 560px) { .pol-tabela span[data-rot]::before { content: attr(data-rot) ": "; font-weight: 600; color: var(--navy); } .pol-tabela > div { padding: 12px; } }
+
+.powered { white-space: nowrap; }
+.powered sup { font-size: .65em; line-height: 0; }
