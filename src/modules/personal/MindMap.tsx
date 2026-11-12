@@ -64,13 +64,15 @@ export function MindMapEditor({ record }: DetailProps) {
     setSel(id);
     setEditing(id);
   };
+  const deleteNode = (id: string) => {
+    if (nodes.length <= 1) { toast("O mapa precisa de pelo menos um nó.", "error"); return; }
+    setNodes((ns) => ns.filter((n) => n.id !== id));
+    setEdges((es) => es.filter((e) => e.from !== id && e.to !== id));
+    setSel(null);
+  };
   const removeSel = () => {
     if (selEdge !== null) { setEdges((es) => es.filter((_, i) => i !== selEdge)); setSelEdge(null); return; }
-    if (!selected) return;
-    if (nodes.length <= 1) { toast("O mapa precisa de pelo menos um nó.", "error"); return; }
-    setNodes((ns) => ns.filter((n) => n.id !== selected.id));
-    setEdges((es) => es.filter((e) => e.from !== selected.id && e.to !== selected.id));
-    setSel(null);
+    if (selected) deleteNode(selected.id);
   };
   const clickNode = (id: string) => {
     if (connectFrom && connectFrom !== id) {
@@ -105,7 +107,7 @@ export function MindMapEditor({ record }: DetailProps) {
     const moves: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
     if (moves[e.key]) { e.preventDefault(); update(n.id, { x: n.x + moves[e.key][0], y: n.y + moves[e.key][1] }); }
     else if (e.key === "Enter" || e.key === "F2") { e.preventDefault(); setEditing(n.id); }
-    else if (e.key === "Delete") { e.preventDefault(); setSel(n.id); setSelEdge(null); setTimeout(removeSel, 0); }
+    else if (e.key === "Delete") { e.preventDefault(); deleteNode(n.id); }
     else if (e.key === "Insert" || (e.key === "Tab" && e.altKey)) { e.preventDefault(); addChild(); }
   };
 
