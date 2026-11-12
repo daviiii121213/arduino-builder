@@ -131,7 +131,7 @@ export function WidgetBody({ type, data, ws, reload }: { type: string; data: Rec
       const cells: Array<number | null> = [...Array(first.getDay()).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)];
       return (
         <div className="col" style={{ gap: 6 }}>
-          <span className="small" style={{ fontWeight: 600, textTransform: "capitalize" }}>{fmtMonth(data!.month)}</span>
+          <span className="small" style={{ fontWeight: 600 }}>{fmtMonth(data!.month).replace(/^./, (c) => c.toUpperCase())}</span>
           <div className="mini-cal" role="grid" aria-label="Calendário do mês">
             {weekdayShort.map((w) => <span key={w} className="h">{w[0]}</span>)}
             {cells.map((d, i) => {

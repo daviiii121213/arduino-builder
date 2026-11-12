@@ -263,7 +263,7 @@ export function TreeView({ mod, ws }: ModuleViewProps) {
       for (const p of inGen) {
         if (used.has(p.id)) continue;
         used.add(p.id);
-        const sp = p.data?.spouse && inGen.find((x) => x.id === p.data.spouse && !used.has(x.id));
+        const sp = inGen.find((x) => !used.has(x.id) && (x.id === p.data?.spouse || x.data?.spouse === p.id));
         if (sp) { used.add(sp.id); groups.push([p, sp]); } else groups.push([p]);
       }
       out.push(groups);

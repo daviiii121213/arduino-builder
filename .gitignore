@@ -7,3 +7,4 @@ target/
 /playwright-report/
 src-tauri/gen/
 .DS_Store
+dist-web/

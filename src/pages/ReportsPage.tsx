@@ -1,4 +1,5 @@
 // Relatórios: escolha, filtros por período e colunas, pré-visualização e exportação PDF/CSV/XLSX.
+import "../styles/pages-d.css";
 import { useEffect, useMemo, useState } from "react";
 import { call, isTauri } from "../api/client";
 import { openPath, revealPath, saveFileDialog } from "../api/native";
@@ -93,7 +94,7 @@ export function ReportsPage() {
           </div>
         </div>
       </div>
-      <div className="grid" style={{ gridTemplateColumns: "300px minmax(0, 1fr)", alignItems: "start" }}>
+      <div className="grid reports-grid" style={{ gridTemplateColumns: "300px minmax(0, 1fr)", alignItems: "start" }}>
         <div className="card">
           <div className="list" role="listbox" aria-label="Tipos de relatório">
             {cat.data.reports.map((r) => (

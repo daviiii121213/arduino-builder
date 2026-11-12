@@ -1,6 +1,7 @@
 // Agenda e calendário (mês, semana, dia) do ambiente atual, integrando compromissos,
 // tarefas, contas e demais itens com data.
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMembers, type Member } from "../hooks/data";
 import { call } from "../api/client";
 import { useApp } from "../contexts/app";
 import { Icon } from "../components/Icon";
@@ -35,10 +36,16 @@ function timeOf(i: Rec): string {
   return typeof i.start_at === "string" && i.start_at.length > 10 && !i.all_day ? i.start_at.slice(11, 16) : "";
 }
 
-function ItemChip({ i, ws, onOpen }: { i: Rec; ws: string; onOpen: (i: Rec) => void }) {
-  const who = ws === "family" ? i.assignee_name || i.owner_name : null;
+function whoOf(i: Rec, members: Member[]): Member | undefined {
+  const id = i.assignee_id || i.owner_id;
+  return members.find((m) => m.id === id);
+}
+
+function ItemChip({ i, ws, onOpen, members }: { i: Rec; ws: string; onOpen: (i: Rec) => void; members: Member[] }) {
+  const m = ws === "family" ? whoOf(i, members) : undefined;
+  const who = m?.full_name ?? null;
   return (
-    <button className="cal-ev" style={{ ["--c" as string]: itemColor(i) }} onClick={(e) => { e.stopPropagation(); onOpen(i); }}
+    <button className="cal-ev" style={{ ["--c" as string]: itemColor(i), boxShadow: m?.color ? `inset -4px 0 0 ${m.color}` : undefined }} onClick={(e) => { e.stopPropagation(); onOpen(i); }}
       title={`${KINDS[i.kind]?.label ?? i.kind}: ${i.title}${who ? ` · ${who}` : ""}`}>
       {timeOf(i) && <b>{timeOf(i)} </b>}
       {i.kind === "tarefa" && i.status === "concluida" ? <s>{i.title}</s> : i.title}
@@ -49,6 +56,7 @@ function ItemChip({ i, ws, onOpen }: { i: Rec; ws: string; onOpen: (i: Rec) => v
 
 export function CalendarPage() {
   const { workspace: ws, perm, can } = useApp();
+  const members = useMembers(ws);
   const route = useRoute();
   const [tab, setTab] = useState<"calendario" | "lista">("calendario");
   const [view, setView] = useState<View>("mes");
@@ -110,7 +118,8 @@ export function CalendarPage() {
     else c.setDate(c.getDate() + (view === "semana" ? 7 : 1) * dir);
     setCursor(c);
   };
-  const title = view === "mes" ? `${monthNames[cursor.getMonth()]} de ${cursor.getFullYear()}`
+  const mn = monthNames[cursor.getMonth()];
+  const title = view === "mes" ? `${mn[0].toUpperCase()}${mn.slice(1)} de ${cursor.getFullYear()}`
     : view === "semana" ? `${toISODate(range.from).split("-").reverse().join("/")} – ${toISODate(range.to).split("-").reverse().join("/")}`
     : fmtLongDate(cursor);
 
@@ -151,7 +160,7 @@ export function CalendarPage() {
             <button className="btn" onClick={() => setCursor(new Date())}>Hoje</button>
             <button className="btn icon" aria-label="Anterior" onClick={() => step(-1)}><Icon name="ChevronLeft" /></button>
             <button className="btn icon" aria-label="Próximo" onClick={() => step(1)}><Icon name="ChevronRight" /></button>
-            <h2 style={{ textTransform: "capitalize", minWidth: 200 }} aria-live="polite">{title}</h2>
+            <h2 style={{ minWidth: 200 }} aria-live="polite">{title}</h2>
             <span className="grow" />
             <input className="input" style={{ width: 180 }} placeholder="Filtrar categoria" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Filtrar por categoria" />
             <Segmented label="Visualização" value={view} onChange={setView} options={[{ key: "mes", label: "Mês" }, { key: "semana", label: "Semana" }, { key: "dia", label: "Dia" }]} />
@@ -178,7 +187,7 @@ export function CalendarPage() {
                       aria-label={`${d.getDate()} de ${monthNames[d.getMonth()]}, ${list.length} item(ns)`}
                       onClick={() => { setCursor(d); setView("dia"); }} onKeyDown={(e) => { if (e.key === "Enter") { setCursor(d); setView("dia"); } }}>
                       <span className="num">{d.getDate()}</span>
-                      {list.slice(0, 3).map((i, k) => <ItemChip key={`${i.id}-${k}`} i={i} ws={ws} onOpen={openItem} />)}
+                      {list.slice(0, 3).map((i, k) => <ItemChip key={`${i.id}-${k}`} i={i} ws={ws} onOpen={openItem} members={members} />)}
                       {list.length > 3 && <span className="tiny muted">+{list.length - 3} mais</span>}
                     </div>
                   );
@@ -197,7 +206,7 @@ export function CalendarPage() {
                       <b>{weekdayShort[d.getDay()]} {d.getDate()}</b>
                     </button>
                     {list.length === 0 && <span className="tiny muted">Livre</span>}
-                    {list.map((i, k) => <ItemChip key={`${i.id}-${k}`} i={i} ws={ws} onOpen={openItem} />)}
+                    {list.map((i, k) => <ItemChip key={`${i.id}-${k}`} i={i} ws={ws} onOpen={openItem} members={members} />)}
                     {canAdd && <button className="btn sm ghost" onClick={() => setForm({ module: "events", record: null, defaults: defaultsFor(d) })} aria-label={`Novo compromisso em ${d.getDate()}`}><Icon name="Plus" size={14} /></button>}
                   </div>
                 );
@@ -223,7 +232,7 @@ export function CalendarPage() {
                           {KINDS[i.kind]?.label}
                           {i.location ? ` · ${i.location}` : ""}
                           {i.category ? ` · ${i.category}` : ""}
-                          {ws === "family" && (i.assignee_name || i.owner_name) ? ` · ${i.assignee_name || i.owner_name}` : ""}
+                          {ws === "family" && whoOf(i, members) ? ` · ${whoOf(i, members)!.full_name}` : ""}
                         </div>
                       </div>
                       {i.recurrence && i.recurrence !== "nenhuma" && <Icon name="Repeat" size={14} label="Recorrente" />}

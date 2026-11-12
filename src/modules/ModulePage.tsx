@@ -188,10 +188,12 @@ export function ModulePage({ mod, ws, embedded, baseFilters }: { mod: ModuleDef;
 
   // Ctrl+N cria registro no contexto atual
   useEffect(() => {
-    const h = () => { if (canCreate(mod, ws, can) && unlocked) setForm({ record: null }); };
+    const h = () => { if (!embedded && canCreate(mod, ws, can) && unlocked) setForm({ record: null }); };
+    const r = () => reload();
     window.addEventListener("plu:new", h);
-    return () => window.removeEventListener("plu:new", h);
-  }, [mod, ws, can, unlocked]);
+    window.addEventListener("plu:changed", r);
+    return () => { window.removeEventListener("plu:new", h); window.removeEventListener("plu:changed", r); };
+  }, [mod, ws, can, unlocked, embedded, reload]);
 
   // abrir registro vindo da pesquisa global (#...?open=id)
   useEffect(() => {

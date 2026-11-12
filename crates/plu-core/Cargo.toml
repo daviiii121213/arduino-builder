@@ -19,7 +19,7 @@ default = []
 devserver = ["dep:tiny_http"]
 
 [dependencies]
-rusqlite = { version = "0.32", features = ["bundled", "functions"] }
+rusqlite = { version = "0.42", features = ["bundled", "functions", "serialize"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 argon2 = "0.5"
@@ -34,6 +34,13 @@ rand = "0.8"
 base64 = "0.22"
 unicode-normalization = "0.1"
 tiny_http = { version = "0.12", optional = true }
+web-time = "1"
 
 [dev-dependencies]
 tempfile = "3"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+sqlite-wasm-rs = { version = "0.6", features = ["wasm-bindgen"] }
+getrandom = { version = "0.2", features = ["js"] }
+uuid = { version = "1", features = ["v4", "js"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "wasmbind"] }

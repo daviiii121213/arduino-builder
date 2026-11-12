@@ -342,7 +342,7 @@ pub fn row_to_json(d: &EntityDef, row: &rusqlite::Row, cols: &[String]) -> rusql
 
 pub fn query_rows(conn: &Connection, d: &EntityDef, sql: &str, p: &[SqlValue]) -> ApiResult<Vec<Map<String, Value>>> {
     let mut st = conn.prepare(sql)?;
-    let cols: Vec<String> = st.column_names().iter().map(|s| s.to_string()).collect();
+    let cols: Vec<String> = st.column_names().map(|s| s.to_string()).collect();
     let rows = st.query_map(params_from_iter(p.iter()), |r| row_to_json(d, r, &cols))?;
     let mut out = Vec::new();
     for r in rows {
@@ -719,13 +719,19 @@ pub fn list(conn: &Connection, ctx: &Ctx, args: &Value) -> ApiResult<Value> {
     )?;
     let sort = match args.get("sort").and_then(|v| v.as_str()) {
         Some(s) => {
-            let (col, dir) = s.split_once(' ').unwrap_or((s, "ASC"));
-            let ok = d.fields.iter().any(|f| f.col == col) || matches!(col, "created_at" | "updated_at" | "deleted_at");
-            let dir = if dir.eq_ignore_ascii_case("desc") { "DESC" } else { "ASC" };
-            if !ok {
+            let mut parts = Vec::new();
+            for piece in s.split(',').map(str::trim).filter(|p| !p.is_empty()).take(4) {
+                let (col, dir) = piece.split_once(' ').unwrap_or((piece, "ASC"));
+                let ok = d.fields.iter().any(|f| f.col == col) || matches!(col, "created_at" | "updated_at" | "deleted_at");
+                if !ok || !(dir.eq_ignore_ascii_case("asc") || dir.eq_ignore_ascii_case("desc")) {
+                    return Err(ApiError::bad_request("Ordenação inválida."));
+                }
+                parts.push(format!("t.{col} {}", if dir.eq_ignore_ascii_case("desc") { "DESC" } else { "ASC" }));
+            }
+            if parts.is_empty() {
                 return Err(ApiError::bad_request("Ordenação inválida."));
             }
-            format!("t.{col} {dir}")
+            parts.join(", ")
         }
         None => {
             if trash { "t.deleted_at DESC".into() } else { d.default_sort.to_string() }
@@ -805,7 +811,16 @@ pub fn create(conn: &Connection, ctx: &Ctx, args: &Value) -> ApiResult<Value> {
         }
         let collab = values.keys().all(|k| k == pcol || k == "title" || d.collab.contains(&k.as_str()) || k == "quantity" || k == "unit" || k == "position");
         // Criar filho exige poder editar o pai (ou colaborar em itens compartilhados).
-        check_access(ctx, pdef, &pmeta, Action::Update, collab && !d.collab.is_empty())?;
+        if pmeta.scope == "family" {
+            // Na família, quem pode ver o registro principal e criar na área pode adicionar itens
+            // (mensagens em conversas, fotos em álbuns, preparativos etc.).
+            check_access(ctx, pdef, &pmeta, Action::View, false)?;
+            if !ctx.can(&format!("{}.create", d.area)) {
+                return Err(ApiError::forbidden("Você não tem permissão para adicionar itens nesta área da família."));
+            }
+        } else {
+            check_access(ctx, pdef, &pmeta, Action::Update, collab && !d.collab.is_empty())?;
+        }
         scope = pmeta.scope.clone();
         family_id = pmeta.family_id.clone();
         shared = pmeta.shared;

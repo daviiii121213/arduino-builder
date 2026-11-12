@@ -1,4 +1,5 @@
 // Manual inicial em 8 etapas. Progresso salvo no SQLite por USER ID (onboarding.save).
+import "../styles/pages-d.css";
 // As demonstrações usam dados fictícios em memória (classe .demo) e não alteram dados reais;
 // somente ações explícitas ("Aplicar este tema", "Criar minha primeira tarefa") gravam algo.
 import { useEffect, useState, type ReactNode } from "react";
@@ -153,7 +154,7 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
   const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
-    call<Progress>("onboarding.get").then((r) => { setP(r); setStep(r.current_step || 1); }).catch(() => onClose());
+    call<Progress>("onboarding.get").then(async (r) => { setStep(r.current_step || 1); setP(r.visited?.length ? r : await call<Progress>("onboarding.save", { current_step: r.current_step || 1 })); }).catch(() => onClose());
   }, [onClose]);
 
   const save = async (vals: Partial<Progress>) => {

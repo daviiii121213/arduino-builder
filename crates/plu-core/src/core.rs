@@ -6,7 +6,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use std::time::Instant;
+use web_time::Instant;
 
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MAX_PROFILES: i64 = 6;
@@ -77,6 +77,25 @@ impl Core {
         crate::logger::info(&format!("iniciando PERSONAL LIFE ULTRA {APP_VERSION}"));
         let conn = crate::db::open(&data_dir.join("plu.db"))?;
         Ok(Core { data_dir: data_dir.to_path_buf(), conn: Mutex::new(conn), session: Mutex::new(None) })
+    }
+
+    /// Abre um banco em memória (versão web): opcionalmente restaurado a partir de bytes
+    /// serializados do SQLite. Não usa o sistema de arquivos.
+    pub fn open_memory(bytes: Option<&[u8]>) -> ApiResult<Core> {
+        let mut conn = Connection::open_in_memory()?;
+        if let Some(b) = bytes.filter(|b| !b.is_empty()) {
+            conn.deserialize_read_exact(rusqlite::MAIN_DB, b, b.len(), false)?;
+        }
+        conn.execute_batch("PRAGMA foreign_keys = ON;")?;
+        crate::db::configure_functions(&conn)?;
+        crate::db::migrate(&conn)?;
+        Ok(Core { data_dir: PathBuf::from("/plu"), conn: Mutex::new(conn), session: Mutex::new(None) })
+    }
+
+    /// Bytes do banco atual (para guardar no navegador).
+    pub fn export_db(&self) -> ApiResult<Vec<u8>> {
+        let mut conn = self.conn.lock().unwrap();
+        Ok(conn.serialize(rusqlite::MAIN_DB)?.to_vec())
     }
 
     pub fn db_path(&self) -> PathBuf {

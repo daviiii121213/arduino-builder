@@ -22,3 +22,4 @@
 .reading-card { gap: 6px; }
 .studies-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); margin-bottom: 16px; }
 @media (max-width: 900px) { .studies-summary { grid-template-columns: 1fr; } }
+.mindmap .mm-node { white-space: nowrap; }

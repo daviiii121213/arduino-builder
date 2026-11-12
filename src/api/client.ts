@@ -14,6 +14,8 @@ export class ApiError extends Error {
 }
 
 export const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+/** Versão web: o núcleo Rust roda no navegador via WebAssembly (dados guardados neste navegador). */
+export const isWebDemo = !!import.meta.env.VITE_WEB_DEMO;
 
 const DEV_URL = (import.meta.env.VITE_DEV_CORE_URL as string | undefined) ?? "http://127.0.0.1:1430";
 
@@ -44,6 +46,10 @@ export async function call<T = any>(cmd: string, args: Record<string, unknown> =
       const { invoke } = await import("@tauri-apps/api/core");
       return (await invoke("api", { cmd, args })) as T;
     }
+    if (isWebDemo) {
+      const { webCall } = await import("./webcore");
+      return (await webCall(cmd, args)) as T;
+    }
     if (!import.meta.env.DEV && !import.meta.env.VITE_ALLOW_DEV_CORE) {
       throw new ApiError("internal", "Este aplicativo deve ser executado pelo PERSONAL LIFE ULTRA instalado.");
     }
@@ -61,6 +67,11 @@ export async function call<T = any>(cmd: string, args: Record<string, unknown> =
 /** Executa a rotina periódica do núcleo no modo de desenvolvimento (no app, roda no backend). */
 export async function devTick(): Promise<void> {
   if (isTauri) return;
+  if (isWebDemo) {
+    const { webCall } = await import("./webcore");
+    await webCall("__tick", {}).catch(() => {});
+    return;
+  }
   try {
     await fetch(DEV_URL, { method: "POST", body: JSON.stringify({ cmd: "__tick" }) });
   } catch {

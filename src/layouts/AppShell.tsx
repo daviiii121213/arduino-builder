@@ -9,7 +9,7 @@ import { NotificationsButton } from "./Notifications";
 import { comboFromEvent, effectiveShortcuts } from "./shortcuts";
 import { fmtLongDate } from "../utils/format";
 import { appIcon } from "../assets";
-import { isTauri } from "../api/client";
+import { isTauri, isWebDemo } from "../api/client";
 
 interface NavItem {
   to: string;
@@ -140,7 +140,7 @@ export function AppShell({ children, version }: { children: ReactNode; version: 
         <main className="content" id="conteudo">{children}</main>
         <footer className="app-footer">
           <span>PERSONAL LIFE ULTRA v{version}</span>
-          <span className="row"><Icon name="Database" size={12} /> Dados locais · {isTauri ? "funcionando offline" : "modo de desenvolvimento"} · {workspace === "family" ? "Ambiente FAMÍLIA" : "Ambiente PESSOAL"}</span>
+          <span className="row"><Icon name="Database" size={12} /> Dados locais · {isTauri ? "funcionando offline" : isWebDemo ? "versão web: dados salvos neste navegador" : "modo de desenvolvimento"} · {workspace === "family" ? "Ambiente FAMÍLIA" : "Ambiente PESSOAL"}</span>
         </footer>
       </div>
       {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}

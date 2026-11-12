@@ -9,7 +9,7 @@ use argon2::Argon2;
 use base64::Engine;
 use rusqlite::{params, Connection, OptionalExtension};
 use serde_json::{json, Value};
-use std::time::Instant;
+use web_time::Instant;
 
 pub fn hash_password(pw: &str) -> ApiResult<String> {
     let salt = SaltString::generate(&mut OsRng);

@@ -581,14 +581,29 @@ fn polls_menu_and_delete_profile() {
     let farinha = ing["items"].as_array().unwrap().iter().find(|i| i["name"] == "Farinha").unwrap();
     assert_eq!(farinha["quantity"], 600.0);
     assert_eq!(ok(&core, "rec.list", json!({"entity": "shopping_items", "scope": "family", "filters": {"list_id": list["id"]}}))["total"], 2);
-    // exclusão de perfil
+    // integrante adiciona mensagem em conversa criada por outro
+    let conv = ok(&core, "rec.create", json!({"entity": "conversation", "scope": "family", "values": {"title": "Geral"}}));
     ok(&core, "auth.logout", json!({}));
     login(&core, "bruno");
     ok(&core, "family.accept_invite", json!({"code": code}));
+    ok(&core, "rec.create", json!({"entity": "message", "values": {"parent_id": conv["id"], "body": "Oi!"}}));
+    assert_eq!(ok(&core, "rec.list", json!({"entity": "board_post", "scope": "family", "sort": "priority DESC, created_at DESC"}))["total"], 0);
+    // exclusão de perfil
     ok(&core, "rec.create", json!({"entity": "notes", "values": {"title": "Minha nota"}}));
     assert!(core.call("auth.delete_profile", json!({"password": "errada"})).is_err());
     ok(&core, "auth.delete_profile", json!({"password": "senha1234"}));
     assert_eq!(ok(&core, "auth.profiles", json!({}))["items"].as_array().unwrap().len(), 1);
     login(&core, "ana");
     assert_eq!(ok(&core, "family.info", json!({}))["members"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn memory_core_roundtrip() {
+    let core = Core::open_memory(None).unwrap();
+    register(&core, "ana", "Ana Souza");
+    ok(&core, "rec.create", json!({"entity": "tasks", "values": {"title": "Na memória"}}));
+    let bytes = core.export_db().unwrap();
+    let core2 = Core::open_memory(Some(&bytes)).unwrap();
+    login(&core2, "ana");
+    assert_eq!(ok(&core2, "rec.list", json!({"entity": "tasks"}))["total"], 1);
 }

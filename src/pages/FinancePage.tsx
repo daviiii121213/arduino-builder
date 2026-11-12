@@ -65,7 +65,7 @@ function Summary({ ws }: { ws: "personal" | "family" }) {
         <button className="btn icon" aria-label="Mês anterior" onClick={() => setMonth((m) => shiftMonth(m, -1))}><Icon name="ChevronLeft" /></button>
         <input className="input" type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} style={{ width: 170 }} aria-label="Mês" />
         <button className="btn icon" aria-label="Próximo mês" onClick={() => setMonth((m) => shiftMonth(m, 1))}><Icon name="ChevronRight" /></button>
-        <h2 style={{ textTransform: "capitalize" }}>{fmtMonth(month)}</h2>
+        <h2>{fmtMonth(month).replace(/^./, (c) => c.toUpperCase())}</h2>
       </div>
       {error ? <ErrorState message={error} onRetry={reload} /> : loading || !data ? <Loading /> : (
         <>

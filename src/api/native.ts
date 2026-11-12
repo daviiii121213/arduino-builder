@@ -1,6 +1,8 @@
 // Integrações com o sistema (diálogos de arquivo, abrir arquivos, notificações e
 // inicialização com o Windows). Fora do Tauri usam alternativas simples para testes.
-import { isTauri } from "./client";
+import { isTauri, isWebDemo } from "./client";
+
+const WEB_MSG = "Na versão web, salvar e abrir arquivos do computador não está disponível. Use o aplicativo para Windows.";
 
 export interface FileFilter {
   name: string;
@@ -8,6 +10,7 @@ export interface FileFilter {
 }
 
 export async function saveFileDialog(defaultName: string, filters: FileFilter[]): Promise<string | null> {
+  if (isWebDemo) throw new Error(WEB_MSG);
   if (isTauri) {
     const { save } = await import("@tauri-apps/plugin-dialog");
     return (await save({ defaultPath: defaultName, filters })) ?? null;
@@ -17,6 +20,7 @@ export async function saveFileDialog(defaultName: string, filters: FileFilter[])
 }
 
 export async function openFileDialog(filters: FileFilter[], title = "Selecionar arquivo"): Promise<string | null> {
+  if (isWebDemo) throw new Error(WEB_MSG);
   if (isTauri) {
     const { open } = await import("@tauri-apps/plugin-dialog");
     const r = await open({ multiple: false, directory: false, filters, title });
@@ -27,6 +31,7 @@ export async function openFileDialog(filters: FileFilter[], title = "Selecionar 
 }
 
 export async function openFolderDialog(title = "Selecionar pasta"): Promise<string | null> {
+  if (isWebDemo) throw new Error(WEB_MSG);
   if (isTauri) {
     const { open } = await import("@tauri-apps/plugin-dialog");
     const r = await open({ multiple: false, directory: true, title });

@@ -35,6 +35,10 @@ pub fn configure(conn: &Connection) -> ApiResult<()> {
          PRAGMA synchronous = NORMAL;
          PRAGMA busy_timeout = 5000;",
     )?;
+    configure_functions(conn)
+}
+
+pub fn configure_functions(conn: &Connection) -> ApiResult<()> {
     // plu_norm(texto): minúsculas e sem acentos, para pesquisa tolerante.
     conn.create_scalar_function(
         "plu_norm",

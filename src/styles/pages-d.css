@@ -1,0 +1,7 @@
+/* Ajustes das páginas de Configurações, Relatórios, Ajuda e do manual inicial. */
+.modal.onb { display: grid; grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+.onb-main { min-height: 0; overflow: hidden; }
+.onb-body { min-height: 0; }
+.onb-illu { max-height: 180px; }
+@media (max-width: 1100px) { .reports-grid { grid-template-columns: 1fr !important; } }
+.table td.num { white-space: nowrap; }
