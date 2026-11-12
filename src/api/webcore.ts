@@ -37,6 +37,18 @@ function save() {
 
 const READ_ONLY = /^(app\.status|auth\.profiles|auth\.me|auth\.context|settings\.get|family\.info|family\.members|schema|rec\.(list|get|trash|history)|log\.list|calendar\.range|finance\.summary|attach\.(list|data_url)|dashboard\.(get|data)|search\.history|notif\.list|auto\.(list|logs)|report\.(catalog|preview)|backup\.status|onboarding\.get|audit\.list)$/;
 
+/** Conta de desenvolvedor criada automaticamente na versão web (somente quando não há perfis). */
+export const DEV_LOGIN = { username: "desenvolvedor", password: "plu12345" };
+
+function seedDeveloper() {
+  const st = JSON.parse(call("app.status", "{}"));
+  if (st.ok && st.data.users === 0) {
+    call("auth.register", JSON.stringify({ full_name: "Desenvolvedor", username: DEV_LOGIN.username, password: DEV_LOGIN.password, password_confirm: DEV_LOGIN.password, color: "#4f46e5" }));
+    call("auth.logout", "{}");
+    save();
+  }
+}
+
 export async function webCall(cmd: string, args: Record<string, unknown>): Promise<unknown> {
   if (!ready) {
     ready = (async () => {
@@ -46,6 +58,7 @@ export async function webCall(cmd: string, args: Record<string, unknown>): Promi
         for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
         await init({ module_or_path: bytes });
         initCore(load());
+        seedDeveloper();
       } catch (e) {
         ready = null;
         const msg = e instanceof Error ? e.message : String(e);

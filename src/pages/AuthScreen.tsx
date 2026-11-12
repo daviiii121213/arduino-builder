@@ -1,6 +1,6 @@
 // Entrada e cadastro de perfis locais.
 import { useEffect, useRef, useState } from "react";
-import { call, ApiError } from "../api/client";
+import { call, ApiError, isWebDemo } from "../api/client";
 import { Avatar, Field, ColorPicker } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { appIcon } from "../assets";
@@ -181,6 +181,16 @@ export function AuthScreen({ hasUsers, onLogin }: { hasUsers: boolean; onLogin: 
                 <input id="l-pass" className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" aria-invalid={!!error} autoFocus={profiles.length === 1} />
               </Field>
               <button className="btn primary" disabled={busy || !username || !password}>{busy ? "Entrando…" : "Entrar"}</button>
+              {isWebDemo && (
+                <div className="alert small">
+                  <Icon name="KeyRound" size={18} />
+                  <div className="grow">
+                    <b>Conta do desenvolvedor (versão web)</b><br />
+                    Usuário: <span className="mono">desenvolvedor</span> · Senha: <span className="mono">plu12345</span>
+                  </div>
+                  <button type="button" className="btn sm" onClick={() => { setUsername("desenvolvedor"); setPassword("plu12345"); setSel(profiles.find((p) => p.username === "desenvolvedor") ?? null); }}>Preencher</button>
+                </div>
+              )}
               <p className="muted tiny">{profiles.length} de {max} perfis nesta instalação. Novos perfis são cadastrados por um perfil já conectado (Configurações › Perfis).</p>
             </form>
           )}
