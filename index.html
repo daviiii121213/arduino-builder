@@ -8,6 +8,18 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Mostra erros de inicialização em vez de uma tela em branco.
+      window.__pluShowError = function (msg) {
+        var r = document.getElementById("root");
+        if (r && !r.childElementCount) {
+          r.innerHTML = '<div style="font-family:Segoe UI,system-ui,sans-serif;max-width:640px;margin:60px auto;padding:20px;border:1px solid #f3b4b4;background:#fdecec;border-radius:12px;color:#5c1313"><b>PERSONAL LIFE ULTRA não conseguiu iniciar.</b><p style="margin:8px 0 0">' + String(msg).replace(/</g, "&lt;") + '</p><p style="margin:8px 0 0;font-size:13px">Use o Microsoft Edge ou Google Chrome atualizados. Se abriu de dentro do zip, extraia antes.</p></div>';
+        }
+      };
+      window.addEventListener("error", function (e) { window.__pluShowError(e.message || e); });
+      window.addEventListener("unhandledrejection", function (e) { window.__pluShowError((e.reason && e.reason.message) || e.reason); });
+      setTimeout(function () { var r = document.getElementById("root"); if (r && !r.childElementCount) window.__pluShowError("O aplicativo não carregou em 15 segundos (o navegador pode estar bloqueando WebAssembly ou scripts)."); }, 15000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

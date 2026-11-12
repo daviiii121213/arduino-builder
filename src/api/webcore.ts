@@ -1,7 +1,8 @@
 // Núcleo em WebAssembly para a versão web: mesmo código Rust e SQLite do aplicativo,
 // executado no navegador. O banco é salvo no armazenamento local deste navegador.
 import init, { call, export_db, init as initCore } from "../wasm-pkg/plu_wasm.js";
-import wasmUrl from "../wasm-pkg/plu_wasm_bg.wasm?url";
+import { WASM_B64 } from "../wasm-pkg/wasm-b64";
+import { ApiError } from "./client";
 
 const KEY = "plu-web-db-v1";
 let ready: Promise<void> | null = null;
@@ -39,8 +40,17 @@ const READ_ONLY = /^(app\.status|auth\.profiles|auth\.me|auth\.context|settings\
 export async function webCall(cmd: string, args: Record<string, unknown>): Promise<unknown> {
   if (!ready) {
     ready = (async () => {
-      await init({ module_or_path: wasmUrl });
-      initCore(load());
+      try {
+        const bin = atob(WASM_B64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        await init({ module_or_path: bytes });
+        initCore(load());
+      } catch (e) {
+        ready = null;
+        const msg = e instanceof Error ? e.message : String(e);
+        throw new ApiError("internal", `O navegador não permitiu iniciar o núcleo (WebAssembly): ${msg}`);
+      }
     })();
   }
   await ready;

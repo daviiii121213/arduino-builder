@@ -8,7 +8,7 @@
     "dev": "vite",
     "dev:core": "cargo run --manifest-path crates/plu-core/Cargo.toml --features devserver --bin plu-devserver -- .devdata",
     "build": "tsc --noEmit && vite build",
-    "build:web": "vite build --config vite.web.config.ts",
+    "build:web": "node scripts/embed-wasm.mjs && vite build --config vite.web.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:core": "cargo test --manifest-path crates/plu-core/Cargo.toml",
