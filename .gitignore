@@ -8,3 +8,4 @@ target/
 src-tauri/gen/
 .DS_Store
 dist-web/
+entrega/
