@@ -4,7 +4,7 @@ import init, { call, export_db, init as initCore } from "../wasm-pkg/plu_wasm.js
 import { WASM_B64 } from "../wasm-pkg/wasm-b64";
 import { ApiError } from "./client";
 
-const KEY = "plu-web-db-v1";
+const KEY = "plu-web-db-v2";
 let ready: Promise<void> | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -44,8 +44,15 @@ function seedDeveloper() {
   const st = JSON.parse(call("app.status", "{}"));
   if (st.ok && st.data.users === 0) {
     call("auth.register", JSON.stringify({ full_name: "Desenvolvedor", username: DEV_LOGIN.username, password: DEV_LOGIN.password, password_confirm: DEV_LOGIN.password, color: "#4f46e5" }));
-    call("auth.logout", "{}");
     save();
+  }
+}
+
+/** Versão web sem login: entra automaticamente com o perfil do desenvolvedor. */
+function autoLogin() {
+  const st = JSON.parse(call("app.status", "{}"));
+  if (st.ok && (!st.data.session || st.data.session.locked)) {
+    call("auth.login", JSON.stringify(DEV_LOGIN));
   }
 }
 
@@ -67,6 +74,7 @@ export async function webCall(cmd: string, args: Record<string, unknown>): Promi
     })();
   }
   await ready;
+  if (cmd === "app.status") autoLogin();
   const res = JSON.parse(call(cmd, JSON.stringify(args ?? {})));
   if (!READ_ONLY.test(cmd)) save();
   if (!res.ok) throw res.error;

@@ -130,8 +130,8 @@ export function AppShell({ children, version }: { children: ReactNode; version: 
                 </div>
                 <div className="list">
                   <button className="list-item" onClick={() => { setMenuOpen(false); navigate("/config?tab=perfil"); }}><Icon name="User" size={16} /> Meu perfil</button>
-                  <button className="list-item" onClick={() => { setMenuOpen(false); lock(); }}><Icon name="Lock" size={16} /> Bloquear perfil <span className="grow" /><span className="kbd">{keys.lock}</span></button>
-                  <button className="list-item" onClick={() => { setMenuOpen(false); logout(); }}><Icon name="LogOut" size={16} /> Encerrar sessão</button>
+                  {!isWebDemo && <button className="list-item" onClick={() => { setMenuOpen(false); lock(); }}><Icon name="Lock" size={16} /> Bloquear perfil <span className="grow" /><span className="kbd">{keys.lock}</span></button>}
+                  {!isWebDemo && <button className="list-item" onClick={() => { setMenuOpen(false); logout(); }}><Icon name="LogOut" size={16} /> Encerrar sessão</button>}
                 </div>
               </div>
             )}
