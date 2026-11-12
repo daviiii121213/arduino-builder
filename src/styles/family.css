@@ -1,0 +1,23 @@
+/* Estilos específicos do ambiente FAMÍLIA. */
+.perm-matrix td:not(:first-child), .perm-matrix th:not(:first-child) { text-align: center; }
+.perm-matrix input { width: 17px; height: 17px; accent-color: var(--primary); }
+.invite-code { font-size: 1.25rem; letter-spacing: .12em; align-self: flex-start; }
+.poll-opt { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-elev); }
+.poll-opt.mine { border-color: var(--primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent); }
+.chat-box { height: 360px; overflow-y: auto; background: var(--bg-sunken); border-radius: var(--radius); border: 1px solid var(--border); }
+.bubble .meta { font-size: 0.72rem; color: var(--text-3); display: flex; gap: 6px; align-items: center; }
+.bubble p { white-space: pre-wrap; word-break: break-word; }
+.menu-grid { display: grid; grid-template-columns: 110px repeat(7, minmax(110px, 1fr)); gap: 6px; overflow-x: auto; }
+.menu-grid .mh { font-size: 0.78rem; font-weight: 650; color: var(--text-3); padding: 6px; text-align: center; }
+.menu-grid .mh.today { color: var(--primary); }
+.menu-grid .ml { font-size: 0.8rem; font-weight: 650; color: var(--text-2); display: flex; align-items: center; }
+.menu-cell { min-height: 64px; border: 1px dashed var(--border-strong); border-radius: 8px; background: var(--bg-elev); padding: 6px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; text-align: left; color: var(--text-3); font-size: 0.78rem; }
+.menu-cell:hover { border-color: var(--primary); }
+.menu-item { background: color-mix(in srgb, var(--accent) 14%, transparent); border-left: 3px solid var(--accent); border-radius: 5px; padding: 3px 6px; color: var(--text); font-size: 0.8rem; border-top: 0; border-right: 0; border-bottom: 0; text-align: left; cursor: pointer; }
+.tree-person.dead { opacity: .75; border-style: dashed; }
+.tree-couple { display: flex; gap: 6px; align-items: center; padding: 6px; border-radius: var(--radius-lg); }
+.tree-couple.pair { background: var(--bg-sunken); }
+.tree-gen-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); font-weight: 700; text-align: center; }
+.pantry-row.low td:first-child { box-shadow: inset 3px 0 0 var(--warning); }
+.pantry-row.expired td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+.post-card.pinned { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 5%, var(--bg-elev)); }

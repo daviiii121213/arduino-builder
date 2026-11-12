@@ -1,0 +1,186 @@
+{
+  "project": "PERSONAL LIFE ULTRA",
+  "version": "1.0.0",
+  "assets": [
+    {
+      "path": "assets/onboarding/welcome/welcome-hero.svg",
+      "purpose": "Ilustração principal da tela de entrada (sobre fundo colorido)",
+      "used_in": "Tela de entrada/cadastro",
+      "format": "SVG",
+      "viewBox": "0 0 520 340",
+      "theme": "Projetada para fundo colorido (primária); traços brancos semitransparentes",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/onboarding/welcome/welcome-panel.svg",
+      "purpose": "Etapa 1 do manual — Boas-vindas",
+      "used_in": "Manual inicial, etapa 1",
+      "format": "SVG",
+      "viewBox": "0 0 520 340",
+      "theme": "Fundo próprio em gradiente; funciona em tema claro e escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/onboarding/profile/profile-card.svg",
+      "purpose": "Etapa 2 — Perfil e USER ID",
+      "used_in": "Manual inicial, etapa 2",
+      "format": "SVG",
+      "viewBox": "0 0 480 320",
+      "theme": "Cartão branco com contorno; legível em claro e escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/onboarding/workspaces/personal-family.svg",
+      "purpose": "Etapa 3 — Ambientes PESSOAL e FAMÍLIA e compartilhamento explícito",
+      "used_in": "Manual inicial, etapa 3",
+      "format": "SVG",
+      "viewBox": "0 0 480 320",
+      "theme": "Cartões com fundo próprio; claro e escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/onboarding/family/family-group.svg",
+      "purpose": "Etapa 4 — Família, FAMILY ID, convite temporário e limite de 6 integrantes",
+      "used_in": "Manual inicial, etapa 4",
+      "format": "SVG",
+      "viewBox": "0 0 480 320",
+      "theme": "Cartão com fundo próprio; claro e escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/onboarding/personalization/themes.svg",
+      "purpose": "Etapa 5 — Temas claro/escuro e paleta de cores",
+      "used_in": "Manual inicial, etapa 5",
+      "format": "SVG",
+      "viewBox": "0 0 480 320",
+      "theme": "Mostra os dois temas; claro e escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/onboarding/modules/modules-grid.svg",
+      "purpose": "Etapa 6 — Principais módulos",
+      "used_in": "Manual inicial, etapa 6",
+      "format": "SVG",
+      "viewBox": "0 0 480 320",
+      "theme": "Cartões com fundo próprio; claro e escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/onboarding/security/local-shield.svg",
+      "purpose": "Etapa 7 — Privacidade, armazenamento local e backup",
+      "used_in": "Manual inicial, etapa 7",
+      "format": "SVG",
+      "viewBox": "0 0 480 320",
+      "theme": "Fundo próprio; claro e escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/onboarding/first-access/checklist.svg",
+      "purpose": "Etapa 8 — Checklist do primeiro acesso",
+      "used_in": "Manual inicial, etapa 8",
+      "format": "SVG",
+      "viewBox": "0 0 480 320",
+      "theme": "Cartão com fundo próprio; claro e escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/mockups/dashboard-mockup.svg",
+      "purpose": "Mockup do painel inicial",
+      "used_in": "Central de Ajuda (tutorial de personalização)",
+      "format": "SVG",
+      "viewBox": "0 0 640 400",
+      "theme": "Fundo próprio claro; legível sobre tema escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/mockups/calendar-mockup.svg",
+      "purpose": "Mockup do calendário",
+      "used_in": "Central de Ajuda (tutorial da agenda)",
+      "format": "SVG",
+      "viewBox": "0 0 640 400",
+      "theme": "Fundo próprio claro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/mockups/finance-mockup.svg",
+      "purpose": "Mockup do resumo financeiro",
+      "used_in": "Central de Ajuda (tutorial de relatórios)",
+      "format": "SVG",
+      "viewBox": "0 0 640 400",
+      "theme": "Fundo próprio claro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/backgrounds/soft-grid.svg",
+      "purpose": "Fundo discreto em grade de pontos",
+      "used_in": "Planos de fundo opcionais",
+      "format": "SVG",
+      "viewBox": "0 0 400 400",
+      "theme": "Transparente, pontos cinza de baixa opacidade; claro e escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/backgrounds/waves.svg",
+      "purpose": "Fundo discreto em ondas",
+      "used_in": "Rodapé do manual inicial",
+      "format": "SVG",
+      "viewBox": "0 0 800 200",
+      "theme": "Transparente, cores de baixa opacidade; claro e escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/decorative/sparkles.svg",
+      "purpose": "Brilhos decorativos",
+      "used_in": "Conclusão do manual",
+      "format": "SVG",
+      "viewBox": "0 0 120 120",
+      "theme": "Transparente; claro e escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/decorative/dots-corner.svg",
+      "purpose": "Pontos decorativos de canto",
+      "used_in": "Elemento decorativo",
+      "format": "SVG",
+      "viewBox": "0 0 120 120",
+      "theme": "Transparente; claro e escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/decorative/empty-state.svg",
+      "purpose": "Ilustração de estado vazio dos módulos",
+      "used_in": "Listas vazias",
+      "format": "SVG",
+      "viewBox": "0 0 240 160",
+      "theme": "Fundo claro próprio; legível em escuro",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    },
+    {
+      "path": "assets/icons/app-icon.svg",
+      "purpose": "Ícone do aplicativo (fonte vetorial)",
+      "used_in": "Barra lateral, favicon, base para app-icon.ico",
+      "format": "SVG",
+      "viewBox": "0 0 512 512",
+      "theme": "Gradiente próprio",
+      "author": "criado para o projeto",
+      "license": "uso no projeto PERSONAL LIFE ULTRA"
+    }
+  ]
+}

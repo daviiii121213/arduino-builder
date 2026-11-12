@@ -1,0 +1,132 @@
+{
+  "generated_for": "PERSONAL LIFE ULTRA 1.0.0",
+  "all_local": true,
+  "images": [
+    {
+      "path": "assets/onboarding/welcome/welcome-hero.svg",
+      "format": "svg",
+      "viewBox": "0 0 520 340",
+      "bytes": 2797,
+      "remote": false
+    },
+    {
+      "path": "assets/onboarding/welcome/welcome-panel.svg",
+      "format": "svg",
+      "viewBox": "0 0 520 340",
+      "bytes": 3027,
+      "remote": false
+    },
+    {
+      "path": "assets/onboarding/profile/profile-card.svg",
+      "format": "svg",
+      "viewBox": "0 0 480 320",
+      "bytes": 1252,
+      "remote": false
+    },
+    {
+      "path": "assets/onboarding/workspaces/personal-family.svg",
+      "format": "svg",
+      "viewBox": "0 0 480 320",
+      "bytes": 2257,
+      "remote": false
+    },
+    {
+      "path": "assets/onboarding/family/family-group.svg",
+      "format": "svg",
+      "viewBox": "0 0 480 320",
+      "bytes": 1833,
+      "remote": false
+    },
+    {
+      "path": "assets/onboarding/personalization/themes.svg",
+      "format": "svg",
+      "viewBox": "0 0 480 320",
+      "bytes": 1754,
+      "remote": false
+    },
+    {
+      "path": "assets/onboarding/modules/modules-grid.svg",
+      "format": "svg",
+      "viewBox": "0 0 480 320",
+      "bytes": 4692,
+      "remote": false
+    },
+    {
+      "path": "assets/onboarding/security/local-shield.svg",
+      "format": "svg",
+      "viewBox": "0 0 480 320",
+      "bytes": 1241,
+      "remote": false
+    },
+    {
+      "path": "assets/onboarding/first-access/checklist.svg",
+      "format": "svg",
+      "viewBox": "0 0 480 320",
+      "bytes": 1539,
+      "remote": false
+    },
+    {
+      "path": "assets/mockups/dashboard-mockup.svg",
+      "format": "svg",
+      "viewBox": "0 0 640 400",
+      "bytes": 2349,
+      "remote": false
+    },
+    {
+      "path": "assets/mockups/calendar-mockup.svg",
+      "format": "svg",
+      "viewBox": "0 0 640 400",
+      "bytes": 3784,
+      "remote": false
+    },
+    {
+      "path": "assets/mockups/finance-mockup.svg",
+      "format": "svg",
+      "viewBox": "0 0 640 400",
+      "bytes": 2227,
+      "remote": false
+    },
+    {
+      "path": "assets/backgrounds/soft-grid.svg",
+      "format": "svg",
+      "viewBox": "0 0 400 400",
+      "bytes": 345,
+      "remote": false
+    },
+    {
+      "path": "assets/backgrounds/waves.svg",
+      "format": "svg",
+      "viewBox": "0 0 800 200",
+      "bytes": 316,
+      "remote": false
+    },
+    {
+      "path": "assets/decorative/sparkles.svg",
+      "format": "svg",
+      "viewBox": "0 0 120 120",
+      "bytes": 312,
+      "remote": false
+    },
+    {
+      "path": "assets/decorative/dots-corner.svg",
+      "format": "svg",
+      "viewBox": "0 0 120 120",
+      "bytes": 1513,
+      "remote": false
+    },
+    {
+      "path": "assets/decorative/empty-state.svg",
+      "format": "svg",
+      "viewBox": "0 0 240 160",
+      "bytes": 946,
+      "remote": false
+    },
+    {
+      "path": "assets/icons/app-icon.svg",
+      "format": "svg",
+      "viewBox": "0 0 512 512",
+      "bytes": 496,
+      "remote": false
+    }
+  ]
+}
