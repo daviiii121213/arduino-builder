@@ -9,4 +9,3 @@ src-tauri/gen/
 .DS_Store
 dist-web/
 entrega/
-src/wasm-pkg/wasm-b64.ts
