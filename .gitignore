@@ -1,0 +1,9 @@
+node_modules/
+dist/
+target/
+.devdata/
+*.log
+/test-results/
+/playwright-report/
+src-tauri/gen/
+.DS_Store
