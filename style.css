@@ -564,6 +564,13 @@ html:not(.js) .svc__icon { stroke-dashoffset: 0; }
   transition: background-color .5s var(--ease), color .5s var(--ease), transform .6s var(--ease-out);
 }
 .pro:hover .pro__mono { background: var(--brand); color: #fff; transform: rotate(-10deg); }
+/* foto do profissional no lugar da inicial */
+.pro__photo {
+  width: 76px; height: 76px; object-fit: cover; padding: 3px; background: var(--bg);
+  box-shadow: 0 0 0 1px var(--brand-hi);
+  border: 0;
+}
+.pro:hover .pro__photo { background: var(--bg); transform: scale(1.06); box-shadow: 0 0 0 2px var(--brand-hi); }
 .pro__name { font-size: 30px; }
 .pro__role { margin-top: 6px; color: var(--muted); font-size: 14px; }
 .pro__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }

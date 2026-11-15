@@ -10,6 +10,7 @@ Cada foto tem duas versões: grande (~1150–1600 px) e `-sm` (560–800 px).
 | `fachada.webp` / `fachada-sm.webp` | Imagem de compartilhamento e dados estruturados (o topo agora usa vídeo) |
 | `equipe` | Galeria, Profissionais |
 | `barba`, `finalizacao`, `barbeiro`, `acabamento`, `lavatorios` | Galeria, Experiência |
+| `junior.webp` | Foto do Junior no cartão de Profissionais (enviada pelo cliente) |
 | `og-image.jpg` | Compartilhamento (recorte do letreiro da fachada) |
 
 Logo oficial: `../logo-light.webp|png` (fundo escuro), `../logo-dark.png` (fundo claro),

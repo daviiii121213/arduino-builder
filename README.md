@@ -46,5 +46,5 @@ segunda unidade, avaliações, outros profissionais.
 1. Fotos originais em alta resolução (as recebidas têm ~290 px de largura).
 2. Preços/duração → atributos `data-price` / `data-duration` de cada serviço.
 3. Horários → seção Localização.
-4. Foto e especialidade do Junior; outros profissionais.
+4. Outros profissionais (nome, foto, Instagram), se houver.
 5. Confirmar o número do WhatsApp → `CONFIG.whatsapp` em `script.js` (e links `wa.me` no HTML).
