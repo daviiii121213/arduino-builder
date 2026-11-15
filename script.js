@@ -278,61 +278,7 @@
   });
   $('#bookForm').addEventListener('submit', (e) => e.preventDefault());
 
-  /* ---------- Galeria: lightbox ---------- */
-  const lb = $('#lightbox');
-  const lbImg = $('#lbImg');
-  const lbCap = $('#lbCap');
-  const lbCount = $('#lbCount');
-  const shots = $$('#gallery .shot').sort((a, b) =>
-    parseInt($('.shot__cap .mono', a).textContent, 10) - parseInt($('.shot__cap .mono', b).textContent, 10));
-  let current = 0;
-  let opener = null;
-  const pad = (n) => String(n).padStart(2, '0');
-
-  const show = (index, animate = true) => {
-    current = (index + shots.length) % shots.length;
-    const shot = shots[current];
-    const apply = () => {
-      lbImg.src = shot.dataset.full;
-      lbImg.alt = $('img', shot).alt;
-      lbCap.textContent = shot.dataset.caption;
-      lbCount.textContent = `${pad(current + 1)} / ${pad(shots.length)}`;
-      const done = () => lbImg.classList.remove('is-swap');
-      if (lbImg.complete) requestAnimationFrame(done); else lbImg.addEventListener('load', done, { once: true });
-    };
-    if (animate && !reduced) { lbImg.classList.add('is-swap'); setTimeout(apply, 280); } else apply();
-  };
-
-  if (lb && typeof lb.showModal === 'function') {
-    shots.forEach((shot, i) => shot.addEventListener('click', () => {
-      opener = shot;
-      show(i, false);
-      lb.showModal();
-      document.body.classList.add('menu-open');
-      $('[data-lb="next"]', lb).focus();
-    }));
-    lb.addEventListener('close', () => { document.body.classList.remove('menu-open'); opener?.focus(); });
-    lb.addEventListener('click', (e) => {
-      const action = e.target.closest('[data-lb]')?.dataset.lb;
-      if (action === 'close' || e.target === lb || e.target.classList.contains('lb__stage')) lb.close();
-      else if (action === 'prev') show(current - 1);
-      else if (action === 'next') show(current + 1);
-    });
-    lb.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') show(current - 1);
-      if (e.key === 'ArrowRight') show(current + 1);
-    });
-    let touchX = null;
-    lb.addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
-    lb.addEventListener('touchend', (e) => {
-      if (touchX === null) return;
-      const dx = e.changedTouches[0].clientX - touchX;
-      if (Math.abs(dx) > 50) show(current + (dx < 0 ? 1 : -1));
-      touchX = null;
-    });
-  }
-
-  /* ---------- Vídeos (hero e Experiência) ----------
+  /* ---------- Vídeos (hero, Experiência, Galeria e Profissionais) ----------
      Carregam só quando chegam perto da tela. Tocam em loop enquanto visíveis;
      ao sair da tela (ou da aba) pausam, e ao voltar recomeçam do início. */
   $$('video[data-video]').forEach((video) => {
