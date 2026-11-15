@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700;800;900&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="preload" as="image" href="assets/img/fachada.webp" imagesrcset="assets/img/fachada-sm.webp 800w, assets/img/fachada.webp 1600w" imagesizes="(min-width: 960px) 58vw, 100vw" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/video/hero-poster.webp" fetchpriority="high">
   <script>document.documentElement.classList.add('js');</script>
   <link rel="stylesheet" href="style.css">
 
@@ -146,12 +146,10 @@
     <section class="hero" id="inicio" aria-labelledby="hero-title">
       <div class="hero__media">
         <div class="hero__frame" data-parallax="0.12">
-          <img class="hero__img"
-               src="assets/img/fachada.webp"
-               srcset="assets/img/fachada-sm.webp 800w, assets/img/fachada.webp 1600w"
-               sizes="(min-width: 960px) 58vw, 100vw"
-               alt="Fachada da AT/TUDE Barbearia à noite, com o letreiro aceso e o salão iluminado"
-               width="1600" height="2598" fetchpriority="high" decoding="async">
+          <!-- Vídeo do hero em loop; recomeça do início ao voltar à tela ou à aba (script.js) -->
+          <video class="hero__img" id="heroVideo" data-video data-src="assets/video/hero"
+                 muted loop playsinline preload="none" poster="assets/video/hero-poster.webp"
+                 aria-label="Vídeo da AT/TUDE Barbearia: clientes com a capa da marca durante e após o corte"></video>
         </div>
         <span class="hero__veil" aria-hidden="true"></span>
       </div>
@@ -254,7 +252,7 @@
         <figure class="xp__main" data-reveal="mask">
           <div class="xp__frame" data-parallax="0.08">
             <!-- Vídeo em loop; reinicia do começo quando volta à tela ou à aba (script.js) -->
-            <video class="xp__video" id="xpVideo" muted loop playsinline preload="none"
+            <video class="xp__video" id="xpVideo" data-video muted loop playsinline preload="none"
                    poster="assets/video/experiencia-poster.webp"
                    data-src="assets/video/experiencia"
                    aria-label="Vídeo da AT/TUDE Barbearia: finalização de corte com spray e o resultado no cliente"></video>

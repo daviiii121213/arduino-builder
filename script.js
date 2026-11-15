@@ -332,11 +332,11 @@
     });
   }
 
-  /* ---------- Vídeo da Experiência ----------
-     Carrega só quando chega perto da tela. Toca em loop enquanto visível;
-     ao sair da tela (ou da aba) pausa, e ao voltar recomeça do início. */
-  const video = $('#xpVideo');
-  if (video) {
+  /* ---------- Vídeos (hero e Experiência) ----------
+     Carregam só quando chegam perto da tela. Tocam em loop enquanto visíveis;
+     ao sair da tela (ou da aba) pausam, e ao voltar recomeçam do início. */
+  $$('video[data-video]').forEach((video) => {
+    const box = video.parentElement;
     let loaded = false, inView = false, left = false;
     const load = () => {
       if (loaded) return;
@@ -350,31 +350,30 @@
     const restart = () => { try { video.currentTime = 0; } catch (e) { /* ainda sem metadados */ } play(); };
 
     if (reduced) {
-      // movimento reduzido: sem reprodução automática; controles para tocar se quiser
-      video.controls = true;
-      video.preload = 'metadata';
-      load();
-    } else {
-      new IntersectionObserver((entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            load();
-            inView = true;
-            if (left) { left = false; restart(); } else play();
-          } else if (inView) {
-            inView = false;
-            left = true;
-            video.pause();
-          }
-        });
-      }, { rootMargin: '200px 0px', threshold: 0.25 }).observe(video.closest('.xp__main'));
-
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) { if (!video.paused) { video.pause(); left = true; } }
-        else if (inView && left) { left = false; restart(); }
-      });
+      // movimento reduzido: sem reprodução automática. No hero fica a capa;
+      // nas demais seções, controles para tocar se a pessoa quiser.
+      if (!video.closest('.hero')) { video.controls = true; video.preload = 'metadata'; load(); }
+      return;
     }
-  }
+    new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          load();
+          inView = true;
+          if (left) { left = false; restart(); } else play();
+        } else if (inView) {
+          inView = false;
+          left = true;
+          video.pause();
+        }
+      });
+    }, { rootMargin: '200px 0px', threshold: 0.25 }).observe(box);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { if (!video.paused) { video.pause(); left = true; } }
+      else if (inView && left) { left = false; restart(); }
+    });
+  });
 
   /* ---------- Short do YouTube (Profissionais) ----------
      Mesmo comportamento do vídeo da Experiência: loop sem som, pausa fora da
