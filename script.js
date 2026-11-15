@@ -344,7 +344,8 @@
       // 1080p em telas grandes/densas, 720p no celular; WebM (menor) quando suportado, senão MP4
       const big = window.matchMedia('(min-width: 760px) and (min-resolution: 1.5dppx), (min-width: 1200px)').matches;
       const webm = video.canPlayType('video/webm; codecs="vp9"') === 'probably';
-      video.src = `${video.dataset.src}-${big ? 1080 : 720}.${webm ? 'webm' : 'mp4'}`;
+      // data-res fixa a resolução (vídeos pequenos na página só têm 720p)
+      video.src = `${video.dataset.src}-${video.dataset.res || (big ? 1080 : 720)}.${webm ? 'webm' : 'mp4'}`;
     };
     const play = () => { const p = video.play(); if (p) p.catch(() => {}); };
     const restart = () => { try { video.currentTime = 0; } catch (e) { /* ainda sem metadados */ } play(); };
