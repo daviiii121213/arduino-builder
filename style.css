@@ -496,6 +496,10 @@ html:not(.js) .svc__icon { stroke-dashoffset: 0; }
   .masonry { display: flex; gap: 20px; align-items: flex-start; }
   .masonry__col { display: flex; flex-direction: column; gap: 20px; flex: 1; min-width: 0; will-change: transform; }
   .masonry__col--offset { margin-top: 140px; }
+  /* galeria com 4 fotos: 2 colunas, mais estreita e centralizada */
+  .masonry--2 { max-width: 920px; margin-inline: auto; gap: 24px; }
+  .masonry--2 .masonry__col { gap: 24px; }
+  .masonry--2 .masonry__col--offset { margin-top: 120px; }
   .shot { aspect-ratio: 4 / 5; }
   .shot--tall { aspect-ratio: 2 / 3; }
   .shot--square { aspect-ratio: 1; }
@@ -540,15 +544,9 @@ html:not(.js) .svc__icon { stroke-dashoffset: 0; }
 .pros { background: var(--bg-2); }
 .pros__grid { display: grid; gap: 48px; align-items: center; }
 .pros__photo { display: grid; gap: 14px; }
-.pros__frame { overflow: hidden; aspect-ratio: 4 / 5; max-width: 100%; }
+.pros__frame { overflow: hidden; aspect-ratio: 3 / 4; max-width: 100%; background: var(--surface); }
 .pros__frame { position: relative; }
-.pros__frame img { width: 100%; height: 112%; object-fit: cover; margin-top: -6%; }
-/* Short vertical (9:16) recortado para preencher a moldura, como object-fit: cover */
-.pros__yt {
-  position: absolute; left: 0; top: 50%; width: 100%; aspect-ratio: 9 / 16; transform: translateY(-50%);
-  border: 0; pointer-events: none; opacity: 0; transition: opacity .8s var(--ease);
-}
-.pros__yt.is-ready { opacity: 1; }
+.pros__frame img, .pros__video { display: block; width: 100%; height: 112%; object-fit: cover; margin-top: -6%; }
 .pros__list { display: grid; gap: 16px; margin-top: 40px; }
 .pro {
   display: grid; gap: 22px; padding: 28px; border: 1px solid var(--line); border-radius: var(--r);
