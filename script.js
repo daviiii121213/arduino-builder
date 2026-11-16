@@ -278,59 +278,6 @@
   });
   $('#bookForm').addEventListener('submit', (e) => e.preventDefault());
 
-  /* ---------- Galeria: vídeo em tela cheia ----------
-     Abre num painel que cobre a tela (e tenta o modo tela cheia do navegador);
-     setas/deslize trocam de vídeo, Esc ou × fecha. */
-  const vp = $('#videoPlayer');
-  const vpVideo = $('#vpVideo');
-  const thumbs = $$('#gallery .reel__thumb');
-  let vpIndex = 0, vpOpener = null;
-  const vpShow = (i) => {
-    vpIndex = (i + thumbs.length) % thumbs.length;
-    const t = thumbs[vpIndex];
-    const webm = vpVideo.canPlayType('video/webm; codecs="vp9"') === 'probably';
-    vpVideo.src = `${t.dataset.full}-720.${webm ? 'webm' : 'mp4'}`;
-    vpVideo.muted = true;
-    $('#vpCap').textContent = t.dataset.caption;
-    $('#vpCount').textContent = `${String(vpIndex + 1).padStart(2, '0')} / ${String(thumbs.length).padStart(2, '0')}`;
-    const p = vpVideo.play(); if (p) p.catch(() => {});
-  };
-  if (vp && typeof vp.showModal === 'function') {
-    thumbs.forEach((t, i) => t.addEventListener('click', () => {
-      vpOpener = t;
-      vpShow(i);
-      vp.showModal();
-      document.body.classList.add('menu-open');
-      // tela cheia real quando o navegador permitir; senão o painel já cobre a tela
-      if (vp.requestFullscreen && window.matchMedia('(pointer: coarse)').matches) vp.requestFullscreen().catch(() => {});
-      $('[data-vp="close"]', vp).focus();
-    }));
-    vp.addEventListener('close', () => {
-      vpVideo.pause(); vpVideo.removeAttribute('src'); vpVideo.load();
-      document.body.classList.remove('menu-open');
-      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-      vpOpener?.focus();
-    });
-    vp.addEventListener('click', (e) => {
-      const a = e.target.closest('[data-vp]')?.dataset.vp;
-      if (a === 'close') vp.close();
-      else if (a === 'prev') vpShow(vpIndex - 1);
-      else if (a === 'next') vpShow(vpIndex + 1);
-    });
-    vp.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') { e.preventDefault(); vpShow(vpIndex - 1); }
-      if (e.key === 'ArrowRight') { e.preventDefault(); vpShow(vpIndex + 1); }
-    });
-    let tx = null;
-    vp.addEventListener('touchstart', (e) => { tx = e.touches[0].clientX; }, { passive: true });
-    vp.addEventListener('touchend', (e) => {
-      if (tx === null) return;
-      const dx = e.changedTouches[0].clientX - tx;
-      if (Math.abs(dx) > 60) vpShow(vpIndex + (dx < 0 ? 1 : -1));
-      tx = null;
-    });
-  }
-
   /* ---------- Vídeos (hero, Experiência, Galeria e Profissionais) ----------
      Carregam só quando chegam perto da tela. Tocam em loop enquanto visíveis;
      ao sair da tela (ou da aba) pausam, e ao voltar recomeçam do início. */

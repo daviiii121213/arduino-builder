@@ -19,6 +19,6 @@ mas fotos originais em alta resolução continuam sendo a melhor opção.
 
 ## Vídeo
 
-`../video/hero-*` (vídeo do topo, 13 s), `../video/profissionais-*` (vídeo da seção Profissionais, 21 s), `../video/galeria-{a,b}-720.*` (galeria: fileira de 4, alternados, abrem em tela cheia) e `../video/experiencia-{1080,720}.{webm,mp4}` — vídeo enviado pelo cliente (4K, 12 s),
+`../video/hero-*` (vídeo do topo, 13 s), `../video/profissionais-*` (vídeo da seção Profissionais, 21 s), `../video/galeria-{a,b}-720.*` (galeria: os dois vídeos lado a lado) e `../video/experiencia-{1080,720}.{webm,mp4}` — vídeo enviado pelo cliente (4K, 12 s),
 sem áudio, comprimido para a web. O site escolhe WebM (menor) ou MP4 conforme o
 navegador, e 1080p ou 720p conforme a tela. `experiencia-poster.webp` é a capa.
