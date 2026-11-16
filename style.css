@@ -463,7 +463,9 @@ html:not(.js) .svc__icon { stroke-dashoffset: 0; }
 /* ==========================================================================
    Galeria — dois vídeos verticais lado a lado
    ========================================================================== */
-.reel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 820px; margin-inline: auto; }
+.reel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-inline: auto;
+  /* nunca mais altos que ~85% da tela (ex.: celular deitado) */
+  max-width: min(820px, calc(85vh * 9 / 16 * 2 + 24px)); max-width: min(820px, calc(85svh * 9 / 16 * 2 + 24px)); }
 .reel__item { min-width: 0; }
 .reel__thumb {
   position: relative; margin: 0; width: 100%; aspect-ratio: 9 / 16; max-width: 100%; overflow: hidden;
