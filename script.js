@@ -30,21 +30,80 @@
     a.href = waLink({ services: service ? [service] : [], pro: a.dataset.pro || '' });
   });
 
-  /* ---------- Abertura ---------- */
-  const start = performance.now();
+  /* ---------- Abertura ----------
+     A tela de carregamento só sai quando todos os vídeos terminaram de baixar.
+     Cada vídeo é baixado inteiro (fetch) e entregue ao <video> como blob, então
+     depois disso toca sem travar. A barra e a porcentagem mostram o progresso real. */
+  const loaderBar = $('#loaderBar');
+  const loaderPct = $('#loaderPct');
+  const loaderEl = $('#loader');
   const reveal = () => {
     if (root.classList.contains('is-loaded')) return;
     root.classList.add('is-loaded');
-    setTimeout(() => $('#loader')?.remove(), 1200);
+    setTimeout(() => loaderEl?.remove(), 1200);
+    initVideos();
   };
   $$('.hero [data-hero]').forEach((el, i) => el.style.setProperty('--d', (0.35 + i * 0.12).toFixed(2)));
-  if (reduced) {
+
+  const allVideos = $$('video[data-video]');
+  const videoUrl = (video) => {
+    // 1080p em telas grandes/densas, 720p no celular; WebM (menor) quando suportado, senão MP4.
+    // data-res fixa a resolução (vídeos pequenos na página só têm 720p).
+    const big = window.matchMedia('(min-width: 760px) and (min-resolution: 1.5dppx), (min-width: 1200px)').matches;
+    const webm = video.canPlayType('video/webm; codecs="vp9"') === 'probably';
+    return `${video.dataset.src}-${video.dataset.res || (big ? 1080 : 720)}.${webm ? 'webm' : 'mp4'}`;
+  };
+  const setProgress = (p) => {
+    const pct = Math.min(100, Math.round(p * 100));
+    if (loaderBar) loaderBar.style.transform = `scaleX(${p.toFixed(3)})`;
+    if (loaderPct) loaderPct.textContent = `${pct}%`;
+    loaderEl?.setAttribute('aria-valuenow', pct);
+  };
+  const preloadVideos = () => {
+    // a mesma URL aparece em mais de um <video>: baixa uma vez e compartilha
+    const urls = [...new Set(allVideos.map(videoUrl))];
+    const frac = urls.map(() => 0);
+    const update = () => setProgress(frac.reduce((s, f) => s + f, 0) / (urls.length || 1));
+    const blobs = {};
+    return Promise.all(urls.map(async (url, i) => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok || !res.body) throw new Error(res.status);
+        const total = +res.headers.get('content-length') || 0;
+        const reader = res.body.getReader();
+        const chunks = [];
+        let got = 0;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          got += value.length;
+          if (total) { frac[i] = Math.min(got / total, 0.99); update(); }
+        }
+        blobs[url] = URL.createObjectURL(new Blob(chunks, { type: res.headers.get('content-type') || '' }));
+      } catch (e) { /* sem fetch/stream: o vídeo usa a URL direta */ }
+      frac[i] = 1; update();
+    })).then(() => {
+      allVideos.forEach((v) => { v.src = blobs[videoUrl(v)] || videoUrl(v); v.dataset.ready = '1'; });
+    });
+  };
+
+  if (reduced || !allVideos.length) {
     reveal();
   } else {
-    const minShow = 950; // abertura curta: nunca deixa o site lento
-    const go = () => setTimeout(reveal, Math.max(0, minShow - (performance.now() - start)));
-    if (document.readyState === 'complete') go(); else window.addEventListener('load', go, { once: true });
-    setTimeout(reveal, 2200); // garantia caso alguma imagem demore
+    const start = performance.now();
+    const minShow = 900; // a animação do logo sempre completa
+    const pageLoaded = new Promise((r) => (document.readyState === 'complete' ? r() : window.addEventListener('load', r, { once: true })));
+    Promise.all([preloadVideos(), pageLoaded]).then(() => {
+      setProgress(1);
+      setTimeout(reveal, Math.max(250, minShow - (performance.now() - start)));
+    });
+    // garantia para conexões muito lentas: abre o site depois de 30 s e os vídeos seguem carregando
+    setTimeout(() => {
+      if (root.classList.contains('is-loaded')) return;
+      allVideos.forEach((v) => { if (!v.dataset.ready) { v.src = videoUrl(v); v.dataset.ready = '1'; } });
+      reveal();
+    }, 30000);
   }
 
   /* ---------- Títulos em linhas: separa palavras ---------- */
@@ -279,48 +338,45 @@
   $('#bookForm').addEventListener('submit', (e) => e.preventDefault());
 
   /* ---------- Vídeos (hero, Experiência, Galeria e Profissionais) ----------
-     Carregam só quando chegam perto da tela. Tocam em loop enquanto visíveis;
+     Já estão carregados quando a abertura sai. Tocam em loop enquanto visíveis;
      ao sair da tela (ou da aba) pausam, e ao voltar recomeçam do início. */
-  $$('video[data-video]').forEach((video) => {
-    const box = video.parentElement;
-    let loaded = false, inView = false, left = false;
-    const load = () => {
-      if (loaded) return;
-      loaded = true;
-      // 1080p em telas grandes/densas, 720p no celular; WebM (menor) quando suportado, senão MP4
-      const big = window.matchMedia('(min-width: 760px) and (min-resolution: 1.5dppx), (min-width: 1200px)').matches;
-      const webm = video.canPlayType('video/webm; codecs="vp9"') === 'probably';
-      // data-res fixa a resolução (vídeos pequenos na página só têm 720p)
-      video.src = `${video.dataset.src}-${video.dataset.res || (big ? 1080 : 720)}.${webm ? 'webm' : 'mp4'}`;
-    };
-    const play = () => { const p = video.play(); if (p) p.catch(() => {}); };
-    const restart = () => { try { video.currentTime = 0; } catch (e) { /* ainda sem metadados */ } play(); };
-
-    if (reduced) {
-      // movimento reduzido: sem reprodução automática. No hero fica a capa;
-      // nas demais seções, controles para tocar se a pessoa quiser.
-      if (!video.closest('.hero')) { video.controls = true; video.preload = 'metadata'; load(); }
-      return;
-    }
-    new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting) {
-          load();
-          inView = true;
-          if (left) { left = false; restart(); } else play();
-        } else if (inView) {
-          inView = false;
-          left = true;
-          video.pause();
-        }
+  function initVideos() {
+    allVideos.forEach((video) => {
+      const box = video.parentElement;
+      let inView = false, left = false;
+      if (!video.dataset.ready && !(reduced && video.closest('.hero'))) { video.src = videoUrl(video); video.dataset.ready = '1'; }
+      // se o navegador recusar a cópia pré-carregada (blob), usa o arquivo normal
+      video.addEventListener('error', () => {
+        if (video.src.startsWith('blob:')) { video.src = videoUrl(video); if (inView) play(); }
       });
-    }, { rootMargin: '200px 0px', threshold: 0.25 }).observe(box);
+      const play = () => { const p = video.play(); if (p) p.catch(() => {}); };
+      const restart = () => { try { video.currentTime = 0; } catch (e) { /* ainda sem metadados */ } play(); };
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { if (!video.paused) { video.pause(); left = true; } }
-      else if (inView && left) { left = false; restart(); }
+      if (reduced) {
+        // movimento reduzido: sem reprodução automática. No hero fica a capa;
+        // nas demais seções, controles para tocar se a pessoa quiser.
+        if (!video.closest('.hero')) { video.controls = true; video.preload = 'metadata'; }
+        return;
+      }
+      new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            inView = true;
+            if (left) { left = false; restart(); } else play();
+          } else if (inView) {
+            inView = false;
+            left = true;
+            video.pause();
+          }
+        });
+      }, { threshold: 0.25 }).observe(box);
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { if (!video.paused) { video.pause(); left = true; } }
+        else if (inView && left) { left = false; restart(); }
+      });
     });
-  });
+  }
 
   /* ---------- Ano ---------- */
   $('#year').textContent = new Date().getFullYear();

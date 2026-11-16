@@ -59,10 +59,11 @@
 <body>
   <a class="skip" href="#conteudo">Pular para o conteúdo</a>
 
-  <!-- Abertura: logo oficial, ~1s -->
-  <div class="loader" id="loader" aria-hidden="true">
+  <!-- Abertura: logo oficial; fica até todos os vídeos terminarem de carregar (script.js) -->
+  <div class="loader" id="loader" role="progressbar" aria-label="Carregando o site" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
     <img class="loader__logo" src="assets/logo-light.webp" alt="" width="816" height="405">
-    <span class="loader__line"></span>
+    <span class="loader__line"><span class="loader__bar" id="loaderBar"></span></span>
+    <span class="loader__pct mono" id="loaderPct">0%</span>
   </div>
 
   <div class="progress" aria-hidden="true"><span id="progress"></span></div>
@@ -312,7 +313,6 @@
                    muted loop playsinline preload="none" poster="assets/video/profissionais-poster.webp"
                    aria-label="Vídeo da AT/TUDE Barbearia: cortes, acabamentos e o visagista em atendimento"></video>
           </div>
-          <figcaption class="mono">Equipe AT/TUDE em atendimento</figcaption>
         </figure>
 
         <div class="pros__text">

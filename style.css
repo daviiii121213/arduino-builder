@@ -118,7 +118,9 @@ fieldset { border: 0; margin: 0; padding: 0; }
 }
 .loader__logo { width: min(320px, 62vw); clip-path: inset(0 100% 0 0); animation: wipe .9s var(--ease-out) .1s forwards; }
 .loader__line { width: min(320px, 62vw); height: 1px; background: var(--line-2); position: relative; overflow: hidden; }
-.loader__line::after { content: ""; position: absolute; inset: 0; background: var(--brand-hi); transform: scaleX(0); transform-origin: left; animation: grow 1s var(--ease-io) .15s forwards; }
+/* barra de progresso real: avança conforme os vídeos baixam */
+.loader__bar { position: absolute; inset: 0; background: var(--brand-hi); transform: scaleX(0); transform-origin: left; transition: transform .35s var(--ease-out); }
+.loader__pct { margin-top: -14px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 4ch; text-align: center; }
 @keyframes wipe { to { clip-path: inset(0 0 0 0); } }
 @keyframes grow { to { transform: scaleX(1); } }
 .is-loaded .loader { transform: translateY(-100%); visibility: hidden; }
