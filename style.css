@@ -476,8 +476,6 @@ html:not(.js) .svc__icon { stroke-dashoffset: 0; }
 .reel__num { position: absolute; left: 14px; bottom: 12px; z-index: 1; color: var(--brand-hi); }
 @media (min-width: 760px) {
   .reel { gap: 24px; }
-  /* o segundo vídeo desce um pouco: mesmo ritmo desencontrado do resto do site */
-  .reel__item:nth-child(2) { margin-top: 96px; }
 }
 
 /* ==========================================================================
