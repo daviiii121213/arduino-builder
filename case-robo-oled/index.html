@@ -208,7 +208,7 @@ summary .sub { font-weight: 400; color: var(--muted); font-size: 12px; margin-le
    ===================================================================== */
 const DEFAULTS = Object.freeze({
   W: 100, H: 80, D: 40, t: 2, r: 8, lidT: 2, tol: 0.3, screw: 'M2.5', divT: 2,
-  winW: 24, winH: 13, oledY: 12, btnD: 7, btnY: -26,
+  winW: 24, winH: 13, oledY: 12, btnD: 7, btnY: -26, btnPos: 'top', btnX: 0, btnZ: 13,
   espL: 55, espW: 32, espH: 13, espY: 0, espGap: 1, usbW: 12, usbH: 7,
   batL: 53, batW: 38, batT: 10, batClr: 1, batX: 0, batY: 0,
   chgL: 26, chgW: 17, chgH: 5, chgY: 0, chgUsb: false,
@@ -240,10 +240,13 @@ const GROUPS = [
     ['lidT', 'Espessura da tampa', 1.2, 4, 0.1], ['tol', 'Folga de impressão', 0.1, 0.6, 0.05, 'por lado, entre peças que encaixam'],
     ['screw', 'Parafusos da tampa', 'select', Object.keys(SCREWS)], ['divT', 'Espessura da divisória', 1.2, 3, 0.1],
   ]},
-  { id: 'front', title: 'Frente: tela e botão', fields: [
+  { id: 'front', title: 'Tela e botão', fields: [
     ['winW', 'Janela da tela, largura', 15, 27, 0.1, 'área ativa SSD1306 0,96": 21,7 × 10,9'],
     ['winH', 'Janela da tela, altura', 8, 19, 0.1], ['oledY', 'Posição vertical da tela', -30, 40, 0.5, '0 = centro da frente'],
-    ['btnD', 'Furo do botão (Ø)', 4, 12, 0.1], ['btnY', 'Posição vertical do botão', -60, 20, 0.5],
+    ['btnPos', 'Posição do botão', 'select', [['top', 'Topo da case'], ['front', 'Frente, abaixo da tela']]],
+    ['btnD', 'Furo do botão (Ø)', 4, 12, 0.1], ['btnX', 'Posição horizontal do botão', -40, 40, 0.5, '0 = centro da largura'],
+    ['btnZ', 'Distância do botão até a frente', 6, 70, 0.5, 'centro do furo, medido no topo', p => p.btnPos === 'top'],
+    ['btnY', 'Posição vertical do botão', -60, 20, 0.5, 'na face frontal', p => p.btnPos === 'front'],
   ]},
   { id: 'esp', title: 'ESP32 DevKit V1', fields: [
     ['espL', 'Comprimento da placa', 45, 65, 0.5], ['espW', 'Largura da placa', 24, 36, 0.5],
@@ -275,13 +278,14 @@ function sanitize(obj) {
   const out = { ...DEFAULTS };
   for (const g of GROUPS) for (const f of g.fields) {
     const [k, , min, max] = f; const v = obj[k];
-    if (min === 'select') { if (SCREWS[v]) out[k] = v; }
+    if (min === 'select') { if (max.some(o => optVal(o) === v)) out[k] = v; }
     else if (min === 'check') { out[k] = !!v; }
     else if (typeof v === 'number' && isFinite(v)) out[k] = Math.min(max, Math.max(min, v));
   }
   out.r = clampRadius(out);
   return out;
 }
+function optVal(o) { return Array.isArray(o) ? o[0] : o; }
 function clampRadius(p) { return Math.min(Math.max(p.r, p.t + 0.5), Math.min(p.W, p.H) / 2 - 1); }
 
 /* =====================================================================
@@ -336,9 +340,20 @@ function computeLayout(P) {
   L.oled = o;
 
   // Botão: capa com flange interna + chave táctil 12 × 12 em placa 14 × 14
-  const b = { y: P.btnY };
-  b.fl0 = L.zFi - K.capFlT; b.act1 = b.fl0 - K.capPre; b.act0 = b.act1 - K.btnAct; b.sw0 = b.act0 - K.btnSwH; b.pcb0 = b.sw0 - 1.6;
-  b.frameIn = K.btnPcb / 2 + P.tol; b.frameOut = b.frameIn + K.clipT;
+  // Coordenadas locais do botão: u, v no plano da face; w para fora (w = 0 na face externa).
+  // A matriz M leva o botão para a frente (eixo +Z) ou para o topo (eixo +Y).
+  const b = { top: P.btnPos === 'top', x: P.btnX };
+  b.wi = -P.t; b.fl0 = b.wi - K.capFlT; b.act1 = b.fl0 - K.capPre; b.act0 = b.act1 - K.btnAct; b.sw0 = b.act0 - K.btnSwH; b.pcb0 = b.sw0 - 1.6;
+  b.frameIn = K.btnPcb / 2 + P.tol; b.frameOut = b.frameIn + K.clipT; b.back = b.pcb0 - 0.9;
+  if (b.top) {
+    b.y = P.H / 2; b.z = L.zF - P.btnZ;
+    b.M = new THREE.Matrix4().makeBasis(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 1, 0)).setPosition(b.x, b.y, b.z);
+    b.patch = P.btnD / 2 + 2.5;
+    L.holes.push({ id: 'btn', side: 'T', u0: b.x - b.patch, u1: b.x + b.patch, z0: b.z - b.patch, z1: b.z + b.patch });
+  } else {
+    b.y = P.btnY; b.z = L.zF;
+    b.M = new THREE.Matrix4().makeTranslation(b.x, b.y, b.z);
+  }
   L.btn = b;
   return L;
 }
@@ -395,15 +410,19 @@ function ringStations(P, gaps) {
   arc(-xs, -ys, 180, 270); add(xs, -Hh, xs, -Hh + t); arc(xs, -ys, 270, 360);
   for (const g of gaps.filter(g => g.side === 'R').sort((a, b) => a.u0 - b.u0)) { add(Wh, g.u0, Wh - t, g.u0, g.id + 'a'); add(Wh, g.u1, Wh - t, g.u1, g.id + 'b'); }
   add(Wh, ys, Wh - t, ys);
-  arc(xs, ys, 0, 90); add(-xs, Hh, -xs, Hh - t); arc(-xs, ys, 90, 180);
+  arc(xs, ys, 0, 90);
+  for (const g of gaps.filter(g => g.side === 'T').sort((a, b) => b.u1 - a.u1)) { add(g.u1, Hh, g.u1, Hh - t, g.id + 'a'); add(g.u0, Hh, g.u0, Hh - t, g.id + 'b'); }
+  add(-xs, Hh, -xs, Hh - t); arc(-xs, ys, 90, 180);
   const f = st[0], l = st[st.length - 1];
   if (Math.abs(f.o.x - l.o.x) < 1e-7 && Math.abs(f.o.y - l.o.y) < 1e-7) st.pop();
   return { st, marks };
 }
 function ringGeometries(L) {
-  const P = L.P, ys = P.H / 2 - P.r, geos = [], used = [];
+  const P = L.P, ys = P.H / 2 - P.r, xs = P.W / 2 - P.r, geos = [], used = [];
   for (const h of L.holes) {
-    const g = { ...h, u0: Math.max(h.u0, -ys + 0.05), u1: Math.min(h.u1, ys - 0.05), z0: Math.max(h.z0, L.zLi), z1: Math.min(h.z1, L.zFi) };
+    const lim = h.side === 'T' ? xs : ys;
+    const g = { ...h, u0: Math.max(h.u0, -lim + 0.05), u1: Math.min(h.u1, lim - 0.05), z0: Math.max(h.z0, L.zLi), z1: Math.min(h.z1, L.zFi) };
+    h.g = g;
     g.clipped = g.u0 !== h.u0 || g.u1 !== h.u1 || g.z0 !== h.z0 || g.z1 !== h.z1;
     if (g.u1 - g.u0 > 0.5 && g.z1 - g.z0 > 0.5) used.push(g);
     h.clipped = g.clipped; h.valid = g.u1 - g.u0 > 0.5 && g.z1 - g.z0 > 0.5;
@@ -438,10 +457,18 @@ const PART_INFO = {
 };
 
 function makePart(id) { return { id, meshes: [], solids: [] }; }
-function addMesh(part, geo, opts = {}) { part.meshes.push({ geo, color: opts.color, name: opts.name || part.id, noExport: !!opts.noExport, tex: opts.tex, emissive: opts.emissive }); }
+function addMesh(part, geo, opts = {}) { part.meshes.push({ geo, color: opts.color, name: opts.name || part.id, noExport: !!opts.noExport, tex: opts.tex, owner: opts.owner }); }
 function addSolid(part, name, box, flags = {}) { part.solids.push({ part: flags.owner || part.id, name, box, ...flags }); }
 function B(x0, x1, y0, y1, z0, z1) { return { x0, x1, y0, y1, z0, z1 }; }
 function addBox(part, name, x0, x1, y0, y1, z0, z1, flags) { addMesh(part, boxG(x0, x1, y0, y1, z0, z1), flags); addSolid(part, name, B(x0, x1, y0, y1, z0, z1), flags || {}); }
+// Caixa em coordenadas locais (u, v, w) levada ao mundo pela matriz M (rotações de 90°).
+function xformBox(M, b) {
+  const bb = new THREE.Box3().setFromPoints([new THREE.Vector3(b.x0, b.y0, b.z0), new THREE.Vector3(b.x1, b.y1, b.z1)].map(v => v.applyMatrix4(M)));
+  return B(bb.min.x, bb.max.x, bb.min.y, bb.max.y, bb.min.z, bb.max.z);
+}
+function addLBox(part, name, M, u0, u1, v0, v1, w0, w1, flags = {}) {
+  addMesh(part, boxG(u0, u1, v0, v1, w0, w1).applyMatrix4(M), flags); addSolid(part, name, xformBox(M, B(u0, u1, v0, v1, w0, w1)), flags);
+}
 function ribsX(part, name, y, xa, xb, z0, z1, w = K.chanW) {
   if (xb - xa < 3) return; const o = w / 2;
   addBox(part, name, xa, xb, y + o, y + o + K.ribT, z0, z1); addBox(part, name, xa, xb, y - o - K.ribT, y - o, z0, z1);
@@ -455,10 +482,20 @@ function buildBody(L) {
   const P = L.P, part = makePart('body');
   // Frente com janela da tela e furo do botão
   const win = rrPts(P.winW, P.winH, 1, 0, L.oled.y, 4);
-  const btn = circlePts(0, L.btn.y, P.btnD / 2, 48);
-  addMesh(part, prismZ(rrPts(P.W, P.H, P.r, 0, 0, 14), [win, btn], L.zFi, L.zF), { name: 'frente' });
-  // Paredes laterais com a abertura USB
+  const frontHoles = [win];
+  if (!L.btn.top) frontHoles.push(circlePts(L.btn.x, L.btn.y, P.btnD / 2, 48));
+  addMesh(part, prismZ(rrPts(P.W, P.H, P.r, 0, 0, 14), frontHoles, L.zFi, L.zF), { name: 'frente' });
+  // Paredes laterais com a abertura USB (e o recorte do botão no topo)
   for (const g of ringGeometries(L)) addMesh(part, g, { name: 'paredes' });
+  const bh = L.holes.find(h => h.id === 'btn');
+  if (bh && bh.valid && !bh.clipped) {
+    // Remendo da parede superior com o furo redondo do botão
+    const sq = [V2(bh.u0, bh.z0), V2(bh.u1, bh.z0), V2(bh.u1, bh.z1), V2(bh.u0, bh.z1)];
+    const g = prismZ(sq, [circlePts(L.btn.x, L.btn.z, P.btnD / 2, 48)], 0, P.t);
+    g.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, -1, 0)));
+    g.translate(0, P.H / 2, 0);
+    addMesh(part, g, { name: 'paredes' });
+  }
   // Torres dos parafusos da tampa
   for (const [x, y] of L.bosses) {
     addMesh(part, tubeG(x, y, L.bossR, L.S.pilot / 2, L.zLi, L.zFi), { name: 'torre-parafuso' });
@@ -473,18 +510,24 @@ function buildBody(L) {
     addMesh(part, tubeG(x, y, K.pinD / 2, 0, L.oled.p0 - 0.8, L.oled.g0 + 0.01, 16), { name: 'pino-oled' });
   }
   // Berço do botão: quatro paredes + travas na borda de trás
-  const b = L.btn, fi = b.frameIn, fo = b.frameOut, zb = b.pcb0 - 0.9, by = b.y;
-  addBox(part, 'berço do botão', -fo, fo, by + fi, by + fo, zb, L.zFi);
-  addBox(part, 'berço do botão', -fo, fo, by - fo, by - fi, zb, L.zFi);
-  addBox(part, 'berço do botão', -fo, -fi, by - fi, by + fi, zb, L.zFi);
-  addBox(part, 'berço do botão', fi, fo, by - fi, by + fi, zb, L.zFi);
-  addBox(part, 'trava do botão', -fi, -fi + 0.6 + P.tol, by - 3, by + 3, zb, b.pcb0 - 0.1);
-  addBox(part, 'trava do botão', fi - 0.6 - P.tol, fi, by - 3, by + 3, zb, b.pcb0 - 0.1);
+  const b = L.btn, M = b.M, fi = b.frameIn, fo = b.frameOut, wb = b.back;
+  addLBox(part, 'berço do botão', M, -fo, fo, fi, fo, wb, b.wi);
+  addLBox(part, 'berço do botão', M, -fo, fo, -fo, -fi, wb, b.wi);
+  addLBox(part, 'berço do botão', M, -fo, -fi, -fi, fi, wb, b.wi);
+  addLBox(part, 'berço do botão', M, fi, fo, -fi, fi, wb, b.wi);
+  addLBox(part, 'trava do botão', M, -fi, -fi + 0.6 + P.tol, -3, 3, wb, b.pcb0 - 0.1);
+  addLBox(part, 'trava do botão', M, fi - 0.6 - P.tol, fi, -3, 3, wb, b.pcb0 - 0.1);
   // Canais de fios na face interna da frente
   const xEnd = -(L.bx - L.bossR - 2.5), zr = L.zFi - K.ribH;
   const yOled = L.oled.y + K.oledPcbH / 2 + 3;
   if (yOled + K.chanW / 2 + K.ribT < L.iy - 0.5) ribsX(part, 'canal de fios (tela)', yOled, xEnd, -K.oledPcbW / 2 + 2, zr, L.zFi);
-  ribsX(part, 'canal de fios (botão)', b.y, xEnd, -fo - 0.8, zr, L.zFi);
+  if (!b.top) ribsX(part, 'canal de fios (botão)', b.y, xEnd, b.x - fo - 0.8, zr, L.zFi);
+  else if (b.x - fo - 0.8 - xEnd >= 3) {
+    // Canal sob a parede superior, do botão até a lateral esquerda
+    const o = K.chanW / 2, y0 = L.iy - K.ribH;
+    addBox(part, 'canal de fios (botão)', xEnd, b.x - fo - 0.8, y0, L.iy, b.z + o, b.z + o + K.ribT);
+    addBox(part, 'canal de fios (botão)', xEnd, b.x - fo - 0.8, y0, L.iy, b.z - o - K.ribT, b.z - o);
+  }
   // Abas de apoio da divisória (45°, nas paredes superior e inferior)
   const lx = Math.max(K.ledgeL / 2 + 2, Math.min(P.W / 4, L.bx - L.bossR - K.ledgeL / 2 - 2));
   for (const xc of [-lx, lx]) for (const sgn of [1, -1]) {
@@ -562,9 +605,10 @@ function buildBezel(L) {
 }
 function buildButton(L) {
   const P = L.P, part = makePart('button'), b = L.btn;
-  addMesh(part, tubeG(0, b.y, P.btnD / 2 + 2, 0, b.fl0, L.zFi, 48), { name: 'flange' });
-  addMesh(part, tubeG(0, b.y, P.btnD / 2 - P.tol, 0, L.zFi, L.zF + K.capOut, 48), { name: 'haste' });
-  addSolid(part, 'capa do botão', B(-P.btnD / 2 - 2, P.btnD / 2 + 2, b.y - P.btnD / 2 - 2, b.y + P.btnD / 2 + 2, b.fl0, L.zFi));
+  const R = P.btnD / 2 + 2;
+  addMesh(part, tubeG(0, 0, R, 0, b.fl0, b.wi, 48).applyMatrix4(b.M), { name: 'flange' });
+  addMesh(part, tubeG(0, 0, P.btnD / 2 - P.tol, 0, b.wi, K.capOut, 48).applyMatrix4(b.M), { name: 'haste' });
+  addSolid(part, 'capa do botão', xformBox(b.M, B(-R, R, -R, R, b.fl0, b.wi)));
   return part;
 }
 
@@ -577,12 +621,12 @@ function buildComponents(L, screenTex) {
   addBox(part, 'placa da OLED', -hw, hw, o.y - hh, o.y + hh, o.p0, o.p1, { color: C.pcbBlue, owner: 'c-oled' });
   addBox(part, 'conector da OLED', -5.1, 5.1, o.y + hh - 3.6, o.y + hh - 1.0, o.h0, o.p0, { color: C.black, owner: 'c-oled' });
   const scr = new THREE.PlaneGeometry(K.activeW, K.activeH); scr.translate(0, o.y, o.g1 + 0.02);
-  addMesh(part, scr, { tex: screenTex, noExport: true, name: 'tela' });
+  addMesh(part, scr, { tex: screenTex, noExport: true, name: 'tela', owner: 'c-oled' });
 
   const b = L.btn, hb = K.btnPcb / 2, hs = K.btnSw / 2;
-  addMesh(part, tubeG(0, b.y, 1.75, 0, b.act0, b.act1, 20), { color: C.black });
-  addBox(part, 'chave do botão', -hs, hs, b.y - hs, b.y + hs, b.sw0, b.act0, { color: C.black, owner: 'c-btn' });
-  addBox(part, 'placa do botão', -hb, hb, b.y - hb, b.y + hb, b.pcb0, b.sw0, { color: C.pcbBlue, owner: 'c-btn' });
+  addMesh(part, tubeG(0, 0, 1.75, 0, b.act0, b.act1, 20).applyMatrix4(b.M), { color: C.black, owner: 'c-btn' });
+  addLBox(part, 'chave do botão', b.M, -hs, hs, -hs, hs, b.sw0, b.act0, { color: C.black, owner: 'c-btn' });
+  addLBox(part, 'placa do botão', b.M, -hb, hb, -hb, hb, b.pcb0, b.sw0, { color: C.pcbBlue, owner: 'c-btn' });
 
   const e = L.esp, ym = P.espY;
   addBox(part, 'placa da ESP32', e.x0, e.x1, e.y0, e.y1, e.pb, e.pf, { color: C.pcbBlack, owner: 'c-esp' });
@@ -601,12 +645,12 @@ function buildComponents(L, screenTex) {
   addBox(part, 'componentes do carregador', c.x0 + 3, c.x1 - 9, c.y0 + 2, c.y1 - 2, c.pf, Math.max(c.pf + 0.5, c.top), { color: C.black, owner: 'c-chg' });
 
   const bt = L.bat;
-  addMesh(part, prismZ(rrPts(P.batL, P.batW, 2, P.batX, P.batY, 6), [], bt.z0, bt.z1), { color: C.bat });
+  addMesh(part, prismZ(rrPts(P.batL, P.batW, 2, P.batX, P.batY, 6), [], bt.z0, bt.z1), { color: C.bat, owner: 'c-bat' });
   addSolid(part, 'bateria', B(bt.x0, bt.x1, bt.y0, bt.y1, bt.z0, bt.z1), { owner: 'c-bat' });
-  addMesh(part, boxG(bt.x0 + 6, bt.x1 - 10, bt.y0 + 6, bt.y1 - 6, bt.z1, bt.z1 + 0.05), { color: C.batLabel });
+  addMesh(part, boxG(bt.x0 + 6, bt.x1 - 10, bt.y0 + 6, bt.y1 - 6, bt.z1, bt.z1 + 0.05), { color: C.batLabel, owner: 'c-bat' });
   for (const [dy, col] of [[-1.6, C.red], [1.6, C.black]]) {
     const g = new THREE.CylinderGeometry(0.7, 0.7, P.batClr + K.pocket * 0.6, 10); g.rotateZ(Math.PI / 2);
-    g.translate(bt.x1 + (P.batClr + K.pocket * 0.6) / 2, L.slot.y + dy, bt.z1 - 1.5); addMesh(part, g, { color: col });
+    g.translate(bt.x1 + (P.batClr + K.pocket * 0.6) / 2, L.slot.y + dy, bt.z1 - 1.5); addMesh(part, g, { color: col, owner: 'c-bat' });
   }
   return part;
 }
@@ -670,15 +714,20 @@ function validate(L, parts) {
 
   // 4. Aberturas
   for (const h of L.holes) {
-    const nome = h.id === 'usb' ? 'Abertura USB da ESP32' : 'Abertura USB do módulo de carga';
+    const nome = h.id === 'usb' ? 'Abertura USB da ESP32' : h.id === 'btn' ? 'Furo do botão no topo' : 'Abertura USB do módulo de carga';
+    if (h.id === 'btn') {
+      if (!h.valid || h.clipped) err(`${nome}: sai da área reta do topo ou passa da tampa. Ajuste a posição horizontal ou a distância até a frente.`);
+      else ok(`${nome}: centro a ${fmt(L.btn.x)} mm do meio da largura e ${fmt(P.btnZ)} mm da face frontal, com a chave presa por dentro da parede superior.`);
+      continue;
+    }
     if (!h.valid) err(`${nome}: fora da área reta da parede. Ajuste a posição vertical ou o raio dos cantos.`);
     else if (h.clipped) warn(`${nome}: foi recortada para caber na parede reta.`);
     else ok(`${nome} alinhada ao conector: centro a ${fmt((h.u0 + h.u1) / 2)} mm na vertical e ${fmt((h.z0 + h.z1) / 2 - L.zB)} mm da traseira.`);
   }
   const fy = P.H / 2 - P.t - 1, fx = P.W / 2 - P.t - 1;
-  const w0 = L.oled.y - P.winH / 2, w1 = L.oled.y + P.winH / 2, b0 = L.btn.y - P.btnD / 2 - 2, b1 = L.btn.y + P.btnD / 2 + 2;
-  if (w1 > fy || w0 < -fy || b1 > fy || b0 < -fy || P.winW / 2 > fx) err('A janela da tela ou o botão saem da face frontal.');
-  else if (b1 > w0 - 1.5 && b0 < w1 + 1.5) err('O botão está sobre a janela da tela.');
+  const bf = !L.btn.top, w0 = L.oled.y - P.winH / 2, w1 = L.oled.y + P.winH / 2, bR = P.btnD / 2 + 2, b0 = L.btn.y - bR, b1 = L.btn.y + bR;
+  if (w1 > fy || w0 < -fy || P.winW / 2 > fx || (bf && (b1 > fy || b0 < -fy || Math.abs(L.btn.x) + bR > fx))) err('A janela da tela ou o botão saem da face frontal.');
+  else if (bf && b1 > w0 - 1.5 && b0 < w1 + 1.5 && Math.abs(L.btn.x) < P.winW / 2 + bR + 1.5) err('O botão está sobre a janela da tela.');
   if (P.winW > K.glassW - 1 || P.winH > K.glassH - 1) warn('A janela é maior que o vidro da OLED: a borda do módulo ficará visível.');
   else if (P.winW < K.activeW || P.winH < K.activeH) warn('A janela é menor que a área ativa da tela (21,7 × 10,9 mm) e corta parte da imagem.');
   else ok('Janela da tela cobre a área ativa da SSD1306 e esconde a borda do vidro.');
@@ -686,8 +735,8 @@ function validate(L, parts) {
   // 5. Folgas verticais entre frente e ESP32
   const e = L.esp, fronts = [
     { n: 'tela', b: B(-K.oledPcbW / 2, K.oledPcbW / 2, L.oled.y - K.oledPcbH / 2, L.oled.y + K.oledPcbH / 2, L.oled.h0, L.zFi) },
-    { n: 'botão', b: B(-L.btn.frameOut, L.btn.frameOut, L.btn.y - L.btn.frameOut, L.btn.y + L.btn.frameOut, L.btn.pcb0 - 0.9, L.zFi) },
   ];
+  if (!L.btn.top) fronts.push({ n: 'botão', b: xformBox(L.btn.M, B(-L.btn.frameOut, L.btn.frameOut, -L.btn.frameOut, L.btn.frameOut, L.btn.back, L.btn.wi)) });
   let gap = Infinity, who = '';
   for (const f of fronts) {
     const xy = f.b.x0 < e.x1 && f.b.x1 > e.x0 && f.b.y0 < e.y1 && f.b.y1 > e.y0;
@@ -780,7 +829,7 @@ function rebuild() {
       else mat = makeMaterial(m.color != null ? m.color : PART_INFO[part.id].color, part.id);
       const mesh = new THREE.Mesh(m.geo, mat); mesh.name = m.name;
       if (part.id === 'comps') {
-        const owner = compOwner(m, L);
+        const owner = m.owner || 'c-esp';
         (grp.userData.sub[owner] ||= new THREE.Group()).add(mesh);
       } else grp.add(mesh);
     }
@@ -792,21 +841,12 @@ function rebuild() {
   const checks = validate(L, PARTS);
   renderChecks(checks); renderDerived(); renderReadout();
 }
-// Associa cada malha de componente ao seu grupo de explosão pela posição em Z/XY.
-function compOwner(m, L) {
-  m.geo.computeBoundingBox(); const b = m.geo.boundingBox, cz = (b.min.z + b.max.z) / 2, cx = (b.min.x + b.max.x) / 2, cy = (b.min.y + b.max.y) / 2;
-  if (cz < L.divBack) return 'c-bat';
-  if (cz > L.zFi - 12 && Math.abs(cx) < K.oledPcbW / 2 + 0.1 && cy > L.oled.y - K.oledPcbH / 2 - 0.1 && cy < L.oled.y + K.oledPcbH / 2 + 0.1 && cz > L.oled.h0 - 0.1) return 'c-oled';
-  if (cz > L.btn.pcb0 - 0.1 && Math.abs(cx) < K.btnPcb / 2 + 0.1 && Math.abs(cy - L.btn.y) < K.btnPcb / 2 + 0.1) return 'c-btn';
-  if (cx >= L.chg.x0 - 0.1) return 'c-chg';
-  return 'c-esp';
-}
-
 function applyState() {
   const e = state.explodeT, s = Math.max(P.D, 30) / 40;
+  const ax = L.btn.top ? 'y' : 'z'; // o botão se separa ao longo do próprio eixo
   for (const [id, g] of Object.entries(partObjs)) {
-    g.position.z = (EXPLODE[id] || 0) * e * s;
-    if (id === 'comps') for (const [k, sub] of Object.entries(g.userData.sub)) sub.position.z = (COMP_EXPLODE[k] || 0) * e * s;
+    g.position.set(0, 0, 0); g.position[id === 'button' ? ax : 'z'] = (EXPLODE[id] || 0) * e * s;
+    if (id === 'comps') for (const [k, sub] of Object.entries(g.userData.sub)) { sub.position.set(0, 0, 0); sub.position[k === 'c-btn' ? ax : 'z'] = (COMP_EXPLODE[k] || 0) * e * s; }
   }
   partObjs.lid.visible = state.lid;
   const cutX = state.cut <= 0 ? 1e4 : P.W / 2 + 0.5 - state.cut / 100 * (P.W + 1);
@@ -927,9 +967,9 @@ function buildControls() {
       row.appendChild(lbl);
       if (min === 'select') {
         const sel = document.createElement('select'); sel.id = 'p-' + k;
-        for (const o of max) { const op = document.createElement('option'); op.value = o; op.textContent = o; sel.appendChild(op); }
+        for (const o of max) { const op = document.createElement('option'); op.value = optVal(o); op.textContent = Array.isArray(o) ? o[1] : o; sel.appendChild(op); }
         sel.value = P[k]; sel.addEventListener('change', () => setParam(k, sel.value));
-        row.appendChild(sel); inputs[k] = { sel };
+        row.appendChild(sel); inputs[k] = { sel, row, when: f[6] };
       } else {
         const numWrap = document.createElement('div'); numWrap.className = 'num';
         const num = document.createElement('input'); num.type = 'number'; num.id = 'p-' + k; num.min = min; num.max = max; num.step = step; num.value = P[k]; num.inputMode = 'decimal';
@@ -937,7 +977,7 @@ function buildControls() {
         const rng = document.createElement('input'); rng.type = 'range'; rng.min = min; rng.max = max; rng.step = step; rng.value = P[k]; rng.id = 'r-' + k; rng.setAttribute('aria-label', label);
         rng.addEventListener('input', () => { num.value = rng.value; setParam(k, +rng.value); });
         num.addEventListener('change', () => { let v = parseFloat(String(num.value).replace(',', '.')); if (!isFinite(v)) v = P[k]; v = Math.min(max, Math.max(min, v)); num.value = v; rng.value = v; setParam(k, v); });
-        row.append(numWrap, rng); inputs[k] = { num, rng };
+        row.append(numWrap, rng); inputs[k] = { num, rng, row, when: f[6] };
       }
       box.appendChild(row);
     }
@@ -951,10 +991,12 @@ function syncInputs() {
   }
   updateSummaries();
 }
+function updateVisibility() { for (const el of Object.values(inputs)) if (el.row && el.when) el.row.hidden = !el.when(P); }
 function updateSummaries() {
+  updateVisibility();
   const s = (id, t) => { const el = document.getElementById('sum-' + id); if (el) el.textContent = t; };
   s('case', `${fmt(P.W, 0)}×${fmt(P.H, 0)}×${fmt(P.D, 0)}`); s('esp', `${fmt(P.espL, 0)}×${fmt(P.espW, 0)}`);
-  s('bat', `${fmt(P.batL, 0)}×${fmt(P.batW, 0)}×${fmt(P.batT, 0)}`); s('chg', `${fmt(P.chgL, 0)}×${fmt(P.chgW, 0)}`); s('front', `Ø${fmt(P.btnD)}`);
+  s('bat', `${fmt(P.batL, 0)}×${fmt(P.batW, 0)}×${fmt(P.batT, 0)}`); s('chg', `${fmt(P.chgL, 0)}×${fmt(P.chgW, 0)}`); s('front', P.btnPos === 'top' ? 'botão no topo' : 'botão na frente');
 }
 let pending = false;
 function setParam(k, v) {
@@ -1041,6 +1083,7 @@ function partMatrix(id, mode) {
   const toZup = new THREE.Matrix4().makeRotationX(Math.PI / 2); // Y↑ → Z↑, frente para -Y
   if (mode === 'assembly') return toZup;
   if (id === 'body') return new THREE.Matrix4().makeRotationX(Math.PI);
+  if (id === 'button' && L.btn.top) return new THREE.Matrix4().makeRotationX(Math.PI / 2); // flange para baixo
   return new THREE.Matrix4();
 }
 function buildExport(fmtName) {
@@ -1086,7 +1129,7 @@ function readme(mode) {
     '', 'Peças:', '- corpo: frente, paredes, torres dos parafusos, suportes da tela e do botão, canais de fios, apoios da divisória.',
     '- tampa: tampa traseira removível com abas de centralização e moldura do compartimento da bateria.',
     '- divisoria: placa que separa a bateria da eletrônica, com suportes e presilhas da ESP32 e berço do módulo de carga.',
-    '- moldura-tela: moldura branca colada em volta da janela da tela.', '- capa-botao: capa azul com flange (entra por dentro do corpo).',
+    '- moldura-tela: moldura branca colada em volta da janela da tela.', `- capa-botao: capa azul com flange (entra por dentro do corpo, ${P.btnPos === 'top' ? 'no topo' : 'na frente'}).`,
     '', 'Montagem: tela e botão na frente; divisória apoiada nas abas; bateria na moldura da tampa; tampa com 4 parafusos ' + P.screw + '.',
     'O corpo é composto de sólidos fechados que se tocam; fatiadores como Cura, PrusaSlicer, Bambu Studio e OrcaSlicer unem essas partes automaticamente.',
     '', 'Parâmetros usados:', JSON.stringify(P, null, 2),
