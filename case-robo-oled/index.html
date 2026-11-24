@@ -1,0 +1,1181 @@
+<title>Case do Robô OLED</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: bancada de projeto — viewport 3D à esquerda, trilho de parâmetros à direita; empilha no celular */
+:root {
+  --bg: #eceff3;
+  --panel: #ffffff;
+  --ink: #151a21;
+  --muted: #5a6572;
+  --line: #d6dce3;
+  --soft: #f3f5f8;
+  --accent: #1f6fe5;
+  --accent-ink: #ffffff;
+  --viewport: #dfe4ea;
+  --ok: #1b8550;
+  --warn: #a86a12;
+  --err: #c2312f;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1217; --panel: #161b22; --ink: #e5eaf0; --muted: #98a3b0; --line: #29313b; --soft: #1d242d;
+    --accent: #4d8ff2; --accent-ink: #0b1220; --viewport: #252c35; --ok: #43b97c; --warn: #e2a43f; --err: #f06b67;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1217; --panel: #161b22; --ink: #e5eaf0; --muted: #98a3b0; --line: #29313b; --soft: #1d242d;
+  --accent: #4d8ff2; --accent-ink: #0b1220; --viewport: #252c35; --ok: #43b97c; --warn: #e2a43f; --err: #f06b67;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 14px;
+  box-sizing: border-box;
+  padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+*, *::before, *::after { box-sizing: border-box; }
+button, input, select { font: inherit; color: inherit; }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 372px; gap: 16px; height: 100%; }
+
+/* ---------- viewport ---------- */
+.stage { position: relative; min-width: 0; min-height: 0; border-radius: 14px; overflow: hidden; background: var(--viewport); border: 1px solid var(--line); }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.overlay { position: absolute; display: flex; flex-wrap: wrap; gap: 8px; pointer-events: none; }
+.overlay > * { pointer-events: auto; }
+.ov-top { top: 12px; left: 12px; right: 12px; justify-content: space-between; align-items: flex-start; }
+.ov-bottom { bottom: 12px; left: 12px; right: 12px; justify-content: space-between; align-items: flex-end; }
+.seg { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.seg button { border: 0; background: transparent; padding: 6px 10px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--muted); }
+.seg button:hover { color: var(--ink); background: var(--soft); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+.sliders { display: grid; gap: 6px; min-width: 220px; }
+.sliders label { display: grid; grid-template-columns: 74px 1fr 40px; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.sliders output { font-family: var(--font-num); font-size: 12px; color: var(--ink); text-align: right; }
+.readout { font-family: var(--font-num); font-size: 12px; line-height: 1.5; color: var(--muted); }
+.readout b { color: var(--ink); font-weight: 500; }
+.hint { font-size: 11.5px; color: var(--muted); }
+
+/* ---------- panel ---------- */
+.panel { min-width: 0; min-height: 0; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+.panel-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
+.panel-head h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+.panel-head p { margin: 0; color: var(--muted); font-size: 12.5px; }
+.status { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12.5px; font-weight: 500; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); flex: none; }
+.dot.warn { background: var(--warn); } .dot.err { background: var(--err); }
+details { border-bottom: 1px solid var(--line); }
+summary { list-style: none; cursor: pointer; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 13px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; font-family: var(--font-num); color: var(--muted); }
+details[open] > summary::after { content: "–"; }
+summary .sub { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: auto; margin-right: 10px; font-family: var(--font-num); }
+.group { padding: 0 18px 14px; display: grid; gap: 9px; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: 4px 10px; align-items: center; }
+.row .lbl { font-size: 12.5px; color: var(--ink); min-width: 0; }
+.row .lbl small { display: block; color: var(--muted); font-size: 11px; }
+.row input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 0; }
+.num { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 7px; background: var(--soft); overflow: hidden; }
+.num input { width: 100%; min-width: 0; border: 0; background: transparent; padding: 5px 4px 5px 8px; font-family: var(--font-num); font-size: 12.5px; text-align: right; font-variant-numeric: tabular-nums; }
+.num span { padding-right: 8px; color: var(--muted); font-size: 11px; font-family: var(--font-num); }
+.row select { width: 100%; border: 1px solid var(--line); border-radius: 7px; background: var(--soft); padding: 5px 8px; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.check input { accent-color: var(--accent); width: 15px; height: 15px; }
+.btn { border: 1px solid var(--line); background: var(--soft); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 500; font-size: 13px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btns .btn { flex: 1 1 auto; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.checks li { display: grid; grid-template-columns: 9px minmax(0, 1fr); gap: 8px; align-items: baseline; font-size: 12.5px; line-height: 1.4; }
+.checks li .dot { transform: translateY(1px); }
+.derived { font-family: var(--font-num); font-size: 12px; display: grid; gap: 3px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.derived b { color: var(--ink); font-weight: 500; }
+.parts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+.swatch { width: 11px; height: 11px; border-radius: 3px; border: 1px solid var(--line); flex: none; }
+.toast { position: absolute; left: 50%; bottom: 76px; transform: translateX(-50%); background: var(--ink); color: var(--panel); padding: 8px 14px; border-radius: 8px; font-size: 13px; max-width: calc(100% - 32px); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  .app { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .stage { height: 66vh; min-height: 420px; }
+  .panel { overflow: visible; }
+  .sliders { min-width: 0; width: 100%; }
+  .ov-bottom .readout { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="app">
+  <section class="stage" id="stage" aria-label="Visualização 3D da case">
+    <div class="overlay ov-top">
+      <div class="seg" role="group" aria-label="Vistas">
+        <button data-view="iso" aria-pressed="true">Iso</button>
+        <button data-view="front">Frontal</button>
+        <button data-view="back">Traseira</button>
+        <button data-view="left">Lateral E</button>
+        <button data-view="right">Lateral D</button>
+        <button data-view="top">Superior</button>
+      </div>
+      <div class="seg" role="group" aria-label="Modo">
+        <button id="mExt" aria-pressed="true">Externa</button>
+        <button id="mInt" aria-pressed="false">Interna</button>
+        <button id="mLid" aria-pressed="true" title="Mostrar ou esconder a tampa traseira">Tampa</button>
+        <button id="mDim" aria-pressed="true" title="Mostrar cotas em mm">Cotas</button>
+      </div>
+    </div>
+    <div class="overlay ov-bottom">
+      <div class="card sliders">
+        <label for="explode">Explodida <input type="range" id="explode" min="0" max="100" value="0"><output id="explodeOut">0%</output></label>
+        <label for="cut">Corte lateral <input type="range" id="cut" min="0" max="100" value="0"><output id="cutOut">—</output></label>
+      </div>
+      <div class="card readout" id="readout"></div>
+    </div>
+    <div class="toast" id="toast" hidden></div>
+  </section>
+
+  <aside class="panel" aria-label="Parâmetros do projeto">
+    <div class="panel-head">
+      <h1>Case do Robô OLED</h1>
+      <p>Arraste para girar · roda do mouse aproxima · botão direito move a câmera. Todas as medidas em milímetros.</p>
+      <div class="status" id="status"><span class="dot"></span><span>Verificando…</span></div>
+    </div>
+    <div id="controls"></div>
+
+    <details open>
+      <summary>Verificações <span class="sub" id="checkCount"></span></summary>
+      <div class="group"><ul class="checks" id="checks"></ul></div>
+    </details>
+
+    <details open>
+      <summary>Espaços calculados</summary>
+      <div class="group"><div class="derived" id="derived"></div></div>
+    </details>
+
+    <details open>
+      <summary>Exportar modelo 3D</summary>
+      <div class="group">
+        <div class="parts" id="partChecks"></div>
+        <div class="row">
+          <span class="lbl">Posição das peças<small>Impressão: cada peça deitada no plano, sem suporte</small></span>
+          <select id="orient"><option value="print">Impressão</option><option value="assembly">Montada</option></select>
+        </div>
+        <label class="check"><input type="checkbox" id="glbMeters" checked> GLB em metros (padrão glTF)</label>
+        <div class="btns">
+          <button class="btn primary" data-export="stl">STL</button>
+          <button class="btn primary" data-export="obj">OBJ</button>
+          <button class="btn primary" data-export="glb">GLB</button>
+        </div>
+        <p class="hint">STL e OBJ em milímetros, eixo Z para cima. O STL vem com um arquivo por peça e um com o conjunto. Os arquivos chegam dentro de um .zip.</p>
+        <div class="btns">
+          <button class="btn" id="saveJson">Salvar parâmetros (.json)</button>
+          <button class="btn" id="loadJsonBtn">Carregar parâmetros</button>
+          <input type="file" id="loadJson" accept=".json,application/json" hidden>
+        </div>
+      </div>
+    </details>
+
+    <div class="group" style="padding-top:14px">
+      <button class="btn" id="reset">Restaurar medidas originais</button>
+      <div class="legend" id="legend"></div>
+    </div>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/exporters/STLExporter.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/exporters/OBJExporter.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/exporters/GLTFExporter.js"></script>
+<script>
+'use strict';
+/* =====================================================================
+   1. PARÂMETROS
+   Tudo em milímetros. Eixos do modelo: X = largura, Y = altura,
+   Z = profundidade (frente em +Z, tampa traseira em -Z).
+   ===================================================================== */
+const DEFAULTS = Object.freeze({
+  W: 100, H: 80, D: 40, t: 2, r: 8, lidT: 2, tol: 0.3, screw: 'M2.5', divT: 2,
+  winW: 24, winH: 13, oledY: 12, btnD: 7, btnY: -26,
+  espL: 55, espW: 32, espH: 13, espY: 0, espGap: 1, usbW: 12, usbH: 7,
+  batL: 53, batW: 38, batT: 10, batClr: 1, batX: 0, batY: 0,
+  chgL: 26, chgW: 17, chgH: 5, chgY: 0, chgUsb: false,
+});
+
+const SCREWS = {
+  'M2':   { pilot: 1.6, clear: 2.4, boss: 5.0 },
+  'M2.5': { pilot: 2.1, clear: 2.9, boss: 6.0 },
+  'M3':   { pilot: 2.5, clear: 3.4, boss: 7.0 },
+};
+
+// Medidas fixas dos componentes de referência e dos detalhes construtivos.
+const K = {
+  oledPcbW: 27.3, oledPcbH: 27.8, oledPcbT: 1.2, glassW: 26.7, glassH: 19.3, glassT: 1.6,
+  oledHdr: 3.5, oledHoleInset: 2.0, activeW: 21.74, activeH: 10.86,
+  btnPcb: 14, btnSw: 12, btnSwH: 3.5, btnAct: 1.5, capFlT: 1.2, capOut: 1.5, capPre: 0.3,
+  espBackComp: 3.2, espPcbT: 1.6, usbConW: 8, usbConH: 3, usbOver: 0.8,
+  chgPcbT: 1.2, chgUsbH: 3.2, chgUsbW: 9,
+  lipT: 1.6, lipH: 3, frameT: 1.6, ledgeW: 2, ledgeL: 16, ribT: 1.2, ribH: 2.5, chanW: 3,
+  bezelB: 2.5, bezelT: 0.8, clipT: 1.6, standD: 5, postD: 4, pinD: 1.8,
+  slotW: 4, slotL: 9, pocket: 5, frameGap: 0.3,
+};
+
+// Definição dos controles (rótulo, faixa, passo, grupo).
+const GROUPS = [
+  { id: 'case', title: 'Case', fields: [
+    ['W', 'Largura', 60, 200, 0.5], ['H', 'Altura', 50, 160, 0.5], ['D', 'Profundidade', 25, 90, 0.5],
+    ['t', 'Espessura da parede', 1.2, 4, 0.1], ['r', 'Raio dos cantos', 2, 30, 0.5],
+    ['lidT', 'Espessura da tampa', 1.2, 4, 0.1], ['tol', 'Folga de impressão', 0.1, 0.6, 0.05, 'por lado, entre peças que encaixam'],
+    ['screw', 'Parafusos da tampa', 'select', Object.keys(SCREWS)], ['divT', 'Espessura da divisória', 1.2, 3, 0.1],
+  ]},
+  { id: 'front', title: 'Frente: tela e botão', fields: [
+    ['winW', 'Janela da tela, largura', 15, 27, 0.1, 'área ativa SSD1306 0,96": 21,7 × 10,9'],
+    ['winH', 'Janela da tela, altura', 8, 19, 0.1], ['oledY', 'Posição vertical da tela', -30, 40, 0.5, '0 = centro da frente'],
+    ['btnD', 'Furo do botão (Ø)', 4, 12, 0.1], ['btnY', 'Posição vertical do botão', -60, 20, 0.5],
+  ]},
+  { id: 'esp', title: 'ESP32 DevKit V1', fields: [
+    ['espL', 'Comprimento da placa', 45, 65, 0.5], ['espW', 'Largura da placa', 24, 36, 0.5],
+    ['espH', 'Altura total com pinos', 8, 20, 0.5], ['espY', 'Posição vertical', -40, 40, 0.5],
+    ['espGap', 'Distância até a parede USB', 0.5, 4, 0.1], ['usbW', 'Abertura USB, largura', 8, 16, 0.5], ['usbH', 'Abertura USB, altura', 4, 10, 0.5],
+  ]},
+  { id: 'bat', title: 'Bateria LiPo 3,7 V', fields: [
+    ['batL', 'Comprimento', 30, 90, 0.5], ['batW', 'Largura', 20, 70, 0.5], ['batT', 'Espessura', 3, 20, 0.5],
+    ['batClr', 'Folga ao redor', 0.5, 3, 0.1, 'a bateria nunca é comprimida'], ['batX', 'Posição horizontal', -40, 40, 0.5], ['batY', 'Posição vertical', -40, 40, 0.5],
+  ]},
+  { id: 'chg', title: 'Módulo de carga e proteção', fields: [
+    ['chgL', 'Comprimento', 15, 40, 0.5, 'TP4056 com proteção: 26 × 17'], ['chgW', 'Largura', 10, 30, 0.5], ['chgH', 'Altura', 2, 10, 0.5],
+    ['chgY', 'Posição vertical', -40, 40, 0.5], ['chgUsb', 'Abertura USB do módulo na lateral direita', 'check'],
+  ]},
+];
+
+const STORE_KEY = 'robo-oled-case-params-v1';
+let P = loadParams();
+
+function loadParams() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) return sanitize(JSON.parse(raw));
+  } catch (e) { /* sem armazenamento: usa padrão */ }
+  return { ...DEFAULTS };
+}
+function saveParams() { try { localStorage.setItem(STORE_KEY, JSON.stringify(P)); } catch (e) {} }
+function sanitize(obj) {
+  const out = { ...DEFAULTS };
+  for (const g of GROUPS) for (const f of g.fields) {
+    const [k, , min, max] = f; const v = obj[k];
+    if (min === 'select') { if (SCREWS[v]) out[k] = v; }
+    else if (min === 'check') { out[k] = !!v; }
+    else if (typeof v === 'number' && isFinite(v)) out[k] = Math.min(max, Math.max(min, v));
+  }
+  out.r = clampRadius(out);
+  return out;
+}
+function clampRadius(p) { return Math.min(Math.max(p.r, p.t + 0.5), Math.min(p.W, p.H) / 2 - 1); }
+
+/* =====================================================================
+   2. LAYOUT — calcula todas as posições a partir dos parâmetros
+   ===================================================================== */
+function computeLayout(P) {
+  const L = { P };
+  L.zB = -P.D / 2; L.zF = P.D / 2; L.zFi = L.zF - P.t; L.zLi = L.zB + P.lidT;
+  L.ix = P.W / 2 - P.t; L.iy = P.H / 2 - P.t; L.rIn = P.r - P.t;
+  L.acx = P.W / 2 - P.r; L.acy = P.H / 2 - P.r;
+  L.S = SCREWS[P.screw]; L.bossR = L.S.boss / 2;
+  // Torres de parafuso: tangentes ao canto interno, embutidas 0,4 mm na parede para fundir.
+  const s = L.rIn >= L.bossR ? (L.rIn - L.bossR + 0.4) / Math.SQRT2 : (L.rIn - L.bossR + 0.3);
+  L.bx = L.acx + s; L.by = L.acy + s;
+  L.bosses = [[1, 1], [-1, 1], [1, -1], [-1, -1]].map(([a, b]) => [a * L.bx, b * L.by]);
+
+  // Bateria e compartimento (com bolso para os cabos no lado +X)
+  L.bat = { x0: P.batX - P.batL / 2, x1: P.batX + P.batL / 2, y0: P.batY - P.batW / 2, y1: P.batY + P.batW / 2, z0: L.zLi, z1: L.zLi + P.batT };
+  L.comp = { x0: L.bat.x0 - P.batClr, x1: L.bat.x1 + P.batClr + K.pocket, y0: L.bat.y0 - P.batClr, y1: L.bat.y1 + P.batClr };
+  L.divBack = L.zLi + P.batT + P.batClr; L.divFront = L.divBack + P.divT; L.frameTop = L.divBack - K.frameGap;
+
+  // Contorno da divisória: raio aumentado até liberar as torres
+  L.dx = L.ix - P.tol; L.dy = L.iy - P.tol;
+  let rd = Math.max(L.rIn - P.tol, 0.5); const need = L.bossR + P.tol;
+  const lim = Math.min(L.dx, L.dy) - 0.5;
+  for (; rd < lim; rd += 0.1) { if (Math.hypot(L.bx - (L.dx - rd), L.by - (L.dy - rd)) >= rd + need) break; }
+  L.rd = rd; L.rdOk = rd < lim;
+  L.slot = { x: L.comp.x1 - K.pocket / 2, y: L.comp.y0 + K.slotL / 2 + 1 };
+
+  // ESP32: componentes virados para a divisória, pinos para a frente, USB na lateral esquerda
+  const e = {};
+  e.x0 = -L.ix + P.espGap; e.x1 = e.x0 + P.espL; e.y0 = P.espY - P.espW / 2; e.y1 = P.espY + P.espW / 2;
+  e.stand = Math.max(K.espBackComp + 0.6, K.usbConH / 2 + P.usbH / 2 + 0.5);
+  e.pb = L.divFront + e.stand; e.pf = e.pb + K.espPcbT;
+  e.hdrH = Math.max(2, P.espH - K.espBackComp - K.espPcbT); e.tip = e.pf + e.hdrH;
+  e.usbZ = e.pb - K.usbConH / 2; e.usbY = P.espY;
+  L.esp = e;
+  L.holes = [{ id: 'usb', side: 'L', u0: e.usbY - P.usbW / 2, u1: e.usbY + P.usbW / 2, z0: e.usbZ - P.usbH / 2, z1: e.usbZ + P.usbH / 2 }];
+
+  // Módulo de carga junto à parede direita
+  const c = {};
+  c.x1 = L.ix - 1; c.x0 = c.x1 - P.chgL; c.y0 = P.chgY - P.chgW / 2; c.y1 = P.chgY + P.chgW / 2;
+  c.usbOff = K.chgPcbT + K.chgUsbH / 2;
+  c.stand = P.chgUsb ? Math.max(1, P.usbH / 2 + 0.5 - c.usbOff) : 1;
+  c.pb = L.divFront + c.stand; c.pf = c.pb + K.chgPcbT; c.top = c.pb + P.chgH; c.usbZ = c.pb + c.usbOff;
+  L.chg = c;
+  if (P.chgUsb) L.holes.push({ id: 'usb2', side: 'R', u0: P.chgY - P.usbW / 2, u1: P.chgY + P.usbW / 2, z0: c.usbZ - P.usbH / 2, z1: c.usbZ + P.usbH / 2 });
+
+  // Tela OLED: vidro encostado na face interna da frente
+  const o = { y: P.oledY };
+  o.g1 = L.zFi; o.g0 = o.g1 - K.glassT; o.p1 = o.g0; o.p0 = o.p1 - K.oledPcbT; o.h0 = o.p0 - K.oledHdr;
+  L.oled = o;
+
+  // Botão: capa com flange interna + chave táctil 12 × 12 em placa 14 × 14
+  const b = { y: P.btnY };
+  b.fl0 = L.zFi - K.capFlT; b.act1 = b.fl0 - K.capPre; b.act0 = b.act1 - K.btnAct; b.sw0 = b.act0 - K.btnSwH; b.pcb0 = b.sw0 - 1.6;
+  b.frameIn = K.btnPcb / 2 + P.tol; b.frameOut = b.frameIn + K.clipT;
+  L.btn = b;
+  return L;
+}
+
+/* =====================================================================
+   3. GEOMETRIA — utilitários (todas as peças são sólidos fechados)
+   ===================================================================== */
+const V2 = (x, y) => new THREE.Vector2(x, y);
+const DEG = Math.PI / 180;
+
+function rrPts(w, h, r, cx = 0, cy = 0, seg = 10) {
+  r = Math.max(0.05, Math.min(r, w / 2 - 0.01, h / 2 - 0.01));
+  const hx = w / 2 - r, hy = h / 2 - r, pts = [];
+  for (const [x, y, a0] of [[hx, hy, 0], [-hx, hy, 90], [-hx, -hy, 180], [hx, -hy, 270]])
+    for (let i = 0; i <= seg; i++) { const a = (a0 + 90 * i / seg) * DEG; pts.push(V2(cx + x + r * Math.cos(a), cy + y + r * Math.sin(a))); }
+  return pts;
+}
+function circlePts(cx, cy, R, seg = 40) {
+  const pts = []; for (let i = 0; i < seg; i++) { const a = i / seg * Math.PI * 2; pts.push(V2(cx + R * Math.cos(a), cy + R * Math.sin(a))); } return pts;
+}
+function prismZ(pts, holes, z0, z1) {
+  const sh = new THREE.Shape(pts);
+  for (const h of holes || []) sh.holes.push(new THREE.Path(h));
+  const g = new THREE.ExtrudeGeometry(sh, { depth: z1 - z0, bevelEnabled: false, curveSegments: 1 });
+  g.translate(0, 0, z0); return g;
+}
+function boxG(x0, x1, y0, y1, z0, z1) {
+  const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); return g;
+}
+function tubeG(cx, cy, Ro, Ri, z0, z1, seg = 40) { return prismZ(circlePts(cx, cy, Ro, seg), Ri > 0 ? [circlePts(cx, cy, Ri, seg)] : [], z0, z1); }
+// Aba triangular a 45° (imprime sem suporte com a frente para baixo), ao longo de X.
+function wedgeX(yw, sgn, z0, w, xa, xb) {
+  const g = new THREE.ExtrudeGeometry(new THREE.Shape([V2(yw, z0), V2(yw + sgn * w, z0), V2(yw, z0 + w)]), { depth: xb - xa, bevelEnabled: false });
+  g.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0)));
+  g.translate(xa, 0, 0); return g;
+}
+
+/* Parede lateral (anel de cantos arredondados) com aberturas reais.
+   O perímetro é discretizado em "estações" com ponto externo e interno
+   correspondentes; cada abertura remove o trecho entre duas estações. */
+function ringStations(P, gaps) {
+  const Wh = P.W / 2, Hh = P.H / 2, t = P.t, r = P.r, ri = r - t, xs = Wh - r, ys = Hh - r;
+  const st = [], marks = {};
+  const add = (ox, oy, ix, iy, mk) => {
+    const last = st[st.length - 1];
+    if (!(last && Math.abs(last.o.x - ox) < 1e-7 && Math.abs(last.o.y - oy) < 1e-7)) st.push({ o: V2(ox, oy), i: V2(ix, iy) });
+    if (mk) marks[mk] = st.length - 1;
+  };
+  const arc = (cx, cy, a0, a1, n = 12) => { for (let k = 1; k <= n; k++) { const a = (a0 + (a1 - a0) * k / n) * DEG, c = Math.cos(a), s = Math.sin(a); add(cx + r * c, cy + r * s, cx + ri * c, cy + ri * s); } };
+  add(-Wh, ys, -Wh + t, ys);
+  for (const g of gaps.filter(g => g.side === 'L').sort((a, b) => b.u1 - a.u1)) { add(-Wh, g.u1, -Wh + t, g.u1, g.id + 'a'); add(-Wh, g.u0, -Wh + t, g.u0, g.id + 'b'); }
+  add(-Wh, -ys, -Wh + t, -ys);
+  arc(-xs, -ys, 180, 270); add(xs, -Hh, xs, -Hh + t); arc(xs, -ys, 270, 360);
+  for (const g of gaps.filter(g => g.side === 'R').sort((a, b) => a.u0 - b.u0)) { add(Wh, g.u0, Wh - t, g.u0, g.id + 'a'); add(Wh, g.u1, Wh - t, g.u1, g.id + 'b'); }
+  add(Wh, ys, Wh - t, ys);
+  arc(xs, ys, 0, 90); add(-xs, Hh, -xs, Hh - t); arc(-xs, ys, 90, 180);
+  const f = st[0], l = st[st.length - 1];
+  if (Math.abs(f.o.x - l.o.x) < 1e-7 && Math.abs(f.o.y - l.o.y) < 1e-7) st.pop();
+  return { st, marks };
+}
+function ringGeometries(L) {
+  const P = L.P, ys = P.H / 2 - P.r, geos = [], used = [];
+  for (const h of L.holes) {
+    const g = { ...h, u0: Math.max(h.u0, -ys + 0.05), u1: Math.min(h.u1, ys - 0.05), z0: Math.max(h.z0, L.zLi), z1: Math.min(h.z1, L.zFi) };
+    g.clipped = g.u0 !== h.u0 || g.u1 !== h.u1 || g.z0 !== h.z0 || g.z1 !== h.z1;
+    if (g.u1 - g.u0 > 0.5 && g.z1 - g.z0 > 0.5) used.push(g);
+    h.clipped = g.clipped; h.valid = g.u1 - g.u0 > 0.5 && g.z1 - g.z0 > 0.5;
+  }
+  const zs = [...new Set([L.zLi, L.zFi, ...used.flatMap(g => [g.z0, g.z1])])].sort((a, b) => a - b);
+  for (let k = 0; k < zs.length - 1; k++) {
+    const za = zs[k], zb = zs[k + 1]; if (zb - za < 1e-4) continue;
+    const mid = (za + zb) / 2, active = used.filter(g => g.z0 < mid && g.z1 > mid);
+    const { st, marks } = ringStations(P, active), n = st.length;
+    if (!active.length) { geos.push(prismZ(st.map(s => s.o), [st.map(s => s.i)], za, zb)); continue; }
+    const gs = active.map(g => ({ a: marks[g.id + 'a'], b: marks[g.id + 'b'] })).sort((p, q) => p.a - q.a);
+    for (let j = 0; j < gs.length; j++) {
+      const start = gs[j].b, end = gs[(j + 1) % gs.length].a, idx = [];
+      for (let i = start; ; i = (i + 1) % n) { idx.push(i); if (i === end) break; }
+      const poly = idx.map(i => st[i].o).concat(idx.slice().reverse().map(i => st[i].i));
+      geos.push(prismZ(poly, [], za, zb));
+    }
+  }
+  return geos;
+}
+
+/* =====================================================================
+   4. PEÇAS — cada uma devolve malhas (exportáveis) e sólidos (verificação)
+   ===================================================================== */
+const PART_INFO = {
+  body:    { name: 'Corpo',          file: 'corpo',          color: 0x121316, printable: true },
+  lid:     { name: 'Tampa traseira', file: 'tampa',          color: 0x16181b, printable: true },
+  divider: { name: 'Divisória',      file: 'divisoria',      color: 0x2c323b, printable: true },
+  bezel:   { name: 'Moldura da tela',file: 'moldura-tela',   color: 0xf3f5f7, printable: true },
+  button:  { name: 'Capa do botão',  file: 'capa-botao',     color: 0x2f7cf6, printable: true },
+  comps:   { name: 'Componentes',    file: 'componentes-ref',color: 0x3a6fd8, printable: false },
+};
+
+function makePart(id) { return { id, meshes: [], solids: [] }; }
+function addMesh(part, geo, opts = {}) { part.meshes.push({ geo, color: opts.color, name: opts.name || part.id, noExport: !!opts.noExport, tex: opts.tex, emissive: opts.emissive }); }
+function addSolid(part, name, box, flags = {}) { part.solids.push({ part: flags.owner || part.id, name, box, ...flags }); }
+function B(x0, x1, y0, y1, z0, z1) { return { x0, x1, y0, y1, z0, z1 }; }
+function addBox(part, name, x0, x1, y0, y1, z0, z1, flags) { addMesh(part, boxG(x0, x1, y0, y1, z0, z1), flags); addSolid(part, name, B(x0, x1, y0, y1, z0, z1), flags || {}); }
+function ribsX(part, name, y, xa, xb, z0, z1, w = K.chanW) {
+  if (xb - xa < 3) return; const o = w / 2;
+  addBox(part, name, xa, xb, y + o, y + o + K.ribT, z0, z1); addBox(part, name, xa, xb, y - o - K.ribT, y - o, z0, z1);
+}
+function ribsY(part, name, x, ya, yb, z0, z1, w = K.chanW) {
+  if (yb - ya < 3) return; const o = w / 2;
+  addBox(part, name, x + o, x + o + K.ribT, ya, yb, z0, z1); addBox(part, name, x - o - K.ribT, x - o, ya, yb, z0, z1);
+}
+
+function buildBody(L) {
+  const P = L.P, part = makePart('body');
+  // Frente com janela da tela e furo do botão
+  const win = rrPts(P.winW, P.winH, 1, 0, L.oled.y, 4);
+  const btn = circlePts(0, L.btn.y, P.btnD / 2, 48);
+  addMesh(part, prismZ(rrPts(P.W, P.H, P.r, 0, 0, 14), [win, btn], L.zFi, L.zF), { name: 'frente' });
+  // Paredes laterais com a abertura USB
+  for (const g of ringGeometries(L)) addMesh(part, g, { name: 'paredes' });
+  // Torres dos parafusos da tampa
+  for (const [x, y] of L.bosses) {
+    addMesh(part, tubeG(x, y, L.bossR, L.S.pilot / 2, L.zLi, L.zFi), { name: 'torre-parafuso' });
+    addSolid(part, 'torre de parafuso', B(x - L.bossR, x + L.bossR, y - L.bossR, y + L.bossR, L.zLi, L.zFi), { wall: true, boss: true });
+  }
+  // Pinos de fixação da OLED (postes + pino para rebitar a quente)
+  const ox = K.oledPcbW / 2 - K.oledHoleInset, oy = K.oledPcbH / 2 - K.oledHoleInset;
+  for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+    const x = sx * ox, y = L.oled.y + sy * oy;
+    addMesh(part, tubeG(x, y, K.postD / 2, 0, L.oled.g0, L.zFi, 24), { name: 'suporte-oled' });
+    addSolid(part, 'suporte da OLED', B(x - 2, x + 2, y - 2, y + 2, L.oled.g0, L.zFi));
+    addMesh(part, tubeG(x, y, K.pinD / 2, 0, L.oled.p0 - 0.8, L.oled.g0 + 0.01, 16), { name: 'pino-oled' });
+  }
+  // Berço do botão: quatro paredes + travas na borda de trás
+  const b = L.btn, fi = b.frameIn, fo = b.frameOut, zb = b.pcb0 - 0.9, by = b.y;
+  addBox(part, 'berço do botão', -fo, fo, by + fi, by + fo, zb, L.zFi);
+  addBox(part, 'berço do botão', -fo, fo, by - fo, by - fi, zb, L.zFi);
+  addBox(part, 'berço do botão', -fo, -fi, by - fi, by + fi, zb, L.zFi);
+  addBox(part, 'berço do botão', fi, fo, by - fi, by + fi, zb, L.zFi);
+  addBox(part, 'trava do botão', -fi, -fi + 0.6 + P.tol, by - 3, by + 3, zb, b.pcb0 - 0.1);
+  addBox(part, 'trava do botão', fi - 0.6 - P.tol, fi, by - 3, by + 3, zb, b.pcb0 - 0.1);
+  // Canais de fios na face interna da frente
+  const xEnd = -(L.bx - L.bossR - 2.5), zr = L.zFi - K.ribH;
+  const yOled = L.oled.y + K.oledPcbH / 2 + 3;
+  if (yOled + K.chanW / 2 + K.ribT < L.iy - 0.5) ribsX(part, 'canal de fios (tela)', yOled, xEnd, -K.oledPcbW / 2 + 2, zr, L.zFi);
+  ribsX(part, 'canal de fios (botão)', b.y, xEnd, -fo - 0.8, zr, L.zFi);
+  // Abas de apoio da divisória (45°, nas paredes superior e inferior)
+  const lx = Math.max(K.ledgeL / 2 + 2, Math.min(P.W / 4, L.bx - L.bossR - K.ledgeL / 2 - 2));
+  for (const xc of [-lx, lx]) for (const sgn of [1, -1]) {
+    const yw = -sgn * L.iy, xa = xc - K.ledgeL / 2, xb = xc + K.ledgeL / 2;
+    addMesh(part, wedgeX(yw - sgn * 0.2, sgn, L.divFront, K.ledgeW + 0.2, xa, xb), { name: 'apoio-divisoria' });
+    const y0 = sgn > 0 ? yw : yw - K.ledgeW, y1 = sgn > 0 ? yw + K.ledgeW : yw;
+    addSolid(part, 'apoio da divisória', B(xa, xb, y0, y1, L.divFront, L.divFront + K.ledgeW), { wall: true, ledge: true });
+  }
+  return part;
+}
+
+function buildLid(L) {
+  const P = L.P, part = makePart('lid');
+  const holes = L.bosses.map(([x, y]) => circlePts(x, y, L.S.clear / 2, 32));
+  addMesh(part, prismZ(rrPts(P.W, P.H, P.r, 0, 0, 14), holes, L.zB, L.zLi), { name: 'tampa' });
+  // Abas de centralização (entram 3 mm no corpo, evitando as torres)
+  const ly = Math.min(L.by - L.bossR - 1, L.acy), lx = Math.min(L.bx - L.bossR - 1, L.acx);
+  const xi = L.ix - P.tol, yi = L.iy - P.tol, z1 = L.zLi + K.lipH;
+  if (ly > 3) { addBox(part, 'aba da tampa', -xi, -xi + K.lipT, -ly, ly, L.zLi, z1); addBox(part, 'aba da tampa', xi - K.lipT, xi, -ly, ly, L.zLi, z1); }
+  if (lx > 3) { addBox(part, 'aba da tampa', -lx, lx, yi - K.lipT, yi, L.zLi, z1); addBox(part, 'aba da tampa', -lx, lx, -yi, -yi + K.lipT, L.zLi, z1); }
+  // Moldura do compartimento da bateria
+  const c = L.comp, f = K.frameT, z0 = L.zLi, zt = L.frameTop;
+  addBox(part, 'compartimento da bateria', c.x0 - f, c.x1 + f, c.y1, c.y1 + f, z0, zt);
+  addBox(part, 'compartimento da bateria', c.x0 - f, c.x1 + f, c.y0 - f, c.y0, z0, zt);
+  addBox(part, 'compartimento da bateria', c.x0 - f, c.x0, c.y0, c.y1, z0, zt);
+  addBox(part, 'compartimento da bateria', c.x1, c.x1 + f, c.y0, c.y1, z0, zt);
+  // Batente entre bateria e bolso de cabos (deixa passagem de 6 mm no centro)
+  const xs = L.bat.x1 + P.batClr, ym = (c.y0 + c.y1) / 2;
+  if (c.y1 - c.y0 > 14) {
+    addBox(part, 'batente da bateria', xs, xs + 1.2, c.y0, ym - 3, z0, z0 + Math.min(4, P.batT * 0.6));
+    addBox(part, 'batente da bateria', xs, xs + 1.2, ym + 3, c.y1, z0, z0 + Math.min(4, P.batT * 0.6));
+  }
+  return part;
+}
+
+function buildDivider(L) {
+  const P = L.P, part = makePart('divider');
+  const slot = rrPts(K.slotW, K.slotL, 1.5, L.slot.x, L.slot.y, 6);
+  addMesh(part, prismZ(rrPts(L.dx * 2, L.dy * 2, L.rd, 0, 0, 14), [slot], L.divBack, L.divFront), { name: 'divisoria' });
+  const zf = L.divFront, e = L.esp, c = L.chg;
+  // Suportes da ESP32
+  for (const [x, y] of [[e.x0 + 3, e.y0 + 3], [e.x0 + 3, e.y1 - 3], [e.x1 - 3, e.y0 + 3], [e.x1 - 3, e.y1 - 3]]) {
+    addMesh(part, tubeG(x, y, K.standD / 2, 0, zf, e.pb, 24), { name: 'suporte-esp32' });
+    addSolid(part, 'suporte da ESP32', B(x - 2.5, x + 2.5, y - 2.5, y + 2.5, zf, e.pb));
+  }
+  // Presilhas de encaixe da ESP32 (perto das pontas, longe dos pinos)
+  const zc = e.pf + P.tol + 0.8;
+  for (const [xa, xb] of [[e.x0 + 1, e.x0 + 5], [e.x1 - 5, e.x1 - 1]]) {
+    addBox(part, 'presilha da ESP32', xa, xb, e.y1 + P.tol, e.y1 + P.tol + K.clipT, zf, zc);
+    addBox(part, 'presilha da ESP32', xa, xb, e.y0 - P.tol - K.clipT, e.y0 - P.tol, zf, zc);
+    addBox(part, 'trava da ESP32', xa, xb, e.y1 - 0.6, e.y1 + P.tol, e.pf + P.tol, zc);
+    addBox(part, 'trava da ESP32', xa, xb, e.y0 - P.tol, e.y0 + 0.6, e.pf + P.tol, zc);
+  }
+  // Berço do módulo de carga (aberto do lado da USB)
+  const f = K.frameT, t = P.tol;
+  addBox(part, 'trilho do carregador', c.x0 + 1, c.x1 - 1, c.y0 + 0.5, c.y0 + 2.5, zf, c.pb);
+  addBox(part, 'trilho do carregador', c.x0 + 1, c.x1 - 1, c.y1 - 2.5, c.y1 - 0.5, zf, c.pb);
+  addBox(part, 'berço do carregador', c.x0 - t - f, c.x1 - 3, c.y1 + t, c.y1 + t + f, zf, c.pf + 1.2);
+  addBox(part, 'berço do carregador', c.x0 - t - f, c.x1 - 3, c.y0 - t - f, c.y0 - t, zf, c.pf + 1.2);
+  addBox(part, 'berço do carregador', c.x0 - t - f, c.x0 - t, c.y0 - t, c.y1 + t, zf, c.pb + 0.6);
+  // Canais de fios
+  const zr = zf + K.ribH;
+  ribsX(part, 'canal de fios (carga → ESP32)', P.chgY, e.x1 + 0.8, c.x0 - t - f - 0.8, zf, zr);
+  const yTop = L.slot.y + K.slotL / 2 + 0.6, yBot = c.y0 - t - f - 0.8;
+  if (L.slot.x + K.slotW / 2 + K.ribT < c.x0 - t - f - 0.2 || L.slot.y + K.slotL / 2 < c.y0 - t - f) {
+    if (yBot - yTop > 3) ribsY(part, 'canal de fios (bateria)', L.slot.x, yTop, yBot, zf, zr, K.slotW);
+  }
+  return part;
+}
+
+function buildBezel(L) {
+  const P = L.P, part = makePart('bezel'), bb = K.bezelB;
+  addMesh(part, prismZ(rrPts(P.winW + 2 * bb, P.winH + 2 * bb, 1 + bb, 0, L.oled.y, 8), [rrPts(P.winW, P.winH, 1, 0, L.oled.y, 4)], L.zF, L.zF + K.bezelT), { name: 'moldura' });
+  return part;
+}
+function buildButton(L) {
+  const P = L.P, part = makePart('button'), b = L.btn;
+  addMesh(part, tubeG(0, b.y, P.btnD / 2 + 2, 0, b.fl0, L.zFi, 48), { name: 'flange' });
+  addMesh(part, tubeG(0, b.y, P.btnD / 2 - P.tol, 0, L.zFi, L.zF + K.capOut, 48), { name: 'haste' });
+  addSolid(part, 'capa do botão', B(-P.btnD / 2 - 2, P.btnD / 2 + 2, b.y - P.btnD / 2 - 2, b.y + P.btnD / 2 + 2, b.fl0, L.zFi));
+  return part;
+}
+
+// Componentes eletrônicos (referência visual e de colisão; não são impressos)
+function buildComponents(L, screenTex) {
+  const P = L.P, part = makePart('comps');
+  const C = { pcbBlue: 0x1f4fb8, pcbBlack: 0x15181d, metal: 0xb9c1ca, black: 0x0a0b0d, white: 0xe9edf1, bat: 0x8f9aa6, batLabel: 0x2f7cf6, red: 0xd03a32 };
+  const o = L.oled, hw = K.oledPcbW / 2, hh = K.oledPcbH / 2;
+  addBox(part, 'vidro da OLED', -K.glassW / 2, K.glassW / 2, o.y - K.glassH / 2, o.y + K.glassH / 2, o.g0, o.g1, { color: C.black, owner: 'c-oled' });
+  addBox(part, 'placa da OLED', -hw, hw, o.y - hh, o.y + hh, o.p0, o.p1, { color: C.pcbBlue, owner: 'c-oled' });
+  addBox(part, 'conector da OLED', -5.1, 5.1, o.y + hh - 3.6, o.y + hh - 1.0, o.h0, o.p0, { color: C.black, owner: 'c-oled' });
+  const scr = new THREE.PlaneGeometry(K.activeW, K.activeH); scr.translate(0, o.y, o.g1 + 0.02);
+  addMesh(part, scr, { tex: screenTex, noExport: true, name: 'tela' });
+
+  const b = L.btn, hb = K.btnPcb / 2, hs = K.btnSw / 2;
+  addMesh(part, tubeG(0, b.y, 1.75, 0, b.act0, b.act1, 20), { color: C.black });
+  addBox(part, 'chave do botão', -hs, hs, b.y - hs, b.y + hs, b.sw0, b.act0, { color: C.black, owner: 'c-btn' });
+  addBox(part, 'placa do botão', -hb, hb, b.y - hb, b.y + hb, b.pcb0, b.sw0, { color: C.pcbBlue, owner: 'c-btn' });
+
+  const e = L.esp, ym = P.espY;
+  addBox(part, 'placa da ESP32', e.x0, e.x1, e.y0, e.y1, e.pb, e.pf, { color: C.pcbBlack, owner: 'c-esp' });
+  addBox(part, 'módulo ESP32', e.x1 - 19, e.x1 - 1, ym - 9, ym + 9, e.pb - K.espBackComp, e.pb, { color: C.metal, owner: 'c-esp' });
+  addBox(part, 'USB da ESP32', e.x0 - K.usbOver, e.x0 + 5, ym - K.usbConW / 2, ym + K.usbConW / 2, e.pb - K.usbConH, e.pb, { color: C.metal, owner: 'c-esp' });
+  addBox(part, 'regulador da ESP32', e.x0 + 9, e.x0 + 15, ym - 4, ym + 4, e.pb - 1.6, e.pb, { color: C.black, owner: 'c-esp' });
+  const hx0 = e.x0 + 6.5, hx1 = e.x1 - 6.5;
+  addBox(part, 'pinos da ESP32', hx0, hx1, e.y1 - 2.7, e.y1 - 0.2, e.pf, e.pf + 2.5, { color: C.black, owner: 'c-esp' });
+  addBox(part, 'pinos da ESP32', hx0, hx1, e.y0 + 0.2, e.y0 + 2.7, e.pf, e.pf + 2.5, { color: C.black, owner: 'c-esp' });
+  addBox(part, 'pinos da ESP32', hx0, hx1, e.y1 - 1.75, e.y1 - 1.15, e.pf + 2.5, e.tip, { color: 0xd4b04a, owner: 'c-esp' });
+  addBox(part, 'pinos da ESP32', hx0, hx1, e.y0 + 1.15, e.y0 + 1.75, e.pf + 2.5, e.tip, { color: 0xd4b04a, owner: 'c-esp' });
+
+  const c = L.chg, cy = P.chgY;
+  addBox(part, 'placa de carga', c.x0, c.x1, c.y0, c.y1, c.pb, c.pf, { color: C.pcbBlue, owner: 'c-chg' });
+  addBox(part, 'USB do módulo de carga', c.x1 - 7.5, c.x1 + 0.6, cy - K.chgUsbW / 2, cy + K.chgUsbW / 2, c.pf, c.pf + K.chgUsbH, { color: C.metal, owner: 'c-chg' });
+  addBox(part, 'componentes do carregador', c.x0 + 3, c.x1 - 9, c.y0 + 2, c.y1 - 2, c.pf, Math.max(c.pf + 0.5, c.top), { color: C.black, owner: 'c-chg' });
+
+  const bt = L.bat;
+  addMesh(part, prismZ(rrPts(P.batL, P.batW, 2, P.batX, P.batY, 6), [], bt.z0, bt.z1), { color: C.bat });
+  addSolid(part, 'bateria', B(bt.x0, bt.x1, bt.y0, bt.y1, bt.z0, bt.z1), { owner: 'c-bat' });
+  addMesh(part, boxG(bt.x0 + 6, bt.x1 - 10, bt.y0 + 6, bt.y1 - 6, bt.z1, bt.z1 + 0.05), { color: C.batLabel });
+  for (const [dy, col] of [[-1.6, C.red], [1.6, C.black]]) {
+    const g = new THREE.CylinderGeometry(0.7, 0.7, P.batClr + K.pocket * 0.6, 10); g.rotateZ(Math.PI / 2);
+    g.translate(bt.x1 + (P.batClr + K.pocket * 0.6) / 2, L.slot.y + dy, bt.z1 - 1.5); addMesh(part, g, { color: col });
+  }
+  return part;
+}
+
+/* =====================================================================
+   5. VERIFICAÇÕES de interferência, paredes e montagem
+   ===================================================================== */
+function overlap(a, b, e = 0.05) {
+  return a.x0 + e < b.x1 - e && b.x0 + e < a.x1 - e && a.y0 + e < b.y1 - e && b.y0 + e < a.y1 - e && a.z0 + e < b.z1 - e && b.z0 + e < a.z1 - e;
+}
+const fmt = (v, d = 1) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+function validate(L, parts) {
+  const P = L.P, out = [];
+  const ok = m => out.push({ lvl: 'ok', m }), warn = m => out.push({ lvl: 'warn', m }), err = m => out.push({ lvl: 'err', m });
+  const solids = parts.flatMap(p => p.solids);
+
+  // 1. Nada atravessa as paredes
+  const outside = [];
+  for (const s of solids) {
+    if (s.wall || s.part === 'body' || s.part === 'bezel' || s.part === 'button') continue;
+    const b = s.box, e = 0.02;
+    let bad = b.x0 < -L.ix - e || b.x1 > L.ix + e || b.y0 < -L.iy - e || b.y1 > L.iy + e || b.z0 < L.zLi - e || b.z1 > L.zFi + e;
+    if (!bad && !/USB/.test(s.name)) for (const x of [b.x0, b.x1]) for (const y of [b.y0, b.y1]) {
+      if (Math.abs(x) > L.acx && Math.abs(y) > L.acy && Math.hypot(Math.abs(x) - L.acx, Math.abs(y) - L.acy) > L.rIn + e) bad = true;
+    }
+    if (bad && !outside.includes(s.name)) outside.push(s.name);
+  }
+  // USB da ESP32 pode encostar na abertura, mas não atravessar a parede
+  const usb = solids.find(s => s.name === 'USB da ESP32');
+  if (usb && usb.box.x0 < -P.W / 2 + 0.01) outside.push('USB da ESP32');
+  outside.length ? err('Atravessa a parede ou a tampa: ' + outside.join(', ') + '.') : ok('Nenhum componente atravessa paredes, frente ou tampa.');
+
+  // 2. Interferência entre peças diferentes
+  const clashes = new Set();
+  for (let i = 0; i < solids.length; i++) for (let j = i + 1; j < solids.length; j++) {
+    const a = solids[i], b = solids[j];
+    if (a.part === b.part) continue;
+    if (overlap(a.box, b.box)) clashes.add(`${a.name} × ${b.name}`);
+  }
+  // Placa divisória (contorno arredondado tratado à parte)
+  for (const s of solids) {
+    if (s.part === 'divider' || s.boss || s.ledge) continue;
+    const b = s.box, e = 0.05;
+    if (b.z0 + e < L.divFront - e && b.z1 - e > L.divBack + e && b.x0 < L.dx && b.x1 > -L.dx && b.y0 < L.dy && b.y1 > -L.dy) clashes.add(`${s.name} × divisória`);
+  }
+  if (clashes.size) err('Interferência: ' + [...clashes].slice(0, 6).join('; ') + (clashes.size > 6 ? ` e mais ${clashes.size - 6}` : '') + '.');
+  else ok('Sem interferência entre componentes, suportes e peças impressas.');
+
+  if (!L.rdOk) err('A divisória não tem espaço para contornar as torres dos parafusos. Aumente largura ou altura.');
+
+  // 3. Bateria protegida
+  let dmin = Infinity;
+  for (const [x, y] of L.bosses) {
+    const dx = Math.max(L.bat.x0 - x, 0, x - L.bat.x1), dy = Math.max(L.bat.y0 - y, 0, y - L.bat.y1);
+    dmin = Math.min(dmin, Math.hypot(dx, dy) - L.bossR);
+  }
+  dmin >= 3 ? ok(`Bateria em compartimento próprio, a ${fmt(dmin)} mm da torre de parafuso mais próxima, com ${fmt(P.batClr)} mm de folga e sem compressão.`)
+    : warn(`Bateria a só ${fmt(Math.max(0, dmin))} mm de uma torre de parafuso. Recomendo pelo menos 3 mm.`);
+  ok('A divisória separa a bateria dos pinos da ESP32 e das pontas de solda.');
+
+  // 4. Aberturas
+  for (const h of L.holes) {
+    const nome = h.id === 'usb' ? 'Abertura USB da ESP32' : 'Abertura USB do módulo de carga';
+    if (!h.valid) err(`${nome}: fora da área reta da parede. Ajuste a posição vertical ou o raio dos cantos.`);
+    else if (h.clipped) warn(`${nome}: foi recortada para caber na parede reta.`);
+    else ok(`${nome} alinhada ao conector: centro a ${fmt((h.u0 + h.u1) / 2)} mm na vertical e ${fmt((h.z0 + h.z1) / 2 - L.zB)} mm da traseira.`);
+  }
+  const fy = P.H / 2 - P.t - 1, fx = P.W / 2 - P.t - 1;
+  const w0 = L.oled.y - P.winH / 2, w1 = L.oled.y + P.winH / 2, b0 = L.btn.y - P.btnD / 2 - 2, b1 = L.btn.y + P.btnD / 2 + 2;
+  if (w1 > fy || w0 < -fy || b1 > fy || b0 < -fy || P.winW / 2 > fx) err('A janela da tela ou o botão saem da face frontal.');
+  else if (b1 > w0 - 1.5 && b0 < w1 + 1.5) err('O botão está sobre a janela da tela.');
+  if (P.winW > K.glassW - 1 || P.winH > K.glassH - 1) warn('A janela é maior que o vidro da OLED: a borda do módulo ficará visível.');
+  else if (P.winW < K.activeW || P.winH < K.activeH) warn('A janela é menor que a área ativa da tela (21,7 × 10,9 mm) e corta parte da imagem.');
+  else ok('Janela da tela cobre a área ativa da SSD1306 e esconde a borda do vidro.');
+
+  // 5. Folgas verticais entre frente e ESP32
+  const e = L.esp, fronts = [
+    { n: 'tela', b: B(-K.oledPcbW / 2, K.oledPcbW / 2, L.oled.y - K.oledPcbH / 2, L.oled.y + K.oledPcbH / 2, L.oled.h0, L.zFi) },
+    { n: 'botão', b: B(-L.btn.frameOut, L.btn.frameOut, L.btn.y - L.btn.frameOut, L.btn.y + L.btn.frameOut, L.btn.pcb0 - 0.9, L.zFi) },
+  ];
+  let gap = Infinity, who = '';
+  for (const f of fronts) {
+    const xy = f.b.x0 < e.x1 && f.b.x1 > e.x0 && f.b.y0 < e.y1 && f.b.y1 > e.y0;
+    if (xy && f.b.z0 - e.tip < gap) { gap = f.b.z0 - e.tip; who = f.n; }
+  }
+  if (gap === Infinity) ok(`Pinos da ESP32 livres: ${fmt(L.zFi - e.tip)} mm até a face interna da frente.`);
+  else if (gap < 0) err(`Pinos da ESP32 batem na ${who} (${fmt(gap)} mm). Aumente a profundidade.`);
+  else if (gap < 1) warn(`Só ${fmt(gap)} mm entre os pinos da ESP32 e a ${who}. Para fios soldados, prefira 1 mm ou mais.`);
+  else ok(`${fmt(gap)} mm entre os pinos da ESP32 e a ${who}.`);
+
+  // 6. Impressão
+  P.t >= 1.6 ? ok(`Parede de ${fmt(P.t)} mm: ${Math.floor(P.t / 0.45)} perímetros com bico de 0,4 mm.`) : warn(`Parede de ${fmt(P.t)} mm é frágil para FDM. Recomendo 1,6 mm ou mais.`);
+  ok(`Encaixes com ${fmt(P.tol, 2)} mm de folga por lado; furos de parafuso ${P.screw}: guia Ø${fmt(L.S.pilot)} mm na torre, passagem Ø${fmt(L.S.clear)} mm na tampa.`);
+  return out;
+}
+
+/* =====================================================================
+   6. CENA 3D
+   ===================================================================== */
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.localClippingEnabled = true;
+stage.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(32, 1, 1, 5000);
+camera.position.set(170, 120, 210);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08; controls.screenSpacePanning = true;
+controls.minDistance = 40; controls.maxDistance = 1500;
+const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(120, 200, 160); scene.add(key);
+const rim = new THREE.DirectionalLight(0xbcd2ff, 0.45); rim.position.set(-160, 60, -140); scene.add(rim);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.35));
+
+const clipPlane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 1e4);
+const root = new THREE.Group(); scene.add(root);
+let grid = null, dims = null;
+
+// Tela animada: rosto do robô em azul
+const scrCanvas = document.createElement('canvas'); scrCanvas.width = 256; scrCanvas.height = 128;
+const scrTex = new THREE.CanvasTexture(scrCanvas); scrTex.encoding = THREE.sRGBEncoding;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function drawScreen(blink) {
+  const g = scrCanvas.getContext('2d');
+  g.fillStyle = '#020306'; g.fillRect(0, 0, 256, 128);
+  g.fillStyle = '#4fa3ff';
+  const eh = blink ? 8 : 52;
+  for (const cx of [78, 178]) { roundRect(g, cx - 30, 64 - eh / 2, 60, eh, Math.min(14, eh / 2)); g.fill(); }
+  g.fillStyle = '#e8f1ff'; g.fillRect(8, 6, 26, 4); g.fillRect(222, 6, 26, 4);
+  scrTex.needsUpdate = true;
+}
+function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+drawScreen(false);
+
+const state = { interior: false, lid: true, dims: true, explode: 0, explodeT: 0, cut: 0 };
+let L = null, PARTS = [], partObjs = {};
+
+// Opacidade das peças impressas na visão interna (raio X)
+const XRAY = { body: 0.14, lid: 0.2, divider: 0.45 };
+const EXPLODE = { lid: -64, divider: -30, comps: 0, bezel: 16, button: 11, body: 0 };
+// Componentes recebem deslocamento próprio na vista explodida
+const COMP_EXPLODE = { 'c-oled': -10, 'c-btn': -10, 'c-esp': -30, 'c-chg': -30, 'c-bat': -46 };
+
+function makeMaterial(color, partId) {
+  const op = state.interior ? XRAY[partId] : undefined, transparent = op !== undefined;
+  return new THREE.MeshStandardMaterial({
+    color, roughness: partId === 'comps' ? 0.6 : 0.48, metalness: 0.05, side: THREE.DoubleSide,
+    envMapIntensity: partId === 'comps' ? 0.8 : 0.45,
+    transparent, opacity: transparent ? op : 1, depthWrite: !transparent,
+    clippingPlanes: [clipPlane],
+  });
+}
+
+function rebuild() {
+  L = computeLayout(P);
+  // descarta geometria anterior
+  root.traverse(o => { if (o.isMesh || o.isLine || o.isSprite) { o.geometry && o.geometry.dispose(); if (o.material && o.material.map && o.material.map !== scrTex) o.material.map.dispose(); o.material && o.material.dispose(); } });
+  root.clear(); partObjs = {};
+  PARTS = [buildBody(L), buildLid(L), buildDivider(L), buildBezel(L), buildButton(L), buildComponents(L, scrTex)];
+  for (const part of PARTS) {
+    const grp = new THREE.Group(); grp.name = part.id; grp.userData.sub = {};
+    for (const m of part.meshes) {
+      let mat;
+      if (m.tex) mat = new THREE.MeshBasicMaterial({ map: m.tex, clippingPlanes: [clipPlane], toneMapped: false });
+      else mat = makeMaterial(m.color != null ? m.color : PART_INFO[part.id].color, part.id);
+      const mesh = new THREE.Mesh(m.geo, mat); mesh.name = m.name;
+      if (part.id === 'comps') {
+        const owner = compOwner(m, L);
+        (grp.userData.sub[owner] ||= new THREE.Group()).add(mesh);
+      } else grp.add(mesh);
+    }
+    for (const [k, g] of Object.entries(grp.userData.sub)) { g.name = k; grp.add(g); }
+    root.add(grp); partObjs[part.id] = grp;
+  }
+  buildGridAndDims();
+  applyState();
+  const checks = validate(L, PARTS);
+  renderChecks(checks); renderDerived(); renderReadout();
+}
+// Associa cada malha de componente ao seu grupo de explosão pela posição em Z/XY.
+function compOwner(m, L) {
+  m.geo.computeBoundingBox(); const b = m.geo.boundingBox, cz = (b.min.z + b.max.z) / 2, cx = (b.min.x + b.max.x) / 2, cy = (b.min.y + b.max.y) / 2;
+  if (cz < L.divBack) return 'c-bat';
+  if (cz > L.zFi - 12 && Math.abs(cx) < K.oledPcbW / 2 + 0.1 && cy > L.oled.y - K.oledPcbH / 2 - 0.1 && cy < L.oled.y + K.oledPcbH / 2 + 0.1 && cz > L.oled.h0 - 0.1) return 'c-oled';
+  if (cz > L.btn.pcb0 - 0.1 && Math.abs(cx) < K.btnPcb / 2 + 0.1 && Math.abs(cy - L.btn.y) < K.btnPcb / 2 + 0.1) return 'c-btn';
+  if (cx >= L.chg.x0 - 0.1) return 'c-chg';
+  return 'c-esp';
+}
+
+function applyState() {
+  const e = state.explodeT, s = Math.max(P.D, 30) / 40;
+  for (const [id, g] of Object.entries(partObjs)) {
+    g.position.z = (EXPLODE[id] || 0) * e * s;
+    if (id === 'comps') for (const [k, sub] of Object.entries(g.userData.sub)) sub.position.z = (COMP_EXPLODE[k] || 0) * e * s;
+  }
+  partObjs.lid.visible = state.lid;
+  const cutX = state.cut <= 0 ? 1e4 : P.W / 2 + 0.5 - state.cut / 100 * (P.W + 1);
+  clipPlane.constant = cutX;
+  if (dims) dims.visible = state.dims && e < 0.02;
+}
+function setInterior(on) {
+  state.interior = on;
+  for (const id of Object.keys(XRAY)) partObjs[id].traverse(o => { if (o.isMesh) { const t = on; o.material.transparent = t; o.material.opacity = t ? XRAY[id] : 1; o.material.depthWrite = !t; o.material.needsUpdate = true; } });
+  document.getElementById('mExt').setAttribute('aria-pressed', String(!on));
+  document.getElementById('mInt').setAttribute('aria-pressed', String(on));
+}
+
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function applyTheme() {
+  scene.background = new THREE.Color(cssVar('--viewport') || '#dfe4ea');
+  if (grid) { const dark = isDark(); grid.material.color = new THREE.Color(dark ? 0x3a4450 : 0xb9c2cc); }
+  if (L) buildGridAndDims();
+}
+function isDark() { const c = new THREE.Color(cssVar('--viewport') || '#dfe4ea'); return (c.r + c.g + c.b) / 3 < 0.4; }
+
+function makeLabel(text) {
+  const cv = document.createElement('canvas'); const g = cv.getContext('2d');
+  const font = '500 34px "IBM Plex Mono", ui-monospace, monospace'; g.font = font;
+  const w = Math.ceil(g.measureText(text).width) + 28; cv.width = w; cv.height = 52;
+  g.font = font; g.fillStyle = cssVar('--panel') || '#fff'; roundRect(g, 1, 1, w - 2, 50, 10); g.fill();
+  g.strokeStyle = cssVar('--accent') || '#1f6fe5'; g.lineWidth = 2; g.stroke();
+  g.fillStyle = cssVar('--ink') || '#111'; g.textBaseline = 'middle'; g.textAlign = 'center'; g.fillText(text, w / 2, 27);
+  const tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, toneMapped: false }));
+  const k = Math.max(P.W, P.H) / 100 * 5.2; sp.scale.set(k * w / 52, k, 1); sp.renderOrder = 10; return sp;
+}
+function buildGridAndDims() {
+  for (const o of [grid, dims]) if (o) { scene.remove(o); o.traverse(c => { c.geometry && c.geometry.dispose(); if (c.material) { c.material.map && c.material.map.dispose(); c.material.dispose(); } }); }
+  const size = Math.ceil(Math.max(P.W, P.D) * 3 / 10) * 10;
+  grid = new THREE.GridHelper(size, size / 10, 0, 0); grid.position.y = -P.H / 2 - 0.3;
+  grid.material.color = new THREE.Color(isDark() ? 0x3a4450 : 0xb9c2cc); grid.material.transparent = true; grid.material.opacity = 0.7;
+  scene.add(grid);
+  dims = new THREE.Group();
+  const col = new THREE.Color(cssVar('--accent') || '#1f6fe5');
+  const mat = new THREE.LineBasicMaterial({ color: col, depthTest: false, transparent: true });
+  const off = Math.max(P.W, P.H) * 0.09 + 4, tick = 3;
+  const seg = (a, b) => { const g = new THREE.BufferGeometry().setFromPoints([a, b]); const l = new THREE.Line(g, mat); l.renderOrder = 9; dims.add(l); };
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const W2 = P.W / 2, H2 = P.H / 2, D2 = P.D / 2;
+  // largura
+  let y = -H2 - off; seg(V(-W2, y, D2), V(W2, y, D2)); seg(V(-W2, y - tick, D2), V(-W2, -H2, D2)); seg(V(W2, y - tick, D2), V(W2, -H2, D2));
+  let lb = makeLabel(`${fmt(P.W)} mm`); lb.position.set(0, y - 5, D2); dims.add(lb);
+  // altura
+  let x = -W2 - off; seg(V(x, -H2, D2), V(x, H2, D2)); seg(V(x - tick, -H2, D2), V(-W2, -H2, D2)); seg(V(x - tick, H2, D2), V(-W2, H2, D2));
+  lb = makeLabel(`${fmt(P.H)} mm`); lb.position.set(x - 10, 0, D2); dims.add(lb);
+  // profundidade
+  x = W2 + off; seg(V(x, -H2, -D2), V(x, -H2, D2)); seg(V(x + tick, -H2, -D2), V(W2, -H2, -D2)); seg(V(x + tick, -H2, D2), V(W2, -H2, D2));
+  lb = makeLabel(`${fmt(P.D)} mm`); lb.position.set(x + 10, -H2, 0); dims.add(lb);
+  scene.add(dims);
+  if (dims) dims.visible = state.dims && state.explodeT < 0.02;
+}
+
+// Câmera e vistas
+const VIEWS = { iso: [0.62, 0.45, 0.75], front: [0, 0, 1], back: [0, 0, -1], left: [-1, 0, 0], right: [1, 0, 0], top: [0, 1, 0.0001] };
+let camTween = null;
+function viewDistance() { const m = Math.max(P.W, P.H, P.D) * 1.35; return m / (2 * Math.tan(camera.fov * DEG / 2)) * (camera.aspect < 1 ? 1.5 / camera.aspect : 1.2); }
+function goView(name, instant) {
+  const d = new THREE.Vector3(...VIEWS[name]).normalize().multiplyScalar(viewDistance());
+  const to = d, from = camera.position.clone(), tFrom = controls.target.clone();
+  document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
+  if (instant || reduceMotion) { camera.position.copy(to); controls.target.set(0, 0, 0); controls.update(); return; }
+  camTween = { t0: performance.now(), from, to, tFrom };
+}
+
+function resize() {
+  const r = stage.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false); camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+
+let lastBlink = 0, blinking = false;
+function loop(now) {
+  requestAnimationFrame(loop);
+  if (camTween) {
+    const k = Math.min(1, (now - camTween.t0) / 520), s = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    camera.position.lerpVectors(camTween.from, camTween.to, s); controls.target.lerpVectors(camTween.tFrom, new THREE.Vector3(), s);
+    if (k >= 1) camTween = null;
+  }
+  const target = state.explode / 100;
+  if (Math.abs(state.explodeT - target) > 0.001) { state.explodeT += (target - state.explodeT) * (reduceMotion ? 1 : 0.18); applyState(); }
+  if (!reduceMotion) {
+    const ph = now % 4200;
+    if (ph < 140 && !blinking) { blinking = true; drawScreen(true); } else if (ph >= 140 && blinking) { blinking = false; drawScreen(false); }
+  }
+  controls.update(); renderer.render(scene, camera);
+}
+
+/* =====================================================================
+   7. INTERFACE
+   ===================================================================== */
+const controlsEl = document.getElementById('controls');
+const inputs = {};
+function buildControls() {
+  controlsEl.innerHTML = '';
+  for (const g of GROUPS) {
+    const det = document.createElement('details'); det.open = g.id === 'case' || g.id === 'bat';
+    const sum = document.createElement('summary'); sum.textContent = g.title;
+    const sub = document.createElement('span'); sub.className = 'sub'; sub.id = 'sum-' + g.id; sum.appendChild(sub);
+    det.appendChild(sum);
+    const box = document.createElement('div'); box.className = 'group';
+    for (const f of g.fields) {
+      const [k, label, min, max, step, note] = f;
+      if (min === 'check') {
+        const lab = document.createElement('label'); lab.className = 'check';
+        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = 'p-' + k; cb.checked = !!P[k];
+        cb.addEventListener('change', () => setParam(k, cb.checked));
+        lab.append(cb, document.createTextNode(label)); box.appendChild(lab); inputs[k] = { cb }; continue;
+      }
+      const row = document.createElement('div'); row.className = 'row';
+      const lbl = document.createElement('label'); lbl.className = 'lbl'; lbl.textContent = label; lbl.htmlFor = 'p-' + k;
+      if (note || (typeof max === 'object' ? null : null)) { const sm = document.createElement('small'); sm.textContent = note; lbl.appendChild(sm); }
+      row.appendChild(lbl);
+      if (min === 'select') {
+        const sel = document.createElement('select'); sel.id = 'p-' + k;
+        for (const o of max) { const op = document.createElement('option'); op.value = o; op.textContent = o; sel.appendChild(op); }
+        sel.value = P[k]; sel.addEventListener('change', () => setParam(k, sel.value));
+        row.appendChild(sel); inputs[k] = { sel };
+      } else {
+        const numWrap = document.createElement('div'); numWrap.className = 'num';
+        const num = document.createElement('input'); num.type = 'number'; num.id = 'p-' + k; num.min = min; num.max = max; num.step = step; num.value = P[k]; num.inputMode = 'decimal';
+        const unit = document.createElement('span'); unit.textContent = 'mm'; numWrap.append(num, unit);
+        const rng = document.createElement('input'); rng.type = 'range'; rng.min = min; rng.max = max; rng.step = step; rng.value = P[k]; rng.id = 'r-' + k; rng.setAttribute('aria-label', label);
+        rng.addEventListener('input', () => { num.value = rng.value; setParam(k, +rng.value); });
+        num.addEventListener('change', () => { let v = parseFloat(String(num.value).replace(',', '.')); if (!isFinite(v)) v = P[k]; v = Math.min(max, Math.max(min, v)); num.value = v; rng.value = v; setParam(k, v); });
+        row.append(numWrap, rng); inputs[k] = { num, rng };
+      }
+      box.appendChild(row);
+    }
+    det.appendChild(box); controlsEl.appendChild(det);
+  }
+  updateSummaries();
+}
+function syncInputs() {
+  for (const [k, el] of Object.entries(inputs)) {
+    if (el.cb) el.cb.checked = !!P[k]; else if (el.sel) el.sel.value = P[k]; else { el.num.value = P[k]; el.rng.value = P[k]; }
+  }
+  updateSummaries();
+}
+function updateSummaries() {
+  const s = (id, t) => { const el = document.getElementById('sum-' + id); if (el) el.textContent = t; };
+  s('case', `${fmt(P.W, 0)}×${fmt(P.H, 0)}×${fmt(P.D, 0)}`); s('esp', `${fmt(P.espL, 0)}×${fmt(P.espW, 0)}`);
+  s('bat', `${fmt(P.batL, 0)}×${fmt(P.batW, 0)}×${fmt(P.batT, 0)}`); s('chg', `${fmt(P.chgL, 0)}×${fmt(P.chgW, 0)}`); s('front', `Ø${fmt(P.btnD)}`);
+}
+let pending = false;
+function setParam(k, v) {
+  P[k] = v;
+  if (k === 't' || k === 'W' || k === 'H' || k === 'r') { const r = clampRadius(P); if (r !== P.r) { P.r = r; if (inputs.r) { inputs.r.num.value = r; inputs.r.rng.value = r; } } }
+  saveParams(); updateSummaries();
+  if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; rebuild(); }); }
+}
+
+function renderChecks(list) {
+  const ul = document.getElementById('checks'); ul.innerHTML = '';
+  const order = { err: 0, warn: 1, ok: 2 };
+  for (const c of list.slice().sort((a, b) => order[a.lvl] - order[b.lvl])) {
+    const li = document.createElement('li'); const d = document.createElement('span'); d.className = 'dot ' + (c.lvl === 'ok' ? '' : c.lvl);
+    const t = document.createElement('span'); t.textContent = c.m; li.append(d, t); ul.appendChild(li);
+  }
+  const nE = list.filter(c => c.lvl === 'err').length, nW = list.filter(c => c.lvl === 'warn').length;
+  const st = document.getElementById('status'); st.innerHTML = '';
+  const dot = document.createElement('span'); dot.className = 'dot ' + (nE ? 'err' : nW ? 'warn' : '');
+  const tx = document.createElement('span');
+  tx.textContent = nE ? `${nE} problema${nE > 1 ? 's' : ''} impede${nE > 1 ? 'm' : ''} a montagem` : nW ? `Pronto para imprimir, com ${nW} aviso${nW > 1 ? 's' : ''}` : 'Pronto para imprimir: sem interferências';
+  st.append(dot, tx);
+  document.getElementById('checkCount').textContent = `${list.length - nE - nW}/${list.length} ok`;
+}
+function renderDerived() {
+  const c = L.comp, rows = [
+    ['Espaço interno', `${fmt(L.ix * 2)} × ${fmt(L.iy * 2)} × ${fmt(L.zFi - L.zLi)} mm`],
+    ['Compartimento da bateria', `${fmt(c.x1 - c.x0 - K.pocket)} × ${fmt(c.y1 - c.y0)} × ${fmt(L.divBack - L.zLi)} mm`],
+    ['Bolso para cabos da bateria', `${fmt(K.pocket)} mm`],
+    ['Altura livre p/ ESP32 + frente', `${fmt(L.zFi - L.divFront)} mm`],
+    ['Suportes da ESP32', `${fmt(L.esp.stand)} mm de altura`],
+    ['Divisória (peça)', `${fmt(L.dx * 2)} × ${fmt(L.dy * 2)} × ${fmt(P.divT)} mm`],
+    ['Torres', `Ø${fmt(L.S.boss)} mm, guia Ø${fmt(L.S.pilot)} mm`],
+    ['Parafusos sugeridos', `4 × ${P.screw} × ${fmt(Math.min(12, Math.floor(P.lidT + 6)), 0)} mm, autoatarraxante`],
+  ];
+  const el = document.getElementById('derived'); el.innerHTML = '';
+  for (const [k, v] of rows) { const d = document.createElement('div'); d.append(document.createTextNode(k + ': ')); const b = document.createElement('b'); b.textContent = v; d.appendChild(b); el.appendChild(d); }
+}
+function renderReadout() {
+  const el = document.getElementById('readout'); el.innerHTML = '';
+  const line = (k, v) => { const d = document.createElement('div'); d.append(document.createTextNode(k + ' ')); const b = document.createElement('b'); b.textContent = v; d.appendChild(b); el.appendChild(d); };
+  line('Externo', `${fmt(P.W)} × ${fmt(P.H)} × ${fmt(P.D)} mm`);
+  line('Parede', `${fmt(P.t)} mm · raio ${fmt(P.r)} mm`);
+}
+
+// Botões da barra
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => goView(b.dataset.view)));
+document.getElementById('mExt').addEventListener('click', () => setInterior(false));
+document.getElementById('mInt').addEventListener('click', () => setInterior(true));
+document.getElementById('mLid').addEventListener('click', e => { state.lid = !state.lid; e.currentTarget.setAttribute('aria-pressed', String(state.lid)); applyState(); });
+document.getElementById('mDim').addEventListener('click', e => { state.dims = !state.dims; e.currentTarget.setAttribute('aria-pressed', String(state.dims)); applyState(); });
+document.getElementById('explode').addEventListener('input', e => { state.explode = +e.target.value; document.getElementById('explodeOut').textContent = state.explode + '%'; });
+document.getElementById('cut').addEventListener('input', e => {
+  state.cut = +e.target.value; document.getElementById('cutOut').textContent = state.cut ? state.cut + '%' : '—';
+  applyState();
+});
+document.getElementById('reset').addEventListener('click', () => { P = { ...DEFAULTS }; saveParams(); syncInputs(); rebuild(); goView('iso'); toast('Medidas originais restauradas'); });
+
+let toastT = 0;
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3200); }
+
+// Legenda e seleção de peças para exportar
+const partChecks = document.getElementById('partChecks'), legend = document.getElementById('legend');
+for (const [id, info] of Object.entries(PART_INFO)) {
+  const lab = document.createElement('label'); lab.className = 'check';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = 'x-' + id; cb.checked = info.printable;
+  const sw = document.createElement('span'); sw.className = 'swatch'; sw.style.background = '#' + info.color.toString(16).padStart(6, '0');
+  lab.append(cb, sw, document.createTextNode(info.name)); partChecks.appendChild(lab);
+  const lg = document.createElement('span'); const sw2 = sw.cloneNode(); lg.append(sw2, document.createTextNode(info.name)); legend.appendChild(lg);
+}
+
+/* =====================================================================
+   8. EXPORTAÇÃO (STL / OBJ / GLB) — geometria real, em mm
+   ===================================================================== */
+function mergeGeometries(geos) {
+  let count = 0; const parts = geos.map(g => { const n = g.index ? g.toNonIndexed() : g.clone(); n.computeVertexNormals(); count += n.attributes.position.count; return n; });
+  const pos = new Float32Array(count * 3), nor = new Float32Array(count * 3); let o = 0;
+  for (const g of parts) { pos.set(g.attributes.position.array, o); nor.set(g.attributes.normal.array, o); o += g.attributes.position.array.length; g.dispose(); }
+  const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.BufferAttribute(pos, 3)); out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  return out;
+}
+// Orientação de impressão (Z para cima): corpo com a frente no plano; demais peças com a face de trás no plano.
+function partMatrix(id, mode) {
+  const toZup = new THREE.Matrix4().makeRotationX(Math.PI / 2); // Y↑ → Z↑, frente para -Y
+  if (mode === 'assembly') return toZup;
+  if (id === 'body') return new THREE.Matrix4().makeRotationX(Math.PI);
+  return new THREE.Matrix4();
+}
+function buildExport(fmtName) {
+  const mode = document.getElementById('orient').value;
+  const sel = Object.keys(PART_INFO).filter(id => document.getElementById('x-' + id).checked && (mode === 'assembly' || PART_INFO[id].printable));
+  if (!sel.length) return null;
+  const items = [];
+  for (const id of sel) {
+    const part = PARTS.find(p => p.id === id); if (!part) continue;
+    const M = partMatrix(id, mode);
+    if (id === 'comps') {
+      // componentes: um objeto por cor para manter materiais
+      const byColor = {};
+      for (const m of part.meshes) if (!m.noExport) (byColor[m.color] ||= []).push(m.geo.clone().applyMatrix4(M));
+      for (const [col, gs] of Object.entries(byColor)) items.push({ id, name: 'componentes_ref', color: +col, geo: mergeGeometries(gs) });
+    } else {
+      items.push({ id, name: PART_INFO[id].file, color: PART_INFO[id].color, geo: mergeGeometries(part.meshes.filter(m => !m.noExport).map(m => m.geo.clone().applyMatrix4(M))) });
+    }
+  }
+  if (mode === 'print') {
+    // Dispõe as peças lado a lado sobre o plano (Z = 0), 10 mm entre elas
+    let x = 0; const placed = [];
+    for (const it of items) { it.geo.computeBoundingBox(); const b = it.geo.boundingBox; it.geo.translate(x - b.min.x, -(b.min.y + b.max.y) / 2, -b.min.z); x += b.max.x - b.min.x + 10; placed.push(it); }
+    const shift = -x / 2 + 5; for (const it of placed) it.geo.translate(shift, 0, 0);
+  }
+  if (fmtName === 'glb') {
+    const back = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
+    const s = document.getElementById('glbMeters').checked ? 0.001 : 1;
+    for (const it of items) it.geo.applyMatrix4(back).applyMatrix4(new THREE.Matrix4().makeScale(s, s, s));
+  }
+  return { items, mode };
+}
+function itemsToGroup(items) {
+  const g = new THREE.Group(); g.name = 'robo_oled_case';
+  for (const it of items) { const m = new THREE.Mesh(it.geo, new THREE.MeshStandardMaterial({ color: it.color, roughness: 0.6, metalness: 0 })); m.name = it.name; m.material.name = it.name; g.add(m); }
+  g.updateMatrixWorld(true); return g;
+}
+function readme(mode) {
+  const lines = [
+    'Case do Robô OLED — arquivos 3D', '',
+    'Unidades: milímetros (STL/OBJ). GLB conforme opção escolhida (padrão glTF: metros).',
+    mode === 'print' ? 'Posição: peças deitadas no plano de impressão (Z para cima). Corpo com a frente para baixo.' : 'Posição: montada, eixo Z para cima, frente voltada para -Y.',
+    '', 'Peças:', '- corpo: frente, paredes, torres dos parafusos, suportes da tela e do botão, canais de fios, apoios da divisória.',
+    '- tampa: tampa traseira removível com abas de centralização e moldura do compartimento da bateria.',
+    '- divisoria: placa que separa a bateria da eletrônica, com suportes e presilhas da ESP32 e berço do módulo de carga.',
+    '- moldura-tela: moldura branca colada em volta da janela da tela.', '- capa-botao: capa azul com flange (entra por dentro do corpo).',
+    '', 'Montagem: tela e botão na frente; divisória apoiada nas abas; bateria na moldura da tampa; tampa com 4 parafusos ' + P.screw + '.',
+    'O corpo é composto de sólidos fechados que se tocam; fatiadores como Cura, PrusaSlicer, Bambu Studio e OrcaSlicer unem essas partes automaticamente.',
+    '', 'Parâmetros usados:', JSON.stringify(P, null, 2),
+  ];
+  return lines.join('\n');
+}
+
+// ZIP sem compressão (formato STORE) para entregar vários arquivos de uma vez
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xffffffff; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+function makeZip(files) {
+  const enc = new TextEncoder(), chunks = [], central = []; let offset = 0;
+  const d = new Date(), time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  for (const f of files) {
+    const name = enc.encode(f.name), data = f.data instanceof Uint8Array ? f.data : (typeof f.data === 'string' ? enc.encode(f.data) : new Uint8Array(f.data));
+    const crc = crc32(data), h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true); h.setUint16(10, time, true); h.setUint16(12, date, true);
+    h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+    chunks.push(new Uint8Array(h.buffer), name, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true); c.setUint16(12, time, true); c.setUint16(14, date, true);
+    c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, name.length, true);
+    c.setUint32(42, offset, true);
+    central.push(new Uint8Array(c.buffer), name);
+    offset += 30 + name.length + data.length;
+  }
+  const cdSize = central.reduce((s, u) => s + u.length, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cdSize, true); e.setUint32(16, offset, true);
+  return new Blob([...chunks, ...central, new Uint8Array(e.buffer)], { type: 'application/zip' });
+}
+
+async function exportModel(kind) {
+  const ex = buildExport(kind);
+  if (!ex) { toast('Marque ao menos uma peça para exportar.'); return; }
+  const { items, mode } = ex, base = 'robo-oled-case', suffix = mode === 'print' ? 'impressao' : 'montada', files = [];
+  try {
+    if (kind === 'stl') {
+      const exp = new THREE.STLExporter();
+      for (const it of items.filter(i => i.id !== 'comps')) files.push({ name: `${base}_${it.name}.stl`, data: new Uint8Array(exp.parse(itemsToGroup([it]), { binary: true }).buffer) });
+      files.push({ name: `${base}_conjunto_${suffix}.stl`, data: new Uint8Array(exp.parse(itemsToGroup(items), { binary: true }).buffer) });
+    } else if (kind === 'obj') {
+      files.push({ name: `${base}_${suffix}.obj`, data: '# Case do Robô OLED — unidades em mm\n' + new THREE.OBJExporter().parse(itemsToGroup(items)) });
+    } else {
+      const buf = await new Promise((res, rej) => new THREE.GLTFExporter().parse(itemsToGroup(items), res, rej, { binary: true }));
+      files.push({ name: `${base}_${suffix}.glb`, data: new Uint8Array(buf) });
+    }
+  } catch (e) { toast('Não foi possível gerar o arquivo: ' + (e && e.message || e)); return; }
+  files.push({ name: 'LEIA-ME.txt', data: readme(mode) });
+  await deliver(`${base}_${kind.toUpperCase()}_${suffix}.zip`, makeZip(files), files[0]);
+  for (const it of items) it.geo.dispose();
+}
+
+async function getDownloads() { try { return window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { return null; } }
+async function deliver(filename, blob, rawFile) {
+  const dl = await getDownloads();
+  if (dl) {
+    try { await dl.save({ filename, data: blob }); toast('Arquivo salvo: ' + filename); }
+    catch (e) {
+      const code = e && e.code;
+      if (code === 'declined') toast('Download cancelado.');
+      else if (code === 'rate_limited') toast('Já existe um download aguardando confirmação. Tente de novo em instantes.');
+      else toast('O download não está disponível nesta visualização.');
+    }
+    return;
+  }
+  // Fora do Claude (arquivo aberto localmente): download direto
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); toast('Arquivo gerado: ' + filename);
+}
+document.querySelectorAll('[data-export]').forEach(b => b.addEventListener('click', () => exportModel(b.dataset.export)));
+document.getElementById('saveJson').addEventListener('click', () => deliver('robo-oled-case_parametros.json', new Blob([JSON.stringify(P, null, 2)], { type: 'application/json' })));
+document.getElementById('loadJsonBtn').addEventListener('click', () => document.getElementById('loadJson').click());
+document.getElementById('loadJson').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { P = sanitize(JSON.parse(await f.text())); saveParams(); syncInputs(); rebuild(); toast('Parâmetros carregados.'); }
+  catch (err) { toast('Arquivo inválido: use um .json salvo por este projeto.'); }
+  e.target.value = '';
+});
+
+// Tema
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+// Início
+buildControls();
+resize();
+rebuild();
+applyTheme();
+goView('iso', true);
+requestAnimationFrame(loop);
+window.__case = { get P() { return P; }, get L() { return L; }, PARTS: () => PARTS, buildExport, validate: () => validate(L, PARTS), setParam };
+</script>
